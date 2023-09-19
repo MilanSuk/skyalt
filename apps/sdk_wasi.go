@@ -8,20 +8,22 @@ import (
 
 func main() {}
 
-//export _sa_init
-func _sa_init(storeMem SAMem, stylesMem SAMem) {
-	jsStyles := _SA_ptrToBytes(stylesMem)
-	json.Unmarshal(jsStyles, &styles)
+//export _sa_render
+func _sa_render() uint32 {
+	return Render()
+}
 
+//export _sa_init
+func _sa_init(storeMem SAMem) {
 	jsStore := _SA_ptrToBytes(storeMem)
-	if !open(jsStore) {
+	if !Open(jsStore) {
 		json.Unmarshal(jsStore, &store)
 	}
 }
 
 //export _sa_exit
 func _sa_exit() {
-	js, written := save()
+	js, written := Save()
 	if !written {
 		js, _ = json.MarshalIndent(&store, "", "")
 	}
@@ -31,8 +33,16 @@ func _sa_exit() {
 //export _sa_storage_write
 func _sa_storage_write(jsonMem SAMem) int64
 
-//export _sa_translations_set
-func _sa_translations_set(jsonMem SAMem) {
+//export _sa_styles
+func _sa_styles(jsonMem SAMem) {
+	jsStyles := _SA_ptrToBytes(jsonMem)
+	styles = SA_Styles{} //reset ids
+	json.Unmarshal(jsStyles, &styles)
+	Styles()
+}
+
+//export _sa_translations
+func _sa_translations(jsonMem SAMem) {
 	e := reflect.ValueOf(&trns).Elem()
 	for i := 0; i < e.NumField(); i++ {
 		e.Field(i).SetString("{" + e.Type().Field(i).Name + "}")
@@ -141,7 +151,7 @@ func _sa_paint_text(x, y, w, h float64,
 	selection, edit, tabIsChar, enable uint32) int64
 
 //export _sa_paint_textWidth
-func _sa_paint_textWidth(valueMem SAMem, fontId uint32, ratioH float64, cursorPos int64) float64
+func _sa_paint_textWidth(valueMem SAMem, fontPathMem SAMem, ratioH float64, cursorPos int64) float64
 
 //export _sa_paint_title
 func _sa_paint_title(x, y, w, h float64, valueMem SAMem) int64
@@ -174,26 +184,16 @@ func _sa_swp_drawSlider(value float64, min float64, max float64, jump float64, t
 func _sa_swp_drawProgress(value float64, maxValue float64, titleMem SAMem, margin float64, enable uint32) int64
 
 //export _sa_swp_drawText
-func _sa_swp_drawText(cd_r, cd_g, cd_b, cd_a uint32,
-	valueMem SAMem, titleMem SAMem, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, alignV uint32, ratioH float64,
-	enable uint32, selection uint32) int64
+func _sa_swp_drawText(style uint32, valueMem SAMem, titleMem SAMem, enable uint32, selection uint32) int64
 
 //export _sa_swp_getEditValue
 func _sa_swp_getEditValue(outMem SAMem) int64
 
 //export _sa_swp_drawEdit
-func _sa_swp_drawEdit(cd_r, cd_g, cd_b, cd_a uint32,
-	valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, alignV uint32, ratioH float64,
-	enable uint32,
-	outMem SAMem) int64
+func _sa_swp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, enable uint32, outMem SAMem) int64
 
 //export _sa_swp_drawCombo
-func _sa_swp_drawCombo(cd_r, cd_g, cd_b, cd_a uint32,
-	value uint64, optionsMem SAMem, titleMem SAMem, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, ratioH float64,
-	enable uint32) int64
+func _sa_swp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem SAMem, titleMem SAMem, enable uint32) int64
 
 //export _sa_swp_drawCheckbox
 func _sa_swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32, value uint64, descriptionMem SAMem, titleMem SAMem, height float64, align uint32, alignV uint32, enable uint32) int64

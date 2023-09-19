@@ -198,7 +198,7 @@ func Calendar(value int64, page int64) (int64, int64) {
 			page = tm.AddDate(0, -1, 0).Unix()
 		}
 
-		SA_Text(MonthText(int(tm.Month()))+" "+strconv.Itoa(tm.Year())).Align(1).Show(2, 1, 3, 1)
+		SA_TextCenter(MonthText(int(tm.Month()))+" "+strconv.Itoa(tm.Year())).Show(2, 1, 3, 1)
 
 		if SA_ButtonLight(">").Show(5, 1, 1, 1).click {
 			page = tm.AddDate(0, 1, 0).Unix()
@@ -307,8 +307,7 @@ func CalendarButton(dialogNameMem SAMem, value int64, page int64, enable uint32)
 	return value
 }
 
-//export render
-func render() uint32 {
+func Render() uint32 {
 
 	SA_ColMax(0, 100)
 	SA_RowMax(0, 100)
@@ -325,7 +324,7 @@ var g_ButtonOutsideMonth _SA_Style
 var g_ButtonOutsideMonthSelect _SA_Style
 var g_ButtonBorderDate _SA_Style
 
-func open(buff []byte) bool {
+func Styles() {
 	g_ButtonSelect = styles.Button
 	g_ButtonSelect.Main.Color = SA_ThemeWhite()
 	g_ButtonSelect.Main.Content_color = SA_ThemeGrey(0.4)
@@ -346,12 +345,15 @@ func open(buff []byte) bool {
 	g_ButtonBorderDate = styles.ButtonBorder
 	g_ButtonBorderDate.FontAlignH(0)
 	g_ButtonBorderDate.Id = 0
+}
+
+func Open(buff []byte) bool {
 
 	return false //default json
 }
-func save() ([]byte, bool) {
+func Save() ([]byte, bool) {
 	return nil, false //default json
 }
-func debug() (int, int, string) {
+func Debug() (int, int, string) {
 	return -1, 00, "main"
 }

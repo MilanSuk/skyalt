@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"unicode/utf8"
 )
 
 type DivStyle struct {
@@ -26,10 +27,8 @@ type DivStyle struct {
 	Border_top, Border_bottom, Border_left, Border_right     float64 //from cell
 	Padding_top, Padding_bottom, Padding_left, Padding_right float64 //from cell
 
-	Margin_top_color, Margin_bottom_color, Margin_left_color, Margin_right_color     OsCd
-	Border_top_color, Border_bottom_color, Border_left_color, Border_right_color     OsCd
-	Padding_top_color, Padding_bottom_color, Padding_left_color, Padding_right_color OsCd
-	Content_color                                                                    OsCd
+	Border_color  OsCd
+	Content_color OsCd
 
 	Color OsCd
 
@@ -59,36 +58,50 @@ func (st *DivStyle) Border(v float64) {
 	st.Border_left = v
 	st.Border_right = v
 }
-func (st *DivStyle) BorderCd(v OsCd) {
-	st.Border_top_color = v
-	st.Border_bottom_color = v
-	st.Border_left_color = v
-	st.Border_right_color = v
+func (st *DivStyle) Padding(v float64) {
+	st.Padding_top = v
+	st.Padding_bottom = v
+	st.Padding_left = v
+	st.Padding_right = v
 }
 
-func _paintBorder(out OsV4, top, bottom, left, right float64, topCd, bottomCd, leftCd, rightCd OsCd, asset *Asset) OsV4 {
+func _paintBorder(out OsV4, top, bottom, left, right float64, cd OsCd, asset *Asset) OsV4 {
 
 	stt := asset.app.root.levels.GetStack()
 
 	in := out.Inner(asset.getCellWidth(top), asset.getCellWidth(bottom), asset.getCellWidth(left), asset.getCellWidth(right))
 
-	if topCd.A > 0 {
+	if cd.A == 0 {
+		return in
+	}
+
+	{
 		q := OsV4{Start: out.Start, Size: OsV2{out.Size.X, asset.getCellWidth(top)}}
-		stt.buff.AddRect(q, topCd, 0)
+		if q.Is() {
+			stt.buff.AddRect(q, cd, 0)
+		}
 	}
-	if bottomCd.A > 0 {
+
+	{
 		q := OsV4{Start: OsV2{out.Start.X, in.Start.Y + in.Size.Y}, Size: OsV2{out.Size.X, asset.getCellWidth(bottom)}}
-		stt.buff.AddRect(q, bottomCd, 0)
+		if q.Is() {
+			stt.buff.AddRect(q, cd, 0)
+		}
 	}
 
-	if leftCd.A > 0 {
+	{
 		q := OsV4{Start: out.Start, Size: OsV2{asset.getCellWidth(left), out.Size.Y}}
-		stt.buff.AddRect(q, leftCd, 0)
+		if q.Is() {
+			stt.buff.AddRect(q, cd, 0)
+		}
 	}
 
-	if rightCd.A > 0 {
+	{
 		q := OsV4{Start: OsV2{in.Start.X + in.Size.X, out.Start.Y}, Size: OsV2{asset.getCellWidth(right), out.Size.Y}}
-		stt.buff.AddRect(q, rightCd, 0)
+		if q.Is() {
+
+			stt.buff.AddRect(q, cd, 0)
+		}
 	}
 
 	return in
@@ -103,25 +116,28 @@ func DivStyle_getCoord(coord OsV4, x, y, w, h float64) OsV4 {
 		int(float64(coord.Size.Y)*h))
 }
 
-func (st *DivStyle) Paint(coord OsV4, text string, image_path string, image_margin float64, inside bool, asset *Asset) OsV4 {
+func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_path string, image_margin float64, asset *Asset) OsV4 {
 
 	stt := asset.app.root.levels.GetStack()
 	if stt.stack == nil || stt.stack.crop.IsZero() {
 		return OsV4{}
 	}
 
-	border := _paintBorder(coord, st.Margin_top, st.Margin_bottom, st.Margin_left, st.Margin_right, st.Margin_top_color, st.Margin_bottom_color, st.Margin_left_color, st.Margin_right_color, asset)
-	padding := _paintBorder(border, st.Border_top, st.Border_bottom, st.Border_left, st.Border_right, st.Border_top_color, st.Border_bottom_color, st.Border_left_color, st.Border_right_color, asset)
-	content := _paintBorder(padding, st.Padding_top, st.Padding_bottom, st.Padding_left, st.Padding_right, st.Padding_top_color, st.Padding_bottom_color, st.Padding_left_color, st.Padding_right_color, asset)
+	border := _paintBorder(coord, st.Margin_top, st.Margin_bottom, st.Margin_left, st.Margin_right, OsCd{}, asset)
+	padding := _paintBorder(border, st.Border_top, st.Border_bottom, st.Border_left, st.Border_right, st.Border_color, asset)
+	content := _paintBorder(padding, st.Padding_top, st.Padding_bottom, st.Padding_left, st.Padding_right, OsCd{}, asset)
 
 	if st.Content_color.A > 0 {
-		stt.buff.AddRect(content, st.Content_color, 0)
+		stt.buff.AddRect(padding, st.Content_color, 0)
 	}
 
 	coordImg := content
 	coordText := content
 
-	if len(image_path) > 0 && len(text) > 0 {
+	isImg := (len(image_path) > 0)
+	isText := (len(text) > 0 || textEdit)
+
+	if isImg && isText {
 
 		w := float64(asset.app.root.ui.Cell()) / float64(stt.stack.canvas.Size.X)
 
@@ -138,30 +154,37 @@ func (st *DivStyle) Paint(coord OsV4, text string, image_path string, image_marg
 		}
 	}
 
-	if len(image_path) > 0 {
+	if isImg {
 		path, err := InitResourcePath(asset.app.root, image_path, asset.app.name)
 		if err != nil {
 			asset.AddLogErr(err)
 		} else {
 			coordImg = coordImg.Inner(asset.getCellWidth(image_margin), asset.getCellWidth(image_margin), asset.getCellWidth(image_margin), asset.getCellWidth(image_margin))
 
+			imgRectBackup := stt.buff.AddCrop(stt.stack.crop.GetIntersect(coordImg))
 			stt.buff.AddImage(path, false, coordImg, st.Color, st.Image_alignV, st.Image_alignH, st.Image_fill)
+			stt.buff.AddCrop(imgRectBackup)
 		}
 	}
 
-	if len(text) > 0 {
-		font := asset.app.root.fonts.Get(st.Font_path)
-		if font == nil {
-			asset.AddLogErr(fmt.Errorf("Font(%s) not found", st.Font_path))
-			font = asset.app.root.fonts.Get(SKYALT_FONT_0) //load default
-		}
-		if font != nil {
-			stt.buff.AddText(text, coordText, font, st.Color, asset.getCellWidth(st.Font_height), OsV2{st.Font_alignH, st.Font_alignV}, nil)
-		}
-	}
+	if isText {
+		// crop
+		imgRectBackup := stt.buff.AddCrop(stt.stack.crop.GetIntersect(coordText))
 
-	if inside && len(st.Cursor) > 0 {
-		asset.paint_cursor(st.Cursor)
+		//one liner
+		active := asset._VmDraw_Text_line(coordText, 0, OsV2{utf8.RuneCountInString(text), 0},
+			text, textOrig,
+			st.Color,
+			st.Font_height, 1, 0, 0,
+			st.Font_path, st.Font_alignH, st.Font_alignV,
+			textSelect, textEdit, false)
+
+		if active {
+			asset._VmDraw_resetKeys(textEdit)
+		}
+
+		// crop back
+		stt.buff.AddCrop(imgRectBackup)
 	}
 
 	return content
@@ -175,6 +198,14 @@ type SwpStyle struct {
 	Disable     DivStyle
 }
 
+func (b *SwpStyle) Color(v OsCd) *SwpStyle {
+	b.Main.Color = v
+	b.Hover.Color = v
+	b.Touch_hover.Color = v
+	b.Touch_out.Color = v
+	b.Disable.Color = v
+	return b
+}
 func (b *SwpStyle) FontH(v float64) *SwpStyle {
 	b.Main.Font_height = v
 	b.Hover.Font_height = v
@@ -218,49 +249,97 @@ func (b *SwpStyle) Border(v float64) *SwpStyle {
 	b.Disable.Border(v)
 	return b
 }
+
 func (b *SwpStyle) BorderCd(v OsCd) *SwpStyle {
-	b.Main.BorderCd(v)
-	b.Hover.BorderCd(v)
-	b.Touch_hover.BorderCd(v)
-	b.Touch_out.BorderCd(v)
-	b.Disable.BorderCd(v)
+	b.Main.Border_color = v
+	b.Hover.Border_color = v
+	b.Touch_hover.Border_color = v
+	b.Touch_out.Border_color = v
+	b.Disable.Border_color = v
 	return b
 }
 
-func (style *SwpStyle) Paint(coord OsV4, text string, image_path string, image_margin float64, enable bool, asset *Asset) (bool, bool) {
+func (b *SwpStyle) ContentCd(v OsCd) *SwpStyle {
+	b.Main.Content_color = v
+	b.Hover.Content_color = v
+	b.Touch_hover.Content_color = v
+	b.Touch_out.Content_color = v
+	b.Disable.Content_color = v
+	return b
+}
+
+func (b *SwpStyle) Cursor(v string) {
+	b.Main.Cursor = v
+	b.Hover.Cursor = v
+	b.Touch_hover.Cursor = v
+	b.Touch_out.Cursor = v
+	b.Disable.Cursor = v
+}
+
+func (style *SwpStyle) GetDiv(enable bool, asset *Asset) *DivStyle {
 
 	st := asset.app.root.levels.GetStack()
 
-	var click, rclick bool
+	var stylee *DivStyle
+	var inside bool
+
 	if enable {
 		active := st.stack.data.touch_active
-		inside := st.stack.data.touch_inside
-		end := st.stack.data.touch_end
-		force := asset.app.root.ui.io.touch.rm
+		inside = st.stack.data.touch_inside
 
 		if active {
 			if inside {
-				style.Touch_hover.Paint(coord, text, image_path, image_margin, inside, asset)
+				stylee = &style.Touch_hover
+
 			} else {
-				style.Touch_out.Paint(coord, text, image_path, image_margin, inside, asset)
+				stylee = &style.Touch_out
 			}
 		} else {
 			if inside {
-				style.Hover.Paint(coord, text, image_path, image_margin, inside, asset)
+				stylee = &style.Hover
 			} else {
-				style.Main.Paint(coord, text, image_path, image_margin, inside, asset)
+				stylee = &style.Main
 			}
 		}
+	} else {
+		stylee = &style.Disable
+	}
+
+	return stylee
+}
+
+func (style *SwpStyle) IsClicked(enable bool, asset *Asset) (bool, bool, bool) {
+	var click, rclick, inside bool
+	if enable {
+		st := asset.app.root.levels.GetStack()
+		inside = st.stack.data.touch_inside
+		end := st.stack.data.touch_end
+		force := asset.app.root.ui.io.touch.rm
 
 		if inside && end {
 			click = true
 			rclick = force
 		}
-	} else {
-		style.Disable.Paint(coord, text, image_path, image_margin, false, asset)
 	}
 
-	return click, rclick
+	return click, rclick, inside
+}
+
+func (style *SwpStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_path string, image_margin float64, enable bool, asset *Asset) *DivStyle {
+
+	stylee := style.GetDiv(enable, asset)
+
+	//draw
+	stylee.Paint(coord, text, textOrig, textSelect, textEdit, image_path, image_margin, asset)
+
+	//cursor
+	_, _, inside := style.IsClicked(enable, asset)
+
+	if inside && len(stylee.Cursor) > 0 {
+		asset.paint_cursor(stylee.Cursor)
+	}
+
+	return stylee
 }
 
 type DivDefaultStyles struct {
@@ -281,15 +360,34 @@ type DivDefaultStyles struct {
 
 	ButtonDanger     SwpStyle
 	ButtonDangerMenu SwpStyle
+
+	Text       SwpStyle
+	TextCenter SwpStyle
+	TextRight  SwpStyle
+	TextErr    SwpStyle
+
+	TextSmall       SwpStyle
+	TextCenterSmall SwpStyle
+	TextRightSmall  SwpStyle
+	TextBig         SwpStyle
+	TextCenterBig   SwpStyle
+	TextRightBig    SwpStyle
+
+	Editbox       SwpStyle
+	EditboxErr    SwpStyle
+	EditboxYellow SwpStyle
+
+	Combo SwpStyle
 }
 
-func DivStyles_getDefaults(asset *Asset) DivDefaultStyles {
+func DivStyles_getDefaults(root *Root) DivDefaultStyles {
+
 	stls := DivDefaultStyles{}
 
 	{
 		b := &stls.Button.Main
 		b.Cursor = "hand"
-		b.Content_color = asset.themeCd()
+		b.Content_color = root.themeCd()
 		b.Color = themeBlack()
 		b.Image_alignV = 1
 		b.Image_alignH = 0
@@ -309,7 +407,7 @@ func DivStyles_getDefaults(asset *Asset) DivDefaultStyles {
 		stls.Button.Touch_out.Content_color = stls.Button.Hover.Content_color
 
 		stls.Button.Touch_hover.Content_color = themeBack()
-		stls.Button.Touch_hover.Color = asset.themeCd()
+		stls.Button.Touch_hover.Color = root.themeCd()
 
 		stls.Button.Disable.Color = OsCd_Aprox(stls.Button.Main.Color, themeWhite(), 0.35)
 		stls.Button.Disable.Content_color = OsCd_Aprox(stls.Button.Main.Content_color, themeWhite(), 0.7)
@@ -329,10 +427,10 @@ func DivStyles_getDefaults(asset *Asset) DivDefaultStyles {
 	{
 		stls.ButtonAlpha = stls.Button
 		stls.ButtonAlpha.Main.Content_color = OsCd{}
-		stls.ButtonAlpha.Hover.Content_color = OsCd_Aprox(asset.themeCd(), themeWhite(), 0.7)
+		stls.ButtonAlpha.Hover.Content_color = OsCd_Aprox(root.themeCd(), themeWhite(), 0.7)
 		stls.ButtonAlpha.Touch_out.Content_color = OsCd{}
 		stls.ButtonAlpha.Disable.Content_color = OsCd{}
-		stls.ButtonAlpha.Disable.Color = OsCd_Aprox(asset.themeCd(), themeWhite(), 0.7)
+		stls.ButtonAlpha.Disable.Color = OsCd_Aprox(root.themeCd(), themeWhite(), 0.7)
 	}
 
 	{
@@ -360,7 +458,7 @@ func DivStyles_getDefaults(asset *Asset) DivDefaultStyles {
 		stls.ButtonBorder = stls.ButtonAlpha
 		//stls.ButtonBorder.Margin(0.1)
 		stls.ButtonBorder.Border(0.03)
-		stls.ButtonBorder.BorderCd(asset.themeCd())
+		stls.ButtonBorder.BorderCd(root.themeCd())
 	}
 
 	{
@@ -370,7 +468,7 @@ func DivStyles_getDefaults(asset *Asset) DivDefaultStyles {
 		stls.ButtonLogo.Touch_out.Content_color.A = 0 //refactor ...
 
 		stls.ButtonLogo.Hover.Color = OsCd_Aprox(stls.ButtonLogo.Main.Color, themeWhite(), 0.5)
-		stls.ButtonLogo.Touch_hover.Color = asset.themeCd()
+		stls.ButtonLogo.Touch_hover.Color = root.themeCd()
 		stls.ButtonLogo.Touch_out.Color = stls.ButtonLogo.Hover.Color
 	}
 
@@ -387,22 +485,127 @@ func DivStyles_getDefaults(asset *Asset) DivDefaultStyles {
 		stls.ButtonDangerMenu = stls.ButtonDanger
 		stls.ButtonDangerMenu.FontAlignH(0)
 	}
+
+	{
+		b := &stls.Text.Main
+		b.Cursor = "ibeam"
+		b.Color = themeBlack()
+		b.Image_alignV = 1
+		b.Image_alignH = 0
+		b.Font_path = SKYALT_FONT_0
+		b.Font_alignV = 1
+		b.Font_alignH = 0
+		b.Font_height = 0.35
+
+		//copy .main to others
+		stls.Text.Hover = *b
+		stls.Text.Touch_hover = *b
+		stls.Text.Touch_out = *b
+		stls.Text.Disable = *b
+
+		stls.Text.Disable.Color = OsCd_Aprox(stls.Text.Main.Color, themeWhite(), 0.35)
+	}
+
+	{
+		stls.TextCenter = stls.Text
+		stls.TextCenter.FontAlignH(1)
+	}
+
+	{
+		stls.TextRight = stls.Text
+		stls.TextRight.FontAlignH(2)
+	}
+
+	{
+		stls.TextErr = stls.Text
+		stls.TextErr.Color(themeWarning())
+	}
+
+	{
+		stls.TextSmall = stls.Text
+		stls.TextCenterSmall = stls.TextCenter
+		stls.TextRightSmall = stls.TextRight
+
+		stls.TextBig = stls.Text
+		stls.TextCenterBig = stls.TextCenter
+		stls.TextRightBig = stls.TextRight
+
+		stls.TextSmall.FontH(0.3)
+		stls.TextCenterSmall.FontH(0.3)
+		stls.TextRightSmall.FontH(0.3)
+
+		stls.TextBig.FontH(0.45)
+		stls.TextCenterBig.FontH(0.45)
+		stls.TextRightBig.FontH(0.45)
+	}
+
+	{
+		b := &stls.Editbox.Main
+		b.Cursor = "ibeam"
+		b.Color = themeBlack()
+		b.Image_alignV = 1
+		b.Image_alignH = 0
+		b.Font_path = SKYALT_FONT_0
+		b.Font_alignV = 1
+		b.Font_alignH = 0
+		b.Font_height = 0.35
+		b.Margin(0.03)
+		b.Border(0.03)
+		b.Padding(0.1)
+		b.Border_color = themeBlack()
+
+		//copy .main to others
+		stls.Editbox.Hover = *b
+		stls.Editbox.Touch_hover = *b
+		stls.Editbox.Touch_out = *b
+		stls.Editbox.Disable = *b
+
+		cd := themeGrey(0.9)
+		stls.Editbox.Hover.Content_color = cd
+		stls.Editbox.Touch_hover.Content_color = cd
+		stls.Editbox.Touch_out.Content_color = cd
+
+		stls.Editbox.Disable.Color = OsCd_Aprox(stls.Editbox.Main.Color, themeWhite(), 0.35)
+	}
+
+	{
+		stls.EditboxErr = stls.Editbox
+		stls.EditboxErr.Main.Content_color = themeWarning()
+		stls.EditboxErr.Hover.Content_color = themeWarning()
+		stls.EditboxErr.Touch_hover.Content_color = themeWarning()
+		stls.EditboxErr.Touch_out.Content_color = themeWarning()
+		stls.EditboxErr.Disable.Content_color = OsCd_Aprox(stls.ButtonDanger.Main.Content_color, themeWhite(), 0.5)
+	}
+
+	{
+		stls.EditboxYellow = stls.Editbox
+		stls.EditboxYellow.Main.Content_color = themeEdit()
+		stls.EditboxYellow.Hover.Content_color = themeEdit()
+		stls.EditboxYellow.Touch_hover.Content_color = themeEdit()
+		stls.EditboxYellow.Touch_out.Content_color = themeEdit()
+		stls.EditboxYellow.Disable.Content_color = OsCd_Aprox(stls.EditboxYellow.Main.Content_color, themeEdit(), 0.5)
+	}
+
+	{
+
+		stls.Combo = stls.Editbox
+		stls.Combo.Cursor("hand")
+	}
+
 	return stls
 }
 
 type DivStyles struct {
 	styles []*SwpStyle
-
-	buttonMenu uint32
+	theme  int
 }
 
 func NewDivStyles(asset *Asset) *DivStyles {
 	var stls DivStyles
 
-	stls.Add(&SwpStyle{}) //empty id=0
+	stls.theme = -1
 
-	defs := DivStyles_getDefaults(asset)
-	stls.buttonMenu = uint32(stls.Add(&defs.ButtonMenu))
+	stls.Add(&SwpStyle{}) //empty id=0
 
 	return &stls
 }

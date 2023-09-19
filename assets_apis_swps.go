@@ -38,11 +38,14 @@ func themeGrey(t float64) OsCd {
 func themeWarning() OsCd {
 	return OsCd{230, 110, 50, 255}
 }
+func themeEdit() OsCd {
+	return OsCd{225, 226, 68, 255}
+}
 
-func (asset *Asset) themeCd() OsCd {
+func (root *Root) themeCd() OsCd {
 
 	cd := OsCd{90, 180, 180, 255} // ocean
-	switch asset.app.root.ui.io.ini.Theme {
+	switch root.ui.io.ini.Theme {
 	case 1:
 		cd = OsCd{200, 100, 80, 255}
 	case 2:
@@ -55,18 +58,18 @@ func (asset *Asset) themeCd() OsCd {
 	return cd
 }
 
-func (asset *Asset) swp_drawButton(style uint32, value string, icon string, icon_margin float64, url string, title string, enable bool) (bool, bool, int64) {
+func (asset *Asset) swp_drawButton(style *SwpStyle, value string, icon string, icon_margin float64, url string, title string, enable bool) (bool, bool, int64) {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
 
-	var click, rclick bool
-
-	stylee := asset.styles.Get(style)
-	if stylee != nil {
-		click, rclick = stylee.Paint(st.stack.canvas, value, icon, icon_margin, enable, asset)
+	if style == nil {
+		style = &root.styles.Button
 	}
 
+	style.Paint(st.stack.canvas, value, "", false, false, icon, icon_margin, enable, asset)
+
+	click, rclick, _ := style.IsClicked(enable, asset)
 	if click && len(url) > 0 {
 		//SA_DialogStart() warning which open dialog ...
 		OsUlit_OpenBrowser(url)
@@ -81,7 +84,7 @@ func (asset *Asset) swp_drawButton(style uint32, value string, icon string, icon
 	return click, rclick, 1
 }
 
-func (asset *Asset) _sa_swp_drawButton(style uint32, valueMem uint64, iconMem uint64, icon_margin float64, urlMem uint64, titleMem uint64, enable uint32, outMem uint64) int64 {
+func (asset *Asset) _sa_swp_drawButton(styleId uint32, valueMem uint64, iconMem uint64, icon_margin float64, urlMem uint64, titleMem uint64, enable uint32, outMem uint64) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
@@ -100,6 +103,8 @@ func (asset *Asset) _sa_swp_drawButton(style uint32, valueMem uint64, iconMem ui
 		return -1
 	}
 
+	style := asset.styles.Get(styleId)
+
 	click, rclick, ret := asset.swp_drawButton(style, value, icon, icon_margin, url, title, enable > 0)
 
 	out, err := asset.ptrToBytesDirect(outMem)
@@ -113,7 +118,7 @@ func (asset *Asset) _sa_swp_drawButton(style uint32, valueMem uint64, iconMem ui
 
 func (asset *Asset) swp_drawProgress(value float64, maxValue float64, title string, margin float64, enable uint32) int64 {
 
-	frontCd := asset.themeCd()
+	frontCd := asset.app.root.themeCd()
 	backCd := themeWhite()
 
 	if enable == 0 {
@@ -144,7 +149,7 @@ func (asset *Asset) swp_drawSlider(value float64, minValue float64, maxValue flo
 
 	old_value := value
 
-	frontCd := asset.themeCd()
+	frontCd := asset.app.root.themeCd()
 	backCd := themeGrey(0.75)
 
 	active := st.stack.data.touch_active
@@ -220,47 +225,9 @@ func (asset *Asset) _sa_swp_drawSlider(value float64, minValue float64, maxValue
 	return value
 }
 
-func (asset *Asset) swp_drawText(cd_r, cd_g, cd_b, cd_a uint32,
-	value string, title string, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, alignV uint32, ratioH float64,
-	enable uint32, selection uint32) int64 {
+func (asset *Asset) swp_drawText(style *SwpStyle, value string, title string, enable bool, selection bool) int64 {
 
-	root := asset.app.root
-	st := root.levels.GetStack()
-
-	cd := InitOsCd32(cd_r, cd_g, cd_b, cd_a)
-	//origCd := cd
-
-	if align == 1 {
-		marginX = 0
-	}
-
-	if enable == 0 {
-		st.stack.data.touch_enabled = false
-		cd = OsCd_Aprox(themeWhite(), cd, 0.3)
-	} else {
-		if selection > 0 && enable > 0 && (st.stack.data.touch_active || st.stack.data.touch_inside) {
-			asset.paint_cursor("ibeam")
-		}
-	}
-
-	st.stack.data.scrollH.narrow = true
-	st.stack.data.scrollV.show = false
-
-	asset._sa_div_col(0, OsMaxFloat(asset.div_get_info("layoutWidth", -1, -1), asset.paint_textWidth(value, font, ratioH, -1)+marginX*4+margin*2))
-	asset._sa_div_row(0, asset.div_get_info("layoutHeight", -1, -1))
-
-	asset.div_start(0, 0, 1, 1, "")
-
-	asset.paint_text(0, 0, 1, 1,
-		value, value,
-		margin, marginX, marginY,
-		cd,
-		ratioH, 1,
-		0, align, alignV,
-		selection, 0, 0, enable)
-
-	asset._sa_div_end()
+	asset.paint_text(0, 0, 1, 1, style, value, "", selection, false, enable)
 
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)
@@ -269,10 +236,7 @@ func (asset *Asset) swp_drawText(cd_r, cd_g, cd_b, cd_a uint32,
 	return 1
 }
 
-func (asset *Asset) _sa_swp_drawText(cd_r, cd_g, cd_b, cd_a uint32,
-	valueMem uint64, titleMem uint64, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, alignV uint32, ratioH float64,
-	enable uint32, selection uint32) int64 {
+func (asset *Asset) _sa_swp_drawText(styleId uint32, valueMem uint64, titleMem uint64, enable uint32, selection uint32) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
@@ -284,10 +248,9 @@ func (asset *Asset) _sa_swp_drawText(cd_r, cd_g, cd_b, cd_a uint32,
 		return -1
 	}
 
-	return asset.swp_drawText(cd_r, cd_g, cd_b, cd_a,
-		value, title, font,
-		margin, marginX, marginY, align, alignV, ratioH,
-		enable, selection)
+	style := asset.styles.Get(styleId)
+
+	return asset.swp_drawText(style, value, title, enable > 0, selection > 0)
 }
 
 func (asset *Asset) swp_getEditValue() string {
@@ -302,25 +265,17 @@ func (asset *Asset) _sa_swp_getEditValue(outMem uint64) int64 {
 	return 1
 }
 
-func (asset *Asset) swp_drawEdit(cd_r, cd_g, cd_b, cd_a uint32,
-	valueIn string, valueInOrig string, title string, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, alignV uint32, ratioH float64,
-	enable uint32) (string, bool, bool, bool) {
+func (asset *Asset) swp_drawEdit(style *SwpStyle, valueIn string, valueInOrig string, title string, enable bool) (string, bool, bool, bool) {
 
 	root := asset.app.root
-	div := root.levels.GetStack().stack
+	st := root.levels.GetStack()
 
-	cd := InitOsCd32(cd_r, cd_g, cd_b, cd_a)
-	if align == 1 {
-		marginX = 0
-	}
-
-	div.data.scrollH.narrow = true
-	div.data.scrollV.show = false
+	st.stack.data.scrollH.narrow = true
+	st.stack.data.scrollV.show = false
 
 	edit := &root.ui.io.edit
 
-	inDiv := div.FindOrCreate("", InitOsQuad(0, 0, 1, 1), &root.levels.infoLayout)
+	inDiv := st.stack.FindOrCreate("", InitOsQuad(0, 0, 1, 1), &root.levels.infoLayout)
 	this_uid := inDiv //.Hash()
 	edit_uid := edit.uid
 	active := (edit_uid != nil && edit_uid == this_uid)
@@ -331,28 +286,9 @@ func (asset *Asset) swp_drawEdit(cd_r, cd_g, cd_b, cd_a uint32,
 	} else {
 		value = valueIn
 	}
+	inDiv.data.touch_enabled = enable
 
-	if enable == 0 {
-		cd = OsCd_Aprox(themeWhite(), cd, 0.3)
-	} else if div.data.touch_active || div.data.touch_inside {
-		asset.paint_cursor("ibeam")
-	}
-	inDiv.data.touch_enabled = (enable != 0)
-
-	asset._sa_div_col(0, OsMaxFloat(asset.div_get_info("layoutWidth", -1, -1), asset.paint_textWidth(value, font, ratioH, -1)+marginX*4+margin*2))
-	asset._sa_div_row(0, asset.div_get_info("layoutHeight", -1, -1))
-
-	asset.div_start(0, 0, 1, 1, "")
-
-	asset.paint_text(0, 0, 1, 1,
-		value, valueInOrig,
-		margin, marginX, marginY,
-		cd,
-		ratioH, 1,
-		0, align, alignV,
-		1, 1, 1, enable)
-
-	asset._sa_div_end()
+	asset.paint_text(0, 0, 1, 1, style, value, valueInOrig, true, true, enable)
 
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)
@@ -361,11 +297,7 @@ func (asset *Asset) swp_drawEdit(cd_r, cd_g, cd_b, cd_a uint32,
 	return edit.last_edit, active, (active && value != edit.last_edit), (active && this_uid != edit.uid)
 }
 
-func (asset *Asset) _sa_swp_drawEdit(cd_r, cd_g, cd_b, cd_a uint32,
-	valueMem uint64, valueInOrig uint64, titleMem uint64, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, alignV uint32, ratioH float64,
-	enable uint32,
-	outMem uint64) int64 {
+func (asset *Asset) _sa_swp_drawEdit(styleId uint32, valueMem uint64, valueInOrig uint64, titleMem uint64, enable uint32, outMem uint64) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
@@ -381,9 +313,8 @@ func (asset *Asset) _sa_swp_drawEdit(cd_r, cd_g, cd_b, cd_a uint32,
 		return -1
 	}
 
-	last_edit, active, changed, finished := asset.swp_drawEdit(cd_r, cd_g, cd_b, cd_a,
-		value, valueOrig, title, font,
-		margin, marginX, marginY, align, alignV, ratioH, enable)
+	style := asset.styles.Get(styleId)
+	last_edit, active, changed, finished := asset.swp_drawEdit(style, value, valueOrig, title, enable > 0)
 
 	out, err := asset.ptrToBytesDirect(outMem)
 	if asset.AddLogErr(err) {
@@ -396,16 +327,7 @@ func (asset *Asset) _sa_swp_drawEdit(cd_r, cd_g, cd_b, cd_a uint32,
 	return 1
 }
 
-func (asset *Asset) swp_drawCombo(cd_r, cd_g, cd_b, cd_a uint32,
-	value uint64, optionsIn string, title string, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, ratioH float64,
-	enable uint32) int64 {
-
-	cd := InitOsCd32(cd_r, cd_g, cd_b, cd_a)
-	origCd := cd
-	if enable == 0 {
-		cd = OsCd_Aprox(OsCd_white(), cd, 0.3)
-	}
+func (asset *Asset) swp_drawCombo(style *SwpStyle, styleMenu *SwpStyle, value uint64, optionsIn string, title string, enable bool) int64 {
 
 	root := asset.app.root
 	div := root.levels.GetStack().stack
@@ -421,39 +343,27 @@ func (asset *Asset) swp_drawCombo(cd_r, cd_g, cd_b, cd_a uint32,
 		val = options[value]
 	}
 
-	w := 0.6 / (float64(div.canvas.Size.X) / float64(asset.app.root.ui.Cell()))
+	//w := 0.6 / (float64(div.canvas.Size.X) / float64(asset.app.root.ui.Cell()))
+
+	//back and arrow
+	stText := *style
+	stText.FontAlignH(2)
+	stText.Main.Padding_right = 0.2
+	stText.Hover.Padding_right = 0.2
+	stText.Touch_hover.Padding_right = 0.2
+	stText.Touch_out.Padding_right = 0.2
+	stText.Disable.Padding_right = 0.2
+	stText.Paint(asset.getCoord(0, 0, 1, 1, 0, 0, 0), "▼", "", false, false, "", 0, enable, asset)
 
 	//text
-	asset.paint_text(0, 0, 1-w, 1,
-		val, "",
-		margin, marginX, marginY,
-		origCd,
-		ratioH, 1,
-		0, align, 1,
-		0, 0, 0, enable)
-
-	//arrow
-	asset.paint_text(1-w, 0, w, 1,
-		"▼", "",
-		margin, 0, 0,
-		origCd,
-		ratioH, 1,
-		0, align, 1,
-		0, 0, 0, enable)
-
-	//border
-	asset.paint_rect(0, 0, 1, 1, 0, cd, 0.03)
-
-	if enable > 0 {
-		//cursor
-		if div.data.touch_active || div.data.touch_inside {
-			asset.paint_cursor("hand")
-		}
-	}
+	div.FindOrCreate("", InitOsQuad(0, 0, 1, 1), &root.levels.infoLayout).data.touch_enabled = false //click through
+	stArrow := *style
+	stArrow.ContentCd(OsCd{})
+	asset.paint_text(0, 0, 1, 1, &stArrow, val, "", false, false, enable)
 
 	//dialog
 	nmd := "combo_" + strconv.Itoa(int(div.Hash()))
-	if div.data.touch_end && enable > 0 {
+	if div.data.touch_end && enable {
 		asset.div_dialogOpen(nmd, 1)
 	}
 	if asset.div_dialogStart(nmd) > 0 {
@@ -462,11 +372,11 @@ func (asset *Asset) swp_drawCombo(cd_r, cd_g, cd_b, cd_a uint32,
 		for _, opt := range options {
 			mx = OsMax(mx, len(opt))
 		}
-		asset._sa_div_colMax(0, OsMaxFloat(5, ratioH*float64(mx)))
+		asset._sa_div_colMax(0, OsMaxFloat(5, styleMenu.Main.Font_height*float64(mx)))
 
 		for i, opt := range options {
 			asset.div_start(0, uint64(i), 1, 1, "")
-			click, _, ret := asset.swp_drawButton(asset.styles.buttonMenu, opt, "", 0, "", "", value != uint64(i))
+			click, _, ret := asset.swp_drawButton(styleMenu, opt, "", 0, "", "", value != uint64(i))
 			if ret > 0 && click {
 				value = uint64(i)
 				asset._sa_div_dialogClose()
@@ -486,10 +396,7 @@ func (asset *Asset) swp_drawCombo(cd_r, cd_g, cd_b, cd_a uint32,
 	return int64(value)
 }
 
-func (asset *Asset) _sa_swp_drawCombo(cd_r, cd_g, cd_b, cd_a uint32,
-	value uint64, optionsMem uint64, titleMem uint64, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, ratioH float64,
-	enable uint32) int64 {
+func (asset *Asset) _sa_swp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem uint64, titleMem uint64, enable uint32) int64 {
 
 	options, err := asset.ptrToString(optionsMem)
 	if asset.AddLogErr(err) {
@@ -499,22 +406,23 @@ func (asset *Asset) _sa_swp_drawCombo(cd_r, cd_g, cd_b, cd_a uint32,
 	if asset.AddLogErr(err) {
 		return -1
 	}
-	return asset.swp_drawCombo(cd_r, cd_g, cd_b, cd_a,
-		value, options, title, font,
-		margin, marginX, marginY, align, ratioH, enable)
+
+	style := asset.styles.Get(styleId)
+	styleMenu := asset.styles.Get(styleMenuId)
+
+	return asset.swp_drawCombo(style, styleMenu, value, options, title, enable > 0)
 }
 
 func (asset *Asset) swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
 	value uint64, description string, title string,
-	height float64, align uint32, alignV uint32, enable uint32) int64 {
+	height float64, align uint32, alignV uint32, enable bool) int64 {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
 
 	cd := InitOsCd32(cd_r, cd_g, cd_b, cd_a)
-	origCd := cd
 
-	if enable > 0 {
+	if enable {
 		active := st.stack.data.touch_active
 		inside := st.stack.data.touch_inside
 		end := st.stack.data.touch_end
@@ -535,7 +443,7 @@ func (asset *Asset) swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
 	ww := float64(st.stack.canvas.Size.X) / float64(root.ui.Cell())
 	hh := float64(st.stack.canvas.Size.Y) / float64(root.ui.Cell())
 
-	descSz := asset.paint_textWidth(description, 0, 0.35, -1)
+	descSz := asset.paint_textWidth(description, SKYALT_FONT_0, 0.35, -1) //font from style ...
 
 	h := height / hh
 	w := h / (ww / hh)
@@ -564,7 +472,9 @@ func (asset *Asset) swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
 		asset.paint_rect(sx, sy, w, h, 0.22, cd, 0.03)
 	}
 
-	asset.paint_text(sx+w*0.8, sy, 1-(sx+w*0.8), h, description, "", 0, 0.1, 0, origCd, 0.35, 1, 0, 0, 1, 0, 0, 0, enable)
+	div := root.levels.GetStack().stack
+	div.FindOrCreate("", InitOsQuad(0, 0, 1, 1), &root.levels.infoLayout).data.touch_enabled = false                    //click through
+	asset.paint_text(sx+w*0.8, sy, 1-(sx+w*0.8), h, &asset.app.root.styles.Text, description, "", false, false, enable) //custom style ...
 
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)
@@ -587,15 +497,13 @@ func (asset *Asset) _sa_swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
 		return -1
 	}
 
-	return asset.swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a, value, description, title, height, align, alignV, enable)
+	return asset.swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a, value, description, title, height, align, alignV, enable > 0)
 }
 
-func (asset *Asset) paint_textWidth(value string, fontId uint32, ratioH float64, cursorPos int64) float64 {
-
-	root := asset.app.root
+func (asset *Asset) paint_textWidth(value string, fontPath string, ratioH float64, cursorPos int64) float64 {
 
 	textH := asset.getCellWidth(ratioH)
-	font := root.fonts.Get(SKYALT_FONT_0) //...int(fontId))
+	font := asset.app.root.fonts.Get(fontPath)
 	cell := float64(asset.app.root.ui.Cell())
 	if cursorPos < 0 {
 
@@ -613,12 +521,17 @@ func (asset *Asset) paint_textWidth(value string, fontId uint32, ratioH float64,
 	return -1
 }
 
-func (asset *Asset) _sa_paint_textWidth(valueMem uint64, fontId uint32, ratioH float64, cursorPos int64) float64 {
+func (asset *Asset) _sa_paint_textWidth(valueMem uint64, fontPathMem uint64, ratioH float64, cursorPos int64) float64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
 
-	return asset.paint_textWidth(value, fontId, ratioH, cursorPos)
+	fond_path, err := asset.ptrToString(fontPathMem)
+	if asset.AddLogErr(err) {
+		return -1
+	}
+
+	return asset.paint_textWidth(value, fond_path, ratioH, cursorPos)
 }

@@ -18,7 +18,6 @@ package main
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -123,19 +122,6 @@ func (asset *Asset) CallSet(js []byte, fnName string) {
 	asset.Call(fnName, data)
 }
 
-func (asset *Asset) CallSet2(js1 []byte, js2 []byte, fnName string) {
-	var data []byte
-	data = append(data, TpBytes)
-	data = binary.LittleEndian.AppendUint64(data, uint64(len(js1)))
-	data = append(data, js1...)
-
-	data = append(data, TpBytes)
-	data = binary.LittleEndian.AppendUint64(data, uint64(len(js2)))
-	data = append(data, js2...)
-
-	asset.Call(fnName, data)
-}
-
 func (asset *Asset) SaveData() {
 	if asset.debug != nil {
 		asset.debug.SaveData(asset)
@@ -193,18 +179,14 @@ func (asset *Asset) loadData() {
 		return
 	}
 
-	defs := DivStyles_getDefaults(asset)
-	jsStyles, err := json.MarshalIndent(&defs, "", "")
-	if asset.AddLogErr(err) {
-		return
-	}
-
-	asset.CallSet2(jsStore, jsStyles, "_sa_init")
+	asset.CallSet(jsStore, "_sa_init")
 }
 
 func (asset *Asset) Tick() {
 	loadData := false
 	loadTranslations := asset.translations.Maintenance()
+
+	loadStyles := asset.styles.theme != asset.app.root.ui.io.ini.Theme
 
 	assetDebug := asset.app.root.server.Find(asset.app.sts_id, asset.name)
 	if assetDebug != nil && asset.debug != assetDebug {
@@ -214,6 +196,7 @@ func (asset *Asset) Tick() {
 		asset.debug = assetDebug
 		loadData = true
 		loadTranslations = true
+		loadStyles = true
 		//asset.translations.file_tm = 0 //reload transactions
 	}
 
@@ -224,6 +207,7 @@ func (asset *Asset) Tick() {
 			asset.debug.Destroy()
 			asset.debug = nil
 
+			loadStyles = true
 			loadTranslations = true
 			loadData = true
 		}
@@ -234,6 +218,7 @@ func (asset *Asset) Tick() {
 			asset.wasm = nil
 
 		} else if changed {
+			loadStyles = true
 			loadTranslations = true
 			loadData = true
 		}
@@ -247,10 +232,14 @@ func (asset *Asset) Tick() {
 	if loadTranslations {
 		js, err := asset.translations.Read(asset.app.root.ui.io.ini.Languages)
 		if err == nil {
-			asset.CallSet(js, "_sa_translations_set")
+			asset.CallSet(js, "_sa_translations")
 		}
 	}
 
+	if loadStyles {
+		asset.CallSet(asset.app.root.stylesJs, "_sa_styles")
+		asset.styles.theme = asset.app.root.ui.io.ini.Theme
+	}
 	//resources
 	asset.UpdateResources()
 }

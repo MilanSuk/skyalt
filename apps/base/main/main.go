@@ -191,12 +191,12 @@ func Settings() {
 
 	y := 0
 
-	SA_Text(trns.SETTINGS).Align(1).Show(1, 0, 1, 1)
+	SA_TextCenter(trns.SETTINGS).Show(1, 0, 1, 1)
 	y++
 
 	//languages
 	{
-		SA_Text(trns.LANGUAGES).Align(1).Show(1, y, 1, 1)
+		SA_TextCenter(trns.LANGUAGES).Show(1, y, 1, 1)
 		y++
 
 		inf_langs := SA_Info("languages")
@@ -213,7 +213,7 @@ func Settings() {
 				SA_ColMax(2, 100)
 				changed := false
 
-				SA_Text(strconv.Itoa(i+1)+".").Align(1).Show(0, 0, 1, 1)
+				SA_TextCenter(strconv.Itoa(i+1)+".").Show(0, 0, 1, 1)
 
 				SA_DivStart(1, 0, 1, 1)
 				{
@@ -227,7 +227,7 @@ func Settings() {
 				}
 				SA_DivEnd()
 
-				if SA_Combo(&lang_id, g_langs).Align(0).Search(true).Show(2, 0, 1, 1) {
+				if SA_Combo(&lang_id, g_langs).Search(true).Show(2, 0, 1, 1) {
 					langs[i] = g_lang_codes[lang_id]
 					changed = true
 				}
@@ -264,19 +264,19 @@ func Settings() {
 	}
 
 	date := int(SA_InfoFloat("date"))
-	if SA_Combo(&date, trns.DATE_FORMAT_EU+"|"+trns.DATE_FORMAT_US+"|"+trns.DATE_FORMAT_ISO+"|"+trns.DATE_FORMAT_TEXT).Align(0).Search(true).ShowDescription(1, y, 1, 2, trns.DATE_FORMAT, 0, 0) {
+	if SA_Combo(&date, trns.DATE_FORMAT_EU+"|"+trns.DATE_FORMAT_US+"|"+trns.DATE_FORMAT_ISO+"|"+trns.DATE_FORMAT_TEXT).Search(true).ShowDescription(1, y, 1, 2, trns.DATE_FORMAT, 0, nil) {
 		SA_InfoSetFloat("date", float64(date))
 	}
 	y += 3
 
 	theme := int(SA_InfoFloat("theme"))
-	if SA_Combo(&theme, trns.THEME_OCEAN+"|"+trns.THEME_RED+"|"+trns.THEME_BLUE+"|"+trns.THEME_GREEN+"|"+trns.THEME_GREY).Align(0).Search(true).ShowDescription(1, y, 1, 2, trns.THEME, 0, 0) {
+	if SA_Combo(&theme, trns.THEME_OCEAN+"|"+trns.THEME_RED+"|"+trns.THEME_BLUE+"|"+trns.THEME_GREEN+"|"+trns.THEME_GREY).Search(true).ShowDescription(1, y, 1, 2, trns.THEME, 0, nil) {
 		SA_InfoSetFloat("theme", float64(theme))
 	}
 	y += 3
 
 	dpi := strconv.Itoa(int(SA_InfoFloat("dpi")))
-	if SA_Editbox(&dpi).ShowDescription(1, y, 1, 2, trns.DPI, 4, 0).finished {
+	if SA_Editbox(&dpi).ShowDescription(1, y, 1, 2, trns.DPI, 4, nil).finished {
 		dpiV, err := strconv.Atoi(dpi)
 		if err == nil {
 			SA_InfoSetFloat("dpi", float64(dpiV))
@@ -320,17 +320,17 @@ func About() {
 	SA_ColMax(0, 15)
 	SA_Row(1, 3)
 
-	SA_Text(trns.ABOUT).Align(1).Show(0, 0, 1, 1)
+	SA_TextCenter(trns.ABOUT).Show(0, 0, 1, 1)
 
 	SA_Image(SA_ResourceBuildAssetPath("", "logo.png")).Show(0, 1, 1, 1)
 
-	SA_Text("v0.2").Align(1).Show(0, 2, 1, 1)
+	SA_TextCenter("v0.2").Show(0, 2, 1, 1)
 
 	SA_ButtonAlpha("www.skyalt.com").Url("https://www.skyalt.com").Show(0, 3, 1, 1)
 	SA_ButtonAlpha("github.com/milansuk/skyalt/").Url("https://github.com/milansuk/skyalt/").Show(0, 4, 1, 1)
 
-	SA_Text(trns.COPYRIGHT).Align(1).Show(0, 5, 1, 1)
-	SA_Text(trns.WARRANTY).Align(1).Show(0, 6, 1, 1)
+	SA_TextCenter(trns.COPYRIGHT).Show(0, 5, 1, 1)
+	SA_TextCenter(trns.WARRANTY).Show(0, 6, 1, 1)
 }
 
 func Menu() {
@@ -371,7 +371,7 @@ func Menu() {
 			SA_InfoSetFloat("dpi", dpi+3)
 		}
 		dpiV := int(dpi / dpi_default * 100)
-		SA_Text(strconv.Itoa(dpiV)+"%").Align(1).Show(2, 0, 1, 1)
+		SA_TextCenter(strconv.Itoa(dpiV)+"%").Show(2, 0, 1, 1)
 		if SA_ButtonBorder("-").Show(3, 0, 1, 1).click {
 			SA_InfoSetFloat("dpi", dpi-3)
 		}
@@ -695,7 +695,7 @@ func Files() {
 							if SA_DialogStart("log_" + strconv.Itoa(app.Sts_id)) {
 								SA_ColMax(0, 20)
 								SA_RowMax(1, 20)
-								SA_Text(trns.LOGS).Align(1).Show(0, 0, 1, 1)
+								SA_TextCenter(trns.LOGS).Show(0, 0, 1, 1)
 
 								SA_DivStart(0, 1, 1, 1)
 								{
@@ -803,7 +803,7 @@ func Files() {
 			SA_ColMax(0, 9)
 			err := CheckFileName(store.createFile, FindFile(store.createFile) != nil)
 
-			SA_Editbox(&store.createFile).Error(err).TempToValue(true).ShowDescription(0, 0, 1, 1, trns.NAME, 2, 0)
+			SA_Editbox(&store.createFile).Error(err).TempToValue(true).ShowDescription(0, 0, 1, 1, trns.NAME, 2, nil)
 
 			if SA_Button(trns.CREATE_FILE).Enable(err == nil).Show(0, 1, 1, 1).click {
 				SA_InfoSet("new_file", store.createFile)
@@ -832,8 +832,7 @@ func CheckFileName(name string, alreadyExist bool) error {
 	return err
 }
 
-//export render
-func render() uint32 {
+func Render() uint32 {
 	SA_Col(0, 4.5) //min
 	SA_ColResize(0, 7)
 	SA_ColMax(1, 100)
@@ -863,7 +862,7 @@ func render() uint32 {
 		}
 
 		//Search
-		SA_Editbox(&store.SearchFiles).TempToValue(true).Ghost(trns.SEARCH).HighlightEdit(len(store.SearchFiles) > 0).Show(1, 0, 1, 1)
+		SA_Editbox(&store.SearchFiles).TempToValue(true).Ghost(trns.SEARCH).Highlight(len(store.SearchFiles) > 0, &styles.EditboxYellow).Show(1, 0, 1, 1)
 
 	}
 	SA_DivEnd()
@@ -889,21 +888,20 @@ func render() uint32 {
 
 var g_ButtonAddApp _SA_Style
 
-func open(buff []byte) bool {
-
-	//styles
+func Styles() {
 	g_ButtonAddApp = styles.ButtonBorder
 	g_ButtonAddApp.Margin(0.17)
+}
 
-	//storage
+func Open(buff []byte) bool {
 	store.SelectedFile = -1
 	store.SelectedApp = -1
 
 	return false //default json
 }
-func save() ([]byte, bool) {
+func Save() ([]byte, bool) {
 	return nil, false //default json
 }
-func debug() (int, int, string) {
+func Debug() (int, int, string) {
 	return -1, 0, "main" //0=base
 }

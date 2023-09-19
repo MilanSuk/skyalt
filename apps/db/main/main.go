@@ -444,7 +444,7 @@ func CreateTable() {
 
 	err := CheckName(store.createTable, FindTable(store.Tables, store.createTable) != nil)
 
-	SA_Editbox(&store.createTable).Error(err).TempToValue(true).ShowDescription(0, 0, 1, 1, trns.NAME, 2, 0)
+	SA_Editbox(&store.createTable).Error(err).TempToValue(true).ShowDescription(0, 0, 1, 1, trns.NAME, 2, nil)
 
 	if SA_Button(trns.CREATE_TABLE).Enable(err == nil).Show(0, 1, 1, 1).click {
 		SA_SqlWrite("", "CREATE TABLE "+store.createTable+"(column TEXT DEFAULT '' NOT NULL);")
@@ -700,7 +700,7 @@ func TableView(table *Table) {
 			SA_DialogEnd()
 		}
 
-		SA_Combo(&table.RowSize, "1|2|3|4").ShowDescription(6, 0, 1, 1, trns.ROWS_HEIGHT, 2.5, 0)
+		SA_Combo(&table.RowSize, "1|2|3|4").ShowDescription(6, 0, 1, 1, trns.ROWS_HEIGHT, 2.5, nil)
 
 	}
 	SA_DivEnd()
@@ -834,7 +834,7 @@ func ColumnDetail(table *Table, column *Column) {
 
 		//rename
 		origName := column.Name
-		if SA_Editbox(&column.Name).ShowDescription(0, 0, 1, 1, trns.NAME, 2, 0).finished {
+		if SA_Editbox(&column.Name).ShowDescription(0, 0, 1, 1, trns.NAME, 2, nil).finished {
 			if origName != column.Name {
 				SA_SqlWrite("", "ALTER TABLE "+table.Name+" RENAME COLUMN "+origName+" TO "+column.Name+";")
 			}
@@ -973,11 +973,11 @@ func ColumnDetail(table *Table, column *Column) {
 	{
 		if column.Render == "RATING" {
 			SA_ColMax(0, 100)
-			SA_Editbox(&column.Prop_rating_max_stars).ShowDescription(0, 0, 1, 1, trns.MAX_STARS, 4, 0)
+			SA_Editbox(&column.Prop_rating_max_stars).ShowDescription(0, 0, 1, 1, trns.MAX_STARS, 4, nil)
 		}
 		if column.Render == "PERCENT" {
 			SA_ColMax(0, 100)
-			SA_Editbox(&column.Prop_percent_floats).ShowDescription(0, 0, 1, 1, trns.DECIMAL_PRECISION, 4, 0)
+			SA_Editbox(&column.Prop_percent_floats).ShowDescription(0, 0, 1, 1, trns.DECIMAL_PRECISION, 4, nil)
 		}
 	}
 	SA_DivEnd()
@@ -1128,7 +1128,7 @@ func TableColumns(table *Table) {
 			SA_ColMax(0, 100)
 
 			if col.isRowId() {
-				SA_Text(nm).Align(1).Show(0, 0, 1, 1)
+				SA_TextCenter(nm).Show(0, 0, 1, 1)
 			} else {
 				if SA_ButtonStyle(nm, &g_ButtonColumnHeader).Icon(SA_ResourceBuildAssetPath("", _getColumnIcon(col.Type, col.Render)), 0.2).Show(0, 0, 1, 1).click && !col.isRowId() {
 					SA_DialogOpen("columnDetail_"+nm, 1)
@@ -1162,7 +1162,7 @@ func TableColumns(table *Table) {
 
 		//name
 		err := CheckName(store.createColumn, table.FindColumn(store.createColumn) != nil)
-		SA_Editbox(&store.createColumn).Error(err).TempToValue(true).ShowDescription(0, y, 1, 1, trns.NAME, 2, 0)
+		SA_Editbox(&store.createColumn).Error(err).TempToValue(true).ShowDescription(0, y, 1, 1, trns.NAME, 2, nil)
 		y++
 
 		//types
@@ -1419,7 +1419,7 @@ func TableRows(table *Table) {
 							writeCell = true
 						}
 					} else {
-						SA_Text("Error: Unknown type").FrontCd(SA_ThemeError()).Show(x, 0, 1, rowSize)
+						SA_TextError("Error: Unknown type").Show(x, 0, 1, rowSize)
 					}
 
 					if writeCell {
@@ -1705,8 +1705,7 @@ func GetQueryStats(table *Table) (string, int) {
 	return query, ncols
 }
 
-//export render
-func render() uint32 {
+func Render() uint32 {
 
 	UpdateTables()
 	SA_ColMax(0, 100)
@@ -1739,12 +1738,10 @@ func render() uint32 {
 
 var g_ButtonColumnHeader _SA_Style
 var g_ButtonStat _SA_Style
-
 var g_ButtonLeft _SA_Style
 var g_ButtonLightLeft _SA_Style
 
-func open(buff []byte) bool {
-
+func Styles() {
 	g_ButtonColumnHeader = styles.ButtonLight
 	g_ButtonColumnHeader.FontAlignH(0)
 	g_ButtonColumnHeader.Id = 0
@@ -1758,12 +1755,14 @@ func open(buff []byte) bool {
 
 	g_ButtonLightLeft = styles.ButtonLight
 	g_ButtonLightLeft.FontAlignH(0)
+}
 
+func Open(buff []byte) bool {
 	return false //default json
 }
-func save() ([]byte, bool) {
+func Save() ([]byte, bool) {
 	return nil, false //default json
 }
-func debug() (int, int, string) {
+func Debug() (int, int, string) {
 	return -1, 232, "main"
 }

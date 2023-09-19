@@ -52,28 +52,31 @@ func main() {
 		}
 
 		switch string(fnName) {
-		case "render":
-			render()
+		case "_sa_render":
+			Render()
 
 		case "_sa_init":
 			var jsStore []byte
-			var jsStyles []byte
-			_arrayToArgs(args, &jsStore, &jsStyles)
-
-			json.Unmarshal(jsStyles, &styles)
-
-			if !open(jsStore) {
+			_arrayToArgs(args, &jsStore)
+			if !Open(jsStore) {
 				json.Unmarshal(jsStore, &store)
 			}
 
 		case "_sa_exit":
-			js, written := save()
+			js, written := Save()
 			if !written {
 				js, _ = json.MarshalIndent(&store, "", "")
 			}
 			_sa_storage_write(_SA_bytesToPtr(js))
 
-		case "_sa_translations_set":
+		case "_sa_styles":
+			var jsStyles []byte
+			_arrayToArgs(args, &jsStyles)
+			styles = SA_Styles{} //reset ids
+			json.Unmarshal(jsStyles, &styles)
+			Styles()
+
+		case "_sa_translations":
 			e := reflect.ValueOf(&trns).Elem()
 			for i := 0; i < e.NumField(); i++ {
 				e.Field(i).SetString("{" + e.Type().Field(i).Name + "}")
@@ -586,10 +589,10 @@ func _sa_paint_text(x, y, w, h float64,
 	return ret
 }
 
-func _sa_paint_textWidth(valueMem SAMem, fontId uint32, ratioH float64, cursorPos int64) float64 {
+func _sa_paint_textWidth(valueMem SAMem, fontPathMem SAMem, ratioH float64, cursorPos int64) float64 {
 	WriteUint64(55)
 	WriteMem(valueMem)
-	WriteUint64(uint64(fontId))
+	WriteMem(fontPathMem)
 	WriteFloat64(ratioH)
 	WriteUint64(uint64(cursorPos))
 
@@ -695,27 +698,11 @@ func _sa_swp_drawProgress(value float64, maxValue float64, titleMem SAMem, margi
 	return ret
 }
 
-func _sa_swp_drawText(cd_r, cd_g, cd_b, cd_a uint32,
-	valueMem SAMem, titleMem SAMem, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, alignV uint32, ratioH float64,
-	enable uint32, selection uint32) int64 {
+func _sa_swp_drawText(style uint32, valueMem SAMem, titleMem SAMem, enable uint32, selection uint32) int64 {
 	WriteUint64(83)
-	WriteUint64(uint64(cd_r))
-	WriteUint64(uint64(cd_g))
-	WriteUint64(uint64(cd_b))
-	WriteUint64(uint64(cd_a))
-
+	WriteUint64(uint64(style))
 	WriteMem(valueMem)
 	WriteMem(titleMem)
-	WriteUint64(uint64(font))
-
-	WriteFloat64(margin)
-	WriteFloat64(marginX)
-	WriteFloat64(marginY)
-	WriteUint64(uint64(align))
-	WriteUint64(uint64(alignV))
-	WriteFloat64(ratioH)
-
 	WriteUint64(uint64(enable))
 	WriteUint64(uint64(selection))
 
@@ -733,29 +720,12 @@ func _sa_swp_getEditValue(outMem SAMem) int64 {
 	return ret
 }
 
-func _sa_swp_drawEdit(cd_r, cd_g, cd_b, cd_a uint32,
-	valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, alignV uint32, ratioH float64,
-	enable uint32,
-	outMem SAMem) int64 {
+func _sa_swp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, enable uint32, outMem SAMem) int64 {
 	WriteUint64(85)
-	WriteUint64(uint64(cd_r))
-	WriteUint64(uint64(cd_g))
-	WriteUint64(uint64(cd_b))
-	WriteUint64(uint64(cd_a))
-
+	WriteUint64(uint64(style))
 	WriteMem(valueMem)
 	WriteMem(valueOrigMem)
 	WriteMem(titleMem)
-	WriteUint64(uint64(font))
-
-	WriteFloat64(margin)
-	WriteFloat64(marginX)
-	WriteFloat64(marginY)
-	WriteUint64(uint64(align))
-	WriteUint64(uint64(alignV))
-	WriteFloat64(ratioH)
-
 	WriteUint64(uint64(enable))
 
 	ReadMem(outMem)
@@ -764,27 +734,13 @@ func _sa_swp_drawEdit(cd_r, cd_g, cd_b, cd_a uint32,
 	return ret
 }
 
-func _sa_swp_drawCombo(cd_r, cd_g, cd_b, cd_a uint32,
-	value uint64, optionsMem SAMem, titleMem SAMem, font uint32,
-	margin float64, marginX float64, marginY float64, align uint32, ratioH float64,
-	enable uint32) int64 {
+func _sa_swp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem SAMem, titleMem SAMem, enable uint32) int64 {
 	WriteUint64(86)
-	WriteUint64(uint64(cd_r))
-	WriteUint64(uint64(cd_g))
-	WriteUint64(uint64(cd_b))
-	WriteUint64(uint64(cd_a))
-
+	WriteUint64(uint64(styleId))
+	WriteUint64(uint64(styleMenuId))
 	WriteUint64(value)
 	WriteMem(optionsMem)
 	WriteMem(titleMem)
-	WriteUint64(uint64(font))
-
-	WriteFloat64(margin)
-	WriteFloat64(marginX)
-	WriteFloat64(marginY)
-	WriteUint64(uint64(align))
-	WriteFloat64(ratioH)
-
 	WriteUint64(uint64(enable))
 
 	ret := int64(ReadUint64())

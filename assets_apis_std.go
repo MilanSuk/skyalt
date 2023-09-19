@@ -88,6 +88,7 @@ func (asset *Asset) info_setFloat(key string, v float64) int64 {
 	switch strings.ToLower(key) {
 	case "theme":
 		asset.app.root.ui.io.ini.Theme = int(v)
+		asset.app.root.ReloadStyles()
 		return 1
 	case "date":
 		asset.app.root.ui.io.ini.Date = int(v)

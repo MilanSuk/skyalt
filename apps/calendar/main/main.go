@@ -284,13 +284,13 @@ func Calendar(value *int64, page *int64) {
 	//--Day names(short)--
 	if format == 1 {
 		//"us"
-		SA_Text(DayTextShort(7)).Align(1).Show(0, 0, 1, 1)
+		SA_TextCenter(DayTextShort(7)).Show(0, 0, 1, 1)
 		for x := 1; x < 7; x++ {
-			SA_Text(DayTextShort(x)).Align(1).Show(x, 0, 1, 1)
+			SA_TextCenter(DayTextShort(x)).Show(x, 0, 1, 1)
 		}
 	} else {
 		for x := 1; x < 8; x++ {
-			SA_Text(DayTextShort(x)).Align(1).Show(x-1, 0, 1, 1)
+			SA_TextCenter(DayTextShort(x)).Show(x-1, 0, 1, 1)
 		}
 	}
 
@@ -379,7 +379,7 @@ func DateTimePicker(name string, date *int64, hour *int, minute *int) bool {
 		}
 	}
 
-	SA_Text(":").Align(1).Show(4, 0, 1, 1)
+	SA_TextCenter(":").Show(4, 0, 1, 1)
 
 	if *minute < 0 || *minute > 59 {
 		err2 = errors.New(trns.BETWEEN + " 0 - 59")
@@ -413,8 +413,8 @@ func EditEvent(rowid int64) {
 	if len(store.event_title) == 0 {
 		errTitle = errors.New(trns.EMPTY)
 	}
-	SA_Editbox(&store.event_title).TempToValue(true).Error(errTitle).ShowDescription(0, 2, 1, 1, trns.TITLE, 3, 0)
-	SA_Editbox(&store.event_description).ShowDescription(0, 3, 1, 1, trns.DESCRIPTION, 3, 0)
+	SA_Editbox(&store.event_title).TempToValue(true).Error(errTitle).ShowDescription(0, 2, 1, 1, trns.TITLE, 3, nil)
+	SA_Editbox(&store.event_description).ShowDescription(0, 3, 1, 1, trns.DESCRIPTION, 3, nil)
 	//SA_Editbox(&store.new_event_file).ShowDescription(0, 4, 1, 1, trns.FILE, 3, 0) //drag & drop ...
 
 	SA_DivStart(0, 5, 1, 1)
@@ -462,10 +462,10 @@ func ShowEvent(rowid int64) {
 
 		SA_ColMax(0, 10)
 
-		SA_Text(GetTextDateTime(start)).ShowDescription(0, 0, 1, 1, trns.BEGIN, 3, 0)
-		SA_Text(GetTextDateTime(end)).ShowDescription(0, 1, 1, 1, trns.FINISH, 3, 0)
-		SA_Text(title).ShowDescription(0, 2, 1, 1, trns.TITLE, 3, 0)
-		SA_Text(description).ShowDescription(0, 3, 1, 1, trns.DESCRIPTION, 3, 0)
+		SA_Text(GetTextDateTime(start)).ShowDescription(0, 0, 1, 1, trns.BEGIN, 3, nil)
+		SA_Text(GetTextDateTime(end)).ShowDescription(0, 1, 1, 1, trns.FINISH, 3, nil)
+		SA_Text(title).ShowDescription(0, 2, 1, 1, trns.TITLE, 3, nil)
+		SA_Text(description).ShowDescription(0, 3, 1, 1, trns.DESCRIPTION, 3, nil)
 
 		SA_DivStart(0, 4, 1, 1)
 		{
@@ -530,7 +530,7 @@ func Side() {
 		SA_DivStart(0, 2, 1, 1)
 		{
 			SA_ColMax(0, 100)
-			SA_Text(GetMonthYear(store.Small_page)).RatioH(0.5).Show(0, 0, 1, 1)
+			SA_TextBig(GetMonthYear(store.Small_page)).Show(0, 0, 1, 1)
 
 			if SA_ButtonLight("<").Show(1, 0, 1, 1).click {
 				tm := time.Unix(store.Small_page, 0)
@@ -634,13 +634,13 @@ func ModeMonth() {
 	//--Day names(short)--
 	if format == 1 {
 		//"us"
-		SA_Text(DayTextShort(7)).Align(1).Show(0, 0, 1, 1)
+		SA_TextCenter(DayTextShort(7)).Show(0, 0, 1, 1)
 		for x := 1; x < 7; x++ {
-			SA_Text(DayTextShort(x)).Align(1).Show(x, 0, 1, 1)
+			SA_TextCenter(DayTextShort(x)).Show(x, 0, 1, 1)
 		}
 	} else {
 		for x := 1; x < 8; x++ {
-			SA_Text(DayTextShort(x)).Align(1).Show(x-1, 0, 1, 1)
+			SA_TextCenter(DayTextShort(x)).Show(x-1, 0, 1, 1)
 		}
 	}
 
@@ -818,7 +818,7 @@ func ModeWeek() {
 
 		//time
 		for y := 0; y < 25; y++ {
-			SA_Text(strconv.Itoa(y)+":00").RatioH(0.3).Align(1).AlignV(0).Show(0, y*2, 1, 1)
+			SA_TextSmall(strconv.Itoa(y)+":00").Show(0, y*2, 1, 1) //AlignV(0)
 		}
 
 		//grid
@@ -979,7 +979,7 @@ func ModeDay() {
 		SA_ColMax(1, 100)
 
 		dtt := time.Unix(store.Small_date, 0)
-		SA_Text(strconv.Itoa(dtt.Day())+". "+DayTextFull(GetWeekDayPure(store.Small_date))).RatioH(0.4).Show(1, 0, 1, 1)
+		SA_TextBig(strconv.Itoa(dtt.Day())+". "+DayTextFull(GetWeekDayPure(store.Small_date))).Show(1, 0, 1, 1)
 	}
 	SA_DivEnd()
 
@@ -996,7 +996,7 @@ func ModeDay() {
 
 		//time
 		for y := 0; y < 25; y++ {
-			SA_Text(strconv.Itoa(y)+":00").RatioH(0.3).Align(1).AlignV(0).Show(0, y*2, 1, 1)
+			SA_TextCenterSmall(strconv.Itoa(y)+":00").Show(0, y*2, 1, 1) //.AlignV(0)
 		}
 
 		//grid
@@ -1097,7 +1097,7 @@ func ModePanel() {
 		}
 
 		//title
-		SA_Text(title).RatioH(0.5).Align(1).Show(3, 0, 1, 1)
+		SA_TextCenterBig(title).Show(3, 0, 1, 1)
 
 		//Modes
 		SA_DivStart(4, 0, 1, 1)
@@ -1136,8 +1136,7 @@ func ModePanel() {
 
 }
 
-//export render
-func render() uint32 {
+func Render() uint32 {
 
 	if store.ShowSide {
 		SA_Col(0, 6.3)
@@ -1160,13 +1159,10 @@ var g_ButtonSelect _SA_Style
 var g_ButtonToday _SA_Style
 var g_ButtonOutsideMonth _SA_Style
 var g_ButtonOutsideMonthSelect _SA_Style
-
 var g_ButtonEvent _SA_Style
-
 var g_ButtonH1OutsideMonth _SA_Style
 
-func open(buff []byte) bool {
-	//styles
+func Styles() {
 	g_ButtonSelect = styles.Button
 	g_ButtonSelect.Main.Color = SA_ThemeWhite()
 	g_ButtonSelect.Main.Content_color = SA_ThemeGrey(0.4)
@@ -1191,17 +1187,18 @@ func open(buff []byte) bool {
 	g_ButtonH1OutsideMonth = styles.ButtonMenuBig
 	g_ButtonH1OutsideMonth.Main.Color = SA_ThemeGrey(0.7)
 	g_ButtonH1OutsideMonth.Id = 0
+}
 
-	//init store
+func Open(buff []byte) bool {
 	store.ShowSide = true
 	store.Small_date = int64(SA_Time())
 	store.Small_page = int64(SA_Time())
 
 	return false //default json
 }
-func save() ([]byte, bool) {
+func Save() ([]byte, bool) {
 	return nil, false //default json
 }
-func debug() (int, int, string) {
+func Debug() (int, int, string) {
 	return -1, 223, "main"
 }

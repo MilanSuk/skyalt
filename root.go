@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -70,6 +71,9 @@ type Root struct {
 	save bool
 
 	debug_line string
+
+	styles   DivDefaultStyles
+	stylesJs []byte
 }
 
 func NewRoot(debugPORT int, folderApps string, folderDbs string, folderDevice string, ctx context.Context) (*Root, error) {
@@ -140,8 +144,14 @@ func NewRoot(debugPORT int, folderApps string, folderDbs string, folderDevice st
 		return nil, fmt.Errorf("NewDebugServer() failed: %w", err)
 	}
 
+	err = root.ReloadStyles()
+	if err != nil {
+		return nil, fmt.Errorf("ReloadStyles() failed: %w", err)
+	}
+
 	return &root, nil
 }
+
 func (root *Root) Destroy() {
 
 	for _, app := range root.apps {
@@ -182,6 +192,19 @@ func (root *Root) Destroy() {
 	root.settings.Destroy()
 
 	root.ui.Destroy() //also save ini.json
+}
+
+func (root *Root) ReloadStyles() error {
+
+	root.styles = DivStyles_getDefaults(root)
+	var err error
+	root.stylesJs, err = json.MarshalIndent(&root.styles, "", "")
+	if err != nil {
+		return fmt.Errorf("MarshalIndent() failed: %w", err)
+	}
+
+	root.last_ticks = 0
+	return nil
 }
 
 func (root *Root) ReloadTranslations() {

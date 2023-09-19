@@ -136,7 +136,7 @@ func Measure(cam Cam) {
 	metersPerPixels := MetersPerPixel(cam.Lat, cam.Zoom)
 
 	metersPerWidth := metersPerPixels * SA_DivInfo("screenWidth") * SA_DivInfo("cell")
-	metersPerStrip := metersPerWidth * 0.2
+	metersPerStrip := metersPerWidth / 5
 	meters := math.Round(metersPerStrip)
 
 	unitText := "m"
@@ -145,23 +145,37 @@ func Measure(cam Cam) {
 		unitText = "km"
 	}
 
+	SA_Row(0, 0.5)
+	SA_Row(1, 0.5)
+
+	SA_ColMax(0, 100)
+	SA_ColMax(1, 100)
+	SA_ColMax(2, 100)
+	SA_ColMax(3, 100)
+	SA_ColMax(4, 100)
+
 	//texts
-	m0 := meters * 0
-	m1 := meters * 1
-	m2 := meters * 2
-	m3 := meters * 3
-	SA_Text("").ValueFloat(m0, 0).RatioH(0.3).Align(1).DrawPaint(0.1, 0.2, 0.2, 0.4)
-	SA_Text("").ValueFloat(m1, 0).RatioH(0.3).Align(1).DrawPaint(0.3, 0.2, 0.2, 0.4)
-	SA_Text("").ValueFloat(m2, 0).RatioH(0.3).Align(1).DrawPaint(0.5, 0.2, 0.2, 0.4)
-	SA_Text("").ValueFloat(m3, 0).RatioH(0.3).Align(1).DrawPaint(0.7, 0.2, 0.2, 0.4)
+	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*0, 0).Show(0, 0, 2, 1)
+	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*1, 0).Show(1, 0, 2, 1)
+	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*2, 0).Show(2, 0, 2, 1)
+	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*3, 0).Show(3, 0, 2, 1)
 
 	//stripes
-	SAPaint_Rect(0.2, 0.65, 0.2, 0.2, 0, SA_ThemeBlack(), 0)
-	SAPaint_Rect(0.4, 0.65, 0.2, 0.2, 0, SA_ThemeWhite(), 0)
-	SAPaint_Rect(0.6, 0.65, 0.2, 0.2, 0, SA_ThemeBlack(), 0)
+	SA_DivStart(1, 1, 1, 1)
+	SAPaint_Rect(0, 0, 1, 1, 0, SA_ThemeBlack(), 0)
+	SA_DivEnd()
+
+	SA_DivStart(2, 1, 1, 1)
+	SAPaint_Rect(0, 0, 1, 1, 0, SA_ThemeWhite(), 0)
+	SA_DivEnd()
+
+	SA_DivStart(3, 1, 1, 1)
+	SAPaint_Rect(0, 0, 1, 1, 0, SA_ThemeBlack(), 0)
+	SA_DivEnd()
 
 	//unit
-	SA_Text(unitText).RatioH(0.35).DrawPaint(0.8, 0.5, 0.2, 0.5)
+	SA_TextStyle(unitText, &styles.TextRightSmall).Show(4, 1, 1, 1)
+
 }
 
 func zoomClamp(z float64) float64 {
@@ -398,16 +412,15 @@ func Map(cam *Cam) {
 		Measure(*cam)
 		SA_DivEnd()
 
-		SA_Editbox(&cam.Lon).Precision(3).ShowDescription(3, 0, 1, 1, "Lon", 1.5, 2)
-		SA_Editbox(&cam.Lat).Precision(3).ShowDescription(4, 0, 1, 1, "Lat", 1.5, 2)
-		SA_Editbox(&cam.Zoom).Precision(0).ShowDescription(5, 0, 1, 1, trns.ZOOM, 1.5, 2)
+		SA_Editbox(&cam.Lon).Precision(3).ShowDescription(3, 0, 1, 1, "Lon", 1.5, &styles.TextRight)
+		SA_Editbox(&cam.Lat).Precision(3).ShowDescription(4, 0, 1, 1, "Lat", 1.5, &styles.TextRight)
+		SA_Editbox(&cam.Zoom).Precision(0).ShowDescription(5, 0, 1, 1, trns.ZOOM, 1.5, &styles.TextRight)
 		SA_ButtonAlpha("(c)OpenStreetMap contributors").Url("https://www.openstreetmap.org/copyright").Show(7, 0, 1, 1)
 	}
 	SA_DivEnd()
 }
 
-//export render
-func render() uint32 {
+func Render() uint32 {
 	SA_ColMax(0, 100)
 	SA_RowMax(0, 100)
 
@@ -418,12 +431,16 @@ func render() uint32 {
 	return 0
 }
 
-func open(buff []byte) bool {
+func Styles() {
+}
+
+func Open(buff []byte) bool {
+
 	return false //default json
 }
-func save() ([]byte, bool) {
+func Save() ([]byte, bool) {
 	return nil, false //default json
 }
-func debug() (int, int, string) {
+func Debug() (int, int, string) {
 	return -1, 156, "main"
 }

@@ -264,8 +264,8 @@ func SAPaint_Text(x, y, w, h float64, value string, margin float64, marginX floa
 		_SA_boolToUint32(selection), _SA_boolToUint32(edit), _SA_boolToUint32(tabIsChar), _SA_boolToUint32(enable)) > 0
 }
 
-func SAPaint_TextWidth(value string, fontId int, ratioH float64, cursorPos int) float64 {
-	return _sa_paint_textWidth(_SA_stringToPtr(value), uint32(fontId), ratioH, int64(cursorPos))
+func SAPaint_TextWidth(value string, fontPath string, ratioH float64, cursorPos int) float64 {
+	return _sa_paint_textWidth(_SA_stringToPtr(value), _SA_stringToPtr(fontPath), ratioH, int64(cursorPos))
 }
 
 func SAPaint_TitleEx(x, y, w, h float64, text string) bool {
@@ -616,19 +616,15 @@ func (b *_SA_Button) Show(x, y, w, h int) _SA_ButtonOut {
 			b.style = &styles.Button //use default
 		}
 
-		if b.style.Id == 0 {
-			file, err := json.MarshalIndent(b.style, "", "")
-			if err != nil {
-				return ret
-			}
-			b.style.Id = uint32(_sa_register_style(_SA_bytesToPtr(file)))
+		err := b.style.Register()
+		if err == nil {
+
+			var out [2 * 8]byte
+			_sa_swp_drawButton(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.icon), b.icon_margin, _SA_stringToPtr(b.url), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
+
+			ret.click = binary.LittleEndian.Uint64(out[0:]) != 0
+			ret.rclick = binary.LittleEndian.Uint64(out[8:]) != 0
 		}
-
-		var out [2 * 8]byte
-		_sa_swp_drawButton(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.icon), b.icon_margin, _SA_stringToPtr(b.url), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
-
-		ret.click = binary.LittleEndian.Uint64(out[0:]) != 0
-		ret.rclick = binary.LittleEndian.Uint64(out[8:]) != 0
 	}
 	defer SA_DivEnd()
 
@@ -737,43 +733,57 @@ func (b *_SA_Slider) Show(x, y, w, h int) _SA_SliderOut {
 }
 
 type _SA_Text struct {
+	style *_SA_Style
 	value string
 	title string
 
-	font    uint32
-	frontCd SACd
-
-	margin  float64
-	marginX float64
-	marginY float64
-	align   uint32
-	alignV  uint32
-	ratioH  float64
-
 	enable    bool
 	selection bool
-
-	backCd      SACd
-	drawBack    bool
-	back_margin float64
 }
 
-func SA_Text(value string) *_SA_Text {
+func SA_TextStyle(value string, style *_SA_Style) *_SA_Text {
 	var b _SA_Text
 
 	b.value = value
 	b.enable = true
-	b.frontCd = SA_ThemeBlack()
-
-	b.margin = 0.03
-	b.align = 0
-	b.alignV = 1
-	b.ratioH = 0.35
+	b.style = style
 	b.selection = true
-	b.marginX = 0.1
 
 	return &b
 }
+func SA_Text(value string) *_SA_Text {
+	return SA_TextStyle(value, &styles.Text)
+}
+func SA_TextCenter(value string) *_SA_Text {
+	return SA_TextStyle(value, &styles.TextCenter)
+}
+func SA_TextRight(value string) *_SA_Text {
+	return SA_TextStyle(value, &styles.TextRight)
+}
+func SA_TextError(value string) *_SA_Text {
+	return SA_TextStyle(value, &styles.TextErr)
+}
+
+func SA_TextSmall(value string) *_SA_Text {
+	return SA_TextStyle(value, &styles.TextSmall)
+}
+func SA_TextCenterSmall(value string) *_SA_Text {
+	return SA_TextStyle(value, &styles.TextCenterSmall)
+}
+func SA_TextRightSmall(value string) *_SA_Text {
+	return SA_TextStyle(value, &styles.TextRightSmall)
+}
+
+func SA_TextBig(value string) *_SA_Text {
+	return SA_TextStyle(value, &styles.TextBig)
+}
+func SA_TextCenterBig(value string) *_SA_Text {
+	return SA_TextStyle(value, &styles.TextCenterBig)
+}
+func SA_TextRightBig(value string) *_SA_Text {
+	return SA_TextStyle(value, &styles.TextRightBig)
+}
+
 func (b *_SA_Text) ValueInt(v int) *_SA_Text {
 	b.value = strconv.Itoa(v)
 	return b
@@ -788,44 +798,28 @@ func (b *_SA_Text) Title(v string) *_SA_Text {
 	b.title = v
 	return b
 }
-func (b *_SA_Text) FrontCd(v SACd) *_SA_Text {
-	b.frontCd = v
-	return b
-}
-func (b *_SA_Text) BackCd(v SACd, back_margin float64) *_SA_Text {
-	b.backCd = v
-	b.back_margin = back_margin
-	b.drawBack = true
+func (b *_SA_Text) Selection(v bool) *_SA_Text {
+	b.selection = v
 	return b
 }
 
-func (b *_SA_Text) Align(v int) *_SA_Text {
-	b.align = uint32(v)
-	return b
-}
-func (b *_SA_Text) AlignV(v int) *_SA_Text {
-	b.alignV = uint32(v)
-	return b
-}
+func (b *_SA_Text) ShowDescription(x, y, w, h int, description string, width float64, descStyle *_SA_Style) {
 
-func (b *_SA_Text) RatioH(v float64) *_SA_Text {
-	b.ratioH = v
-	return b
-}
-
-func (b *_SA_Text) ShowDescription(x, y, w, h int, description string, width float64, align int) {
+	if descStyle == nil {
+		descStyle = &styles.Text
+	}
 
 	if SA_DivStart(x, y, w, h) {
 		if width > 0 {
 			//1 row
 			SA_Col(0, width)
 			SA_ColMax(1, 100)
-			SA_Text(description).Align(align).Show(0, 0, 1, 1)
+			SA_TextStyle(description, descStyle).Show(0, 0, 1, 1)
 			b.Show(1, 0, 1, 1)
 		} else {
 			//2 rows
 			SA_ColMax(0, 100)
-			SA_Text(description).Align(align).Show(0, 0, 1, 1)
+			SA_TextStyle(description, descStyle).Show(0, 0, 1, 1)
 			b.Show(0, 1, 1, 1)
 		}
 	}
@@ -835,48 +829,29 @@ func (b *_SA_Text) ShowDescription(x, y, w, h int, description string, width flo
 func (b *_SA_Text) Show(x, y, w, h int) {
 	if SA_DivStart(x, y, w, h) {
 
-		if b.drawBack {
-			SAPaint_Rect(0, 0, 1, 1, b.back_margin, b.backCd, 0)
+		err := b.style.Register()
+		if err == nil {
+			_sa_swp_drawText(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_boolToUint32(b.selection))
 		}
-
-		_sa_swp_drawText(uint32(b.frontCd.R), uint32(b.frontCd.G), uint32(b.frontCd.B), uint32(b.frontCd.A),
-			_SA_stringToPtr(b.value), _SA_stringToPtr(b.title), b.font,
-			b.margin, b.marginX, b.marginY, b.align, b.alignV, b.ratioH,
-			_SA_boolToUint32(b.enable), _SA_boolToUint32(b.selection))
 	}
-	defer SA_DivEnd()
-}
-func (b *_SA_Text) DrawPaint(x, y, w, h float64) {
-	SAPaint_Text(x, y, w, h, b.value, b.margin, b.marginX, b.marginY, b.frontCd, b.ratioH, 1, b.font, b.align, b.alignV, b.selection, false, false, true)
+	SA_DivEnd()
 }
 
 type _SA_Editbox struct {
+	style *_SA_Style
+
 	value     interface{}
 	valueOrig string
 	title     string
 
 	valueOrigSet bool
 
-	font uint32
-
-	backCd  SACd
-	frontCd SACd
-
-	margin  float64
-	marginX float64
-	marginY float64
-	align   uint32
-	alignV  uint32
-	ratioH  float64
-
 	enable      bool
 	tempToValue bool
 	asNumber    bool
 
-	drawBack   bool
-	drawBorder bool
-	ghost      string
-	precision  int
+	ghost     string
+	precision int
 
 	err error
 }
@@ -887,25 +862,27 @@ type _SA_EditboxOut struct {
 	size     uint64
 }
 
-func SA_Editbox(value interface{}) *_SA_Editbox {
+func SA_EditboxStyle(value interface{}, style *_SA_Style) *_SA_Editbox {
 	var b _SA_Editbox
 
 	b.value = value
-
 	b.enable = true
-	b.backCd = SA_ThemeWhite()
-	b.frontCd = SA_ThemeBlack()
-
-	b.margin = 0.03
-	b.align = 0
-	b.alignV = 1
-	b.ratioH = 0.35
-	b.marginX = 0.1
-	b.drawBack = true
-	b.drawBorder = true
 	b.precision = 3
 
+	b.style = style
+
 	return &b
+}
+
+func SA_Editbox(value interface{}) *_SA_Editbox {
+	return SA_EditboxStyle(value, &styles.Editbox)
+}
+
+func (b *_SA_Editbox) Highlight(condition bool, style *_SA_Style) *_SA_Editbox {
+	if condition {
+		b.style = style
+	}
+	return b
 }
 
 func (b *_SA_Editbox) ValueOrig(v string) *_SA_Editbox {
@@ -914,12 +891,8 @@ func (b *_SA_Editbox) ValueOrig(v string) *_SA_Editbox {
 	return b
 }
 
-func (b *_SA_Editbox) Align(v uint32) *_SA_Editbox {
-	b.align = v
-	return b
-}
-func (b *_SA_Editbox) Margin(v float64) *_SA_Editbox {
-	b.margin = v
+func (b *_SA_Editbox) Enable(v bool) *_SA_Editbox {
+	b.enable = v
 	return b
 }
 
@@ -946,54 +919,11 @@ func (b *_SA_Editbox) Error(v error) *_SA_Editbox {
 	return b
 }
 
-func (b *_SA_Editbox) Enable(v bool) *_SA_Editbox {
-	b.enable = v
-	return b
-}
+func (b *_SA_Editbox) ShowDescription(x, y, w, h int, description string, width float64, descStyle *_SA_Style) _SA_EditboxOut {
 
-func (b *_SA_Editbox) DrawBorder(v bool) *_SA_Editbox {
-	b.drawBorder = v
-	return b
-}
-
-func (b *_SA_Editbox) DrawBack(v bool) *_SA_Editbox {
-	b.drawBack = v
-	return b
-}
-func (b *_SA_Editbox) BackCd(v SACd) *_SA_Editbox {
-	b.backCd = v
-	return b
-}
-
-func (b *_SA_Editbox) Highlight(cd SACd) *_SA_Editbox {
-	b.DrawBack(true)
-	b.BackCd(cd)
-	return b
-}
-
-func (b *_SA_Editbox) HighlightError(enable bool) *_SA_Editbox {
-	if enable {
-		b.DrawBack(true)
-		b.BackCd(SA_ThemeError())
+	if descStyle == nil {
+		descStyle = &styles.Text
 	}
-	return b
-}
-func (b *_SA_Editbox) HighlightWarning(enable bool) *_SA_Editbox {
-	if enable {
-		b.DrawBack(true)
-		b.BackCd(SA_ThemeWarning())
-	}
-	return b
-}
-func (b *_SA_Editbox) HighlightEdit(enable bool) *_SA_Editbox {
-	if enable {
-		b.DrawBack(true)
-		b.BackCd(SA_ThemeEdit())
-	}
-	return b
-}
-
-func (b *_SA_Editbox) ShowDescription(x, y, w, h int, description string, width float64, align int) _SA_EditboxOut {
 
 	var ret _SA_EditboxOut
 	if SA_DivStart(x, y, w, h) {
@@ -1001,12 +931,12 @@ func (b *_SA_Editbox) ShowDescription(x, y, w, h int, description string, width 
 			//1 row
 			SA_Col(0, width)
 			SA_ColMax(1, 100)
-			SA_Text(description).Align(align).Show(0, 0, 1, 1)
+			SA_TextStyle(description, descStyle).Show(0, 0, 1, 1)
 			ret = b.Show(1, 0, 1, 1)
 		} else {
 			//2 rows
 			SA_ColMax(0, 100)
-			SA_Text(description).Align(align).Show(0, 0, 1, 1)
+			SA_TextStyle(description, descStyle).Show(0, 0, 1, 1)
 			ret = b.Show(0, 1, 1, 1)
 		}
 	}
@@ -1020,12 +950,12 @@ func (b *_SA_Editbox) Show(x, y, w, h int) _SA_EditboxOut {
 	var ret _SA_EditboxOut
 
 	if SA_DivStart(x, y, w, h) {
-		if b.drawBack {
-			SAPaint_Rect(0, 0, 1, 1, b.margin, b.backCd, 0)
-		}
 
+		if b.style == nil {
+			b.style = &styles.Editbox //use default
+		}
 		if b.err != nil {
-			SAPaint_Rect(0, 0, 1, 1, b.margin, SA_ThemeError(), 0)
+			b.style = &styles.EditboxErr
 		}
 
 		value := ""
@@ -1052,11 +982,11 @@ func (b *_SA_Editbox) Show(x, y, w, h int) _SA_EditboxOut {
 		}
 
 		var out [4 * 8]byte
-		_sa_swp_drawEdit(uint32(b.frontCd.R), uint32(b.frontCd.G), uint32(b.frontCd.B), uint32(b.frontCd.A),
-			_SA_stringToPtr(value), _SA_stringToPtr(valueOrig), _SA_stringToPtr(title), b.font,
-			b.margin, b.marginX, b.marginY, b.align, b.alignV, b.ratioH,
-			_SA_boolToUint32(b.enable),
-			_SA_bytesToPtr(out[:]))
+
+		err := b.style.Register()
+		if err == nil {
+			_sa_swp_drawEdit(b.style.Id, _SA_stringToPtr(value), _SA_stringToPtr(valueOrig), _SA_stringToPtr(title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
+		}
 
 		ret.active = binary.LittleEndian.Uint64(out[0:]) != 0
 		ret.changed = binary.LittleEndian.Uint64(out[8:]) != 0
@@ -1080,17 +1010,8 @@ func (b *_SA_Editbox) Show(x, y, w, h int) _SA_EditboxOut {
 
 		//ghost
 		if len(b.ghost) > 0 && ret.size == 0 {
-			SAPaint_Text(0, 0, 1, 1, b.ghost, b.margin, b.marginX, b.marginY, b.backCd.Aprox(b.frontCd, 0.5), b.ratioH, 1, b.font, 1, 1, false, false, false, b.enable)
+			//... SAPaint_Text(0, 0, 1, 1, b.ghost, b.margin, b.marginX, b.marginY, b.backCd.Aprox(b.frontCd, 0.5), b.ratioH, 1, b.font, 1, 1, false, false, false, b.enable)
 		}
-
-		if b.drawBorder {
-			cd := b.frontCd
-			if !b.enable {
-				cd = SA_ThemeWhite().Aprox(cd, 0.3)
-			}
-			SAPaint_Rect(0, 0, 1, 1, b.margin, b.backCd.Aprox(cd, 0.7), 0.03)
-		}
-
 	}
 	defer SA_DivEnd()
 
@@ -1098,21 +1019,13 @@ func (b *_SA_Editbox) Show(x, y, w, h int) _SA_EditboxOut {
 }
 
 type _SA_Combo struct {
+	style     *_SA_Style
+	styleMenu *_SA_Style
+
 	value   *int
 	options string
 
 	title string
-
-	font uint32
-
-	cd      SACd
-	frontCd SACd
-
-	margin  float64
-	marginX float64
-	marginY float64
-	align   uint32
-	ratioH  float64
 
 	search bool //...
 	err    error
@@ -1120,21 +1033,29 @@ type _SA_Combo struct {
 	enable bool
 }
 
-func SA_Combo(value *int, options string) *_SA_Combo {
+func SA_ComboStyle(value *int, options string, style *_SA_Style) *_SA_Combo {
 	var b _SA_Combo
 
 	b.value = value
 	b.options = options
-
 	b.enable = true
-	b.frontCd = SA_ThemeBlack()
+	b.style = style
+	b.styleMenu = &styles.ButtonMenu
 
-	b.margin = 0.03
-	b.align = 0
-	b.ratioH = 0.35
-	b.marginX = 0.1
 	return &b
 }
+
+func SA_Combo(value *int, options string) *_SA_Combo {
+	return SA_ComboStyle(value, options, &styles.Combo)
+}
+
+func (b *_SA_Combo) Highlight(condition bool, style *_SA_Style) *_SA_Combo {
+	if condition {
+		b.style = style
+	}
+	return b
+}
+
 func (b *_SA_Combo) Enable(v bool) *_SA_Combo {
 	b.enable = v
 	return b
@@ -1143,17 +1064,17 @@ func (b *_SA_Combo) Search(v bool) *_SA_Combo {
 	b.search = v
 	return b
 }
-func (b *_SA_Combo) Align(v uint32) *_SA_Combo {
-	b.align = v
-	return b
-}
 
 func (b *_SA_Combo) Error(v error) *_SA_Combo {
 	b.err = v
 	return b
 }
 
-func (b *_SA_Combo) ShowDescription(x, y, w, h int, description string, width float64, align int) bool {
+func (b *_SA_Combo) ShowDescription(x, y, w, h int, description string, width float64, descStyle *_SA_Style) bool {
+
+	if descStyle == nil {
+		descStyle = &styles.Text
+	}
 
 	var ret bool
 	if SA_DivStart(x, y, w, h) {
@@ -1161,12 +1082,12 @@ func (b *_SA_Combo) ShowDescription(x, y, w, h int, description string, width fl
 			//1 row
 			SA_Col(0, width)
 			SA_ColMax(1, 100)
-			SA_Text(description).Align(align).Show(0, 0, 1, 1)
+			SA_TextStyle(description, descStyle).Show(0, 0, 1, 1)
 			ret = b.Show(1, 0, 1, 1)
 		} else {
 			//2 rows
 			SA_ColMax(0, 100)
-			SA_Text(description).Align(align).Show(0, 0, 1, 1)
+			SA_TextStyle(description, descStyle).Show(0, 0, 1, 1)
 			ret = b.Show(0, 1, 1, 1)
 		}
 	}
@@ -1181,8 +1102,11 @@ func (b *_SA_Combo) Show(x, y, w, h int) bool {
 
 	if SA_DivStart(x, y, w, h) {
 
+		if b.style == nil {
+			b.style = &styles.Editbox //use default
+		}
 		if b.err != nil {
-			SAPaint_Rect(0, 0, 1, 1, 0, SA_ThemeError(), 0)
+			b.style = &styles.EditboxErr
 		}
 
 		title := ""
@@ -1192,10 +1116,12 @@ func (b *_SA_Combo) Show(x, y, w, h int) bool {
 			title = b.title
 		}
 
-		v := _sa_swp_drawCombo(uint32(b.frontCd.R), uint32(b.frontCd.G), uint32(b.frontCd.B), uint32(b.frontCd.A),
-			uint64(*b.value), _SA_stringToPtr(b.options), _SA_stringToPtr(title), b.font,
-			b.margin, b.marginX, b.marginY, b.align, b.ratioH,
-			_SA_boolToUint32(b.enable))
+		var v int64
+		err1 := b.style.Register()
+		err2 := b.styleMenu.Register()
+		if err1 == nil && err2 == nil {
+			v = _sa_swp_drawCombo(b.style.Id, b.styleMenu.Id, uint64(*b.value), _SA_stringToPtr(b.options), _SA_stringToPtr(title), _SA_boolToUint32(b.enable))
+		}
 
 		changed = *b.value != int(v)
 		*b.value = int(v)
@@ -1668,10 +1594,8 @@ type _SAStyle_Div struct {
 	Border_top, Border_bottom, Border_left, Border_right     float64 //from cell
 	Padding_top, Padding_bottom, Padding_left, Padding_right float64 //from cell
 
-	Margin_top_color, Margin_bottom_color, Margin_left_color, Margin_right_color     SACd
-	Border_top_color, Border_bottom_color, Border_left_color, Border_right_color     SACd
-	Padding_top_color, Padding_bottom_color, Padding_left_color, Padding_right_color SACd
-	Content_color                                                                    SACd
+	Border_color  SACd
+	Content_color SACd
 
 	Color SACd
 
@@ -1723,37 +1647,9 @@ func (b *_SAStyle_Div) Padding(v float64) *_SAStyle_Div {
 	return b.PaddingEx(v, v, v, v)
 }
 
-func (b *_SAStyle_Div) MarginColorEx(top, bottom, left, right SACd) *_SAStyle_Div {
-	b.Margin_top_color = top
-	b.Margin_bottom_color = bottom
-	b.Margin_left_color = left
-	b.Margin_right_color = right
-	return b
-}
-func (b *_SAStyle_Div) MarginColor(v SACd) *_SAStyle_Div {
-	return b.MarginColorEx(v, v, v, v)
-}
-
-func (b *_SAStyle_Div) BorderColorEx(top, bottom, left, right SACd) *_SAStyle_Div {
-	b.Border_top_color = top
-	b.Border_bottom_color = bottom
-	b.Border_left_color = left
-	b.Border_right_color = right
-	return b
-}
 func (b *_SAStyle_Div) BorderColor(v SACd) *_SAStyle_Div {
-	return b.BorderColorEx(v, v, v, v)
-}
-
-func (b *_SAStyle_Div) PaddingColorEx(top, bottom, left, right SACd) *_SAStyle_Div {
-	b.Padding_top_color = top
-	b.Padding_bottom_color = bottom
-	b.Padding_left_color = left
-	b.Padding_right_color = right
+	b.Border_color = v
 	return b
-}
-func (b *_SAStyle_Div) PaddingColor(v SACd) *_SAStyle_Div {
-	return b.PaddingColorEx(v, v, v, v)
 }
 
 type _SA_Style struct {
@@ -1765,6 +1661,17 @@ type _SA_Style struct {
 	Disable     _SAStyle_Div
 }
 
+func (b *_SA_Style) Register() error {
+	if b.Id == 0 {
+		file, err := json.MarshalIndent(b, "", "")
+		if err != nil {
+			return err
+		}
+		b.Id = uint32(_sa_register_style(_SA_bytesToPtr(file)))
+	}
+	return nil
+}
+
 func (b *_SA_Style) Padding(v float64) *_SA_Style {
 	b.Main.Padding(v)
 	b.Hover.Padding(v)
@@ -1773,6 +1680,15 @@ func (b *_SA_Style) Padding(v float64) *_SA_Style {
 	b.Disable.Padding(v)
 	return b
 }
+func (b *_SA_Style) Border(v float64) *_SA_Style {
+	b.Main.Border(v)
+	b.Hover.Border(v)
+	b.Touch_hover.Border(v)
+	b.Touch_out.Border(v)
+	b.Disable.Border(v)
+	return b
+}
+
 func (b *_SA_Style) Margin(v float64) *_SA_Style {
 	b.Main.Margin(v)
 	b.Hover.Margin(v)
@@ -1807,6 +1723,22 @@ func (b *_SA_Style) FontH(v float64) *_SA_Style {
 	b.Disable.Font_height = v
 	return b
 }
+func (b *_SA_Style) Color(v SACd) *_SA_Style {
+	b.Main.Color = v
+	b.Hover.Color = v
+	b.Touch_hover.Color = v
+	b.Touch_out.Color = v
+	b.Disable.Color = v
+	return b
+}
+func (b *_SA_Style) ContentColor(v SACd) *_SA_Style {
+	b.Main.Content_color = v
+	b.Hover.Content_color = v
+	b.Touch_hover.Content_color = v
+	b.Touch_out.Content_color = v
+	b.Disable.Content_color = v
+	return b
+}
 
 //more ...
 
@@ -1829,4 +1761,22 @@ type SA_Styles struct {
 	ButtonDangerMenu _SA_Style
 
 	ButtonIcon _SA_Style
+
+	Text       _SA_Style
+	TextCenter _SA_Style
+	TextRight  _SA_Style
+	TextErr    _SA_Style
+
+	TextSmall       _SA_Style
+	TextCenterSmall _SA_Style
+	TextRightSmall  _SA_Style
+	TextBig         _SA_Style
+	TextCenterBig   _SA_Style
+	TextRightBig    _SA_Style
+
+	Editbox       _SA_Style
+	EditboxErr    _SA_Style
+	EditboxYellow _SA_Style
+
+	Combo _SA_Style
 }

@@ -130,7 +130,7 @@ func FlightBookerDialog() {
 		text += trns.ONE_WAY_FLIGHT + " " + trns.ON + " " + startDate
 	}
 
-	SA_Text(text).Align(1).Show(0, 0, 1, 1)
+	SA_TextCenter(text).Show(0, 0, 1, 1)
 }
 
 func FlightBooker() {
@@ -217,8 +217,8 @@ func CRUDChange() {
 	SA_ColMax(0, 100)
 
 	SA_Text(store.Surname+", "+store.Name).Show(0, 0, 1, 1)
-	SA_Editbox(&store.Name).TempToValue(true).ShowDescription(0, 1, 1, 1, trns.NAME, 2, 0)
-	SA_Editbox(&store.Surname).TempToValue(true).ShowDescription(0, 2, 1, 1, trns.SURNAME, 2, 0)
+	SA_Editbox(&store.Name).TempToValue(true).ShowDescription(0, 1, 1, 1, trns.NAME, 2, nil)
+	SA_Editbox(&store.Surname).TempToValue(true).ShowDescription(0, 2, 1, 1, trns.SURNAME, 2, nil)
 }
 
 func CRUDButtons() {
@@ -334,7 +334,7 @@ func CircleDrawerCanvas() {
 		if SA_Slider(&circle.Rad).Min(0.1).Max(3).Jump(0.1).Show(0, 0, 1, 1).finished {
 			CircleDrawerAddSnapShot()
 		}
-		SA_Text("").ValueFloat(circle.Rad, 1).Align(1).Show(1, 0, 1, 1)
+		SA_TextCenter("").ValueFloat(circle.Rad, 1).Show(1, 0, 1, 1)
 
 		SA_DialogEnd()
 	}
@@ -367,7 +367,7 @@ func CircleDrawer() {
 		store.Circles = store.snapshots[store.snapshots_pos]
 	}
 
-	SA_Text(strconv.Itoa(store.snapshots_pos+1)+"/"+strconv.Itoa(len(store.snapshots))).Align(1).Show(2, 0, 1, 1)
+	SA_TextCenter(strconv.Itoa(store.snapshots_pos+1)+"/"+strconv.Itoa(len(store.snapshots))).Show(2, 0, 1, 1)
 
 	if SA_Button(trns.REDO).Enable(store.snapshots_pos+1 != len(store.snapshots)).Show(3, 0, 1, 1).click {
 		store.snapshots_pos++
@@ -393,9 +393,8 @@ func Cells() {
 	}
 
 	//columns header
-	headerBackCd := SA_ThemeGrey(0.9)
 	for c := 0; c < n_cols; c++ {
-		SA_Text(string(rune('A'+c))).BackCd(headerBackCd, 0.0).Show(1+c, 0, 1, 1)
+		SA_TextStyle(string(rune('A'+c)), &g_TextCellHeader).Show(1+c, 0, 1, 1)
 	}
 
 	//rows header
@@ -406,7 +405,7 @@ func Cells() {
 	}
 	for r := stRow; r <= enRow; r++ {
 		if r > 0 {
-			SA_Text(strconv.Itoa(r-1)).BackCd(headerBackCd, 0).Show(0, r, 1, 1)
+			SA_TextStyle(strconv.Itoa(r-1), &g_TextCellHeader).Show(0, r, 1, 1)
 		}
 	}
 
@@ -417,7 +416,7 @@ func Cells() {
 				if c > 0 {
 					id := fmt.Sprintf("%d %d", c-1, r-1)
 					v := store.Cells[id]
-					if SA_Editbox(&v).DrawBorder(false).Show(c, r, 1, 1).finished {
+					if SA_EditboxStyle(&v, &g_EditboxNoBorder).Show(c, r, 1, 1).finished {
 						if len(v) > 0 {
 							store.Cells[id] = v
 						} else {
@@ -434,8 +433,7 @@ func Cells() {
 	//todo: formulas ...
 }
 
-//export render
-func render() uint32 {
+func Render() uint32 {
 
 	SA_ColMax(0, 100)
 	SA_Col(1, 10)
@@ -504,12 +502,21 @@ func render() uint32 {
 	return 0
 }
 
-func open(buff []byte) bool {
+var g_TextCellHeader _SA_Style
+var g_EditboxNoBorder _SA_Style
 
-	//init
+func Styles() {
+	g_TextCellHeader = styles.Text
+	g_TextCellHeader.ContentColor(SA_ThemeGrey(0.9))
+
+	g_EditboxNoBorder = styles.Editbox
+	g_EditboxNoBorder.Border(0)
+}
+
+func Open(buff []byte) bool {
+	//storage
 	store.Cells = make(map[string]string)
 
-	//init
 	store.People = append(store.People, Person{Surname: "Emil", Name: "Hans"})
 	store.People = append(store.People, Person{Surname: "Mustermann", Name: "Max"})
 	store.People = append(store.People, Person{Surname: "Tisch", Name: "Roman"})
@@ -518,11 +525,11 @@ func open(buff []byte) bool {
 
 	return false //default json
 }
-func save() ([]byte, bool) {
+func Save() ([]byte, bool) {
 	return nil, false //default json
 }
-func debug() (int, int, string) {
-	return -1, 153, "main"
+func Debug() (int, int, string) {
+	return -1, 225, "main"
 }
 
 //work-in-progress ...

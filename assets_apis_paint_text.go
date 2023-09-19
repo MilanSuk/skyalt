@@ -23,12 +23,9 @@ import (
 )
 
 func (asset *Asset) paint_text(x, y, w, h float64,
+	style *SwpStyle,
 	value string, valueOrigEdit string,
-	margin float64, marginX float64, marginY float64,
-	cd OsCd,
-	ratioH, lineHeight float64,
-	fontId, alignH, alignV uint32,
-	selection, edit, tabIsChar, enable uint32) int64 {
+	selection, edit, enable bool) int64 {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
@@ -36,52 +33,44 @@ func (asset *Asset) paint_text(x, y, w, h float64,
 		return -1
 	}
 
-	if enable == 0 {
-		cd = OsCd_Aprox(OsCd_white(), cd, 0.3)
+	coord := asset.getCoord(x, y, w, h, 0, 0, 0)
+
+	if style == nil {
+		style = &root.styles.Text
 	}
 
-	coord := asset.getCoord(x, y, w, h, margin, marginX, marginY)
+	sdiv := style.GetDiv(enable, asset)
 
-	// crop
-	imgRectBackup := st.buff.AddCrop(asset.addCoordMargin(st.stack.crop, margin, marginX, marginY).GetIntersect(coord))
-
-	//one liner
-	active := asset._VmDraw_Text_line(coord, 0, OsV2{utf8.RuneCountInString(value), 0},
-		value, valueOrigEdit,
-		cd,
-		ratioH, lineHeight, margin, marginX,
-		fontId, alignH, alignV,
-		selection != 0, edit != 0, tabIsChar != 0)
-
-	if active {
-		asset._VmDraw_resetKeys(edit != 0)
+	if !enable {
+		st.stack.data.touch_enabled = false
 	}
+	st.stack.data.scrollH.narrow = true
+	st.stack.data.scrollV.show = false
 
-	// crop back
-	st.buff.AddCrop(imgRectBackup)
+	asset._sa_div_col(0, OsMaxFloat(asset.div_get_info("layoutWidth", -1, -1), asset.paint_textWidth(value, sdiv.Font_path, sdiv.Font_height, -1))) //+marginX*4+margin*2
+	asset._sa_div_row(0, asset.div_get_info("layoutHeight", -1, -1))
+
+	asset.div_start(0, 0, 1, 1, "")
+	style.Paint(coord, value, valueOrigEdit, selection, edit, "", 0, enable, asset)
+	asset._sa_div_end()
+
 	return 1
 }
 
 func (asset *Asset) _sa_paint_text(x, y, w, h float64,
-	valueMem uint64,
-	margin float64, marginX float64, marginY float64,
-	r, g, b, a uint32,
-	ratioH, lineHeight float64,
-	fontId, align, alignV uint32,
-	selection, edit, tabIsChar, enable uint32) int64 {
+	styleId uint32, valueMem uint64,
+	selection, edit, enable uint32) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
 
+	style := asset.styles.Get(styleId)
+
 	return asset.paint_text(x, y, w, h,
-		value, value,
-		margin, marginX, marginY,
-		InitOsCd32(r, g, b, a),
-		ratioH, lineHeight,
-		fontId, align, alignV,
-		selection, edit, tabIsChar, enable)
+		style, value, value,
+		selection > 0, edit > 0, enable > 0)
 }
 
 func _VmDraw_WordPos(str string, mid int) (int, int) {
@@ -565,7 +554,8 @@ func (asset *Asset) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	value string, valueOrigEdit string,
 	cd OsCd,
 	ratioH, lineHeight, margin, marginX float64,
-	fontId, alignH, alignV uint32,
+	font_path string,
+	alignH, alignV int,
 	selection, editable, tabIsChar bool) bool {
 
 	root := asset.app.root
@@ -579,7 +569,8 @@ func (asset *Asset) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	}
 	textH := asset.getCellWidth(ratioH)
 
-	font := root.fonts.Get(SKYALT_FONT_0) //...int(fontId))
+	//font := root.fonts.Get(SKYALT_FONT_0) //...int(fontId))
+	font := root.fonts.Get(font_path)
 	edit := &root.ui.io.edit
 	keys := &root.ui.io.keys
 	touch := &root.ui.io.touch

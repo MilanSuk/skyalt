@@ -449,35 +449,23 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			y := ad.ReadFloat64()
 			w := ad.ReadFloat64()
 			h := ad.ReadFloat64()
+			styleId := uint32(ad.ReadUint64())
 			value := string(ad.ReadBytes())
-			margin := ad.ReadFloat64()
-			marginX := ad.ReadFloat64()
-			marginY := ad.ReadFloat64()
-			r := uint32(ad.ReadUint64())
-			g := uint32(ad.ReadUint64())
-			b := uint32(ad.ReadUint64())
-			a := uint32(ad.ReadUint64())
-
-			ratioH := ad.ReadFloat64()
-			lineHeight := ad.ReadFloat64()
-
-			fontId := uint32(ad.ReadUint64())
-			align := uint32(ad.ReadUint64())
-			alignV := uint32(ad.ReadUint64())
 			selection := uint32(ad.ReadUint64())
 			edit := uint32(ad.ReadUint64())
-			tabIsChar := uint32(ad.ReadUint64())
 			enable := uint32(ad.ReadUint64())
-			ret := asset.paint_text(x, y, w, h, value, value, margin, marginX, marginY, InitOsCd32(r, g, b, a), ratioH, lineHeight, fontId, align, alignV, selection, edit, tabIsChar, enable)
+
+			style := asset.styles.Get(styleId)
+			ret := asset.paint_text(x, y, w, h, style, value, value, selection > 0, edit > 0, enable > 0)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 55:
 			value := string(ad.ReadBytes())
-			fontId := uint32(ad.ReadUint64())
+			font := string(ad.ReadBytes())
 			ratioH := ad.ReadFloat64()
 			cursorPos := int64(ad.ReadUint64())
-			ret := asset.paint_textWidth(value, fontId, ratioH, cursorPos)
+			ret := asset.paint_textWidth(value, font, ratioH, cursorPos)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
@@ -521,7 +509,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			ad._checkRead(fnTp)
 
 		case 80:
-			style := uint32(ad.ReadUint64())
+			styleId := uint32(ad.ReadUint64())
 
 			value := string(ad.ReadBytes())
 			icon := string(ad.ReadBytes())
@@ -530,6 +518,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			title := string(ad.ReadBytes())
 			enable := uint32(ad.ReadUint64())
 
+			style := asset.styles.Get(styleId)
 			click, rclick, ret := asset.swp_drawButton(style, value, icon, icon_margin, url, title, enable > 0)
 
 			var dst [2 * 8]byte
@@ -567,29 +556,14 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			ad._checkRead(fnTp)
 
 		case 83:
-			cd_r := uint32(ad.ReadUint64())
-			cd_g := uint32(ad.ReadUint64())
-			cd_b := uint32(ad.ReadUint64())
-			cd_a := uint32(ad.ReadUint64())
-
+			styleId := uint32(ad.ReadUint64())
 			value := string(ad.ReadBytes())
 			title := string(ad.ReadBytes())
-			font := uint32(ad.ReadUint64())
+			enable := uint32(ad.ReadUint64()) > 0
+			selection := uint32(ad.ReadUint64()) > 0
 
-			margin := ad.ReadFloat64()
-			marginX := ad.ReadFloat64()
-			marginY := ad.ReadFloat64()
-			align := uint32(ad.ReadUint64())
-			alignV := uint32(ad.ReadUint64())
-			ratioH := ad.ReadFloat64()
-
-			enable := uint32(ad.ReadUint64())
-			selection := uint32(ad.ReadUint64())
-
-			ret := asset.swp_drawText(cd_r, cd_g, cd_b, cd_a,
-				value, title, font,
-				margin, marginX, marginY, align, alignV, ratioH,
-				enable, selection)
+			style := asset.styles.Get(styleId)
+			ret := asset.swp_drawText(style, value, title, enable, selection)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -600,28 +574,14 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			ad._checkRead(fnTp)
 
 		case 85:
-			cd_r := uint32(ad.ReadUint64())
-			cd_g := uint32(ad.ReadUint64())
-			cd_b := uint32(ad.ReadUint64())
-			cd_a := uint32(ad.ReadUint64())
-
+			styleId := uint32(ad.ReadUint64())
 			value := string(ad.ReadBytes())
 			valueOrig := string(ad.ReadBytes())
 			title := string(ad.ReadBytes())
-			font := uint32(ad.ReadUint64())
+			enable := uint32(ad.ReadUint64()) > 0
 
-			margin := ad.ReadFloat64()
-			marginX := ad.ReadFloat64()
-			marginY := ad.ReadFloat64()
-			align := uint32(ad.ReadUint64())
-			alignV := uint32(ad.ReadUint64())
-			ratioH := ad.ReadFloat64()
-			enable := uint32(ad.ReadUint64())
-
-			last_edit, active, changed, finished := asset.swp_drawEdit(cd_r, cd_g, cd_b, cd_a,
-				value, valueOrig, title, font,
-				margin, marginX, marginY, align, alignV, ratioH,
-				enable)
+			style := asset.styles.Get(styleId)
+			last_edit, active, changed, finished := asset.swp_drawEdit(style, value, valueOrig, title, enable)
 
 			var dst [4 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(active, 1, 0)))    //active
@@ -633,26 +593,17 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			ad._checkRead(fnTp)
 
 		case 86:
-			cd_r := uint32(ad.ReadUint64())
-			cd_g := uint32(ad.ReadUint64())
-			cd_b := uint32(ad.ReadUint64())
-			cd_a := uint32(ad.ReadUint64())
-
+			styleId := uint32(ad.ReadUint64())
+			styleMenuId := uint32(ad.ReadUint64())
 			value := ad.ReadUint64()
 			options := string(ad.ReadBytes())
 			title := string(ad.ReadBytes())
-			font := uint32(ad.ReadUint64())
-
-			margin := ad.ReadFloat64()
-			marginX := ad.ReadFloat64()
-			marginY := ad.ReadFloat64()
-			align := uint32(ad.ReadUint64())
-			ratioH := ad.ReadFloat64()
 			enable := uint32(ad.ReadUint64())
 
-			valueOut := asset.swp_drawCombo(cd_r, cd_g, cd_b, cd_a,
-				value, options, title, font,
-				margin, marginX, marginY, align, ratioH, enable)
+			style := asset.styles.Get(styleId)
+			styleMenu := asset.styles.Get(styleMenuId)
+
+			valueOut := asset.swp_drawCombo(style, styleMenu, value, options, title, enable > 0)
 			ad.WriteUint64(uint64(valueOut))
 			ad._checkRead(fnTp)
 
@@ -669,7 +620,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			height := ad.ReadFloat64()
 			align := uint32(ad.ReadUint64())
 			alignV := uint32(ad.ReadUint64())
-			enable := uint32(ad.ReadUint64())
+			enable := ad.ReadUint64() != 0
 
 			valueOut := asset.swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a,
 				value, description, title,
