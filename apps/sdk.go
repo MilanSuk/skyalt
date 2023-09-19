@@ -985,7 +985,7 @@ func (b *_SA_Editbox) Show(x, y, w, h int) _SA_EditboxOut {
 
 		err := b.style.Register()
 		if err == nil {
-			_sa_swp_drawEdit(b.style.Id, _SA_stringToPtr(value), _SA_stringToPtr(valueOrig), _SA_stringToPtr(title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
+			_sa_swp_drawEdit(b.style.Id, _SA_stringToPtr(value), _SA_stringToPtr(valueOrig), _SA_stringToPtr(title), _SA_stringToPtr(b.ghost), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
 		}
 
 		ret.active = binary.LittleEndian.Uint64(out[0:]) != 0

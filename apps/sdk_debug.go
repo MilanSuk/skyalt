@@ -720,12 +720,13 @@ func _sa_swp_getEditValue(outMem SAMem) int64 {
 	return ret
 }
 
-func _sa_swp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, enable uint32, outMem SAMem) int64 {
+func _sa_swp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64 {
 	WriteUint64(85)
 	WriteUint64(uint64(style))
 	WriteMem(valueMem)
 	WriteMem(valueOrigMem)
 	WriteMem(titleMem)
+	WriteMem(ghostMem)
 	WriteUint64(uint64(enable))
 
 	ReadMem(outMem)

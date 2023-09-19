@@ -578,10 +578,11 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			value := string(ad.ReadBytes())
 			valueOrig := string(ad.ReadBytes())
 			title := string(ad.ReadBytes())
+			ghost := string(ad.ReadBytes())
 			enable := uint32(ad.ReadUint64()) > 0
 
 			style := asset.styles.Get(styleId)
-			last_edit, active, changed, finished := asset.swp_drawEdit(style, value, valueOrig, title, enable)
+			last_edit, active, changed, finished := asset.swp_drawEdit(style, value, valueOrig, title, ghost, enable)
 
 			var dst [4 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(active, 1, 0)))    //active

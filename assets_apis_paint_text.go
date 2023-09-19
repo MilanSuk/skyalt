@@ -22,8 +22,7 @@ import (
 	"unicode/utf8"
 )
 
-func (asset *Asset) paint_text(x, y, w, h float64,
-	style *SwpStyle,
+func (asset *Asset) paint_textGrid(style *SwpStyle,
 	value string, valueOrigEdit string,
 	selection, edit, enable bool) int64 {
 
@@ -32,8 +31,6 @@ func (asset *Asset) paint_text(x, y, w, h float64,
 	if st.stack == nil || st.stack.crop.IsZero() {
 		return -1
 	}
-
-	coord := asset.getCoord(x, y, w, h, 0, 0, 0)
 
 	if style == nil {
 		style = &root.styles.Text
@@ -49,10 +46,41 @@ func (asset *Asset) paint_text(x, y, w, h float64,
 
 	asset._sa_div_col(0, OsMaxFloat(asset.div_get_info("layoutWidth", -1, -1), asset.paint_textWidth(value, sdiv.Font_path, sdiv.Font_height, -1))) //+marginX*4+margin*2
 	asset._sa_div_row(0, asset.div_get_info("layoutHeight", -1, -1))
-
 	asset.div_start(0, 0, 1, 1, "")
-	style.Paint(coord, value, valueOrigEdit, selection, edit, "", 0, enable, asset)
+	style.Paint(st.stack.canvas, value, valueOrigEdit, selection, edit, "", 0, enable, asset)
 	asset._sa_div_end()
+
+	return 1
+}
+
+func (asset *Asset) paint_text(x, y, w, h float64,
+	style *SwpStyle,
+	value string, valueOrigEdit string,
+	selection, edit, enable bool) int64 {
+
+	root := asset.app.root
+	st := root.levels.GetStack()
+	if st.stack == nil || st.stack.crop.IsZero() {
+		return -1
+	}
+
+	if style == nil {
+		style = &root.styles.Text
+	}
+
+	//sdiv := style.GetDiv(enable, asset)
+
+	if !enable {
+		st.stack.data.touch_enabled = false
+	}
+	st.stack.data.scrollH.narrow = true
+	st.stack.data.scrollV.show = false
+
+	//asset._sa_div_col(0, OsMaxFloat(asset.div_get_info("layoutWidth", -1, -1), asset.paint_textWidth(value, sdiv.Font_path, sdiv.Font_height, -1))) //+marginX*4+margin*2
+	//asset._sa_div_row(0, asset.div_get_info("layoutHeight", -1, -1))
+	//asset.div_start(0, 0, 1, 1, "")
+	style.Paint(asset.getCoord(x, y, w, h, 0, 0, 0), value, valueOrigEdit, selection, edit, "", 0, enable, asset)
+	//asset._sa_div_end()
 
 	return 1
 }

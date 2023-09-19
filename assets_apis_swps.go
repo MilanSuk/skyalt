@@ -227,7 +227,7 @@ func (asset *Asset) _sa_swp_drawSlider(value float64, minValue float64, maxValue
 
 func (asset *Asset) swp_drawText(style *SwpStyle, value string, title string, enable bool, selection bool) int64 {
 
-	asset.paint_text(0, 0, 1, 1, style, value, "", selection, false, enable)
+	asset.paint_textGrid(style, value, "", selection, false, enable)
 
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)
@@ -265,7 +265,7 @@ func (asset *Asset) _sa_swp_getEditValue(outMem uint64) int64 {
 	return 1
 }
 
-func (asset *Asset) swp_drawEdit(style *SwpStyle, valueIn string, valueInOrig string, title string, enable bool) (string, bool, bool, bool) {
+func (asset *Asset) swp_drawEdit(style *SwpStyle, valueIn string, valueInOrig string, title string, ghost string, enable bool) (string, bool, bool, bool) {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
@@ -288,7 +288,16 @@ func (asset *Asset) swp_drawEdit(style *SwpStyle, valueIn string, valueInOrig st
 	}
 	inDiv.data.touch_enabled = enable
 
-	asset.paint_text(0, 0, 1, 1, style, value, valueInOrig, true, true, enable)
+	asset.paint_textGrid(style, value, valueInOrig, true, true, enable)
+
+	//ghost
+	if len(edit.last_edit) == 0 && len(ghost) > 0 {
+		stArrow := *style
+		stArrow.FontAlignH(1)
+		stArrow.ContentCd(OsCd{})
+		stArrow.Color(themeGrey(0.7))
+		asset.paint_text(0, 0, 1, 1, &stArrow, ghost, "", false, false, enable)
+	}
 
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)
@@ -297,7 +306,7 @@ func (asset *Asset) swp_drawEdit(style *SwpStyle, valueIn string, valueInOrig st
 	return edit.last_edit, active, (active && value != edit.last_edit), (active && this_uid != edit.uid)
 }
 
-func (asset *Asset) _sa_swp_drawEdit(styleId uint32, valueMem uint64, valueInOrig uint64, titleMem uint64, enable uint32, outMem uint64) int64 {
+func (asset *Asset) _sa_swp_drawEdit(styleId uint32, valueMem uint64, valueInOrig uint64, titleMem uint64, ghostMem uint64, enable uint32, outMem uint64) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
@@ -313,8 +322,13 @@ func (asset *Asset) _sa_swp_drawEdit(styleId uint32, valueMem uint64, valueInOri
 		return -1
 	}
 
+	ghost, err := asset.ptrToString(ghostMem)
+	if asset.AddLogErr(err) {
+		return -1
+	}
+
 	style := asset.styles.Get(styleId)
-	last_edit, active, changed, finished := asset.swp_drawEdit(style, value, valueOrig, title, enable > 0)
+	last_edit, active, changed, finished := asset.swp_drawEdit(style, value, valueOrig, title, ghost, enable > 0)
 
 	out, err := asset.ptrToBytesDirect(outMem)
 	if asset.AddLogErr(err) {
@@ -359,7 +373,7 @@ func (asset *Asset) swp_drawCombo(style *SwpStyle, styleMenu *SwpStyle, value ui
 	div.FindOrCreate("", InitOsQuad(0, 0, 1, 1), &root.levels.infoLayout).data.touch_enabled = false //click through
 	stArrow := *style
 	stArrow.ContentCd(OsCd{})
-	asset.paint_text(0, 0, 1, 1, &stArrow, val, "", false, false, enable)
+	asset.paint_textGrid(&stArrow, val, "", false, false, enable)
 
 	//dialog
 	nmd := "combo_" + strconv.Itoa(int(div.Hash()))
@@ -473,8 +487,8 @@ func (asset *Asset) swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
 	}
 
 	div := root.levels.GetStack().stack
-	div.FindOrCreate("", InitOsQuad(0, 0, 1, 1), &root.levels.infoLayout).data.touch_enabled = false                    //click through
-	asset.paint_text(sx+w*0.8, sy, 1-(sx+w*0.8), h, &asset.app.root.styles.Text, description, "", false, false, enable) //custom style ...
+	div.FindOrCreate("", InitOsQuad(0, 0, 1, 1), &root.levels.infoLayout).data.touch_enabled = false                //click through
+	asset.paint_text(sx+w*1, sy, 1-(sx+w*1), h, &asset.app.root.styles.Text, description, "", false, false, enable) //custom style, cursor is ibeam ...
 
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)

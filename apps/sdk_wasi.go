@@ -190,7 +190,7 @@ func _sa_swp_drawText(style uint32, valueMem SAMem, titleMem SAMem, enable uint3
 func _sa_swp_getEditValue(outMem SAMem) int64
 
 //export _sa_swp_drawEdit
-func _sa_swp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, enable uint32, outMem SAMem) int64
+func _sa_swp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64
 
 //export _sa_swp_drawCombo
 func _sa_swp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem SAMem, titleMem SAMem, enable uint32) int64
