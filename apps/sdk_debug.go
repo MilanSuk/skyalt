@@ -15,7 +15,7 @@ import (
 var conn *net.TCPConn
 
 func main() {
-	port, sts_id, asset := debug()
+	port, sts_id, asset := Debug()
 
 	if port < 0 {
 		port = 8091
