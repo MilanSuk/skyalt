@@ -375,7 +375,12 @@ func (asset *Asset) _sa_div_dialogEnd() {
 
 	asset.renderEnd(true)
 
-	err := root.levels.EndCall()
+	err := st.buff.EndLevel()
+	if err != nil {
+		asset.AddLogErr(err)
+	}
+
+	err = root.levels.EndCall()
 	if err != nil {
 		asset.AddLogErr(err)
 	}
@@ -467,14 +472,11 @@ func (asset *Asset) div_dialogStart(name string) int64 {
 	lev.rootDiv.crop = coord
 
 	root.levels.StartCall(lev)
-	lev.buff.Reset(lev.stack.canvas)
 
-	//fade
-	lev.buff.AddCrop(winRect)
-	lev.buff.AddRect(winRect, OsCd{0, 0, 0, 80}, 0)
-	//background
-	lev.buff.AddCrop(lev.stack.canvas)
-	lev.buff.AddRect(lev.stack.canvas, OsCd_white(), 0)
+	err := lev.buff.StartLevel(coord)
+	if err != nil {
+		asset.AddLogErr(err)
+	}
 
 	asset.renderStart()
 

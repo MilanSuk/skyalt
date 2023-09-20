@@ -34,20 +34,21 @@ type LayoutLevel struct {
 
 func NewLayoutLevel(name string, src_coordMoveCut OsV4, infoLayout *RS_LScroll, ui *Ui) *LayoutLevel {
 
-	var self LayoutLevel
+	var level LayoutLevel
 
-	self.name = name
-	self.src_coordMoveCut = src_coordMoveCut
-	self.infoLayout = infoLayout
+	level.name = name
+	level.src_coordMoveCut = src_coordMoveCut
+	level.infoLayout = infoLayout
 
-	self.buff = NewPaintBuff(ui)
-	self.rootDiv = NewLayoutPack(nil, "", OsV4{}, infoLayout)
+	level.buff = NewPaintBuff(ui)
+	level.rootDiv = NewLayoutPack(nil, "", OsV4{}, infoLayout)
 
-	self.use = -1
-	return &self
+	level.use = -1
+	return &level
 }
 
 func (level *LayoutLevel) Destroy() {
+	level.buff.Destroy()
 	level.rootDiv.Destroy(level.infoLayout)
 }
 

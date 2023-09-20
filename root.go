@@ -447,15 +447,13 @@ func (root *Root) Render() {
 	root.levels.ResetStack()
 
 	st := root.levels.GetStack()
-	//background
-	st.buff.Reset(st.stack.canvas)
-	st.buff.AddCrop(st.stack.canvas)
-	st.buff.AddRect(st.stack.canvas, OsCd_white(), 0)
+
+	st.buff.Reset(st.stack.canvas) //background
 
 	ist.Render(true)
 
 	root.levels.Maintenance()
-	root.levels.DrawDialogs()
+	root.levels.Draw()
 }
 
 func (root *Root) Tick() (bool, error) {
@@ -527,18 +525,17 @@ func (root *Root) Tick() (bool, error) {
 		root.ui.EndRender()
 		root.ui_info.Update(int(OsTicks() - stUiTicks))
 
+		root.CommitDbs()
+
 		if root.save {
 			for _, app := range root.apps {
 				app.SaveData()
 			}
 			root.save = false
 		}
-
 	} else {
 		time.Sleep(10 * time.Millisecond)
 	}
-
-	root.CommitDbs()
 
 	return (run && !root.exit), err
 }

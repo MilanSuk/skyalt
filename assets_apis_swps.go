@@ -23,6 +23,10 @@ import (
 	"strings"
 )
 
+//add: ...
+//- Switch
+//- Radio button
+
 func themeBack() OsCd {
 	return OsCd{220, 220, 220, 255}
 }
@@ -58,6 +62,7 @@ func (root *Root) themeCd() OsCd {
 	return cd
 }
 
+// accessibility for selected(highlight) Button => 'pressed' param => use Touch_hover style ...
 func (asset *Asset) swp_drawButton(style *SwpStyle, value string, icon string, icon_margin float64, url string, title string, enable bool) (bool, bool, int64) {
 
 	root := asset.app.root
@@ -67,14 +72,13 @@ func (asset *Asset) swp_drawButton(style *SwpStyle, value string, icon string, i
 		style = &root.styles.Button
 	}
 
-	style.Paint(st.stack.canvas, value, "", false, false, icon, icon_margin, enable, asset)
-
 	click, rclick, _ := style.IsClicked(enable, asset)
 	if click && len(url) > 0 {
 		//SA_DialogStart() warning which open dialog ...
 		OsUlit_OpenBrowser(url)
 	}
 
+	style.Paint(st.stack.canvas, value, "", false, false, icon, icon_margin, enable, asset)
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)
 	} else if len(url) > 0 {
@@ -116,119 +120,9 @@ func (asset *Asset) _sa_swp_drawButton(styleId uint32, valueMem uint64, iconMem 
 	return ret
 }
 
-func (asset *Asset) swp_drawProgress(value float64, maxValue float64, title string, margin float64, enable uint32) int64 {
-
-	frontCd := asset.app.root.themeCd()
-	backCd := themeWhite()
-
-	if enable == 0 {
-		frontCd = OsCd_Aprox(themeWhite(), frontCd, 0.3)
-	}
-
-	w := OsClampFloat(value, 0, maxValue) / maxValue
-	asset._sa_paint_rect(0, 0, 1, 1, margin, uint32(backCd.R), uint32(backCd.G), uint32(backCd.B), uint32(backCd.A), 0)
-	asset._sa_paint_rect(0, 0, 1, 1, margin, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), 0.03)
-	asset._sa_paint_rect(0, 0, w, 1, margin+0.06, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), 0)
-	return 1
-}
-
-func (asset *Asset) _sa_swp_drawProgress(value float64, maxValue float64, titleMem uint64, margin float64, enable uint32) int64 {
-
-	title, err := asset.ptrToString(titleMem)
-	if asset.AddLogErr(err) {
-		return -1
-	}
-
-	return asset.swp_drawProgress(value, maxValue, title, margin, enable)
-}
-
-func (asset *Asset) swp_drawSlider(value float64, minValue float64, maxValue float64, jumpValue float64, title string, enable uint32) (float64, bool, bool, bool) {
-
-	root := asset.app.root
-	st := root.levels.GetStack()
-
-	old_value := value
-
-	frontCd := asset.app.root.themeCd()
-	backCd := themeGrey(0.75)
-
-	active := st.stack.data.touch_active
-	inside := st.stack.data.touch_inside
-	end := st.stack.data.touch_end
-
-	cell := float64(asset.app.root.ui.Cell())
-	rad := 0.2 / (float64(st.stack.canvas.Size.Y) / cell)
-	sp := 0.2 / (float64(st.stack.canvas.Size.X) / cell)
-
-	rpos := root.ui.io.touch.pos.Sub(st.stack.canvas.Start)
-	touch_x := float64(rpos.X) / float64(st.stack.canvas.Size.X)
-
-	if enable > 0 {
-		if active || inside {
-			frontCd = OsCd_Aprox(frontCd, themeWhite(), 0.2)
-			backCd = OsCd_Aprox(backCd, themeWhite(), 0.5)
-			asset.paint_cursor("hand")
-		}
-
-		if active {
-			//cut space from touch_x: outer(0,1) => inner(0,1)
-			touch_x = OsClampFloat(touch_x, sp, 1-sp)
-			touch_x = (touch_x - sp) / (1 - 2*sp)
-
-			frontCd = OsCd_Aprox(frontCd, themeWhite(), 0.2)
-			value = minValue + (maxValue-minValue)*touch_x
-
-			t := math.Round((value - minValue) / jumpValue)
-			value = minValue + t*jumpValue
-			value = OsClampFloat(value, minValue, maxValue)
-		}
-
-		//end = props.end
-	} else {
-		frontCd = OsCd_Aprox(themeWhite(), frontCd, 0.3)
-	}
-
-	t := (value - minValue) / (maxValue - minValue)
-	//inner(0,1) => outer(0,1)
-	t = (t + sp) * (1 - 2*sp)
-
-	width := 0.05
-	asset._sa_paint_line(0, 0, 1, 1, 0, sp, 0.5, t, 0.5, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), width)
-	asset._sa_paint_line(0, 0, 1, 1, 0, t, 0.5, 1-sp, 0.5, uint32(backCd.R), uint32(backCd.G), uint32(backCd.B), uint32(backCd.A), width)
-
-	asset._sa_paint_circle(0, 0, 1, 1, 0, t, 0.5, rad, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), 0)
-
-	if len(title) > 0 {
-		asset.paint_title(0, 0, 1, 1, title)
-	}
-
-	return value, active, (active && old_value != value), end
-}
-
-func (asset *Asset) _sa_swp_drawSlider(value float64, minValue float64, maxValue float64, jumpValue float64, titleMem uint64, enable uint32, outMem uint64) float64 {
-
-	title, err := asset.ptrToString(titleMem)
-	if asset.AddLogErr(err) {
-		return -1
-	}
-
-	value, active, changed, finished := asset.swp_drawSlider(value, minValue, maxValue, jumpValue, title, enable)
-
-	out, err := asset.ptrToBytesDirect(outMem)
-	if asset.AddLogErr(err) {
-		return -1
-	}
-	binary.LittleEndian.PutUint64(out[0:], uint64(OsTrn(active, 1, 0)))    //active
-	binary.LittleEndian.PutUint64(out[8:], uint64(OsTrn(changed, 1, 0)))   //changed
-	binary.LittleEndian.PutUint64(out[16:], uint64(OsTrn(finished, 1, 0))) //finished
-
-	return value
-}
-
 func (asset *Asset) swp_drawText(style *SwpStyle, value string, title string, enable bool, selection bool) int64 {
 
 	asset.paint_textGrid(style, value, "", selection, false, enable)
-
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)
 	}
@@ -341,6 +235,121 @@ func (asset *Asset) _sa_swp_drawEdit(styleId uint32, valueMem uint64, valueInOri
 	return 1
 }
 
+// styleFrame ...
+// styleProgress ...
+// pouze value<0, 1> ...
+// žádný margin ...
+func (asset *Asset) swp_drawProgress(value float64, maxValue float64, title string, margin float64, enable uint32) int64 {
+
+	frontCd := asset.app.root.themeCd()
+	backCd := themeWhite()
+
+	if enable == 0 {
+		frontCd = OsCd_Aprox(themeWhite(), frontCd, 0.3)
+	}
+
+	w := OsClampFloat(value, 0, maxValue) / maxValue
+	asset._sa_paint_rect(0, 0, 1, 1, margin, uint32(backCd.R), uint32(backCd.G), uint32(backCd.B), uint32(backCd.A), 0)
+	asset._sa_paint_rect(0, 0, 1, 1, margin, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), 0.03)
+	asset._sa_paint_rect(0, 0, w, 1, margin+0.06, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), 0)
+	return 1
+}
+
+func (asset *Asset) _sa_swp_drawProgress(value float64, maxValue float64, titleMem uint64, margin float64, enable uint32) int64 {
+
+	title, err := asset.ptrToString(titleMem)
+	if asset.AddLogErr(err) {
+		return -1
+	}
+
+	return asset.swp_drawProgress(value, maxValue, title, margin, enable)
+}
+
+// když posunuji, tak zobrazit hodnotu ...
+// ...
+func (asset *Asset) swp_drawSlider(value float64, minValue float64, maxValue float64, jumpValue float64, title string, enable uint32) (float64, bool, bool, bool) {
+
+	root := asset.app.root
+	st := root.levels.GetStack()
+
+	old_value := value
+
+	frontCd := asset.app.root.themeCd()
+	backCd := themeGrey(0.75)
+
+	active := st.stack.data.touch_active
+	inside := st.stack.data.touch_inside
+	end := st.stack.data.touch_end
+
+	cell := float64(asset.app.root.ui.Cell())
+	rad := 0.2 / (float64(st.stack.canvas.Size.Y) / cell)
+	sp := 0.2 / (float64(st.stack.canvas.Size.X) / cell)
+
+	rpos := root.ui.io.touch.pos.Sub(st.stack.canvas.Start)
+	touch_x := float64(rpos.X) / float64(st.stack.canvas.Size.X)
+
+	if enable > 0 {
+		if active || inside {
+			frontCd = OsCd_Aprox(frontCd, themeWhite(), 0.2)
+			backCd = OsCd_Aprox(backCd, themeWhite(), 0.5)
+			asset.paint_cursor("hand")
+		}
+
+		if active {
+			//cut space from touch_x: outer(0,1) => inner(0,1)
+			touch_x = OsClampFloat(touch_x, sp, 1-sp)
+			touch_x = (touch_x - sp) / (1 - 2*sp)
+
+			frontCd = OsCd_Aprox(frontCd, themeWhite(), 0.2)
+			value = minValue + (maxValue-minValue)*touch_x
+
+			t := math.Round((value - minValue) / jumpValue)
+			value = minValue + t*jumpValue
+			value = OsClampFloat(value, minValue, maxValue)
+		}
+
+		//end = props.end
+	} else {
+		frontCd = OsCd_Aprox(themeWhite(), frontCd, 0.3)
+	}
+
+	t := (value - minValue) / (maxValue - minValue)
+	//inner(0,1) => outer(0,1)
+	t = (t + sp) * (1 - 2*sp)
+
+	width := 0.05
+	asset._sa_paint_line(0, 0, 1, 1, 0, sp, 0.5, t, 0.5, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), width)
+	asset._sa_paint_line(0, 0, 1, 1, 0, t, 0.5, 1-sp, 0.5, uint32(backCd.R), uint32(backCd.G), uint32(backCd.B), uint32(backCd.A), width)
+
+	asset._sa_paint_circle(0, 0, 1, 1, 0, t, 0.5, rad, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), 0)
+
+	if len(title) > 0 {
+		asset.paint_title(0, 0, 1, 1, title)
+	}
+
+	return value, active, (active && old_value != value), end
+}
+
+func (asset *Asset) _sa_swp_drawSlider(value float64, minValue float64, maxValue float64, jumpValue float64, titleMem uint64, enable uint32, outMem uint64) float64 {
+
+	title, err := asset.ptrToString(titleMem)
+	if asset.AddLogErr(err) {
+		return -1
+	}
+
+	value, active, changed, finished := asset.swp_drawSlider(value, minValue, maxValue, jumpValue, title, enable)
+
+	out, err := asset.ptrToBytesDirect(outMem)
+	if asset.AddLogErr(err) {
+		return -1
+	}
+	binary.LittleEndian.PutUint64(out[0:], uint64(OsTrn(active, 1, 0)))    //active
+	binary.LittleEndian.PutUint64(out[8:], uint64(OsTrn(changed, 1, 0)))   //changed
+	binary.LittleEndian.PutUint64(out[16:], uint64(OsTrn(finished, 1, 0))) //finished
+
+	return value
+}
+
 func (asset *Asset) swp_drawCombo(style *SwpStyle, styleMenu *SwpStyle, value uint64, optionsIn string, title string, enable bool) int64 {
 
 	root := asset.app.root
@@ -427,6 +436,7 @@ func (asset *Asset) _sa_swp_drawCombo(styleId uint32, styleMenuId uint32, value 
 	return asset.swp_drawCombo(style, styleMenu, value, options, title, enable > 0)
 }
 
+// StyleContainer + StyleIcon(image is empty => default check) ...
 func (asset *Asset) swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
 	value uint64, description string, title string,
 	height float64, align uint32, alignV uint32, enable bool) int64 {

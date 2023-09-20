@@ -122,7 +122,7 @@ func (levels *LayoutLevels) Maintenance() {
 	}
 }
 
-func (levels *LayoutLevels) DrawDialogs() {
+func (levels *LayoutLevels) Draw() {
 
 	for _, l := range levels.dialogs {
 		if l.buff != nil {
