@@ -155,7 +155,7 @@ func (app *App) Render(startIt bool) {
 			fmt.Print(err)
 		}
 	} else {
-		app.baseAsset.paint_textGrid(nil, "Error: 'Main.wasm' is missing or corrupted", "", false, false, true)
+		app.baseAsset.paint_text(0, 0, 1, 1, nil, "Error: 'Main.wasm' is missing or corrupted", "", false, false, true)
 	}
 
 	if app.baseAsset.debug != nil {
@@ -167,7 +167,7 @@ func (app *App) Render(startIt bool) {
 		style.Main.Color = blue
 
 		app.baseAsset.paint_rect(0, 0, 1, 1, 0.06, blue, 0.03)
-		app.baseAsset.paint_textGrid(&style, "DEBUG ON", "", false, false, true)
+		app.baseAsset.paint_text(0, 0, 1, 1, &style, "DEBUG ON", "", false, false, true)
 	}
 	if startIt {
 		app.baseAsset.renderEnd(true)
