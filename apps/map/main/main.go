@@ -133,6 +133,7 @@ func CamCheck(res V2, tile float64, cam *Cam) {
 
 // cam
 func Measure(cam Cam) {
+
 	metersPerPixels := MetersPerPixel(cam.Lat, cam.Zoom)
 
 	metersPerWidth := metersPerPixels * SA_DivInfo("screenWidth") * SA_DivInfo("cell")
@@ -146,19 +147,20 @@ func Measure(cam Cam) {
 	}
 
 	SA_Row(0, 0.5)
-	SA_Row(1, 0.5)
+	SA_Row(1, 0.2)
+	SA_Row(2, 0.3)
 
-	SA_ColMax(0, 100)
-	SA_ColMax(1, 100)
-	SA_ColMax(2, 100)
-	SA_ColMax(3, 100)
-	SA_ColMax(4, 100)
+	for i := 0; i < 5; i++ {
+		SA_Col(i, 0.1)
+		SA_ColMax(i, 100)
+	}
 
 	//texts
 	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*0, 0).Show(0, 0, 2, 1)
 	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*1, 0).Show(1, 0, 2, 1)
 	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*2, 0).Show(2, 0, 2, 1)
 	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*3, 0).Show(3, 0, 2, 1)
+	//SA_TextStyle(strconv.FormatFloat(meters*3, 'f', 0, 64)+" "+unitText, &styles.TextCenterSmall).Show(3, 0, 2, 1)
 
 	//stripes
 	SA_DivStart(1, 1, 1, 1)
@@ -174,7 +176,7 @@ func Measure(cam Cam) {
 	SA_DivEnd()
 
 	//unit
-	SA_TextStyle(unitText, &styles.TextRightSmall).Show(4, 1, 1, 1)
+	SA_TextStyle(unitText, &g_styleTextUnit).Show(4, 0, 1, 2)
 
 }
 
@@ -431,7 +433,14 @@ func Render() uint32 {
 	return 0
 }
 
+var g_styleTextUnit _SA_Style
+
 func Styles() {
+	g_styleTextUnit = styles.TextSmall
+	g_styleTextUnit.FontAlignV(2)
+	g_styleTextUnit.Padding(0)
+	g_styleTextUnit.Main.Padding_left = 0.15
+	g_styleTextUnit.Id = 0
 }
 
 func Open(buff []byte) bool {
@@ -442,5 +451,5 @@ func Save() ([]byte, bool) {
 	return nil, false //default json
 }
 func Debug() (int, int, string) {
-	return -1, 156, "main"
+	return -1, 274, "main"
 }
