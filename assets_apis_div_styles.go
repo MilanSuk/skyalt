@@ -496,6 +496,7 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		b.Font_alignV = 1
 		b.Font_alignH = 0
 		b.Font_height = 0.35
+		b.Padding(0.1)
 
 		//copy .main to others
 		stls.Text.Hover = *b
