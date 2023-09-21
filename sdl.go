@@ -299,6 +299,9 @@ func NewUi(iniPath string) (*Ui, error) {
 	var ui Ui
 	var err error
 
+	// start anim
+	ui.startParticles = !OsFileExists(iniPath)
+
 	ui.io, err = NewIO()
 	if err != nil {
 		return nil, fmt.Errorf("NewIO() failed: %w", err)
@@ -342,9 +345,6 @@ func NewUi(iniPath string) (*Ui, error) {
 
 	ui.cursors = append(ui.cursors, Cursor{"wait", sdl.SYSTEM_CURSOR_WAITARROW, sdl.CreateSystemCursor(sdl.SYSTEM_CURSOR_WAITARROW)})
 	ui.cursors = append(ui.cursors, Cursor{"no", sdl.SYSTEM_CURSOR_NO, sdl.CreateSystemCursor(sdl.SYSTEM_CURSOR_NO)})
-
-	// start anim
-	ui.startParticles = !OsFileExists(iniPath)
 
 	return &ui, nil
 }
