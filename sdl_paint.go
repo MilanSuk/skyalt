@@ -141,15 +141,7 @@ func (bt *PaintBuffText) Destroy() {
 
 func (bt *PaintBuffText) Copy(coord OsV4, align OsV2, cd OsCd, render *sdl.Renderer) error {
 
-	q := coord
-
-	//check size
-	if q.Size.X > bt.texture.size.X {
-		q.Size.X = bt.texture.size.X
-	}
-	if q.Size.Y > bt.texture.size.Y {
-		q.Size.Y = bt.texture.size.Y
-	}
+	q := OsV4{coord.Start, bt.texture.size}
 
 	//align X
 	switch align.X {
