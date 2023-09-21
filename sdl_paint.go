@@ -199,7 +199,7 @@ func (btc *PaintBuffTextCache) Find(text string, height int, font *Font, cd OsCd
 func (btc *PaintBuffTextCache) Draw(text string, height int, font *Font, cd OsCd, coord OsV4, align OsV2, render *sdl.Renderer) error {
 	var err error
 
-	if len(text) == 0 {
+	if len(text) == 0 || height <= 0 || font == nil {
 		return nil
 	}
 
