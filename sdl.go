@@ -883,7 +883,7 @@ func (ui *Ui) RenderInfoStats(ui_info *Info, vm_info *Info, font *Font) error {
 	text := fmt.Sprintf("worst FPS(ui: %.1f, vm: %.1f), avg FPS(ui: %.1f, vm: %.1f), Memory(imgs(%dx): %.2fMB, process: %.2fMB), Threads(%d)",
 		ui_info.out_worst_fps, vm_info.out_worst_fps,
 		ui_info.out_avg_fps, vm_info.out_avg_fps,
-		ui.NumTextures(), float64(ui.GetImagesBytes())/1024/1024, float64(mem.HeapAlloc)/1024/1024,
+		ui.NumTextures(), float64(ui.GetImagesBytes())/1024/1024, float64(mem.Sys)/1024/1024,
 		runtime.NumGoroutine())
 	//netStats.num_connections_opened-netStats.num_connections_closed, netStats.num_sends, netStats.num_recvs)	//, Net(connections: %d, send: %dx, recv: %dx)
 
