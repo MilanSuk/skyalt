@@ -206,6 +206,16 @@ func (b *SwpStyle) Color(v OsCd) *SwpStyle {
 	b.Disable.Color = v
 	return b
 }
+
+func (b *SwpStyle) FontPath(v string) *SwpStyle {
+	b.Main.Font_path = v
+	b.Hover.Font_path = v
+	b.Touch_hover.Font_path = v
+	b.Touch_out.Font_path = v
+	b.Disable.Font_path = v
+	return b
+}
+
 func (b *SwpStyle) FontH(v float64) *SwpStyle {
 	b.Main.Font_height = v
 	b.Hover.Font_height = v
@@ -238,6 +248,14 @@ func (b *SwpStyle) Margin(v float64) *SwpStyle {
 	b.Touch_hover.Margin(v)
 	b.Touch_out.Margin(v)
 	b.Disable.Margin(v)
+	return b
+}
+func (b *SwpStyle) Padding(v float64) *SwpStyle {
+	b.Main.Padding(v)
+	b.Hover.Padding(v)
+	b.Touch_hover.Padding(v)
+	b.Touch_out.Padding(v)
+	b.Disable.Padding(v)
 	return b
 }
 
@@ -378,6 +396,9 @@ type DivDefaultStyles struct {
 	EditboxYellow SwpStyle
 
 	Combo SwpStyle
+
+	ProgressFrame  SwpStyle
+	ProgressStatus SwpStyle
 }
 
 func DivStyles_getDefaults(root *Root) DivDefaultStyles {
@@ -591,6 +612,22 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 
 		stls.Combo = stls.Editbox
 		stls.Combo.Cursor("hand")
+	}
+
+	{
+		//frame
+		stls.ProgressFrame.Border(0.03)
+		stls.ProgressFrame.BorderCd(root.themeCd())
+
+		//status
+		stls.ProgressStatus.Margin(0.1)
+		stls.ProgressStatus.Padding(0.1)
+		stls.ProgressStatus.ContentCd(root.themeCd())
+		stls.ProgressStatus.Color(OsCd_black())
+		stls.ProgressStatus.FontPath(SKYALT_FONT_0)
+		stls.ProgressStatus.FontH(0.35)
+		stls.ProgressStatus.FontAlignH(2) //right
+		stls.ProgressStatus.FontAlignV(1)
 	}
 
 	return stls

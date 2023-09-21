@@ -122,6 +122,11 @@ func (asset *Asset) _sa_swp_drawButton(styleId uint32, valueMem uint64, iconMem 
 
 func (asset *Asset) swp_drawText(style *SwpStyle, value string, title string, enable bool, selection bool) int64 {
 
+	root := asset.app.root
+	if style == nil {
+		style = &root.styles.Text
+	}
+
 	asset.paint_textGrid(style, value, "", selection, false, enable)
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)
@@ -163,6 +168,10 @@ func (asset *Asset) swp_drawEdit(style *SwpStyle, valueIn string, valueInOrig st
 
 	root := asset.app.root
 	st := root.levels.GetStack()
+
+	if style == nil {
+		style = &root.styles.Editbox
+	}
 
 	st.stack.data.scrollH.narrow = true
 	st.stack.data.scrollV.show = false
@@ -235,34 +244,41 @@ func (asset *Asset) _sa_swp_drawEdit(styleId uint32, valueMem uint64, valueInOri
 	return 1
 }
 
-// styleFrame ...
-// styleProgress ...
-// pouze value<0, 1> ...
-// žádný margin ...
-func (asset *Asset) swp_drawProgress(value float64, maxValue float64, title string, margin float64, enable uint32) int64 {
+func (asset *Asset) swp_drawProgress(styleFrame *SwpStyle, styleStatus *SwpStyle, value float64, prec int, title string, enable bool) int64 {
 
-	frontCd := asset.app.root.themeCd()
-	backCd := themeWhite()
+	root := asset.app.root
+	st := root.levels.GetStack()
 
-	if enable == 0 {
-		frontCd = OsCd_Aprox(themeWhite(), frontCd, 0.3)
+	if styleFrame == nil {
+		styleFrame = &root.styles.ProgressFrame
+	}
+	if styleStatus == nil {
+		styleStatus = &root.styles.ProgressStatus
 	}
 
-	w := OsClampFloat(value, 0, maxValue) / maxValue
-	asset._sa_paint_rect(0, 0, 1, 1, margin, uint32(backCd.R), uint32(backCd.G), uint32(backCd.B), uint32(backCd.A), 0)
-	asset._sa_paint_rect(0, 0, 1, 1, margin, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), 0.03)
-	asset._sa_paint_rect(0, 0, w, 1, margin+0.06, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), 0)
+	value = OsClampFloat(value, 0, 1)
+
+	styleFrame.Paint(st.stack.canvas, "", "", false, false, "", 0, enable, asset)
+	styleStatus.Paint(asset.getCoord(0, 0, value, 1, 0, 0, 0), strconv.FormatFloat(value*100, 'f', prec, 64)+"%", "", false, false, "", 0, enable, asset)
+
+	if len(title) > 0 {
+		asset.paint_title(0, 0, 1, 1, title)
+	}
+
 	return 1
 }
 
-func (asset *Asset) _sa_swp_drawProgress(value float64, maxValue float64, titleMem uint64, margin float64, enable uint32) int64 {
+func (asset *Asset) _sa_swp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, titleMem uint64, enable uint32) int64 {
 
 	title, err := asset.ptrToString(titleMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
 
-	return asset.swp_drawProgress(value, maxValue, title, margin, enable)
+	styleFrame := asset.styles.Get(styleFrameId)
+	styleStatus := asset.styles.Get(styleStatusId)
+
+	return asset.swp_drawProgress(styleFrame, styleStatus, value, int(prec), title, enable > 0)
 }
 
 // když posunuji, tak zobrazit hodnotu ...

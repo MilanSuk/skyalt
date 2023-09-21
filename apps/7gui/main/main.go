@@ -187,7 +187,7 @@ func Timer() {
 	SA_Text(trns.ELAPSED_TIME).Show(0, 0, 1, 1)
 	SA_Text(trns.DURATION).Show(0, 2, 1, 1)
 
-	SA_Progress(float64(dt)).Max(store.MaxTime).Show(1, 0, 1, 1)
+	SA_Progress(float64(dt)/float64(store.MaxTime), 1).Show(1, 0, 1, 1)
 	SA_Text("").ValueFloat(dt, 1).Show(1, 1, 1, 1)
 	SA_Slider(&store.MaxTime).Min(0.1).Max(120).Jump(1).Show(1, 2, 1, 1)
 

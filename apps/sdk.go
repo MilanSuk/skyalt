@@ -632,39 +632,41 @@ func (b *_SA_Button) Show(x, y, w, h int) _SA_ButtonOut {
 }
 
 type _SA_Progress struct {
-	value float64
-	max   float64
+	styleFrame  *_SA_Style
+	styleStatus *_SA_Style
 
+	value  float64
+	prec   int
+	title  string
 	enable bool
-	margin float64
-
-	title string
 }
 
-func SA_Progress(value float64) *_SA_Progress {
+func SA_Progress(value float64, prec int) *_SA_Progress {
 	var b _SA_Progress
 
+	b.styleFrame = &styles.ProgressFrame
+	b.styleStatus = &styles.ProgressStatus
+
 	b.value = value
+	b.prec = prec
 	b.enable = true
-	b.max = 10
-	b.margin = 0.03
 
 	return &b
 }
 
-func (b *_SA_Progress) Max(v float64) *_SA_Progress {
-	b.max = v
+func (b *_SA_Progress) Title(v string) *_SA_Progress {
+	b.title = v
 	return b
 }
-func (b *_SA_Progress) Margin(v float64) *_SA_Progress {
-	b.margin = v
+func (b *_SA_Progress) Enable(v bool) *_SA_Progress {
+	b.enable = v
 	return b
 }
 
 func (b *_SA_Progress) Show(x, y, w, h int) {
 
 	if SA_DivStart(x, y, w, h) {
-		_sa_swp_drawProgress(b.value, b.max, _SA_stringToPtr(b.title), b.margin, _SA_boolToUint32(b.enable))
+		_sa_swp_drawProgress(b.styleFrame.Id, b.styleStatus.Id, b.value, int32(b.prec), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable))
 	}
 
 	defer SA_DivEnd()
@@ -1779,4 +1781,7 @@ type SA_Styles struct {
 	EditboxYellow _SA_Style
 
 	Combo _SA_Style
+
+	ProgressFrame  _SA_Style
+	ProgressStatus _SA_Style
 }

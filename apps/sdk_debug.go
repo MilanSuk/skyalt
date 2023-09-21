@@ -652,10 +652,10 @@ func _sa_fn_getReturn(argsMem SAMem) int64 {
 	return ret
 }
 
-func _sa_swp_drawButton(style uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, titleMem SAMem, enable uint32, outMem SAMem) int64 {
+func _sa_swp_drawButton(styleId uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, titleMem SAMem, enable uint32, outMem SAMem) int64 {
 	WriteUint64(80)
 
-	WriteUint64(uint64(style))
+	WriteUint64(uint64(styleId))
 
 	WriteMem(valueMem)
 	WriteMem(iconMem)
@@ -686,21 +686,22 @@ func _sa_swp_drawSlider(value float64, min float64, max float64, jump float64, t
 	return ret
 }
 
-func _sa_swp_drawProgress(value float64, maxValue float64, titleMem SAMem, margin float64, enable uint32) int64 {
+func _sa_swp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, titleMem SAMem, enable uint32) int64 {
 	WriteUint64(82)
+	WriteUint64(uint64(styleFrameId))
+	WriteUint64(uint64(styleStatusId))
 	WriteFloat64(value)
-	WriteFloat64(maxValue)
+	WriteUint64(uint64(prec))
 	WriteMem(titleMem)
-	WriteFloat64(margin)
 	WriteUint64(uint64(enable))
 	ret := int64(ReadUint64())
 	_checkRead(82)
 	return ret
 }
 
-func _sa_swp_drawText(style uint32, valueMem SAMem, titleMem SAMem, enable uint32, selection uint32) int64 {
+func _sa_swp_drawText(styleId uint32, valueMem SAMem, titleMem SAMem, enable uint32, selection uint32) int64 {
 	WriteUint64(83)
-	WriteUint64(uint64(style))
+	WriteUint64(uint64(styleId))
 	WriteMem(valueMem)
 	WriteMem(titleMem)
 	WriteUint64(uint64(enable))
@@ -720,9 +721,9 @@ func _sa_swp_getEditValue(outMem SAMem) int64 {
 	return ret
 }
 
-func _sa_swp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64 {
+func _sa_swp_drawEdit(styleId uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64 {
 	WriteUint64(85)
-	WriteUint64(uint64(style))
+	WriteUint64(uint64(styleId))
 	WriteMem(valueMem)
 	WriteMem(valueOrigMem)
 	WriteMem(titleMem)

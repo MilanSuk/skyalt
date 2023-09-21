@@ -546,12 +546,17 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			ad._checkRead(fnTp)
 
 		case 82:
+			styleFrameId := uint32(ad.ReadUint64())
+			styleStatusId := uint32(ad.ReadUint64())
+
 			value := ad.ReadFloat64()
-			maxValue := ad.ReadFloat64()
+			prec := int32(ad.ReadUint64())
 			title := string(ad.ReadBytes())
-			margin := ad.ReadFloat64()
 			enable := uint32(ad.ReadUint64())
-			ret := asset.swp_drawProgress(value, maxValue, title, margin, enable)
+
+			styleFrame := asset.styles.Get(styleFrameId)
+			styleStatus := asset.styles.Get(styleStatusId)
+			ret := asset.swp_drawProgress(styleFrame, styleStatus, value, int(prec), title, enable > 0)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 

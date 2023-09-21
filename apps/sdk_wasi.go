@@ -181,7 +181,7 @@ func _sa_swp_drawButton(style uint32, valueMem SAMem, iconMem SAMem, icon_margin
 func _sa_swp_drawSlider(value float64, min float64, max float64, jump float64, titleMem SAMem, enable uint32, outMem SAMem) float64
 
 //export _sa_swp_drawProgress
-func _sa_swp_drawProgress(value float64, maxValue float64, titleMem SAMem, margin float64, enable uint32) int64
+func _sa_swp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, titleMem SAMem, enable uint32) int64
 
 //export _sa_swp_drawText
 func _sa_swp_drawText(style uint32, valueMem SAMem, titleMem SAMem, enable uint32, selection uint32) int64
