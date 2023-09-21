@@ -59,7 +59,22 @@ func (tex *PaintBuffTexture) SetRenderTarget(render *sdl.Renderer) (*sdl.Texture
 	return old_texture, nil
 }
 
-func (tex *PaintBuffTexture) RenderIntoMain(coord OsV4, render *sdl.Renderer) error {
+func (tex *PaintBuffTexture) PrepareAlpha(render *sdl.Renderer) error {
+
+	tex.texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+	err := render.SetDrawColor(0, 0, 0, 0) //full alpha
+	if err != nil {
+		return fmt.Errorf("SetDrawColor() failed: %w", err)
+	}
+
+	err = render.Clear()
+	if err != nil {
+		return fmt.Errorf("Clear() failed: %w", err)
+	}
+	return nil
+}
+
+func (tex *PaintBuffTexture) Copy(coord OsV4, render *sdl.Renderer) error {
 	err := render.Copy(tex.texture, nil, coord.GetSDLRect())
 	if err != nil {
 		return fmt.Errorf("Copy() failed: %w", err)
@@ -67,24 +82,176 @@ func (tex *PaintBuffTexture) RenderIntoMain(coord OsV4, render *sdl.Renderer) er
 	return nil
 }
 
+type PaintBuffText struct {
+	texture *PaintBuffTexture
+	text    string
+	font    *Font
+	height  int
+}
+
+func NewPaintBuffText(text string, height int, font *Font, render *sdl.Renderer) (*PaintBuffText, error) {
+	var bt PaintBuffText
+
+	sz, err := font.GetTextSize(text, height, height)
+	if err != nil {
+		return nil, fmt.Errorf("GetTextSize() failed: %w", err)
+	}
+	{
+		down_y, err := font.GetDownY(text, height, render)
+		if err != nil {
+			return nil, fmt.Errorf("GetTextSize() failed: %w", err)
+		}
+		sz.Y += down_y
+	}
+
+	bt.texture, err = NewPaintBuffTexture(sz, render)
+	if err != nil {
+		return nil, fmt.Errorf("NewPaintBuffTexture() failed: %w", err)
+	}
+
+	pre, err := bt.texture.SetRenderTarget(render)
+	if err != nil {
+		return nil, fmt.Errorf("SetRenderTarget() failed: %w", err)
+	}
+
+	err = bt.texture.PrepareAlpha(render)
+	if err != nil {
+		return nil, fmt.Errorf("PrepareAlpha() failed: %w", err)
+	}
+
+	err = font.Print(text, height, OsV4{OsV2{}, sz}, OsV2{0, 0}, OsCd_white(), nil, false, render)
+	if err != nil {
+		return nil, fmt.Errorf("Print() failed: %w", err)
+	}
+
+	render.SetRenderTarget(pre) //backup
+
+	bt.text = text
+	bt.font = font
+	bt.height = height
+
+	return &bt, nil
+}
+
+func (bt *PaintBuffText) Destroy() {
+	if bt.texture != nil {
+		bt.texture.Destroy() //err
+	}
+}
+
+func (bt *PaintBuffText) Copy(coord OsV4, align OsV2, cd OsCd, render *sdl.Renderer) error {
+
+	q := coord
+
+	//check size
+	if q.Size.X > bt.texture.size.X {
+		q.Size.X = bt.texture.size.X
+	}
+	if q.Size.Y > bt.texture.size.Y {
+		q.Size.Y = bt.texture.size.Y
+	}
+
+	//align X
+	switch align.X {
+	case 1:
+		q.Start.X += (coord.Size.X - bt.texture.size.X) / 2
+
+	case 2:
+		q.Start.X = coord.End().X - bt.texture.size.X
+	}
+
+	//align Y
+	switch align.Y {
+	case 1:
+		q.Start.Y += (coord.Size.Y - bt.texture.size.Y) / 2
+
+	case 2:
+		q.Start.Y = coord.End().Y - bt.texture.size.Y
+	}
+
+	bt.texture.texture.SetColorMod(cd.R, cd.G, cd.B)
+	bt.texture.texture.SetAlphaMod(cd.A)
+	err := bt.texture.Copy(q, render)
+	if err != nil {
+		return fmt.Errorf("Copy() failed: %w", err)
+	}
+
+	return nil
+
+}
+
+type PaintBuffTextCache struct {
+	textures []*PaintBuffText
+}
+
+func NewPaintBuffTextCache() *PaintBuffTextCache {
+	var btc PaintBuffTextCache
+	return &btc
+}
+
+func (btc *PaintBuffTextCache) Destroy() {
+	for _, it := range btc.textures {
+		it.Destroy()
+	}
+}
+
+func (btc *PaintBuffTextCache) Find(text string, height int, font *Font, cd OsCd) *PaintBuffText {
+	for _, it := range btc.textures {
+		if it.text == text && it.height == height && it.font == font {
+			return it
+		}
+	}
+	return nil
+}
+
+func (btc *PaintBuffTextCache) Draw(text string, height int, font *Font, cd OsCd, coord OsV4, align OsV2, render *sdl.Renderer) error {
+	var err error
+
+	if len(text) == 0 {
+		return nil
+	}
+
+	it := btc.Find(text, height, font, cd)
+	if it == nil {
+		//add
+		it, err = NewPaintBuffText(text, height, font, render)
+		if err != nil {
+			return fmt.Errorf("NewPaintBuffText() failed: %w", err)
+		}
+
+		btc.textures = append(btc.textures, it)
+	}
+
+	err = it.Copy(coord, align, cd, render)
+	if err != nil {
+		return fmt.Errorf("Copy() failed: %w", err)
+	}
+
+	return nil
+}
+
 type PaintBuff struct {
 	ui       *Ui
 	lastCrop OsV4
 
-	tex            *PaintBuffTexture
+	texture        *PaintBuffTexture
 	backup_texture *sdl.Texture
+
+	text_cache *PaintBuffTextCache
 }
 
 func NewPaintBuff(ui *Ui) *PaintBuff {
 	var b PaintBuff
 	b.ui = ui
+	b.text_cache = NewPaintBuffTextCache()
 	return &b
 }
 
 func (b *PaintBuff) Destroy() {
-	if b.tex != nil {
-		b.tex.Destroy()
+	if b.texture != nil {
+		b.texture.Destroy()
 	}
+	b.text_cache.Destroy()
 }
 
 func (b *PaintBuff) StartLevel(coord OsV4) error {
@@ -94,40 +261,30 @@ func (b *PaintBuff) StartLevel(coord OsV4) error {
 	tex_size, _ := b.ui.GetScreenCoord()
 
 	//cmp
-	if b.tex == nil {
-		b.tex, err = NewPaintBuffTexture(tex_size.Size, b.ui.render)
+	if b.texture == nil {
+		b.texture, err = NewPaintBuffTexture(tex_size.Size, b.ui.render)
 		if err != nil {
 			return fmt.Errorf("NewPaintBuffTexture() failed: %w", err)
 		}
 
-	} else if !b.tex.size.Cmp(tex_size.Size) {
-		b.tex.Destroy()
-		b.tex, err = NewPaintBuffTexture(tex_size.Size, b.ui.render)
+	} else if !b.texture.size.Cmp(tex_size.Size) {
+		b.texture.Destroy()
+		b.texture, err = NewPaintBuffTexture(tex_size.Size, b.ui.render)
 		if err != nil {
 			return fmt.Errorf("NewPaintBuffTexture() failed: %w", err)
 		}
 	}
 
 	//set
-	b.backup_texture, err = b.tex.SetRenderTarget(b.ui.render)
+	b.backup_texture, err = b.texture.SetRenderTarget(b.ui.render)
 	if err != nil {
 		return fmt.Errorf("SetRenderTarget() failed: %w", err)
 	}
 
-	b.tex.texture.SetBlendMode(sdl.BLENDMODE_BLEND)
-	b.tex.texture.SetAlphaMod(0)
-	err = b.ui.render.SetDrawColor(0, 0, 0, 0) //full alpha
-
+	err = b.texture.PrepareAlpha(b.ui.render)
 	if err != nil {
-		return fmt.Errorf("SetDrawColor() failed: %w", err)
+		return fmt.Errorf("PrepareAlpha() failed: %w", err)
 	}
-
-	err = b.ui.render.Clear()
-	if err != nil {
-		return fmt.Errorf("Clear() failed: %w", err)
-	}
-
-	b.tex.texture.SetAlphaMod(255)
 
 	b.Reset(coord) //background
 
@@ -158,12 +315,12 @@ func (b *PaintBuff) Draw() error {
 		return fmt.Errorf("SetClipRect() failed: %w", err)
 	}
 
-	if b.tex != nil {
+	if b.texture != nil {
 		//fade
 		_Ui_boxSE(b.ui.render, sz.Start, sz.End(), OsCd{0, 0, 0, 80})
 
 		//copy texture
-		b.tex.RenderIntoMain(sz, b.ui.render)
+		b.texture.Copy(sz, b.ui.render)
 	}
 
 	return nil
@@ -241,7 +398,6 @@ func PaintImage_load(path ResourcePath, inverserRGB bool, ui *Ui) (*Image, error
 }
 
 func (b *PaintBuff) AddImage(path ResourcePath, inverserRGB bool, coord OsV4, cd OsCd, alignV int, alignH int, fill bool) {
-
 	img, err := PaintImage_load(path, inverserRGB, b.ui)
 	if err != nil {
 		b.AddText(path.GetString()+" has error", coord, path.root.fonts.Get(SKYALT_FONT_0), OsCd_error(), path.root.ui.io.GetDPI()/8, OsV2{1, 1}, nil)
@@ -289,10 +445,16 @@ func (b *PaintBuff) AddImage(path ResourcePath, inverserRGB bool, coord OsV4, cd
 }
 
 func (b *PaintBuff) AddText(text string, coord OsV4, font *Font, cd OsCd, h int, align OsV2, cds []OsCd) {
-	err := font.Print(text, h, coord, align, cd, cds, b.ui.render)
+
+	err := b.text_cache.Draw(text, h, font, cd, coord, align, b.ui.render)
+	if err != nil {
+		fmt.Printf("Draw() failed: %v\n", err)
+	}
+
+	/*err = font.Print(text, h, coord, align, cd, cds, b.ui.render)
 	if err != nil {
 		fmt.Printf("Print() failed: %v\n", err)
-	}
+	}*/
 }
 
 func (b *PaintBuff) AddTextBack(rangee OsV2, text string, coord OsV4, font *Font, cd OsCd, h int, align OsV2, underline bool, addSpaceY bool) error {

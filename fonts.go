@@ -173,6 +173,20 @@ func (font *Font) Get(ch rune, h int, render *sdl.Renderer) (FontLetter, error) 
 	return l, nil
 }
 
+func (font *Font) GetDownY(text string, h int, render *sdl.Renderer) (int, error) {
+	down_y := 0
+	for _, ch := range text {
+		l, err := font.Get(ch, h, render)
+		if err != nil {
+			return 0, fmt.Errorf("Start.Get() failed: %w", err)
+		}
+		if -l.y > down_y {
+			down_y = -l.y
+		}
+	}
+	return down_y, nil
+}
+
 func (font *Font) Start(text string, h int, coord OsV4, align OsV2, render *sdl.Renderer) (OsV2, error) {
 
 	word_space := 0
@@ -223,7 +237,7 @@ func (font *Font) Start(text string, h int, coord OsV4, align OsV2, render *sdl.
 	return pos, nil
 }
 
-func (font *Font) Print(text string, h int, coord OsV4, align OsV2, color OsCd, cds []OsCd, render *sdl.Renderer) error {
+func (font *Font) Print(text string, h int, coord OsV4, align OsV2, color OsCd, cds []OsCd, blendingOn bool, render *sdl.Renderer) error {
 
 	pos, err := font.Start(text, h, coord, align, render)
 	if err != nil {
@@ -255,6 +269,10 @@ func (font *Font) Print(text string, h int, coord OsV4, align OsV2, color OsCd, 
 			cd = cds[i]
 		} else {
 			cd = color
+		}
+
+		if !blendingOn {
+			l.texture.SetBlendMode(sdl.BLENDMODE_NONE)
 		}
 
 		err = l.texture.SetColorMod(cd.R, cd.G, cd.B)

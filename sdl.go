@@ -863,7 +863,7 @@ func (ui *Ui) RenderTile(text string, coord OsV4, cd OsCd, font *Font) error {
 	_Ui_boxSE(ui.render, cq.Start, cq.End(), OsCd_white())
 	_Ui_boxSE_border(ui.render, cq.Start, cq.End(), OsCd_black(), 1)
 	cq.Size.Y /= num_lines
-	err = font.Print(text, textH, cq, OsV2{1, 1}, cd, nil, ui.render)
+	err = font.Print(text, textH, cq, OsV2{1, 1}, cd, nil, true, ui.render)
 	if err != nil {
 		fmt.Printf("Print() failed: %v\n", err)
 	}
@@ -896,7 +896,7 @@ func (ui *Ui) RenderInfoStats(ui_info *Info, vm_info *Info, font *Font) error {
 		fmt.Printf("SetClipRect() failed: %v\n", err)
 	}
 	_Ui_boxSE(ui.render, cq.Start, cq.End(), OsCd_white())
-	err = font.Print(text, textH, cq, OsV2{0, 1}, OsCd{255, 50, 50, 255}, nil, ui.render)
+	err = font.Print(text, textH, cq, OsV2{0, 1}, OsCd{255, 50, 50, 255}, nil, true, ui.render)
 	if err != nil {
 		fmt.Printf("Print() failed: %v\n", err)
 	}

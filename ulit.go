@@ -492,6 +492,9 @@ func OsCd_error() OsCd {
 func (cd OsCd) MultAlpha(a byte) OsCd {
 	return OsCd_Aprox(cd, OsCd_white(), float32(a)/255.0)
 }
+func (a OsCd) Cmp(b OsCd) bool {
+	return a.R == b.R && a.G == b.G && a.B == b.B && a.A == b.A
+}
 
 func OsCd_Aprox(s OsCd, e OsCd, t float32) OsCd {
 	var self OsCd

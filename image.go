@@ -208,7 +208,7 @@ func CreateTextureFromImage(img image.Image, inverserRGB bool, render *sdl.Rende
 	if err != nil {
 		return nil, OsV2{}, fmt.Errorf("CreateTexture() failed: %w", err)
 	}
-	texture.SetBlendMode(sdl.BLENDMODE_BLEND) //? ...
+	texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
 	pixels, _, err := texture.Lock(nil)
 	if err != nil {
