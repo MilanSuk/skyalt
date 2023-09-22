@@ -62,7 +62,6 @@ func (root *Root) themeCd() OsCd {
 	return cd
 }
 
-// accessibility for selected(highlight) Button => 'pressed' param => use Touch_hover style ...
 func (asset *Asset) swp_drawButton(style *SwpStyle, value string, icon string, icon_margin float64, url string, title string, enable bool) (bool, bool, int64) {
 
 	root := asset.app.root
@@ -411,11 +410,22 @@ func (asset *Asset) swp_drawCombo(style *SwpStyle, styleMenu *SwpStyle, value ui
 		for _, opt := range options {
 			mx = OsMax(mx, len(opt))
 		}
+
 		asset._sa_div_colMax(0, OsMaxFloat(5, styleMenu.Main.Font_height*float64(mx)))
+
+		menuSt := *styleMenu
 
 		for i, opt := range options {
 			asset.div_start(0, uint64(i), 1, 1, "")
-			click, _, ret := asset.swp_drawButton(styleMenu, opt, "", 0, "", "", value != uint64(i))
+
+			//highlight
+			if value == uint64(i) {
+				menuSt.Main.Content_color = root.themeCd()
+			} else {
+				menuSt.Main.Content_color = styleMenu.Main.Content_color //default
+			}
+
+			click, _, ret := asset.swp_drawButton(&menuSt, opt, "", 0, "", "", true)
 			if ret > 0 && click {
 				value = uint64(i)
 				asset._sa_div_dialogClose()
