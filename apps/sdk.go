@@ -580,9 +580,40 @@ func (b *_SA_Button) Value(v string) *_SA_Button {
 
 func (b *_SA_Button) Highlight(condition bool, style *_SA_Style) *_SA_Button {
 	if condition {
+
+		if style == nil {
+			if b.style == &styles.ButtonAlpha {
+				style = &styles.Button
+			}
+			if b.style == &styles.ButtonMenu {
+				style = &styles.ButtonMenuSelected
+			}
+			if b.style == &styles.ButtonBorder {
+				style = &styles.Button
+			}
+		}
+
 		b.style = style
 	}
 	return b
+}
+
+func (b *_SA_Button) Pressed(pressed bool) *_SA_Button {
+
+	style := b.style
+
+	switch b.style {
+	case &styles.ButtonAlpha:
+		style = &styles.Button
+
+	case &styles.ButtonMenu:
+		style = &styles.ButtonMenuSelected
+
+	case &styles.ButtonBorder:
+		style = &styles.Button
+	}
+
+	return b.Highlight(pressed, style)
 }
 
 func (b *_SA_Button) Icon(path string, margin float64) *_SA_Button {
@@ -956,9 +987,7 @@ func (b *_SA_Editbox) Show(x, y, w, h int) _SA_EditboxOut {
 		if b.style == nil {
 			b.style = &styles.Editbox //use default
 		}
-		if b.err != nil {
-			b.style = &styles.EditboxErr
-		}
+		b.Highlight(b.err != nil, &styles.EditboxErr)
 
 		value := ""
 		switch v := b.value.(type) {
@@ -1049,13 +1078,6 @@ func SA_ComboStyle(value *int, options string, style *_SA_Style) *_SA_Combo {
 
 func SA_Combo(value *int, options string) *_SA_Combo {
 	return SA_ComboStyle(value, options, &styles.Combo)
-}
-
-func (b *_SA_Combo) Highlight(condition bool, style *_SA_Style) *_SA_Combo {
-	if condition {
-		b.style = style
-	}
-	return b
 }
 
 func (b *_SA_Combo) Enable(v bool) *_SA_Combo {

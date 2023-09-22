@@ -393,7 +393,7 @@ func Map(cam *Cam) {
 	//top
 	SA_DivStart(0, 0, 1, 1)
 	{
-		if SA_ButtonBorder("+").Title(trns.ADD_LOCATOR).Highlight(store.add_locator, &styles.Button).Show(0, 0, 1, 1).click {
+		if SA_ButtonBorder("+").Title(trns.ADD_LOCATOR).Pressed(store.add_locator).Show(0, 0, 1, 1).click {
 			store.add_locator = !store.add_locator
 		}
 	}

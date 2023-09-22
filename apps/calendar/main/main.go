@@ -1114,16 +1114,16 @@ func ModePanel() {
 				}
 			}
 
-			if SA_ButtonAlpha(trns.DAY).Highlight(store.Mode == "day", &styles.Button).Show(0, 0, 1, 1).click {
+			if SA_ButtonAlpha(trns.DAY).Pressed(store.Mode == "day").Show(0, 0, 1, 1).click {
 				store.Mode = "day"
 			}
-			if SA_ButtonAlpha(trns.WEEK).Highlight(store.Mode == "week", &styles.Button).Show(2, 0, 1, 1).click {
+			if SA_ButtonAlpha(trns.WEEK).Pressed(store.Mode == "week").Show(2, 0, 1, 1).click {
 				store.Mode = "week"
 			}
-			if SA_ButtonAlpha(trns.MONTH).Highlight(store.Mode == "month", &styles.Button).Show(4, 0, 1, 1).click {
+			if SA_ButtonAlpha(trns.MONTH).Pressed(store.Mode == "month").Show(4, 0, 1, 1).click {
 				store.Mode = "month"
 			}
-			if SA_ButtonAlpha(trns.YEAR).Highlight(store.Mode == "year", &styles.Button).Show(6, 0, 1, 1).click {
+			if SA_ButtonAlpha(trns.YEAR).Pressed(store.Mode == "year").Show(6, 0, 1, 1).click {
 				store.Mode = "year"
 			}
 

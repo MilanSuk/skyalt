@@ -202,7 +202,7 @@ func CRUDList(search string) {
 
 	for i, person := range store.People {
 		if len(search) == 0 || strings.Contains(strings.ToLower(person.Name), strings.ToLower(search)) || strings.Contains(strings.ToLower(person.Surname), strings.ToLower(search)) {
-			if SA_ButtonMenu(person.Surname+", "+person.Name).Highlight(i == store.SelectedPerson, &styles.ButtonMenuSelected).Show(0, y, 1, 1).click {
+			if SA_ButtonMenu(person.Surname+", "+person.Name).Pressed(i == store.SelectedPerson).Show(0, y, 1, 1).click {
 				store.SelectedPerson = i
 				store.Surname = person.Surname
 				store.Name = person.Name

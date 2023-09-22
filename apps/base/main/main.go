@@ -546,7 +546,7 @@ func Files() {
 			SA_DivStart(1, 0, 1, 1)
 			{
 				SA_ColMax(0, 100)
-				if SA_ButtonMenu(file.Name).Highlight(isSelected, &styles.ButtonMenuSelected).Title("id: "+strconv.Itoa(file.Sts_id)).Show(0, 0, 1, 1).click {
+				if SA_ButtonMenu(file.Name).Pressed(isSelected).Title("id: "+strconv.Itoa(file.Sts_id)).Show(0, 0, 1, 1).click {
 					store.SelectedFile = file_i
 					store.SelectedApp = -1
 
@@ -662,7 +662,7 @@ func Files() {
 					{
 						SA_ColMax(0, 100)
 
-						if SA_ButtonMenu(app.Label).Highlight(isSelected, &styles.ButtonMenuSelected).Title("app: "+app.Name+", id: "+strconv.Itoa(app.Sts_id)).Show(0, 0, 1, 1).click {
+						if SA_ButtonMenu(app.Label).Pressed(isSelected).Title("app: "+app.Name+", id: "+strconv.Itoa(app.Sts_id)).Show(0, 0, 1, 1).click {
 							store.SelectedFile = file_i
 							store.SelectedApp = app_i
 
