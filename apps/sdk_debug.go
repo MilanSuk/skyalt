@@ -671,8 +671,10 @@ func _sa_swp_drawButton(styleId uint32, valueMem SAMem, iconMem SAMem, icon_marg
 	return ret
 }
 
-func _sa_swp_drawSlider(value float64, min float64, max float64, jump float64, titleMem SAMem, enable uint32, outMem SAMem) float64 {
+func _sa_swp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, min float64, max float64, jump float64, titleMem SAMem, enable uint32, outMem SAMem) float64 {
 	WriteUint64(81)
+	WriteUint64(uint64(styleTrackId))
+	WriteUint64(uint64(styleThumbId))
 	WriteFloat64(value)
 	WriteFloat64(min)
 	WriteFloat64(max)

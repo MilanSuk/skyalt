@@ -529,6 +529,8 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			ad._checkRead(fnTp)
 
 		case 81:
+			styleTrackId := uint32(ad.ReadUint64())
+			styleThumbId := uint32(ad.ReadUint64())
 			value := ad.ReadFloat64()
 			min := ad.ReadFloat64()
 			max := ad.ReadFloat64()
@@ -536,7 +538,10 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			title := string(ad.ReadBytes())
 			enable := uint32(ad.ReadUint64())
 
-			value, active, changed, finished := asset.swp_drawSlider(value, min, max, jump, title, enable)
+			styleTrack := asset.styles.Get(styleTrackId)
+			styleThumb := asset.styles.Get(styleThumbId)
+			value, active, changed, finished := asset.swp_drawSlider(styleTrack, styleThumb, value, min, max, jump, title, enable > 0)
+
 			var dst [3 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(active, 1, 0)))    //active
 			binary.LittleEndian.PutUint64(dst[8:], uint64(OsTrn(changed, 1, 0)))   //changed

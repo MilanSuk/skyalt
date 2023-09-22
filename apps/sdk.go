@@ -711,6 +711,9 @@ type _SA_SliderOut struct {
 }
 
 type _SA_Slider struct {
+	styleTrack *_SA_Style
+	styleThumb *_SA_Style
+
 	value *float64
 	min   float64
 	max   float64
@@ -722,6 +725,9 @@ type _SA_Slider struct {
 
 func SA_Slider(value *float64) *_SA_Slider {
 	var b _SA_Slider
+
+	b.styleTrack = &styles.SliderTrack
+	b.styleThumb = &styles.SliderThumb
 
 	b.value = value
 	b.enable = true
@@ -752,7 +758,7 @@ func (b *_SA_Slider) Show(x, y, w, h int) _SA_SliderOut {
 
 		var out [3 * 8]byte
 
-		*b.value = _sa_swp_drawSlider(*b.value, b.min, b.max, b.jump, _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
+		*b.value = _sa_swp_drawSlider(b.styleTrack.Id, b.styleThumb.Id, *b.value, b.min, b.max, b.jump, _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
 
 		ret.active = binary.LittleEndian.Uint64(out[0:]) != 0
 		ret.changed = binary.LittleEndian.Uint64(out[8:]) != 0
@@ -1806,4 +1812,7 @@ type SA_Styles struct {
 
 	ProgressFrame  _SA_Style
 	ProgressStatus _SA_Style
+
+	SliderTrack _SA_Style
+	SliderThumb _SA_Style
 }

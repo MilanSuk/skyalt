@@ -20,6 +20,7 @@ type LayerTile struct {
 	coord OsV4
 	text  string
 	cd    OsCd
+	force bool
 
 	ticks          int
 	needRedraw     bool
@@ -28,6 +29,7 @@ type LayerTile struct {
 
 func (layTile *LayerTile) NextTick() {
 	layTile.tickOpenForSet = true
+	layTile.force = false
 }
 
 func (layTile *LayerTile) timeToShow() int {
@@ -36,11 +38,11 @@ func (layTile *LayerTile) timeToShow() int {
 
 func (layTile *LayerTile) IsActive(touchPos OsV2) bool {
 
-	if !layTile.coord.Inside(touchPos) && len(layTile.text) > 0 {
+	if !layTile.force && !layTile.coord.Inside(touchPos) && len(layTile.text) > 0 {
 		*layTile = LayerTile{} //reset
 	}
 
-	draw := (len(layTile.text) > 0 && layTile.timeToShow() <= 0)
+	draw := (len(layTile.text) > 0 && (layTile.force || layTile.timeToShow() <= 0))
 	if draw {
 		layTile.needRedraw = false
 	}
@@ -56,13 +58,19 @@ func (layTile *LayerTile) NeedsRedrawFromSleep(touchPos OsV2) bool {
 	return redraw
 }
 
-func (layTile *LayerTile) Set(touchPos OsV2, coord OsV4, text string, cd OsCd) {
+func (layTile *LayerTile) SetForce(pos OsV2, text string, cd OsCd) {
+	layTile.force = true
+	layTile.coord = OsV4{pos, OsV2{1, 1}}
+	layTile.cd = cd
+	layTile.text = text
+	layTile.tickOpenForSet = false
+}
 
+func (layTile *LayerTile) Set(touchPos OsV2, coord OsV4, text string, cd OsCd) {
 	if coord.Inside(touchPos) {
 		if layTile.tickOpenForSet && (!layTile.coord.Cmp(coord) || layTile.text != text) {
 			layTile.coord = coord
 			layTile.cd = cd
-
 			layTile.text = text
 
 			layTile.ticks = OsTicks()

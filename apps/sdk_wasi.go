@@ -178,7 +178,7 @@ func _sa_fn_getReturn(argsMem SAMem) int64
 func _sa_swp_drawButton(style uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, titleMem SAMem, enable uint32, outMem SAMem) int64
 
 //export _sa_swp_drawSlider
-func _sa_swp_drawSlider(value float64, min float64, max float64, jump float64, titleMem SAMem, enable uint32, outMem SAMem) float64
+func _sa_swp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, min float64, max float64, jump float64, titleMem SAMem, enable uint32, outMem SAMem) float64
 
 //export _sa_swp_drawProgress
 func _sa_swp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, titleMem SAMem, enable uint32) int64

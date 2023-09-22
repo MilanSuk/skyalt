@@ -280,63 +280,70 @@ func (asset *Asset) _sa_swp_drawProgress(styleFrameId uint32, styleStatusId uint
 	return asset.swp_drawProgress(styleFrame, styleStatus, value, int(prec), title, enable > 0)
 }
 
-// když posunuji, tak zobrazit hodnotu ...
-// ...
-func (asset *Asset) swp_drawSlider(value float64, minValue float64, maxValue float64, jumpValue float64, title string, enable uint32) (float64, bool, bool, bool) {
-
+func (asset *Asset) swp_drawSlider(styleTrack *SwpStyle, styleThumb *SwpStyle, value float64, minValue float64, maxValue float64, jumpValue float64, title string, enable bool) (float64, bool, bool, bool) {
 	root := asset.app.root
 	st := root.levels.GetStack()
 
-	old_value := value
+	if styleTrack == nil {
+		styleTrack = &root.styles.SliderTrack
+	}
+	if styleThumb == nil {
+		styleThumb = &root.styles.SliderThumb
+	}
 
-	frontCd := asset.app.root.themeCd()
-	backCd := themeGrey(0.75)
+	old_value := value
 
 	active := st.stack.data.touch_active
 	inside := st.stack.data.touch_inside
 	end := st.stack.data.touch_end
 
 	cell := float64(asset.app.root.ui.Cell())
-	rad := 0.2 / (float64(st.stack.canvas.Size.Y) / cell)
-	sp := 0.2 / (float64(st.stack.canvas.Size.X) / cell)
+	rad := styleThumb.Main.Max_width / 2
+	rad_sp := rad / (float64(st.stack.canvas.Size.X) / cell)
 
 	rpos := root.ui.io.touch.pos.Sub(st.stack.canvas.Start)
 	touch_x := float64(rpos.X) / float64(st.stack.canvas.Size.X)
 
-	if enable > 0 {
+	if enable {
 		if active || inside {
-			frontCd = OsCd_Aprox(frontCd, themeWhite(), 0.2)
-			backCd = OsCd_Aprox(backCd, themeWhite(), 0.5)
 			asset.paint_cursor("hand")
 		}
 
 		if active {
 			//cut space from touch_x: outer(0,1) => inner(0,1)
-			touch_x = OsClampFloat(touch_x, sp, 1-sp)
-			touch_x = (touch_x - sp) / (1 - 2*sp)
+			touch_x = OsClampFloat(touch_x, rad_sp, 1-rad_sp)
+			touch_x = (touch_x - rad_sp) / (1 - 2*rad_sp)
 
-			frontCd = OsCd_Aprox(frontCd, themeWhite(), 0.2)
 			value = minValue + (maxValue-minValue)*touch_x
 
 			t := math.Round((value - minValue) / jumpValue)
 			value = minValue + t*jumpValue
 			value = OsClampFloat(value, minValue, maxValue)
 		}
-
-		//end = props.end
-	} else {
-		frontCd = OsCd_Aprox(themeWhite(), frontCd, 0.3)
 	}
 
 	t := (value - minValue) / (maxValue - minValue)
-	//inner(0,1) => outer(0,1)
-	t = (t + sp) * (1 - 2*sp)
+	//inner(0,1) => outer(rad,1-rad)
+	t = (t + rad_sp) * (1 - 2*rad_sp)
 
-	width := 0.05
-	asset._sa_paint_line(0, 0, 1, 1, 0, sp, 0.5, t, 0.5, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), width)
-	asset._sa_paint_line(0, 0, 1, 1, 0, t, 0.5, 1-sp, 0.5, uint32(backCd.R), uint32(backCd.G), uint32(backCd.B), uint32(backCd.A), width)
+	//draw
+	{
+		st2 := *styleTrack
+		cd := st2.Main.Content_color
+		cd.A = 100
+		st2.ContentCd(cd)
 
-	asset._sa_paint_circle(0, 0, 1, 1, 0, t, 0.5, rad, uint32(frontCd.R), uint32(frontCd.G), uint32(frontCd.B), uint32(frontCd.A), 0)
+		//track
+		styleTrack.Paint(asset.getCoord(rad_sp, 0, t, 1, 0, 0, 0), "", "", false, false, "", 0, enable, asset)
+		st2.Paint(asset.getCoord(t, 0, 1-t-rad_sp, 1, 0, 0, 0), "", "", false, false, "", 0, enable, asset)
+		//thumb
+		styleThumb.Paint(asset.getCoord(t-rad_sp, 0, 1, 1, 0, 0, 0), "", "", false, false, "", 0, enable, asset)
+	}
+
+	if active {
+		p := asset.getCoord(t+rad_sp*2, 0, 1, 1, 0, 0, 0).Start
+		asset.app.root.tile.SetForce(p, strconv.FormatFloat(value, 'f', 2, 64), OsCd_black())
+	}
 
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)
@@ -345,14 +352,16 @@ func (asset *Asset) swp_drawSlider(value float64, minValue float64, maxValue flo
 	return value, active, (active && old_value != value), end
 }
 
-func (asset *Asset) _sa_swp_drawSlider(value float64, minValue float64, maxValue float64, jumpValue float64, titleMem uint64, enable uint32, outMem uint64) float64 {
+func (asset *Asset) _sa_swp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, minValue float64, maxValue float64, jumpValue float64, titleMem uint64, enable uint32, outMem uint64) float64 {
 
 	title, err := asset.ptrToString(titleMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
 
-	value, active, changed, finished := asset.swp_drawSlider(value, minValue, maxValue, jumpValue, title, enable)
+	styleTrack := asset.styles.Get(styleTrackId)
+	styleThumb := asset.styles.Get(styleThumbId)
+	value, active, changed, finished := asset.swp_drawSlider(styleTrack, styleThumb, value, minValue, maxValue, jumpValue, title, enable > 0)
 
 	out, err := asset.ptrToBytesDirect(outMem)
 	if asset.AddLogErr(err) {

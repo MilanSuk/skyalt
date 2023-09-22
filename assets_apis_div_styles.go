@@ -23,25 +23,30 @@ import (
 )
 
 type DivStyle struct {
+	Max_width, Max_height             float64
+	Max_width_align, Max_height_align int
+
 	Margin_top, Margin_bottom, Margin_left, Margin_right     float64 //from cell
 	Border_top, Border_bottom, Border_left, Border_right     float64 //from cell
 	Padding_top, Padding_bottom, Padding_left, Padding_right float64 //from cell
 
 	Border_color  OsCd
 	Content_color OsCd
-
-	Color OsCd
+	Color         OsCd
 
 	Image_fill                 bool
 	Image_alignV, Image_alignH int
 
-	Font_path                string
-	Font_height              float64 //from cell
+	Font_path   string
+	Font_height float64 //from cell
+	//Font_weight int		//bold		//400 ...
+	//Font_angle float64	//italic	//0-10 ...
+	//Font_space float64				//0 ...
 	Font_alignV, Font_alignH int
 
 	Cursor string
 
-	//radius ...
+	Radius float64
 	//shadow ...
 	//transition_sec(blend between states) ...
 }
@@ -65,7 +70,7 @@ func (st *DivStyle) Padding(v float64) {
 	st.Padding_right = v
 }
 
-func _paintBorder(out OsV4, top, bottom, left, right float64, cd OsCd, asset *Asset) OsV4 {
+func _paintBorder(out OsV4, top, bottom, left, right float64, radius float64, cd OsCd, asset *Asset) OsV4 {
 
 	stt := asset.app.root.levels.GetStack()
 
@@ -75,29 +80,32 @@ func _paintBorder(out OsV4, top, bottom, left, right float64, cd OsCd, asset *As
 		return in
 	}
 
-	{
+	if radius > 0 {
+		rad := asset.getCellWidth(radius)
+		if rad*2 > out.Size.X && rad*2 > out.Size.Y {
+			//circle
+			stt.buff.AddCircle(out, cd, asset.getCellWidth(bottom))
+		} else {
+			//rect with radius corners ...
+		}
+	} else {
+		//sharp edges
 		q := OsV4{Start: out.Start, Size: OsV2{out.Size.X, asset.getCellWidth(top)}}
 		if q.Is() {
 			stt.buff.AddRect(q, cd, 0)
 		}
-	}
 
-	{
-		q := OsV4{Start: OsV2{out.Start.X, in.Start.Y + in.Size.Y}, Size: OsV2{out.Size.X, asset.getCellWidth(bottom)}}
+		q = OsV4{Start: OsV2{out.Start.X, in.Start.Y + in.Size.Y}, Size: OsV2{out.Size.X, asset.getCellWidth(bottom)}}
 		if q.Is() {
 			stt.buff.AddRect(q, cd, 0)
 		}
-	}
 
-	{
-		q := OsV4{Start: out.Start, Size: OsV2{asset.getCellWidth(left), out.Size.Y}}
+		q = OsV4{Start: out.Start, Size: OsV2{asset.getCellWidth(left), out.Size.Y}}
 		if q.Is() {
 			stt.buff.AddRect(q, cd, 0)
 		}
-	}
 
-	{
-		q := OsV4{Start: OsV2{in.Start.X + in.Size.X, out.Start.Y}, Size: OsV2{asset.getCellWidth(right), out.Size.Y}}
+		q = OsV4{Start: OsV2{in.Start.X + in.Size.X, out.Start.Y}, Size: OsV2{asset.getCellWidth(right), out.Size.Y}}
 		if q.Is() {
 
 			stt.buff.AddRect(q, cd, 0)
@@ -123,12 +131,44 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 		return OsV4{}
 	}
 
-	border := _paintBorder(coord, st.Margin_top, st.Margin_bottom, st.Margin_left, st.Margin_right, OsCd{}, asset)
-	padding := _paintBorder(border, st.Border_top, st.Border_bottom, st.Border_left, st.Border_right, st.Border_color, asset)
-	content := _paintBorder(padding, st.Padding_top, st.Padding_bottom, st.Padding_left, st.Padding_right, OsCd{}, asset)
+	if st.Max_width > 0 {
+		max := asset.getCellWidth(st.Max_width)
+		if coord.Size.X > max {
+			switch st.Max_width_align {
+			case 1:
+				coord.Start.X += (coord.Size.X - max) / 2
+			case 2:
+				coord.Start.X = coord.End().X - max
+			}
+			coord.Size.X = max
+		}
+	}
 
+	if st.Max_height > 0 {
+		max := asset.getCellWidth(st.Max_height)
+		if coord.Size.Y > max {
+			switch st.Max_height_align {
+			case 1:
+				coord.Start.Y += (coord.Size.Y - max) / 2
+			case 2:
+				coord.Start.Y = coord.End().Y - max
+			}
+			coord.Size.Y = max
+		}
+	}
+
+	border := _paintBorder(coord, st.Margin_top, st.Margin_bottom, st.Margin_left, st.Margin_right, 0, OsCd{}, asset)
+	padding := _paintBorder(border, st.Border_top, st.Border_bottom, st.Border_left, st.Border_right, st.Radius, st.Border_color, asset)
+	content := _paintBorder(padding, st.Padding_top, st.Padding_bottom, st.Padding_left, st.Padding_right, 0, OsCd{}, asset)
+
+	//background
 	if st.Content_color.A > 0 {
-		stt.buff.AddRect(padding, st.Content_color, 0)
+		rad := asset.getCellWidth(st.Radius)
+		if rad*2 > padding.Size.X && rad*2 > padding.Size.Y {
+			stt.buff.AddCircle(padding, st.Content_color, 0)
+		} else {
+			stt.buff.AddRect(padding, st.Content_color, 0)
+		}
 	}
 
 	coordImg := content
@@ -293,6 +333,47 @@ func (b *SwpStyle) Cursor(v string) {
 	b.Touch_out.Cursor = v
 	b.Disable.Cursor = v
 }
+func (b *SwpStyle) MaxWidth(v float64) *SwpStyle {
+	b.Main.Max_width = v
+	b.Hover.Max_width = v
+	b.Touch_hover.Max_width = v
+	b.Touch_out.Max_width = v
+	b.Disable.Max_width = v
+	return b
+}
+func (b *SwpStyle) MaxHeight(v float64) *SwpStyle {
+	b.Main.Max_height = v
+	b.Hover.Max_height = v
+	b.Touch_hover.Max_height = v
+	b.Touch_out.Max_height = v
+	b.Disable.Max_height = v
+	return b
+}
+func (b *SwpStyle) MaxWidthAlign(v int) *SwpStyle {
+	b.Main.Max_width_align = v
+	b.Hover.Max_width_align = v
+	b.Touch_hover.Max_width_align = v
+	b.Touch_out.Max_width_align = v
+	b.Disable.Max_width_align = v
+	return b
+}
+func (b *SwpStyle) MaxHeightAlign(v int) *SwpStyle {
+	b.Main.Max_height_align = v
+	b.Hover.Max_height_align = v
+	b.Touch_hover.Max_height_align = v
+	b.Touch_out.Max_height_align = v
+	b.Disable.Max_height_align = v
+	return b
+}
+
+func (b *SwpStyle) Radius(v float64) *SwpStyle {
+	b.Main.Radius = v
+	b.Hover.Radius = v
+	b.Touch_hover.Radius = v
+	b.Touch_out.Radius = v
+	b.Disable.Radius = v
+	return b
+}
 
 func (style *SwpStyle) GetDiv(enable bool, asset *Asset) *DivStyle {
 
@@ -399,6 +480,9 @@ type DivDefaultStyles struct {
 
 	ProgressFrame  SwpStyle
 	ProgressStatus SwpStyle
+
+	SliderTrack SwpStyle
+	SliderThumb SwpStyle
 }
 
 func DivStyles_getDefaults(root *Root) DivDefaultStyles {
@@ -628,6 +712,24 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.ProgressStatus.FontH(0.35)
 		stls.ProgressStatus.FontAlignH(2) //right
 		stls.ProgressStatus.FontAlignV(1)
+
+		//disable ...
+	}
+
+	{
+		stls.SliderTrack.MaxHeight(0.1)
+		stls.SliderTrack.MaxHeightAlign(1)
+		stls.SliderTrack.ContentCd(root.themeCd())
+
+		stls.SliderThumb.MaxWidth(0.4)
+		stls.SliderThumb.MaxHeight(0.4)
+		stls.SliderThumb.MaxWidthAlign(0)
+		stls.SliderThumb.MaxHeightAlign(1)
+		stls.SliderThumb.Radius(1000) //circle
+		stls.SliderThumb.ContentCd(root.themeCd())
+
+		//hover ...
+		//disable ...
 	}
 
 	return stls

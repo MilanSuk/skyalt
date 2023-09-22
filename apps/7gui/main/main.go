@@ -188,7 +188,7 @@ func Timer() {
 	SA_Text(trns.DURATION).Show(0, 2, 1, 1)
 
 	SA_Progress(float64(dt)/float64(store.MaxTime), 1).Show(1, 0, 1, 1)
-	SA_Text("").ValueFloat(dt, 1).Show(1, 1, 1, 1)
+	SA_Text(strconv.FormatFloat(dt, 'f', 1, 64)+"sec").Show(1, 1, 1, 1)
 	SA_Slider(&store.MaxTime).Min(0.1).Max(120).Jump(1).Show(1, 2, 1, 1)
 
 	if SA_Button(trns.RESET_TIMER).Show(1, 3, 1, 1).click {
