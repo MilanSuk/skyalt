@@ -520,7 +520,7 @@ func Files() {
 			if !file.Expand {
 				iconName = "tree_show.png"
 			}
-			if SA_ButtonAlpha("").Enable(len(file.Apps) > 0).Icon(SA_ResourceBuildAssetPath("", iconName), 0.15).Show(0, 0, 1, 1).click {
+			if SA_ButtonAlpha("").Enable(len(file.Apps) > 0).Icon(SA_ResourceBuildAssetPath("", iconName), 0.05).Show(0, 0, 1, 1).click {
 				file.Expand = !file.Expand
 			}
 
@@ -572,7 +572,7 @@ func Files() {
 			}
 
 			//context
-			if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "context.png"), 0.3).Show(3, 0, 1, 1).click {
+			if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "context.png"), 0.2).Show(3, 0, 1, 1).click {
 				SA_DialogOpen("fileContext_"+file.Name, 1)
 			}
 
@@ -688,7 +688,7 @@ func Files() {
 								app.logs_showtime = SA_Time()
 							}
 							if app.logs_showtime+5 > SA_Time() {
-								if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "warning.png"), 0.2).Show(1, 0, 1, 1).click {
+								if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "warning.png"), 0.0).Show(1, 0, 1, 1).click {
 									SA_DialogOpen("log_"+strconv.Itoa(app.Sts_id), 0)
 								}
 							}
@@ -717,7 +717,7 @@ func Files() {
 					SA_DivEnd()
 
 					//context
-					if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "context.png"), 0.3).Show(2, 0, 1, 1).click {
+					if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "context.png"), 0.2).Show(2, 0, 1, 1).click {
 						SA_DialogOpen("appContext_"+file.Name+"_"+strconv.Itoa(app.Sts_id), 1)
 					}
 
