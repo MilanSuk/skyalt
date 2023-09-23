@@ -1162,37 +1162,27 @@ func (b *_SA_Combo) Show(x, y, w, h int) bool {
 }
 
 type _SA_Checkbox struct {
-	value       *bool
-	enable      bool
-	description string
+	styleCheck *_SA_Style
+	styleLabel *_SA_Style
 
-	backCd  SACd
-	frontCd SACd
-
-	height float64
-	align  uint32
-	alignV uint32
-
-	title string
+	value  *bool
+	label  string
+	title  string
+	enable bool
 }
 
-func SA_Checkbox(value *bool, description string) *_SA_Checkbox {
+func SA_Checkbox(value *bool, label string) *_SA_Checkbox {
 	var b _SA_Checkbox
 
-	b.value = value
-	b.description = description
+	b.styleCheck = &styles.CheckboxCheck
+	b.styleLabel = &styles.CheckboxLabel
 
-	b.height = 1
-	b.alignV = 1
+	b.value = value
+	b.label = label
+
 	b.enable = true
-	b.frontCd = SA_ThemeBlack()
 
 	return &b
-}
-
-func (b *_SA_Checkbox) Align(v int) *_SA_Checkbox {
-	b.align = uint32(v)
-	return b
 }
 
 func (b *_SA_Checkbox) Show(x, y, w, h int) bool {
@@ -1206,8 +1196,7 @@ func (b *_SA_Checkbox) Show(x, y, w, h int) bool {
 			val = 1
 		}
 
-		v := _sa_swp_drawCheckbox(uint32(b.frontCd.R), uint32(b.frontCd.G), uint32(b.frontCd.B), uint32(b.frontCd.A),
-			val, _SA_stringToPtr(b.description), _SA_stringToPtr(b.title), b.height, b.align, b.alignV, _SA_boolToUint32(b.enable))
+		v := _sa_swp_drawCheckbox(b.styleCheck.Id, b.styleLabel.Id, val, _SA_stringToPtr(b.label), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable))
 
 		changed = (val != uint64(v))
 		if changed {
@@ -1815,4 +1804,7 @@ type SA_Styles struct {
 
 	SliderTrack _SA_Style
 	SliderThumb _SA_Style
+
+	CheckboxCheck _SA_Style
+	CheckboxLabel _SA_Style
 }

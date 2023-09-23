@@ -451,12 +451,12 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			h := ad.ReadFloat64()
 			styleId := uint32(ad.ReadUint64())
 			value := string(ad.ReadBytes())
-			selection := uint32(ad.ReadUint64())
-			edit := uint32(ad.ReadUint64())
-			enable := uint32(ad.ReadUint64())
+			selection := ad.ReadUint64() > 0
+			edit := ad.ReadUint64() > 0
+			enable := ad.ReadUint64() > 0
 
 			style := asset.styles.Get(styleId)
-			ret := asset.paint_text(x, y, w, h, style, value, value, selection > 0, edit > 0, enable > 0)
+			ret := asset.paint_text(x, y, w, h, style, value, value, selection, edit, enable)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -516,10 +516,10 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			icon_margin := ad.ReadFloat64()
 			url := string(ad.ReadBytes())
 			title := string(ad.ReadBytes())
-			enable := uint32(ad.ReadUint64())
+			enable := ad.ReadUint64() > 0
 
 			style := asset.styles.Get(styleId)
-			click, rclick, ret := asset.swp_drawButton(style, value, icon, icon_margin, url, title, enable > 0)
+			click, rclick, ret := asset.swp_drawButton(style, value, icon, icon_margin, url, title, enable)
 
 			var dst [2 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(click, 1, 0)))
@@ -536,11 +536,11 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			max := ad.ReadFloat64()
 			jump := ad.ReadFloat64()
 			title := string(ad.ReadBytes())
-			enable := uint32(ad.ReadUint64())
+			enable := ad.ReadUint64() > 0
 
 			styleTrack := asset.styles.Get(styleTrackId)
 			styleThumb := asset.styles.Get(styleThumbId)
-			value, active, changed, finished := asset.swp_drawSlider(styleTrack, styleThumb, value, min, max, jump, title, enable > 0)
+			value, active, changed, finished := asset.swp_drawSlider(styleTrack, styleThumb, value, min, max, jump, title, enable)
 
 			var dst [3 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(active, 1, 0)))    //active
@@ -553,15 +553,14 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 		case 82:
 			styleFrameId := uint32(ad.ReadUint64())
 			styleStatusId := uint32(ad.ReadUint64())
-
 			value := ad.ReadFloat64()
 			prec := int32(ad.ReadUint64())
 			title := string(ad.ReadBytes())
-			enable := uint32(ad.ReadUint64())
+			enable := ad.ReadUint64() > 0
 
 			styleFrame := asset.styles.Get(styleFrameId)
 			styleStatus := asset.styles.Get(styleStatusId)
-			ret := asset.swp_drawProgress(styleFrame, styleStatus, value, int(prec), title, enable > 0)
+			ret := asset.swp_drawProgress(styleFrame, styleStatus, value, int(prec), title, enable)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -609,33 +608,28 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			value := ad.ReadUint64()
 			options := string(ad.ReadBytes())
 			title := string(ad.ReadBytes())
-			enable := uint32(ad.ReadUint64())
+			enable := ad.ReadUint64() > 0
 
 			style := asset.styles.Get(styleId)
 			styleMenu := asset.styles.Get(styleMenuId)
 
-			valueOut := asset.swp_drawCombo(style, styleMenu, value, options, title, enable > 0)
+			valueOut := asset.swp_drawCombo(style, styleMenu, value, options, title, enable)
 			ad.WriteUint64(uint64(valueOut))
 			ad._checkRead(fnTp)
 
 		case 87:
-			cd_r := uint32(ad.ReadUint64())
-			cd_g := uint32(ad.ReadUint64())
-			cd_b := uint32(ad.ReadUint64())
-			cd_a := uint32(ad.ReadUint64())
+			styleCheckId := uint32(ad.ReadUint64())
+			styleLabelId := uint32(ad.ReadUint64())
 
 			value := ad.ReadUint64()
-			description := string(ad.ReadBytes())
+			label := string(ad.ReadBytes())
 			title := string(ad.ReadBytes())
-
-			height := ad.ReadFloat64()
-			align := uint32(ad.ReadUint64())
-			alignV := uint32(ad.ReadUint64())
 			enable := ad.ReadUint64() != 0
 
-			valueOut := asset.swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a,
-				value, description, title,
-				height, align, alignV, enable)
+			styleCheck := asset.styles.Get(styleCheckId)
+			styleLabel := asset.styles.Get(styleLabelId)
+
+			valueOut := asset.swp_drawCheckbox(styleCheck, styleLabel, value, label, title, enable)
 			ad.WriteUint64(uint64(valueOut))
 			ad._checkRead(fnTp)
 

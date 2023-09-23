@@ -196,7 +196,7 @@ func _sa_swp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, titleMem
 func _sa_swp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem SAMem, titleMem SAMem, enable uint32) int64
 
 //export _sa_swp_drawCheckbox
-func _sa_swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32, value uint64, descriptionMem SAMem, titleMem SAMem, height float64, align uint32, alignV uint32, enable uint32) int64
+func _sa_swp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem SAMem, titleMem SAMem, enable uint32) int64
 
 //export _sa_register_style
 func _sa_register_style(jsMem SAMem) int64

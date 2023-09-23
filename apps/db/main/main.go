@@ -1385,7 +1385,7 @@ func TableRows(table *Table) {
 							}
 						case "CHECK_BOX":
 							bv := values[x] != "0"
-							if SA_Checkbox(&bv, "").Align(1).Show(x, 0, 1, rowSize) {
+							if SA_Checkbox(&bv, "").Show(x, 0, 1, rowSize) {
 								if bv {
 									values[x] = "1"
 								} else {

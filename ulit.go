@@ -288,6 +288,10 @@ func (v OsV4) IsZero() bool {
 	return v.Size.IsZero()
 }
 
+func (v OsV4) GetPos(x, y float64) OsV2 {
+	return OsV2{v.Start.X + int(float64(v.Size.X)*x), v.Start.Y + int(float64(v.Size.Y)*y)}
+}
+
 func (q OsV4) AddSpaceX(space int) OsV4 {
 	space *= 2
 	if space > q.Size.X {

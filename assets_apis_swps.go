@@ -379,6 +379,13 @@ func (asset *Asset) swp_drawCombo(style *SwpStyle, styleMenu *SwpStyle, value ui
 	root := asset.app.root
 	div := root.levels.GetStack().stack
 
+	if style == nil {
+		style = &root.styles.Combo
+	}
+	if styleMenu == nil {
+		styleMenu = &root.styles.ButtonMenu
+	}
+
 	var options []string
 	if len(optionsIn) > 0 {
 		options = strings.Split(optionsIn, "|")
@@ -389,8 +396,6 @@ func (asset *Asset) swp_drawCombo(style *SwpStyle, styleMenu *SwpStyle, value ui
 	} else {
 		val = options[value]
 	}
-
-	//w := 0.6 / (float64(div.canvas.Size.X) / float64(asset.app.root.ui.Cell()))
 
 	//back and arrow
 	stText := *style
@@ -471,15 +476,17 @@ func (asset *Asset) _sa_swp_drawCombo(styleId uint32, styleMenuId uint32, value 
 	return asset.swp_drawCombo(style, styleMenu, value, options, title, enable > 0)
 }
 
-// StyleContainer + StyleIcon(image is empty => default check) ...
-func (asset *Asset) swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
-	value uint64, description string, title string,
-	height float64, align uint32, alignV uint32, enable bool) int64 {
+func (asset *Asset) swp_drawCheckbox(styleCheck *SwpStyle, styleLabel *SwpStyle, value uint64, label string, title string, enable bool) int64 {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
 
-	cd := InitOsCd32(cd_r, cd_g, cd_b, cd_a)
+	if styleCheck == nil {
+		styleCheck = &root.styles.CheckboxCheck
+	}
+	if styleLabel == nil {
+		styleLabel = &root.styles.CheckboxLabel
+	}
 
 	if enable {
 		active := st.stack.data.touch_active
@@ -487,7 +494,6 @@ func (asset *Asset) swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
 		end := st.stack.data.touch_end
 
 		if active || inside {
-			cd = OsCd_Aprox(cd, OsCd_white(), 0.3)
 			asset.paint_cursor("hand")
 		}
 
@@ -495,45 +501,31 @@ func (asset *Asset) swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
 			value = uint64(OsTrn(value > 0, 0, 1))
 		}
 
+	}
+
+	var content OsV4
+	if len(label) > 0 {
+		w := 1.0 / (float64(st.stack.canvas.Size.X) / float64(root.ui.Cell()))
+		w *= styleCheck.Main.Max_width * 1.2
+
+		content = styleCheck.Paint(asset.getCoord(0, 0, w, 1, 0, 0, 0), "", "", false, false, "", 0, enable, asset)
+
+		asset.paint_text(w, 0, 1-w, 1, styleLabel, label, "", false, false, enable)
+
 	} else {
-		cd = OsCd_Aprox(OsCd_white(), cd, 0.3)
-	}
+		//center
+		content = styleCheck.Paint(st.stack.canvas, "", "", false, false, "", 0, enable, asset)
 
-	ww := float64(st.stack.canvas.Size.X) / float64(root.ui.Cell())
-	hh := float64(st.stack.canvas.Size.Y) / float64(root.ui.Cell())
-
-	descSz := asset.paint_textWidth(description, SKYALT_FONT_0, 0.35, -1) //font from style ...
-
-	h := height / hh
-	w := h / (ww / hh)
-
-	sx := float64(0)
-	switch align {
-	case 1:
-		sx = OsMaxFloat((1-(w*0.8+descSz))/2, 0)
-	case 2:
-		sx = OsMaxFloat((1 - (w*0.8 + descSz)), 0)
-	}
-
-	sy := float64(0)
-	switch alignV {
-	case 1:
-		sy = OsMaxFloat((1-h)/2, 0)
-	case 2:
-		sy = OsMaxFloat((1 - h), 0)
 	}
 
 	if value > 0 {
-		asset.paint_rect(sx, sy, w, h, 0.22, cd, 0)
-		asset._sa_paint_line(sx, sy, w, h, 0.33, 1.0/3, 0.9, 0.05, 2.0/3, 255, 255, 255, 255, 0.05)
-		asset._sa_paint_line(sx, sy, w, h, 0.33, 1.0/3, 0.9, 0.95, 1.0/4, 255, 255, 255, 255, 0.05)
-	} else {
-		asset.paint_rect(sx, sy, w, h, 0.22, cd, 0.03)
-	}
+		st.buff.AddRect(content, styleCheck.Main.Border_color, 0)
 
-	div := root.levels.GetStack().stack
-	div.FindOrCreate("", InitOsQuad(0, 0, 1, 1), &root.levels.infoLayout).data.touch_enabled = false                //click through
-	asset.paint_text(sx+w*1, sy, 1-(sx+w*1), h, &asset.app.root.styles.Text, description, "", false, false, enable) //custom style, cursor is ibeam ...
+		//draw check
+		//content = content.AddSpace(asset.getCellWidth(0.1))
+		//st.buff.AddLine(content.GetPos(1.0/3, 0.9), content.GetPos(0.05, 2.0/3), themeWhite(), asset.getCellWidth(0.05))
+		//st.buff.AddLine(content.GetPos(1.0/3, 0.9), content.GetPos(0.95, 1.0/4), themeWhite(), asset.getCellWidth(0.05))
+	}
 
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)
@@ -542,11 +534,9 @@ func (asset *Asset) swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
 	return int64(value)
 }
 
-func (asset *Asset) _sa_swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
-	value uint64, descriptionMem uint64, titleMem uint64,
-	height float64, align uint32, alignV uint32, enable uint32) int64 {
+func (asset *Asset) _sa_swp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem uint64, titleMem uint64, enable uint32) int64 {
 
-	description, err := asset.ptrToString(descriptionMem)
+	label, err := asset.ptrToString(labelMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
@@ -556,7 +546,10 @@ func (asset *Asset) _sa_swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
 		return -1
 	}
 
-	return asset.swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a, value, description, title, height, align, alignV, enable > 0)
+	styleCheck := asset.styles.Get(styleCheckId)
+	styleLabel := asset.styles.Get(styleLabelId)
+
+	return asset.swp_drawCheckbox(styleCheck, styleLabel, value, label, title, enable > 0)
 }
 
 func (asset *Asset) paint_textWidth(value string, fontPath string, ratioH float64, cursorPos int64) float64 {

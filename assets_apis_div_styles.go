@@ -238,6 +238,38 @@ type SwpStyle struct {
 	Disable     DivStyle
 }
 
+func (b *SwpStyle) HoverAuto() *SwpStyle {
+	if b.Main.Color.A > 0 {
+		b.Hover.Color = OsCd_Aprox(b.Main.Color, themeWhite(), 0.3)
+	}
+
+	if b.Main.Content_color.A > 0 {
+		b.Hover.Content_color = OsCd_Aprox(b.Main.Content_color, themeWhite(), 0.3)
+	}
+
+	if b.Main.Border_color.A > 0 {
+		b.Hover.Border_color = OsCd_Aprox(b.Main.Border_color, themeWhite(), 0.3)
+	}
+
+	return b
+}
+
+func (b *SwpStyle) DisableAuto() *SwpStyle {
+	if b.Main.Color.A > 0 {
+		b.Disable.Color = OsCd_Aprox(b.Main.Color, themeWhite(), 0.35)
+	} else {
+		b.Disable.Color = OsCd{}
+	}
+
+	if b.Main.Content_color.A > 0 {
+		b.Disable.Content_color = OsCd_Aprox(b.Main.Content_color, themeWhite(), 0.5)
+	} else {
+		b.Disable.Content_color = OsCd{}
+	}
+
+	return b
+}
+
 func (b *SwpStyle) Color(v OsCd) *SwpStyle {
 	b.Main.Color = v
 	b.Hover.Color = v
@@ -424,12 +456,12 @@ func (style *SwpStyle) IsClicked(enable bool, asset *Asset) (bool, bool, bool) {
 	return click, rclick, inside
 }
 
-func (style *SwpStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_path string, image_margin float64, enable bool, asset *Asset) *DivStyle {
+func (style *SwpStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_path string, image_margin float64, enable bool, asset *Asset) OsV4 {
 
 	stylee := style.GetDiv(enable, asset)
 
 	//draw
-	stylee.Paint(coord, text, textOrig, textSelect, textEdit, image_path, image_margin, asset)
+	content := stylee.Paint(coord, text, textOrig, textSelect, textEdit, image_path, image_margin, asset)
 
 	//cursor
 	_, _, inside := style.IsClicked(enable, asset)
@@ -438,7 +470,7 @@ func (style *SwpStyle) Paint(coord OsV4, text string, textOrig string, textSelec
 		asset.paint_cursor(stylee.Cursor)
 	}
 
-	return stylee
+	return content
 }
 
 type DivDefaultStyles struct {
@@ -483,6 +515,9 @@ type DivDefaultStyles struct {
 
 	SliderTrack SwpStyle
 	SliderThumb SwpStyle
+
+	CheckboxCheck SwpStyle
+	CheckboxLabel SwpStyle
 }
 
 func DivStyles_getDefaults(root *Root) DivDefaultStyles {
@@ -514,8 +549,9 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.Button.Touch_hover.Content_color = themeBack()
 		stls.Button.Touch_hover.Color = root.themeCd()
 
-		stls.Button.Disable.Color = OsCd_Aprox(stls.Button.Main.Color, themeWhite(), 0.35)
-		stls.Button.Disable.Content_color = OsCd_Aprox(stls.Button.Main.Content_color, themeWhite(), 0.7)
+		stls.Button.DisableAuto()
+		//stls.Button.Disable.Color = OsCd_Aprox(stls.Button.Main.Color, themeWhite(), 0.35)
+		//stls.Button.Disable.Content_color = OsCd_Aprox(stls.Button.Main.Content_color, themeWhite(), 0.7)
 	}
 
 	{
@@ -534,8 +570,10 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.ButtonAlpha.Main.Content_color = OsCd{}
 		stls.ButtonAlpha.Hover.Content_color = OsCd_Aprox(root.themeCd(), themeWhite(), 0.7)
 		stls.ButtonAlpha.Touch_out.Content_color = OsCd{}
-		stls.ButtonAlpha.Disable.Content_color = OsCd{}
-		stls.ButtonAlpha.Disable.Color = OsCd_Aprox(root.themeCd(), themeWhite(), 0.7)
+		stls.ButtonAlpha.DisableAuto()
+		//stls.ButtonAlpha.Disable.Content_color = OsCd{}
+		//stls.ButtonAlpha.Disable.Color = OsCd_Aprox(root.themeCd(), themeWhite(), 0.7)
+
 	}
 
 	{
@@ -583,7 +621,8 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.ButtonDanger.Hover.Content_color = themeWarning()
 		stls.ButtonDanger.Touch_hover.Content_color = themeWarning()
 		stls.ButtonDanger.Touch_out.Content_color = themeWarning()
-		stls.ButtonDanger.Disable.Content_color = OsCd_Aprox(stls.ButtonDanger.Main.Content_color, themeWhite(), 0.5)
+		stls.ButtonDanger.DisableAuto()
+		//stls.ButtonDanger.Disable.Content_color = OsCd_Aprox(stls.ButtonDanger.Main.Content_color, themeWhite(), 0.5)
 	}
 
 	{
@@ -609,7 +648,8 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.Text.Touch_out = *b
 		stls.Text.Disable = *b
 
-		stls.Text.Disable.Color = OsCd_Aprox(stls.Text.Main.Color, themeWhite(), 0.35)
+		//stls.Text.Disable.Color = OsCd_Aprox(stls.Text.Main.Color, themeWhite(), 0.35)
+		stls.Text.DisableAuto()
 	}
 
 	{
@@ -670,8 +710,8 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.Editbox.Hover.Content_color = cd
 		stls.Editbox.Touch_hover.Content_color = cd
 		stls.Editbox.Touch_out.Content_color = cd
-
-		stls.Editbox.Disable.Color = OsCd_Aprox(stls.Editbox.Main.Color, themeWhite(), 0.35)
+		stls.Editbox.DisableAuto()
+		//stls.Editbox.Disable.Color = OsCd_Aprox(stls.Editbox.Main.Color, themeWhite(), 0.35)
 	}
 
 	{
@@ -680,7 +720,8 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.EditboxErr.Hover.Content_color = themeWarning()
 		stls.EditboxErr.Touch_hover.Content_color = themeWarning()
 		stls.EditboxErr.Touch_out.Content_color = themeWarning()
-		stls.EditboxErr.Disable.Content_color = OsCd_Aprox(stls.ButtonDanger.Main.Content_color, themeWhite(), 0.5)
+		stls.EditboxErr.DisableAuto()
+		//stls.EditboxErr.Disable.Content_color = OsCd_Aprox(stls.ButtonDanger.Main.Content_color, themeWhite(), 0.5)
 	}
 
 	{
@@ -689,7 +730,8 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.EditboxYellow.Hover.Content_color = themeEdit()
 		stls.EditboxYellow.Touch_hover.Content_color = themeEdit()
 		stls.EditboxYellow.Touch_out.Content_color = themeEdit()
-		stls.EditboxYellow.Disable.Content_color = OsCd_Aprox(stls.EditboxYellow.Main.Content_color, themeEdit(), 0.5)
+		stls.EditboxYellow.DisableAuto()
+		//stls.EditboxYellow.Disable.Content_color = OsCd_Aprox(stls.EditboxYellow.Main.Content_color, themeEdit(), 0.5)
 	}
 
 	{
@@ -702,6 +744,9 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		//frame
 		stls.ProgressFrame.Border(0.03)
 		stls.ProgressFrame.BorderCd(root.themeCd())
+		stls.ProgressFrame.DisableAuto()
+		//stls.ProgressStatus.Disable.Color = OsCd_Aprox(stls.ProgressStatus.Main.Color, themeWhite(), 0.35)
+		//stls.ProgressStatus.Disable.Content_color = OsCd_Aprox(stls.ProgressStatus.Main.Content_color, themeWhite(), 0.5)
 
 		//status
 		stls.ProgressStatus.Margin(0.1)
@@ -712,14 +757,16 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.ProgressStatus.FontH(0.35)
 		stls.ProgressStatus.FontAlignH(2) //right
 		stls.ProgressStatus.FontAlignV(1)
+		stls.ProgressStatus.DisableAuto()
+		//stls.ProgressStatus.Disable.Content_color = OsCd_Aprox(stls.ProgressStatus.Main.Content_color, themeWhite(), 0.5)
 
-		//disable ...
 	}
 
 	{
 		stls.SliderTrack.MaxHeight(0.1)
 		stls.SliderTrack.MaxHeightAlign(1)
 		stls.SliderTrack.ContentCd(root.themeCd())
+		stls.SliderTrack.DisableAuto()
 
 		stls.SliderThumb.MaxWidth(0.4)
 		stls.SliderThumb.MaxHeight(0.4)
@@ -727,9 +774,24 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.SliderThumb.MaxHeightAlign(1)
 		stls.SliderThumb.Radius(1000) //circle
 		stls.SliderThumb.ContentCd(root.themeCd())
+		stls.SliderThumb.HoverAuto()
+		stls.SliderThumb.DisableAuto()
+	}
 
-		//hover ...
-		//disable ...
+	{
+		stls.CheckboxCheck.MaxWidth(0.5)
+		stls.CheckboxCheck.MaxHeight(0.5)
+		stls.CheckboxCheck.MaxWidthAlign(1)
+		stls.CheckboxCheck.MaxHeightAlign(1)
+		stls.CheckboxCheck.Border(0.03)
+		stls.CheckboxCheck.BorderCd(themeBlack())
+		stls.CheckboxCheck.Padding(0.03)
+		stls.CheckboxCheck.HoverAuto()
+		stls.CheckboxCheck.DisableAuto()
+
+		stls.CheckboxLabel = stls.Text
+		stls.CheckboxLabel.Cursor("hand")
+
 	}
 
 	return stls

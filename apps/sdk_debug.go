@@ -752,22 +752,13 @@ func _sa_swp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, options
 	return ret
 }
 
-func _sa_swp_drawCheckbox(cd_r, cd_g, cd_b, cd_a uint32,
-	value uint64, descriptionMem SAMem, titleMem SAMem,
-	height float64, align uint32, alignV uint32, enable uint32) int64 {
+func _sa_swp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem SAMem, titleMem SAMem, enable uint32) int64 {
 	WriteUint64(87)
-	WriteUint64(uint64(cd_r))
-	WriteUint64(uint64(cd_g))
-	WriteUint64(uint64(cd_b))
-	WriteUint64(uint64(cd_a))
-
+	WriteUint64(uint64(styleCheckId))
+	WriteUint64(uint64(styleLabelId))
 	WriteUint64(value)
-	WriteMem(descriptionMem)
+	WriteMem(labelMem)
 	WriteMem(titleMem)
-
-	WriteFloat64(height)
-	WriteUint64(uint64(align))
-	WriteUint64(uint64(alignV))
 	WriteUint64(uint64(enable))
 
 	ret := int64(ReadUint64())
