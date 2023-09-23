@@ -503,14 +503,14 @@ func (root *Root) Tick() (bool, error) {
 
 		// tile - redraw If mouse is over tile
 		if root.tile.IsActive(root.ui.io.touch.pos) {
-			err := root.ui.RenderTile(root.tile.text, root.tile.coord, root.tile.cd, root.fonts.Get(SKYALT_FONT_0))
+			err := root.ui.RenderTile(root.tile.text, root.tile.coord, root.tile.cd, root.fonts.Get(SKYALT_FONT_PATH))
 			if err != nil {
 				fmt.Printf("RenderTile() failed: %v\n", err)
 			}
 		}
 
 		if len(root.debug_line) > 0 {
-			err := root.ui.RenderTile(root.debug_line, OsV4{root.ui.io.touch.pos, OsV2{1, 1}}, themeBlack(), root.fonts.Get(SKYALT_FONT_0))
+			err := root.ui.RenderTile(root.debug_line, OsV4{root.ui.io.touch.pos, OsV2{1, 1}}, themeBlack(), root.fonts.Get(SKYALT_FONT_PATH))
 			if err != nil {
 				fmt.Printf("RenderTile() failed: %v\n", err)
 			}
@@ -518,7 +518,7 @@ func (root *Root) Tick() (bool, error) {
 
 		// show fps
 		if root.ui.io.ini.Stats {
-			root.ui.RenderInfoStats(&root.ui_info, &root.vm_info, root.fonts.Get(SKYALT_FONT_0))
+			root.ui.RenderInfoStats(&root.ui_info, &root.vm_info, root.fonts.Get(SKYALT_FONT_PATH))
 		}
 
 		root.vm_info.Update(int(OsTicks() - stVmTicks))

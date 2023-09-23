@@ -392,7 +392,7 @@ func PaintImage_load(path ResourcePath, inverserRGB bool, ui *Ui) (*Image, error
 func (b *PaintBuff) AddImage(path ResourcePath, inverserRGB bool, coord OsV4, cd OsCd, alignV int, alignH int, fill bool) {
 	img, err := PaintImage_load(path, inverserRGB, b.ui)
 	if err != nil {
-		b.AddText(path.GetString()+" has error", coord, path.root.fonts.Get(SKYALT_FONT_0), OsCd_error(), path.root.ui.io.GetDPI()/8, OsV2{1, 1}, nil)
+		b.AddText(path.GetString()+" has error", coord, path.root.fonts.Get(SKYALT_FONT_PATH), OsCd_error(), path.root.ui.io.GetDPI()/8, OsV2{1, 1}, nil)
 		return
 	}
 	if img == nil {
@@ -438,15 +438,17 @@ func (b *PaintBuff) AddImage(path ResourcePath, inverserRGB bool, coord OsV4, cd
 
 func (b *PaintBuff) AddText(text string, coord OsV4, font *Font, cd OsCd, h int, align OsV2, cds []OsCd) {
 
-	err := b.text_cache.Draw(text, h, font, cd, coord, align, b.ui.render)
+	//cached
+	/*err := b.text_cache.Draw(text, h, font, cd, coord, align, b.ui.render)
 	if err != nil {
 		fmt.Printf("Draw() failed: %v\n", err)
-	}
+	}*/
 
-	/*err = font.Print(text, h, coord, align, cd, cds, b.ui.render)
+	//no caching
+	err := font.Print(text, h, coord, align, cd, cds, true, b.ui.render)
 	if err != nil {
 		fmt.Printf("Print() failed: %v\n", err)
-	}*/
+	}
 }
 
 func (b *PaintBuff) AddTextBack(rangee OsV2, text string, coord OsV4, font *Font, cd OsCd, h int, align OsV2, underline bool, addSpaceY bool) error {

@@ -154,7 +154,7 @@ func (asset *Asset) DrawGrid() {
 
 		py = start.Y
 		for y, row := range st.stack.data.rows.outputs {
-			st.buff.AddText(fmt.Sprintf("[%d, %d]", x, y), OsV4{OsV2{px, py}, OsV2{int(col), int(row)}}, root.fonts.Get(SKYALT_FONT_0), cd, root.ui.io.GetDPI()/8, OsV2{1, 1}, nil)
+			st.buff.AddText(fmt.Sprintf("[%d, %d]", x, y), OsV4{OsV2{px, py}, OsV2{int(col), int(row)}}, root.fonts.Get(SKYALT_FONT_PATH), cd, root.ui.io.GetDPI()/8, OsV2{1, 1}, nil)
 			py += int(row)
 		}
 

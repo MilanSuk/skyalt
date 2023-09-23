@@ -531,11 +531,12 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		b.Color = themeBlack()
 		b.Image_alignV = 1
 		b.Image_alignH = 0
-		b.Font_path = SKYALT_FONT_0
+		b.Font_path = SKYALT_FONT_PATH
 		b.Font_alignV = 1
 		b.Font_alignH = 1
-		b.Font_height = 0.35
+		b.Font_height = SKYALT_FONT_HEIGHT
 		b.Margin(0.06)
+		b.Padding(0.1)
 
 		//copy .main to others
 		stls.Button.Hover = *b
@@ -636,10 +637,10 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		b.Color = themeBlack()
 		b.Image_alignV = 1
 		b.Image_alignH = 0
-		b.Font_path = SKYALT_FONT_0
+		b.Font_path = SKYALT_FONT_PATH
 		b.Font_alignV = 1
 		b.Font_alignH = 0
-		b.Font_height = 0.35
+		b.Font_height = SKYALT_FONT_HEIGHT
 		b.Padding(0.1)
 
 		//copy .main to others
@@ -691,10 +692,10 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		b.Color = themeBlack()
 		b.Image_alignV = 1
 		b.Image_alignH = 0
-		b.Font_path = SKYALT_FONT_0
+		b.Font_path = SKYALT_FONT_PATH
 		b.Font_alignV = 1
 		b.Font_alignH = 0
-		b.Font_height = 0.35
+		b.Font_height = SKYALT_FONT_HEIGHT
 		b.Margin(0.03)
 		b.Border(0.03)
 		b.Padding(0.1)
@@ -735,7 +736,6 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 	}
 
 	{
-
 		stls.Combo = stls.Editbox
 		stls.Combo.Cursor("hand")
 	}
@@ -753,7 +753,7 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.ProgressStatus.Padding(0.1)
 		stls.ProgressStatus.ContentCd(root.themeCd())
 		stls.ProgressStatus.Color(OsCd_black())
-		stls.ProgressStatus.FontPath(SKYALT_FONT_0)
+		stls.ProgressStatus.FontPath(SKYALT_FONT_PATH)
 		stls.ProgressStatus.FontH(0.35)
 		stls.ProgressStatus.FontAlignH(2) //right
 		stls.ProgressStatus.FontAlignV(1)

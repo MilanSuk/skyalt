@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"strings"
 
@@ -24,10 +25,38 @@ import (
 	"github.com/veandco/go-sdl2/ttf"
 )
 
-const SKYALT_FONT_0 = "resources/arial.ttf"
-const SKYALT_FONT_1 = "resources/consola.ttf"
-
+// const SKYALT_FONT_PATH = "resources/Inter/Inter-V.ttf"
+// const SKYALT_FONT_PATH = "resources/Inter/Inter-Medium.otf"
+const SKYALT_FONT_PATH = "resources/arial.ttf"
+const SKYALT_FONT_HEIGHT = 0.36
 const SKYALT_FONT_TAB_WIDTH = 4
+
+type FontFamilyName struct {
+	Weight int
+	Name   string
+}
+
+// add "Italic" for italics
+var g_FontFamilyNames = []FontFamilyName{
+	{100, "Thin"},
+	{200, "ExtraLight"},
+	{300, "Light"},
+	{400, "Regular"},
+	{500, "Medium"},
+	{600, "SemiBold"},
+	{700, "Bold"},
+	{800, "ExtraBold"},
+	{900, "Black"},
+}
+
+func GetFontFamilyNamesIndex(weight int) int {
+	weight = OsClamp(weight, 100, 900)
+	i := (weight / 100) - 1
+	if weight%100 >= 50 {
+		i++
+	}
+	return i
+}
 
 type FontLetter struct {
 	texture *sdl.Texture
@@ -36,7 +65,7 @@ type FontLetter struct {
 	len     int
 }
 
-func InitFontLetter(ch rune, font *ttf.Font, render *sdl.Renderer) (*FontLetter, error) {
+func NewFontLetter(ch rune, font *ttf.Font, style ttf.Style, render *sdl.Renderer) (*FontLetter, error) {
 	var self FontLetter
 
 	tab := (ch == '\t')
@@ -44,8 +73,11 @@ func InitFontLetter(ch rune, font *ttf.Font, render *sdl.Renderer) (*FontLetter,
 		ch = ' '
 	}
 
+	font.SetStyle(style)
+
 	// texture
 	if render != nil {
+
 		surface, err := font.RenderGlyphBlended(ch, sdl.Color{R: 255, G: 255, B: 255, A: 255})
 		if err != nil {
 			return nil, fmt.Errorf("RenderGlyphBlended() failed: %w", err)
@@ -74,24 +106,19 @@ func InitFontLetter(ch rune, font *ttf.Font, render *sdl.Renderer) (*FontLetter,
 	return &self, nil
 }
 
-func (font *FontLetter) Free() error {
-
+func (font *FontLetter) Destroy() {
 	if font.texture != nil {
 		err := font.texture.Destroy()
 		if err != nil {
-			//err := fmt.Errorf("TextureDestroy() failed: %w", err)
 			fmt.Printf("Error: TextureDestroy() failed: %s\n", err)
 		}
 	}
-
-	return nil
 }
 
 func (font *FontLetter) Size() (OsV2, error) {
 
 	if font.texture != nil {
 		_, _, x, y, err := font.texture.Query()
-
 		if err != nil {
 			return OsV2{}, fmt.Errorf("TextureQuery() failed: %w", err)
 		}
@@ -100,83 +127,190 @@ func (font *FontLetter) Size() (OsV2, error) {
 	return OsV2{}, nil
 }
 
-type FontHeight struct {
-	font    *ttf.Font
-	letters map[int]FontLetter
-}
-
-func NewFontHeight(path string, h int) (*FontHeight, error) {
-	var self FontHeight
-
-	var err error
-	self.font, err = ttf.OpenFont(path, int(h))
-	if err != nil {
-		return nil, fmt.Errorf("OpenFont() failed: %w", err)
-	}
-
-	self.letters = make(map[int]FontLetter)
-
-	return &self, nil
-}
-
-func (font *FontHeight) Destroy() error {
-
-	font.font.Close()
-
-	for _, it := range font.letters {
-		it.Free()
-	}
-	return nil
-}
-
 type Font struct {
-	path    string
-	heights map[int]*FontHeight
+	isFamily bool
+	path     string
+
+	files   map[int]*ttf.Font        //[height]
+	letters map[[16]byte]*FontLetter //[height + weight(bold) + (regular/italic) + ch]
 }
 
 func NewFont(path string) *Font {
-	var self Font
-	self.path = path
-	self.heights = make(map[int]*FontHeight)
-	return &self
+	var font Font
+
+	font.isFamily = OsFolderExists(path)
+	font.path = path
+
+	font.files = make(map[int]*ttf.Font)
+	font.letters = make(map[[16]byte]*FontLetter)
+
+	return &font
 }
+func (font *Font) Destroy() {
+	for _, it := range font.files {
+		it.Close()
+	}
 
-func (font *Font) Destroy() error {
-
-	for _, it := range font.heights {
+	for _, it := range font.letters {
 		it.Destroy()
 	}
-	return nil
 }
 
-func (font *Font) Get(ch rune, h int, render *sdl.Renderer) (FontLetter, error) {
+func (font *Font) GetStyle(weight int, italic bool) ttf.Style {
+	style := ttf.STYLE_NORMAL
+	if !font.isFamily {
+		if weight > 400 {
+			style = ttf.STYLE_BOLD
+		}
+		if italic {
+			style = ttf.STYLE_ITALIC
+		}
+	}
+	return style
+}
 
-	hh, ok := font.heights[h]
-	if !ok {
+func (font *Font) Get(ch rune, height int, weight int, italic bool, render *sdl.Renderer) (*FontLetter, error) {
+
+	var letterId [16]byte
+	binary.LittleEndian.PutUint32(letterId[0:4], uint32(ch))
+	binary.LittleEndian.PutUint32(letterId[4:8], uint32(height))
+	binary.LittleEndian.PutUint32(letterId[8:12], uint32(weight))
+	binary.LittleEndian.PutUint32(letterId[12:16], uint32(OsTrn(italic, 1, 0)))
+
+	//find letter
+	letter, found := font.letters[letterId]
+	if found {
+		if letter.len == 0 || (render != nil && letter.texture == nil) {
+			//reload again
+			var err error
+			letter, err = NewFontLetter(ch, font.files[height], font.GetStyle(weight, italic), render)
+			if err != nil {
+				return nil, fmt.Errorf("InitFontLetter() failed: %w", err)
+			}
+			font.letters[letterId] = letter
+		}
+
+		return letter, nil
+	}
+
+	//find font
+	file, found := font.files[height]
+	if !found {
+		//add font
+		path := font.path
+		if font.isFamily {
+			family_i := GetFontFamilyNamesIndex(weight)
+			path += "-" + g_FontFamilyNames[family_i].Name + ".otf" //bug: It's not "path/Inter", ale pouze "path/" ... + check finish "/" ......
+		}
+
 		var err error
-		hh, err = NewFontHeight(font.path, h)
+		file, err = ttf.OpenFont(path, height)
 		if err != nil {
-			return FontLetter{}, fmt.Errorf("NewFontHeight() failed: %w", err)
+			return nil, fmt.Errorf("OpenFont() failed: %w", err)
 		}
-		font.heights[h] = hh
+		font.files[height] = file
 	}
 
-	l, ok := hh.letters[int(ch)]
-	if !ok || l.len == 0 || (render != nil && l.texture == nil) {
-		ll, err := InitFontLetter(ch, hh.font, render)
-		if err != nil {
-			return FontLetter{}, fmt.Errorf("InitFontLetter() failed: %w", err)
-		}
-		hh.letters[int(ch)] = *ll
+	//add letter
+	var err error
+	letter, err = NewFontLetter(ch, file, font.GetStyle(weight, italic), render)
+	if err != nil {
+		return nil, fmt.Errorf("InitFontLetter() failed: %w", err)
+	}
+	font.letters[letterId] = letter
+
+	return letter, nil
+}
+
+func (font *Font) processLetter(text string, origW int, origH int, weight *int, italic *bool, height *int, skip *int) bool {
+
+	if *skip > 0 {
+		*skip -= 1
+		return false
 	}
 
-	return l, nil
+	//bold & italic
+	if strings.HasPrefix(text, "***") || strings.HasPrefix(text, "___") {
+		*weight = OsTrn(*weight != origW, origW, origW*3/2) //bold
+		*italic = !*italic
+		*skip = 2
+		return false
+	}
+
+	//bold
+	if strings.HasPrefix(text, "**") {
+		*weight = OsTrn(*weight != origW, origW, origW*3/2)
+		*skip = 1
+		return false
+	}
+
+	//italic
+	if strings.HasPrefix(text, "__") {
+		*italic = !*italic
+		*skip = 1
+		return false
+	}
+
+	//smaller
+	if strings.HasPrefix(text, "###") {
+		*height = OsTrn(*height != origH, origH, origH*2/3)
+		*skip = 2
+		return false
+	}
+
+	//taller
+	if strings.HasPrefix(text, "##") {
+		*height = OsTrn(*height != origH, origH, origH*3/2)
+		*skip = 1
+		return false
+	}
+
+	return true
+}
+
+func (font *Font) GetPxPos(text string, h int, ch_pos int) (int, error) {
+
+	px := 0
+
+	weight := 400 //...
+	italic := false
+	height := h
+	skip := 0
+
+	i := 0
+	for p, ch := range text {
+		if !font.processLetter(text[p:], 400, h, &weight, &italic, &height, &skip) {
+			continue
+		}
+
+		if i >= ch_pos {
+			break
+		}
+		l, err := font.Get(ch, height, weight, italic, nil)
+		if err != nil {
+			return 0, fmt.Errorf("GetPxPos.Get() failed: %w", err)
+		}
+		px += l.len
+		i++
+	}
+
+	return px, nil
 }
 
 func (font *Font) GetDownY(text string, h int, render *sdl.Renderer) (int, error) {
+
+	weight := 400 //...
+	italic := false
+	height := h
+	skip := 0
+
 	down_y := 0
-	for _, ch := range text {
-		l, err := font.Get(ch, h, render)
+	for p, ch := range text {
+		if !font.processLetter(text[p:], 400, h, &weight, &italic, &height, &skip) {
+			continue
+		}
+
+		l, err := font.Get(ch, height, weight, italic, render)
 		if err != nil {
 			return 0, fmt.Errorf("Start.Get() failed: %w", err)
 		}
@@ -192,9 +326,20 @@ func (font *Font) Start(text string, h int, coord OsV4, align OsV2, render *sdl.
 	word_space := 0
 	len := 0
 	down_y := 0
+	max_h := h
 
-	for _, ch := range text {
-		l, err := font.Get(ch, h, render)
+	weight := 400 //...
+	italic := false
+	height := h
+	skip := 0
+
+	for p, ch := range text {
+		if !font.processLetter(text[p:], 400, h, &weight, &italic, &height, &skip) {
+			continue
+		}
+		max_h = OsMax(max_h, height)
+
+		l, err := font.Get(ch, height, weight, italic, render)
 		if err != nil {
 			return OsV2{}, fmt.Errorf("Start.Get() failed: %w", err)
 		}
@@ -203,7 +348,10 @@ func (font *Font) Start(text string, h int, coord OsV4, align OsV2, render *sdl.
 		if -l.y > down_y {
 			down_y = -l.y
 		}
+
 	}
+
+	h = max_h + down_y
 
 	pos := coord.Start
 	if align.X == 0 {
@@ -237,6 +385,63 @@ func (font *Font) Start(text string, h int, coord OsV4, align OsV2, render *sdl.
 	return pos, nil
 }
 
+func (font *Font) GetChPos(text string, h int, px int) (int, error) {
+
+	px_act := 0
+
+	weight := 400 //...
+	italic := false
+	height := h
+	skip := 0
+
+	i := 0
+	for p, ch := range text {
+		if !font.processLetter(text[p:], 400, h, &weight, &italic, &height, &skip) {
+			continue
+		}
+
+		l, err := font.Get(ch, height, weight, italic, nil)
+		if err != nil {
+			return 0, fmt.Errorf("GetChPos.Get() failed: %w", err)
+		}
+		if px < (px_act + l.len/2) {
+			return i, nil
+		}
+
+		px_act += l.len
+		i++
+	}
+
+	return len(text), nil
+}
+
+func (font *Font) GetTextPos(touchPos OsV2, text string, coord OsV4, h int, align OsV2) (int, error) {
+
+	start, err := font.Start(text, h, coord, align, nil)
+	if err != nil {
+		return 0, fmt.Errorf("Start() failed: %w", err)
+	}
+	return font.GetChPos(text, h, touchPos.X-start.X)
+}
+
+func (font *Font) GetTextSize(text string, textH int, lineH int) (OsV2, error) {
+
+	nlines := 0
+	maxLineWidth := 0
+	for _, line := range strings.Split(strings.TrimSuffix(text, "\n"), "\n") {
+		maxLineWidth = OsMax(maxLineWidth, len(line))
+		nlines++
+	}
+
+	x, err := font.GetPxPos(text, textH, maxLineWidth) // + textH
+	if err != nil {
+		return OsV2{}, fmt.Errorf("GetPxPos() failed: %w", err)
+	}
+	y := nlines * lineH
+
+	return OsV2{x, y}, nil
+}
+
 func (font *Font) Print(text string, h int, coord OsV4, align OsV2, color OsCd, cds []OsCd, blendingOn bool, render *sdl.Renderer) error {
 
 	pos, err := font.Start(text, h, coord, align, render)
@@ -244,17 +449,29 @@ func (font *Font) Print(text string, h int, coord OsV4, align OsV2, color OsCd, 
 		return fmt.Errorf("Print.Start() failed: %w", err)
 	}
 	posStart := pos.X
+	max_h := h
+
+	weight := 400 //...
+	italic := false
+	height := h
+	skip := 0
 
 	i := 0
-	for _, ch := range text {
+	for p, ch := range text {
+		if !font.processLetter(text[p:], 400, h, &weight, &italic, &height, &skip) {
+			continue
+		}
+		max_h = OsMax(max_h, height)
+
 		if ch == '\n' {
 			pos.X = posStart
-			pos.Y += int(float32(h) * 1.7)
+			pos.Y += int(float32(max_h) * 1.7)
+			max_h = h
 			i++
 			continue
 		}
 
-		l, err := font.Get(ch, h, render)
+		l, err := font.Get(ch, height, weight, italic, render)
 		if err != nil {
 			return fmt.Errorf("Print.Get() failed: %w", err)
 		}
@@ -272,7 +489,9 @@ func (font *Font) Print(text string, h int, coord OsV4, align OsV2, color OsCd, 
 		}
 
 		if !blendingOn {
-			l.texture.SetBlendMode(sdl.BLENDMODE_NONE)
+			l.texture.SetBlendMode(sdl.BLENDMODE_NONE) //BUG: when textures(letters) are overlaping ... render whole string, not every letter? ...
+		} else {
+			l.texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 		}
 
 		err = l.texture.SetColorMod(cd.R, cd.G, cd.B)
@@ -297,102 +516,31 @@ func (font *Font) Print(text string, h int, coord OsV4, align OsV2, color OsCd, 
 	return nil
 }
 
-func (font *Font) GetPxPos(text string, h int, ch_pos int) (int, error) {
-
-	px := 0
-
-	i := 0
-	for _, ch := range text {
-		if i >= ch_pos {
-			break
-		}
-		l, err := font.Get(ch, h, nil)
-		if err != nil {
-			return 0, fmt.Errorf("GetPxPos.Get() failed: %w", err)
-		}
-		px += l.len
-		i++
-	}
-
-	return px, nil
-}
-
-func (font *Font) GetChPos(text string, h int, px int) (int, error) {
-
-	px_act := 0
-
-	i := 0
-	for _, ch := range text {
-		l, err := font.Get(ch, h, nil)
-		if err != nil {
-			return 0, fmt.Errorf("GetChPos.Get() failed: %w", err)
-		}
-		if px < (px_act + l.len/2) {
-			return i, nil
-		}
-
-		px_act += l.len
-		i++
-	}
-
-	return len(text), nil
-}
-
-func (font *Font) GetTextSize(text string, textH int, lineH int) (OsV2, error) {
-
-	nlines := 0
-	maxLineWidth := 0
-	for _, line := range strings.Split(strings.TrimSuffix(text, "\n"), "\n") {
-		maxLineWidth = OsMax(maxLineWidth, len(line))
-		nlines++
-	}
-
-	x, err := font.GetPxPos(text, textH, maxLineWidth) // + textH
-	if err != nil {
-		return OsV2{}, fmt.Errorf("GetTextSize.GetPxPos() failed: %w", err)
-	}
-	y := nlines * lineH
-
-	return OsV2{x, y}, nil
-}
-
-func (font *Font) GetTextPos(touchPos OsV2, text string, coord OsV4, h int, align OsV2) (int, error) {
-
-	start, err := font.Start(text, h, coord, align, nil)
-	if err != nil {
-		return 0, fmt.Errorf("GetTextPos.Start() failed: %w", err)
-	}
-	return font.GetChPos(text, h, touchPos.X-start.X)
-}
-
 type Fonts struct {
-	fonts []*Font
+	fonts map[string]*Font
 }
 
 func NewFonts() *Fonts {
 	var fonts Fonts
+	fonts.fonts = make(map[string]*Font)
 	return &fonts
 }
-
-func (fonts *Fonts) Destroy() error {
+func (fonts *Fonts) Destroy() {
 	for _, it := range fonts.fonts {
 		it.Destroy()
 	}
-	return nil
 }
 
 func (fonts *Fonts) Get(path string) *Font {
+
 	//find
-	for _, f := range fonts.fonts {
-		if f.path == path {
-			return f
-		}
+	font, found := fonts.fonts[path]
+	if found {
+		return font
 	}
 
 	//add
-	f := NewFont(path)
-	if f != nil {
-		fonts.fonts = append(fonts.fonts, f)
-	}
-	return f
+	font = NewFont(path)
+	fonts.fonts[path] = font
+	return font
 }

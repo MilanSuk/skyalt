@@ -23,10 +23,6 @@ import (
 	"strings"
 )
 
-//add: ...
-//- Switch
-//- Radio button
-
 func themeBack() OsCd {
 	return OsCd{220, 220, 220, 255}
 }
@@ -400,6 +396,7 @@ func (asset *Asset) swp_drawCombo(style *SwpStyle, styleMenu *SwpStyle, value ui
 	//back and arrow
 	stText := *style
 	stText.FontAlignH(2)
+	stText.FontH(0.3)
 	stText.Main.Padding_right = 0.2
 	stText.Hover.Padding_right = 0.2
 	stText.Touch_hover.Padding_right = 0.2

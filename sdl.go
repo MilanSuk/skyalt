@@ -767,7 +767,7 @@ func (ui *Ui) SetNoSleep() {
 		return
 	}
 
-	if OsTicks() < ui.last_input_tick+2000 { // can be use 2sec after last mouse/keyboard action
+	if OsTicks() < ui.last_input_tick+5000 { // can be use 5sec after last mouse/keyboard action
 		ui.redraw_num = 0 // redraw
 	}
 }
