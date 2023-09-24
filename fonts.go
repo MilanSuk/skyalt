@@ -470,11 +470,6 @@ func (font *Font) GetTextSize(text string, textH int, lineH int) (OsV2, error) {
 }
 
 func (font *Font) Print(text string, h int, coord OsV4, align OsV2, color OsCd, cds []OsCd, blendingOn bool, render *sdl.Renderer) error {
-
-	if text == "+" {
-		fmt.Println("d")
-	}
-
 	pos, err := font.Start(text, h, coord, align, render)
 	if err != nil {
 		return fmt.Errorf("Print.Start() failed: %w", err)
