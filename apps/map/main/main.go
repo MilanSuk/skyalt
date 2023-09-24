@@ -156,11 +156,11 @@ func Measure(cam Cam) {
 	}
 
 	//texts
-	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*0, 0).Show(0, 0, 2, 1)
-	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*1, 0).Show(1, 0, 2, 1)
-	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*2, 0).Show(2, 0, 2, 1)
-	SA_TextStyle("", &styles.TextCenterSmall).ValueFloat(meters*3, 0).Show(3, 0, 2, 1)
-	//SA_TextStyle(strconv.FormatFloat(meters*3, 'f', 0, 64)+" "+unitText, &styles.TextCenterSmall).Show(3, 0, 2, 1)
+	SA_TextCenter("###").ValueFloat(meters*0, 0).Show(0, 0, 2, 1)
+	SA_TextCenter("###").ValueFloat(meters*1, 0).Show(1, 0, 2, 1)
+	SA_TextCenter("###").ValueFloat(meters*2, 0).Show(2, 0, 2, 1)
+	//SA_TextCenter("###").ValueFloat(meters*3, 0).Show(3, 0, 2, 1)
+	SA_TextCenter("###"+strconv.FormatFloat(meters*3, 'f', 0, 64)+" "+unitText).Show(3, 0, 2, 1)
 
 	//stripes
 	SA_DivStart(1, 1, 1, 1)
@@ -176,7 +176,7 @@ func Measure(cam Cam) {
 	SA_DivEnd()
 
 	//unit
-	SA_TextStyle(unitText, &g_styleTextUnit).Show(4, 0, 1, 2)
+	//SA_Text("###"+unitText).Show(4, 1, 1, 1)
 
 }
 
@@ -433,14 +433,7 @@ func Render() uint32 {
 	return 0
 }
 
-var g_styleTextUnit _SA_Style
-
 func Styles() {
-	g_styleTextUnit = styles.TextSmall
-	g_styleTextUnit.FontAlignV(2)
-	g_styleTextUnit.Padding(0)
-	g_styleTextUnit.Main.Padding_left = 0.15
-	g_styleTextUnit.Id = 0
 }
 
 func Open(buff []byte) bool {

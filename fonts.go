@@ -26,7 +26,6 @@ import (
 )
 
 // const SKYALT_FONT_PATH = "resources/Inter/Inter-V.ttf"
-// const SKYALT_FONT_PATH = "resources/Inter/Inter-Medium.otf"
 const SKYALT_FONT_PATH = "resources/arial.ttf"
 const SKYALT_FONT_HEIGHT = 0.36
 const SKYALT_FONT_TAB_WIDTH = 4
@@ -65,8 +64,9 @@ type FontLetter struct {
 	len     int
 }
 
-func NewFontLetter(ch rune, font *ttf.Font, style ttf.Style, render *sdl.Renderer) (*FontLetter, error) {
+func NewFontLetter(ch rune, font *ttf.Font, style ttf.Style, render *sdl.Renderer) (*FontLetter, int, error) {
 	var self FontLetter
+	var bytes int
 
 	tab := (ch == '\t')
 	if tab {
@@ -74,26 +74,28 @@ func NewFontLetter(ch rune, font *ttf.Font, style ttf.Style, render *sdl.Rendere
 	}
 
 	font.SetStyle(style)
+	font.SetHinting(ttf.HINTING_LIGHT)
 
 	// texture
 	if render != nil {
-
 		surface, err := font.RenderGlyphBlended(ch, sdl.Color{R: 255, G: 255, B: 255, A: 255})
 		if err != nil {
-			return nil, fmt.Errorf("RenderGlyphBlended() failed: %w", err)
+			return nil, 0, fmt.Errorf("RenderGlyphBlended() failed: %w", err)
 		}
 		defer surface.Free()
 
+		bytes = int(surface.W * surface.H * 4)
+
 		self.texture, err = render.CreateTextureFromSurface(surface)
 		if err != nil {
-			return nil, fmt.Errorf("CreateTextureFromSurface() failed: %w", err)
+			return nil, 0, fmt.Errorf("CreateTextureFromSurface() failed: %w", err)
 		}
 	}
 
 	// coords
 	mt, err := font.GlyphMetrics(ch)
 	if err != nil {
-		return nil, fmt.Errorf("GlyphMetrics() failed: %w", err)
+		return nil, 0, fmt.Errorf("GlyphMetrics() failed: %w", err)
 	}
 	self.x = mt.MinX
 	self.y = mt.MinY // -FontLetter_size(self).y
@@ -103,7 +105,7 @@ func NewFontLetter(ch rune, font *ttf.Font, style ttf.Style, render *sdl.Rendere
 		self.len *= SKYALT_FONT_TAB_WIDTH
 	}
 
-	return &self, nil
+	return &self, bytes, nil
 }
 
 func (font *FontLetter) Destroy() {
@@ -133,6 +135,8 @@ type Font struct {
 
 	files   map[int]*ttf.Font        //[height]
 	letters map[[16]byte]*FontLetter //[height + weight(bold) + (regular/italic) + ch]
+
+	bytes int
 }
 
 func NewFont(path string) *Font {
@@ -169,31 +173,8 @@ func (font *Font) GetStyle(weight int, italic bool) ttf.Style {
 	return style
 }
 
-func (font *Font) Get(ch rune, height int, weight int, italic bool, render *sdl.Renderer) (*FontLetter, error) {
+func (font *Font) findFile(height int, weight int) (*ttf.Font, error) {
 
-	var letterId [16]byte
-	binary.LittleEndian.PutUint32(letterId[0:4], uint32(ch))
-	binary.LittleEndian.PutUint32(letterId[4:8], uint32(height))
-	binary.LittleEndian.PutUint32(letterId[8:12], uint32(weight))
-	binary.LittleEndian.PutUint32(letterId[12:16], uint32(OsTrn(italic, 1, 0)))
-
-	//find letter
-	letter, found := font.letters[letterId]
-	if found {
-		if letter.len == 0 || (render != nil && letter.texture == nil) {
-			//reload again
-			var err error
-			letter, err = NewFontLetter(ch, font.files[height], font.GetStyle(weight, italic), render)
-			if err != nil {
-				return nil, fmt.Errorf("InitFontLetter() failed: %w", err)
-			}
-			font.letters[letterId] = letter
-		}
-
-		return letter, nil
-	}
-
-	//find font
 	file, found := font.files[height]
 	if !found {
 		//add font
@@ -210,14 +191,58 @@ func (font *Font) Get(ch rune, height int, weight int, italic bool, render *sdl.
 		}
 		font.files[height] = file
 	}
+	return file, nil
+}
+
+func (font *Font) addLetter(letterId [16]byte, ch rune, height int, weight int, italic bool, render *sdl.Renderer) (*FontLetter, error) {
+
+	//find file
+	var err error
+	file, err := font.findFile(height, weight)
+	if err != nil {
+		return nil, fmt.Errorf("findFile() failed: %w", err)
+	}
+
+	//add
+	letter, bytes, err := NewFontLetter(ch, file, font.GetStyle(weight, italic), render)
+	if err != nil {
+		return nil, fmt.Errorf("NewFontLetter() failed: %w", err)
+	}
+	font.letters[letterId] = letter
+	font.bytes += bytes
+	return letter, nil
+}
+
+func (font *Font) Get(ch rune, height int, weight int, italic bool, render *sdl.Renderer) (*FontLetter, error) {
+
+	var letterId [16]byte
+	binary.LittleEndian.PutUint32(letterId[0:4], uint32(ch))
+	binary.LittleEndian.PutUint32(letterId[4:8], uint32(height))
+	binary.LittleEndian.PutUint32(letterId[8:12], uint32(weight))
+	binary.LittleEndian.PutUint32(letterId[12:16], uint32(OsTrn(italic, 1, 0)))
+
+	//find letter
+	letter, found := font.letters[letterId]
+	if found {
+		if letter.len == 0 || (render != nil && letter.texture == nil) {
+
+			//reload again(with texture)
+			var err error
+			letter, err = font.addLetter(letterId, ch, height, weight, italic, render)
+			if err != nil {
+				return nil, fmt.Errorf("addLetter() failed: %w", err)
+			}
+		}
+
+		return letter, nil
+	}
 
 	//add letter
 	var err error
-	letter, err = NewFontLetter(ch, file, font.GetStyle(weight, italic), render)
+	letter, err = font.addLetter(letterId, ch, height, weight, italic, render)
 	if err != nil {
-		return nil, fmt.Errorf("InitFontLetter() failed: %w", err)
+		return nil, fmt.Errorf("addLetter() failed: %w", err)
 	}
-	font.letters[letterId] = letter
 
 	return letter, nil
 }
@@ -253,14 +278,14 @@ func (font *Font) processLetter(text string, origW int, origH int, weight *int, 
 
 	//smaller
 	if strings.HasPrefix(text, "###") {
-		*height = OsTrn(*height != origH, origH, origH*2/3)
+		*height = OsTrn(*height != origH, origH, int(float64(origH)*0.9))
 		*skip = 2
 		return false
 	}
 
 	//taller
 	if strings.HasPrefix(text, "##") {
-		*height = OsTrn(*height != origH, origH, origH*3/2)
+		*height = OsTrn(*height != origH, origH, int(float64(origH)*1.2))
 		*skip = 1
 		return false
 	}
@@ -325,8 +350,8 @@ func (font *Font) Start(text string, h int, coord OsV4, align OsV2, render *sdl.
 
 	word_space := 0
 	len := 0
-	down_y := 0
-	max_h := h
+	//down_y := 0
+	max_tex_h := 0
 
 	weight := 400 //...
 	italic := false
@@ -337,7 +362,6 @@ func (font *Font) Start(text string, h int, coord OsV4, align OsV2, render *sdl.
 		if !font.processLetter(text[p:], 400, h, &weight, &italic, &height, &skip) {
 			continue
 		}
-		max_h = OsMax(max_h, height)
 
 		l, err := font.Get(ch, height, weight, italic, render)
 		if err != nil {
@@ -345,13 +369,16 @@ func (font *Font) Start(text string, h int, coord OsV4, align OsV2, render *sdl.
 		}
 		len += (l.len + word_space)
 
-		if -l.y > down_y {
-			down_y = -l.y
-		}
+		//if -l.y > down_y {
+		//	down_y = -l.y
+		//}
+
+		sz, _ := l.Size()
+		max_tex_h = OsMax(max_tex_h, sz.Y)
 
 	}
 
-	h = max_h + down_y
+	h = max_tex_h //+ down_y
 
 	pos := coord.Start
 	if align.X == 0 {
@@ -444,6 +471,10 @@ func (font *Font) GetTextSize(text string, textH int, lineH int) (OsV2, error) {
 
 func (font *Font) Print(text string, h int, coord OsV4, align OsV2, color OsCd, cds []OsCd, blendingOn bool, render *sdl.Renderer) error {
 
+	if text == "+" {
+		fmt.Println("d")
+	}
+
 	pos, err := font.Start(text, h, coord, align, render)
 	if err != nil {
 		return fmt.Errorf("Print.Start() failed: %w", err)
@@ -528,6 +559,23 @@ func NewFonts() *Fonts {
 func (fonts *Fonts) Destroy() {
 	for _, it := range fonts.fonts {
 		it.Destroy()
+	}
+}
+
+func (fonts *Fonts) Bytes() int {
+	bytes := 0
+	for _, it := range fonts.fonts {
+		bytes += it.bytes
+	}
+	return bytes
+}
+
+func (fonts *Fonts) Maintenance() {
+	for k, it := range fonts.fonts {
+		if it.bytes > 2*1024*1024 { //over 2MB
+			it.Destroy()
+			delete(fonts.fonts, k)
+		}
 	}
 }
 

@@ -803,33 +803,13 @@ func SA_TextError(value string) *_SA_Text {
 	return SA_TextStyle(value, &styles.TextErr)
 }
 
-func SA_TextSmall(value string) *_SA_Text {
-	return SA_TextStyle(value, &styles.TextSmall)
-}
-func SA_TextCenterSmall(value string) *_SA_Text {
-	return SA_TextStyle(value, &styles.TextCenterSmall)
-}
-func SA_TextRightSmall(value string) *_SA_Text {
-	return SA_TextStyle(value, &styles.TextRightSmall)
-}
-
-func SA_TextBig(value string) *_SA_Text {
-	return SA_TextStyle(value, &styles.TextBig)
-}
-func SA_TextCenterBig(value string) *_SA_Text {
-	return SA_TextStyle(value, &styles.TextCenterBig)
-}
-func SA_TextRightBig(value string) *_SA_Text {
-	return SA_TextStyle(value, &styles.TextRightBig)
-}
-
 func (b *_SA_Text) ValueInt(v int) *_SA_Text {
-	b.value = strconv.Itoa(v)
+	b.value = b.value + strconv.Itoa(v)
 	return b
 }
 
 func (b *_SA_Text) ValueFloat(v float64, precision int) *_SA_Text {
-	b.value = strconv.FormatFloat(v, 'f', precision, 64)
+	b.value = b.value + strconv.FormatFloat(v, 'f', precision, 64)
 	return b
 }
 
@@ -1768,11 +1748,6 @@ type SA_Styles struct {
 	ButtonMenu         _SA_Style
 	ButtonMenuSelected _SA_Style
 
-	ButtonBig      _SA_Style
-	ButtonLightBig _SA_Style
-	ButtonAlphaBig _SA_Style
-	ButtonMenuBig  _SA_Style
-
 	ButtonBorder _SA_Style
 	ButtonLogo   _SA_Style
 
@@ -1785,13 +1760,6 @@ type SA_Styles struct {
 	TextCenter _SA_Style
 	TextRight  _SA_Style
 	TextErr    _SA_Style
-
-	TextSmall       _SA_Style
-	TextCenterSmall _SA_Style
-	TextRightSmall  _SA_Style
-	TextBig         _SA_Style
-	TextCenterBig   _SA_Style
-	TextRightBig    _SA_Style
 
 	Editbox       _SA_Style
 	EditboxErr    _SA_Style

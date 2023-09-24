@@ -480,11 +480,6 @@ type DivDefaultStyles struct {
 	ButtonMenu         SwpStyle
 	ButtonMenuSelected SwpStyle
 
-	ButtonBig      SwpStyle
-	ButtonLightBig SwpStyle
-	ButtonAlphaBig SwpStyle
-	ButtonMenuBig  SwpStyle
-
 	ButtonBorder SwpStyle
 
 	ButtonLogo SwpStyle
@@ -496,13 +491,6 @@ type DivDefaultStyles struct {
 	TextCenter SwpStyle
 	TextRight  SwpStyle
 	TextErr    SwpStyle
-
-	TextSmall       SwpStyle
-	TextCenterSmall SwpStyle
-	TextRightSmall  SwpStyle
-	TextBig         SwpStyle
-	TextCenterBig   SwpStyle
-	TextRightBig    SwpStyle
 
 	Editbox       SwpStyle
 	EditboxErr    SwpStyle
@@ -588,17 +576,6 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 	}
 
 	{
-		stls.ButtonBig = stls.Button
-		stls.ButtonLightBig = stls.ButtonLight
-		stls.ButtonAlphaBig = stls.ButtonAlpha
-		stls.ButtonMenuBig = stls.ButtonMenu
-		stls.ButtonBig.FontH(0.45)
-		stls.ButtonLightBig.FontH(0.4)
-		stls.ButtonAlphaBig.FontH(0.4)
-		stls.ButtonMenuBig.FontH(0.4)
-	}
-
-	{
 		stls.ButtonBorder = stls.ButtonAlpha
 		//stls.ButtonBorder.Margin(0.1)
 		stls.ButtonBorder.Border(0.03)
@@ -641,7 +618,7 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		b.Font_alignV = 1
 		b.Font_alignH = 0
 		b.Font_height = SKYALT_FONT_HEIGHT
-		b.Padding(0.1)
+		b.Padding(0.16)
 
 		//copy .main to others
 		stls.Text.Hover = *b
@@ -666,24 +643,6 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 	{
 		stls.TextErr = stls.Text
 		stls.TextErr.Color(themeWarning())
-	}
-
-	{
-		stls.TextSmall = stls.Text
-		stls.TextCenterSmall = stls.TextCenter
-		stls.TextRightSmall = stls.TextRight
-
-		stls.TextBig = stls.Text
-		stls.TextCenterBig = stls.TextCenter
-		stls.TextRightBig = stls.TextRight
-
-		stls.TextSmall.FontH(0.3)
-		stls.TextCenterSmall.FontH(0.3)
-		stls.TextRightSmall.FontH(0.3)
-
-		stls.TextBig.FontH(0.45)
-		stls.TextCenterBig.FontH(0.45)
-		stls.TextRightBig.FontH(0.45)
 	}
 
 	{

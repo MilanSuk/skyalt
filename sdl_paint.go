@@ -96,13 +96,13 @@ func NewPaintBuffText(text string, height int, font *Font, render *sdl.Renderer)
 	if err != nil {
 		return nil, fmt.Errorf("GetTextSize() failed: %w", err)
 	}
-	{
+	/*{
 		down_y, err := font.GetDownY(text, height, render)
 		if err != nil {
 			return nil, fmt.Errorf("GetTextSize() failed: %w", err)
 		}
 		sz.Y += down_y
-	}
+	}*/
 
 	bt.texture, err = NewPaintBuffTexture(sz, render)
 	if err != nil {

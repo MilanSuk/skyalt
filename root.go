@@ -466,6 +466,8 @@ func (root *Root) Tick() (bool, error) {
 
 		root.updateDbsList()
 		root.updateAppsList()
+
+		root.fonts.Maintenance()
 	}
 
 	run, err := root.ui.UpdateIO()
