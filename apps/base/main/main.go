@@ -572,7 +572,7 @@ func Files() {
 			}
 
 			//context
-			if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "context.png"), 0.2).Show(3, 0, 1, 1).click {
+			if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "context.png"), 0.13).Show(3, 0, 1, 1).click {
 				SA_DialogOpen("fileContext_"+file.Name, 1)
 			}
 
@@ -717,7 +717,7 @@ func Files() {
 					SA_DivEnd()
 
 					//context
-					if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "context.png"), 0.2).Show(2, 0, 1, 1).click {
+					if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "context.png"), 0.13).Show(2, 0, 1, 1).click {
 						SA_DialogOpen("appContext_"+file.Name+"_"+strconv.Itoa(app.Sts_id), 1)
 					}
 

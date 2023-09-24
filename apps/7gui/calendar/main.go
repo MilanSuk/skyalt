@@ -287,7 +287,7 @@ func CalendarButton(dialogNameMem SAMem, value int64, page int64, enable uint32)
 
 	SA_ColMax(0, 100)
 	SA_RowMax(0, 100)
-	if SA_ButtonStyle(Format(value), &g_ButtonBorderDate).Enable(enable != 0).Icon(SA_ResourceBuildAssetPath("", "type_date.png"), 0.1).Show(0, 0, 1, 1).click {
+	if SA_ButtonStyle(Format(value), &g_ButtonBorderDate).Enable(enable != 0).Icon(SA_ResourceBuildAssetPath("", "type_date.png"), 0.13).Show(0, 0, 1, 1).click {
 		SA_DialogOpen(dialogName, 1)
 		page = value
 	}
