@@ -174,29 +174,29 @@ func _sa_fn_setReturn(argsMem SAMem) int64
 //export _sa_fn_getReturn
 func _sa_fn_getReturn(argsMem SAMem) int64
 
-//export _sa_swp_drawButton
-func _sa_swp_drawButton(style uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, titleMem SAMem, enable uint32, outMem SAMem) int64
+//export _sa_comp_drawButton
+func _sa_comp_drawButton(style uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, titleMem SAMem, enable uint32, outMem SAMem) int64
 
-//export _sa_swp_drawSlider
-func _sa_swp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, min float64, max float64, jump float64, titleMem SAMem, enable uint32, outMem SAMem) float64
+//export _sa_comp_drawSlider
+func _sa_comp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, min float64, max float64, jump float64, titleMem SAMem, enable uint32, outMem SAMem) float64
 
-//export _sa_swp_drawProgress
-func _sa_swp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, titleMem SAMem, enable uint32) int64
+//export _sa_comp_drawProgress
+func _sa_comp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, titleMem SAMem, enable uint32) int64
 
-//export _sa_swp_drawText
-func _sa_swp_drawText(style uint32, valueMem SAMem, titleMem SAMem, enable uint32, selection uint32) int64
+//export _sa_comp_drawText
+func _sa_comp_drawText(style uint32, valueMem SAMem, titleMem SAMem, enable uint32, selection uint32) int64
 
-//export _sa_swp_getEditValue
-func _sa_swp_getEditValue(outMem SAMem) int64
+//export _sa_comp_getEditValue
+func _sa_comp_getEditValue(outMem SAMem) int64
 
-//export _sa_swp_drawEdit
-func _sa_swp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64
+//export _sa_comp_drawEdit
+func _sa_comp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64
 
-//export _sa_swp_drawCombo
-func _sa_swp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem SAMem, titleMem SAMem, enable uint32) int64
+//export _sa_comp_drawCombo
+func _sa_comp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem SAMem, titleMem SAMem, enable uint32) int64
 
-//export _sa_swp_drawCheckbox
-func _sa_swp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem SAMem, titleMem SAMem, enable uint32) int64
+//export _sa_comp_drawCheckbox
+func _sa_comp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem SAMem, titleMem SAMem, enable uint32) int64
 
 //export _sa_register_style
 func _sa_register_style(jsMem SAMem) int64

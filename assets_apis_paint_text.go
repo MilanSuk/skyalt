@@ -22,7 +22,7 @@ import (
 	"unicode/utf8"
 )
 
-func (asset *Asset) paint_textGrid(style *SwpStyle,
+func (asset *Asset) paint_textGrid(style *CompStyle,
 	value string, valueOrigEdit string,
 	selection, edit, enable bool) int64 {
 
@@ -54,7 +54,7 @@ func (asset *Asset) paint_textGrid(style *SwpStyle,
 }
 
 func (asset *Asset) paint_text(x, y, w, h float64,
-	style *SwpStyle,
+	style *CompStyle,
 	value string, valueOrigEdit string,
 	selection, edit, enable bool) int64 {
 

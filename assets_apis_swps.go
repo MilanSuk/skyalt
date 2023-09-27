@@ -58,7 +58,7 @@ func (root *Root) themeCd() OsCd {
 	return cd
 }
 
-func (asset *Asset) swp_drawButton(style *SwpStyle, value string, icon string, icon_margin float64, url string, title string, enable bool) (bool, bool, int64) {
+func (asset *Asset) comp_drawButton(style *CompStyle, value string, icon string, icon_margin float64, url string, title string, enable bool) (bool, bool, int64) {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
@@ -83,7 +83,7 @@ func (asset *Asset) swp_drawButton(style *SwpStyle, value string, icon string, i
 	return click, rclick, 1
 }
 
-func (asset *Asset) _sa_swp_drawButton(styleId uint32, valueMem uint64, iconMem uint64, icon_margin float64, urlMem uint64, titleMem uint64, enable uint32, outMem uint64) int64 {
+func (asset *Asset) _sa_comp_drawButton(styleId uint32, valueMem uint64, iconMem uint64, icon_margin float64, urlMem uint64, titleMem uint64, enable uint32, outMem uint64) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
@@ -104,7 +104,7 @@ func (asset *Asset) _sa_swp_drawButton(styleId uint32, valueMem uint64, iconMem 
 
 	style := asset.styles.Get(styleId)
 
-	click, rclick, ret := asset.swp_drawButton(style, value, icon, icon_margin, url, title, enable > 0)
+	click, rclick, ret := asset.comp_drawButton(style, value, icon, icon_margin, url, title, enable > 0)
 
 	out, err := asset.ptrToBytesDirect(outMem)
 	if asset.AddLogErr(err) {
@@ -115,7 +115,7 @@ func (asset *Asset) _sa_swp_drawButton(styleId uint32, valueMem uint64, iconMem 
 	return ret
 }
 
-func (asset *Asset) swp_drawText(style *SwpStyle, value string, title string, enable bool, selection bool) int64 {
+func (asset *Asset) comp_drawText(style *CompStyle, value string, title string, enable bool, selection bool) int64 {
 
 	root := asset.app.root
 	if style == nil {
@@ -130,7 +130,7 @@ func (asset *Asset) swp_drawText(style *SwpStyle, value string, title string, en
 	return 1
 }
 
-func (asset *Asset) _sa_swp_drawText(styleId uint32, valueMem uint64, titleMem uint64, enable uint32, selection uint32) int64 {
+func (asset *Asset) _sa_comp_drawText(styleId uint32, valueMem uint64, titleMem uint64, enable uint32, selection uint32) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
@@ -144,22 +144,22 @@ func (asset *Asset) _sa_swp_drawText(styleId uint32, valueMem uint64, titleMem u
 
 	style := asset.styles.Get(styleId)
 
-	return asset.swp_drawText(style, value, title, enable > 0, selection > 0)
+	return asset.comp_drawText(style, value, title, enable > 0, selection > 0)
 }
 
-func (asset *Asset) swp_getEditValue() string {
+func (asset *Asset) comp_getEditValue() string {
 	return asset.app.root.ui.io.edit.last_edit
 }
 
-func (asset *Asset) _sa_swp_getEditValue(outMem uint64) int64 {
-	err := asset.stringToPtr(asset.swp_getEditValue(), outMem)
+func (asset *Asset) _sa_comp_getEditValue(outMem uint64) int64 {
+	err := asset.stringToPtr(asset.comp_getEditValue(), outMem)
 	if !asset.AddLogErr(err) {
 		return -1
 	}
 	return 1
 }
 
-func (asset *Asset) swp_drawEdit(style *SwpStyle, valueIn string, valueInOrig string, title string, ghost string, enable bool) (string, bool, bool, bool) {
+func (asset *Asset) comp_drawEdit(style *CompStyle, valueIn string, valueInOrig string, title string, ghost string, enable bool) (string, bool, bool, bool) {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
@@ -204,7 +204,7 @@ func (asset *Asset) swp_drawEdit(style *SwpStyle, valueIn string, valueInOrig st
 	return edit.last_edit, active, (active && value != edit.last_edit), (active && this_uid != edit.uid)
 }
 
-func (asset *Asset) _sa_swp_drawEdit(styleId uint32, valueMem uint64, valueInOrig uint64, titleMem uint64, ghostMem uint64, enable uint32, outMem uint64) int64 {
+func (asset *Asset) _sa_comp_drawEdit(styleId uint32, valueMem uint64, valueInOrig uint64, titleMem uint64, ghostMem uint64, enable uint32, outMem uint64) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
@@ -226,7 +226,7 @@ func (asset *Asset) _sa_swp_drawEdit(styleId uint32, valueMem uint64, valueInOri
 	}
 
 	style := asset.styles.Get(styleId)
-	last_edit, active, changed, finished := asset.swp_drawEdit(style, value, valueOrig, title, ghost, enable > 0)
+	last_edit, active, changed, finished := asset.comp_drawEdit(style, value, valueOrig, title, ghost, enable > 0)
 
 	out, err := asset.ptrToBytesDirect(outMem)
 	if asset.AddLogErr(err) {
@@ -239,7 +239,7 @@ func (asset *Asset) _sa_swp_drawEdit(styleId uint32, valueMem uint64, valueInOri
 	return 1
 }
 
-func (asset *Asset) swp_drawProgress(styleFrame *SwpStyle, styleStatus *SwpStyle, value float64, prec int, title string, enable bool) int64 {
+func (asset *Asset) comp_drawProgress(styleFrame *CompStyle, styleStatus *CompStyle, value float64, prec int, title string, enable bool) int64 {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
@@ -263,7 +263,7 @@ func (asset *Asset) swp_drawProgress(styleFrame *SwpStyle, styleStatus *SwpStyle
 	return 1
 }
 
-func (asset *Asset) _sa_swp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, titleMem uint64, enable uint32) int64 {
+func (asset *Asset) _sa_comp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, titleMem uint64, enable uint32) int64 {
 
 	title, err := asset.ptrToString(titleMem)
 	if asset.AddLogErr(err) {
@@ -273,10 +273,10 @@ func (asset *Asset) _sa_swp_drawProgress(styleFrameId uint32, styleStatusId uint
 	styleFrame := asset.styles.Get(styleFrameId)
 	styleStatus := asset.styles.Get(styleStatusId)
 
-	return asset.swp_drawProgress(styleFrame, styleStatus, value, int(prec), title, enable > 0)
+	return asset.comp_drawProgress(styleFrame, styleStatus, value, int(prec), title, enable > 0)
 }
 
-func (asset *Asset) swp_drawSlider(styleTrack *SwpStyle, styleThumb *SwpStyle, value float64, minValue float64, maxValue float64, jumpValue float64, title string, enable bool) (float64, bool, bool, bool) {
+func (asset *Asset) comp_drawSlider(styleTrack *CompStyle, styleThumb *CompStyle, value float64, minValue float64, maxValue float64, jumpValue float64, title string, enable bool) (float64, bool, bool, bool) {
 	root := asset.app.root
 	st := root.levels.GetStack()
 
@@ -348,7 +348,7 @@ func (asset *Asset) swp_drawSlider(styleTrack *SwpStyle, styleThumb *SwpStyle, v
 	return value, active, (active && old_value != value), end
 }
 
-func (asset *Asset) _sa_swp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, minValue float64, maxValue float64, jumpValue float64, titleMem uint64, enable uint32, outMem uint64) float64 {
+func (asset *Asset) _sa_comp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, minValue float64, maxValue float64, jumpValue float64, titleMem uint64, enable uint32, outMem uint64) float64 {
 
 	title, err := asset.ptrToString(titleMem)
 	if asset.AddLogErr(err) {
@@ -357,7 +357,7 @@ func (asset *Asset) _sa_swp_drawSlider(styleTrackId uint32, styleThumbId uint32,
 
 	styleTrack := asset.styles.Get(styleTrackId)
 	styleThumb := asset.styles.Get(styleThumbId)
-	value, active, changed, finished := asset.swp_drawSlider(styleTrack, styleThumb, value, minValue, maxValue, jumpValue, title, enable > 0)
+	value, active, changed, finished := asset.comp_drawSlider(styleTrack, styleThumb, value, minValue, maxValue, jumpValue, title, enable > 0)
 
 	out, err := asset.ptrToBytesDirect(outMem)
 	if asset.AddLogErr(err) {
@@ -370,7 +370,7 @@ func (asset *Asset) _sa_swp_drawSlider(styleTrackId uint32, styleThumbId uint32,
 	return value
 }
 
-func (asset *Asset) swp_drawCombo(style *SwpStyle, styleMenu *SwpStyle, value uint64, optionsIn string, title string, enable bool) int64 {
+func (asset *Asset) comp_drawCombo(style *CompStyle, styleMenu *CompStyle, value uint64, optionsIn string, title string, enable bool) int64 {
 
 	root := asset.app.root
 	div := root.levels.GetStack().stack
@@ -436,7 +436,7 @@ func (asset *Asset) swp_drawCombo(style *SwpStyle, styleMenu *SwpStyle, value ui
 				menuSt.Main.Content_color = styleMenu.Main.Content_color //default
 			}
 
-			click, _, ret := asset.swp_drawButton(&menuSt, opt, "", 0, "", "", true)
+			click, _, ret := asset.comp_drawButton(&menuSt, opt, "", 0, "", "", true)
 			if ret > 0 && click {
 				value = uint64(i)
 				asset._sa_div_dialogClose()
@@ -456,7 +456,7 @@ func (asset *Asset) swp_drawCombo(style *SwpStyle, styleMenu *SwpStyle, value ui
 	return int64(value)
 }
 
-func (asset *Asset) _sa_swp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem uint64, titleMem uint64, enable uint32) int64 {
+func (asset *Asset) _sa_comp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem uint64, titleMem uint64, enable uint32) int64 {
 
 	options, err := asset.ptrToString(optionsMem)
 	if asset.AddLogErr(err) {
@@ -470,10 +470,10 @@ func (asset *Asset) _sa_swp_drawCombo(styleId uint32, styleMenuId uint32, value 
 	style := asset.styles.Get(styleId)
 	styleMenu := asset.styles.Get(styleMenuId)
 
-	return asset.swp_drawCombo(style, styleMenu, value, options, title, enable > 0)
+	return asset.comp_drawCombo(style, styleMenu, value, options, title, enable > 0)
 }
 
-func (asset *Asset) swp_drawCheckbox(styleCheck *SwpStyle, styleLabel *SwpStyle, value uint64, label string, title string, enable bool) int64 {
+func (asset *Asset) comp_drawCheckbox(styleCheck *CompStyle, styleLabel *CompStyle, value uint64, label string, title string, enable bool) int64 {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
@@ -531,7 +531,7 @@ func (asset *Asset) swp_drawCheckbox(styleCheck *SwpStyle, styleLabel *SwpStyle,
 	return int64(value)
 }
 
-func (asset *Asset) _sa_swp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem uint64, titleMem uint64, enable uint32) int64 {
+func (asset *Asset) _sa_comp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem uint64, titleMem uint64, enable uint32) int64 {
 
 	label, err := asset.ptrToString(labelMem)
 	if asset.AddLogErr(err) {
@@ -546,7 +546,7 @@ func (asset *Asset) _sa_swp_drawCheckbox(styleCheckId uint32, styleLabelId uint3
 	styleCheck := asset.styles.Get(styleCheckId)
 	styleLabel := asset.styles.Get(styleLabelId)
 
-	return asset.swp_drawCheckbox(styleCheck, styleLabel, value, label, title, enable > 0)
+	return asset.comp_drawCheckbox(styleCheck, styleLabel, value, label, title, enable > 0)
 }
 
 func (asset *Asset) paint_textWidth(value string, fontPath string, ratioH float64, cursorPos int64) float64 {

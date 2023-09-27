@@ -522,7 +522,7 @@ func SA_PrintFloat(val float64) {
 	_sa_print_float(val)
 }
 
-/* -------------------- SWPs(Skyalt Widgets Proposals) -------------------- */
+/* -------------------- Components -------------------- */
 
 type _SA_Button struct {
 	style *_SA_Style
@@ -651,7 +651,7 @@ func (b *_SA_Button) Show(x, y, w, h int) _SA_ButtonOut {
 		if err == nil {
 
 			var out [2 * 8]byte
-			_sa_swp_drawButton(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.icon), b.icon_margin, _SA_stringToPtr(b.url), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
+			_sa_comp_drawButton(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.icon), b.icon_margin, _SA_stringToPtr(b.url), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
 
 			ret.click = binary.LittleEndian.Uint64(out[0:]) != 0
 			ret.rclick = binary.LittleEndian.Uint64(out[8:]) != 0
@@ -697,7 +697,7 @@ func (b *_SA_Progress) Enable(v bool) *_SA_Progress {
 func (b *_SA_Progress) Show(x, y, w, h int) {
 
 	if SA_DivStart(x, y, w, h) {
-		_sa_swp_drawProgress(b.styleFrame.Id, b.styleStatus.Id, b.value, int32(b.prec), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable))
+		_sa_comp_drawProgress(b.styleFrame.Id, b.styleStatus.Id, b.value, int32(b.prec), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable))
 	}
 
 	defer SA_DivEnd()
@@ -758,7 +758,7 @@ func (b *_SA_Slider) Show(x, y, w, h int) _SA_SliderOut {
 
 		var out [3 * 8]byte
 
-		*b.value = _sa_swp_drawSlider(b.styleTrack.Id, b.styleThumb.Id, *b.value, b.min, b.max, b.jump, _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
+		*b.value = _sa_comp_drawSlider(b.styleTrack.Id, b.styleThumb.Id, *b.value, b.min, b.max, b.jump, _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
 
 		ret.active = binary.LittleEndian.Uint64(out[0:]) != 0
 		ret.changed = binary.LittleEndian.Uint64(out[8:]) != 0
@@ -850,7 +850,7 @@ func (b *_SA_Text) Show(x, y, w, h int) {
 
 		err := b.style.Register()
 		if err == nil {
-			_sa_swp_drawText(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_boolToUint32(b.selection))
+			_sa_comp_drawText(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_boolToUint32(b.selection))
 		}
 	}
 	SA_DivEnd()
@@ -1002,7 +1002,7 @@ func (b *_SA_Editbox) Show(x, y, w, h int) _SA_EditboxOut {
 
 		err := b.style.Register()
 		if err == nil {
-			_sa_swp_drawEdit(b.style.Id, _SA_stringToPtr(value), _SA_stringToPtr(valueOrig), _SA_stringToPtr(title), _SA_stringToPtr(b.ghost), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
+			_sa_comp_drawEdit(b.style.Id, _SA_stringToPtr(value), _SA_stringToPtr(valueOrig), _SA_stringToPtr(title), _SA_stringToPtr(b.ghost), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
 		}
 
 		ret.active = binary.LittleEndian.Uint64(out[0:]) != 0
@@ -1012,7 +1012,7 @@ func (b *_SA_Editbox) Show(x, y, w, h int) _SA_EditboxOut {
 
 		if ret.finished || (b.tempToValue && ret.changed) {
 			val := make([]byte, ret.size)
-			_sa_swp_getEditValue(_SA_bytesToPtr(val))
+			_sa_comp_getEditValue(_SA_bytesToPtr(val))
 
 			switch v := b.value.(type) {
 			case *float64:
@@ -1130,7 +1130,7 @@ func (b *_SA_Combo) Show(x, y, w, h int) bool {
 		err1 := b.style.Register()
 		err2 := b.styleMenu.Register()
 		if err1 == nil && err2 == nil {
-			v = _sa_swp_drawCombo(b.style.Id, b.styleMenu.Id, uint64(*b.value), _SA_stringToPtr(b.options), _SA_stringToPtr(title), _SA_boolToUint32(b.enable))
+			v = _sa_comp_drawCombo(b.style.Id, b.styleMenu.Id, uint64(*b.value), _SA_stringToPtr(b.options), _SA_stringToPtr(title), _SA_boolToUint32(b.enable))
 		}
 
 		changed = *b.value != int(v)
@@ -1176,7 +1176,7 @@ func (b *_SA_Checkbox) Show(x, y, w, h int) bool {
 			val = 1
 		}
 
-		v := _sa_swp_drawCheckbox(b.styleCheck.Id, b.styleLabel.Id, val, _SA_stringToPtr(b.label), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable))
+		v := _sa_comp_drawCheckbox(b.styleCheck.Id, b.styleLabel.Id, val, _SA_stringToPtr(b.label), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable))
 
 		changed = (val != uint64(v))
 		if changed {

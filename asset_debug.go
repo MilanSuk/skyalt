@@ -519,7 +519,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			enable := ad.ReadUint64() > 0
 
 			style := asset.styles.Get(styleId)
-			click, rclick, ret := asset.swp_drawButton(style, value, icon, icon_margin, url, title, enable)
+			click, rclick, ret := asset.comp_drawButton(style, value, icon, icon_margin, url, title, enable)
 
 			var dst [2 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(click, 1, 0)))
@@ -540,7 +540,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 
 			styleTrack := asset.styles.Get(styleTrackId)
 			styleThumb := asset.styles.Get(styleThumbId)
-			value, active, changed, finished := asset.swp_drawSlider(styleTrack, styleThumb, value, min, max, jump, title, enable)
+			value, active, changed, finished := asset.comp_drawSlider(styleTrack, styleThumb, value, min, max, jump, title, enable)
 
 			var dst [3 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(active, 1, 0)))    //active
@@ -560,7 +560,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 
 			styleFrame := asset.styles.Get(styleFrameId)
 			styleStatus := asset.styles.Get(styleStatusId)
-			ret := asset.swp_drawProgress(styleFrame, styleStatus, value, int(prec), title, enable)
+			ret := asset.comp_drawProgress(styleFrame, styleStatus, value, int(prec), title, enable)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -572,12 +572,12 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			selection := uint32(ad.ReadUint64()) > 0
 
 			style := asset.styles.Get(styleId)
-			ret := asset.swp_drawText(style, value, title, enable, selection)
+			ret := asset.comp_drawText(style, value, title, enable, selection)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 84:
-			edit := asset.swp_getEditValue()
+			edit := asset.comp_getEditValue()
 			ad.WriteBytes([]byte(edit))
 			ad.WriteUint64(1)
 			ad._checkRead(fnTp)
@@ -591,7 +591,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			enable := uint32(ad.ReadUint64()) > 0
 
 			style := asset.styles.Get(styleId)
-			last_edit, active, changed, finished := asset.swp_drawEdit(style, value, valueOrig, title, ghost, enable)
+			last_edit, active, changed, finished := asset.comp_drawEdit(style, value, valueOrig, title, ghost, enable)
 
 			var dst [4 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(active, 1, 0)))    //active
@@ -613,7 +613,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			style := asset.styles.Get(styleId)
 			styleMenu := asset.styles.Get(styleMenuId)
 
-			valueOut := asset.swp_drawCombo(style, styleMenu, value, options, title, enable)
+			valueOut := asset.comp_drawCombo(style, styleMenu, value, options, title, enable)
 			ad.WriteUint64(uint64(valueOut))
 			ad._checkRead(fnTp)
 
@@ -629,7 +629,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			styleCheck := asset.styles.Get(styleCheckId)
 			styleLabel := asset.styles.Get(styleLabelId)
 
-			valueOut := asset.swp_drawCheckbox(styleCheck, styleLabel, value, label, title, enable)
+			valueOut := asset.comp_drawCheckbox(styleCheck, styleLabel, value, label, title, enable)
 			ad.WriteUint64(uint64(valueOut))
 			ad._checkRead(fnTp)
 

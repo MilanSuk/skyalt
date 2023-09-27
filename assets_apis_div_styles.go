@@ -230,7 +230,7 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 	return content
 }
 
-type SwpStyle struct {
+type CompStyle struct {
 	Main        DivStyle
 	Hover       DivStyle
 	Touch_hover DivStyle
@@ -238,7 +238,7 @@ type SwpStyle struct {
 	Disable     DivStyle
 }
 
-func (b *SwpStyle) HoverAuto() *SwpStyle {
+func (b *CompStyle) HoverAuto() *CompStyle {
 	if b.Main.Color.A > 0 {
 		b.Hover.Color = OsCd_Aprox(b.Main.Color, themeWhite(), 0.3)
 	}
@@ -254,7 +254,7 @@ func (b *SwpStyle) HoverAuto() *SwpStyle {
 	return b
 }
 
-func (b *SwpStyle) DisableAuto() *SwpStyle {
+func (b *CompStyle) DisableAuto() *CompStyle {
 	if b.Main.Color.A > 0 {
 		b.Disable.Color = OsCd_Aprox(b.Main.Color, themeWhite(), 0.35)
 	} else {
@@ -270,7 +270,7 @@ func (b *SwpStyle) DisableAuto() *SwpStyle {
 	return b
 }
 
-func (b *SwpStyle) Color(v OsCd) *SwpStyle {
+func (b *CompStyle) Color(v OsCd) *CompStyle {
 	b.Main.Color = v
 	b.Hover.Color = v
 	b.Touch_hover.Color = v
@@ -279,7 +279,7 @@ func (b *SwpStyle) Color(v OsCd) *SwpStyle {
 	return b
 }
 
-func (b *SwpStyle) FontPath(v string) *SwpStyle {
+func (b *CompStyle) FontPath(v string) *CompStyle {
 	b.Main.Font_path = v
 	b.Hover.Font_path = v
 	b.Touch_hover.Font_path = v
@@ -288,7 +288,7 @@ func (b *SwpStyle) FontPath(v string) *SwpStyle {
 	return b
 }
 
-func (b *SwpStyle) FontH(v float64) *SwpStyle {
+func (b *CompStyle) FontH(v float64) *CompStyle {
 	b.Main.Font_height = v
 	b.Hover.Font_height = v
 	b.Touch_hover.Font_height = v
@@ -297,7 +297,7 @@ func (b *SwpStyle) FontH(v float64) *SwpStyle {
 	return b
 }
 
-func (b *SwpStyle) FontAlignH(v int) *SwpStyle {
+func (b *CompStyle) FontAlignH(v int) *CompStyle {
 	b.Main.Font_alignH = v
 	b.Hover.Font_alignH = v
 	b.Touch_hover.Font_alignH = v
@@ -305,7 +305,7 @@ func (b *SwpStyle) FontAlignH(v int) *SwpStyle {
 	b.Disable.Font_alignH = v
 	return b
 }
-func (b *SwpStyle) FontAlignV(v int) *SwpStyle {
+func (b *CompStyle) FontAlignV(v int) *CompStyle {
 	b.Main.Font_alignV = v
 	b.Hover.Font_alignV = v
 	b.Touch_hover.Font_alignV = v
@@ -314,7 +314,7 @@ func (b *SwpStyle) FontAlignV(v int) *SwpStyle {
 	return b
 }
 
-func (b *SwpStyle) Margin(v float64) *SwpStyle {
+func (b *CompStyle) Margin(v float64) *CompStyle {
 	b.Main.Margin(v)
 	b.Hover.Margin(v)
 	b.Touch_hover.Margin(v)
@@ -322,7 +322,7 @@ func (b *SwpStyle) Margin(v float64) *SwpStyle {
 	b.Disable.Margin(v)
 	return b
 }
-func (b *SwpStyle) Padding(v float64) *SwpStyle {
+func (b *CompStyle) Padding(v float64) *CompStyle {
 	b.Main.Padding(v)
 	b.Hover.Padding(v)
 	b.Touch_hover.Padding(v)
@@ -331,7 +331,7 @@ func (b *SwpStyle) Padding(v float64) *SwpStyle {
 	return b
 }
 
-func (b *SwpStyle) Border(v float64) *SwpStyle {
+func (b *CompStyle) Border(v float64) *CompStyle {
 	b.Main.Border(v)
 	b.Hover.Border(v)
 	b.Touch_hover.Border(v)
@@ -340,7 +340,7 @@ func (b *SwpStyle) Border(v float64) *SwpStyle {
 	return b
 }
 
-func (b *SwpStyle) BorderCd(v OsCd) *SwpStyle {
+func (b *CompStyle) BorderCd(v OsCd) *CompStyle {
 	b.Main.Border_color = v
 	b.Hover.Border_color = v
 	b.Touch_hover.Border_color = v
@@ -349,7 +349,7 @@ func (b *SwpStyle) BorderCd(v OsCd) *SwpStyle {
 	return b
 }
 
-func (b *SwpStyle) ContentCd(v OsCd) *SwpStyle {
+func (b *CompStyle) ContentCd(v OsCd) *CompStyle {
 	b.Main.Content_color = v
 	b.Hover.Content_color = v
 	b.Touch_hover.Content_color = v
@@ -358,14 +358,14 @@ func (b *SwpStyle) ContentCd(v OsCd) *SwpStyle {
 	return b
 }
 
-func (b *SwpStyle) Cursor(v string) {
+func (b *CompStyle) Cursor(v string) {
 	b.Main.Cursor = v
 	b.Hover.Cursor = v
 	b.Touch_hover.Cursor = v
 	b.Touch_out.Cursor = v
 	b.Disable.Cursor = v
 }
-func (b *SwpStyle) MaxWidth(v float64) *SwpStyle {
+func (b *CompStyle) MaxWidth(v float64) *CompStyle {
 	b.Main.Max_width = v
 	b.Hover.Max_width = v
 	b.Touch_hover.Max_width = v
@@ -373,7 +373,7 @@ func (b *SwpStyle) MaxWidth(v float64) *SwpStyle {
 	b.Disable.Max_width = v
 	return b
 }
-func (b *SwpStyle) MaxHeight(v float64) *SwpStyle {
+func (b *CompStyle) MaxHeight(v float64) *CompStyle {
 	b.Main.Max_height = v
 	b.Hover.Max_height = v
 	b.Touch_hover.Max_height = v
@@ -381,7 +381,7 @@ func (b *SwpStyle) MaxHeight(v float64) *SwpStyle {
 	b.Disable.Max_height = v
 	return b
 }
-func (b *SwpStyle) MaxWidthAlign(v int) *SwpStyle {
+func (b *CompStyle) MaxWidthAlign(v int) *CompStyle {
 	b.Main.Max_width_align = v
 	b.Hover.Max_width_align = v
 	b.Touch_hover.Max_width_align = v
@@ -389,7 +389,7 @@ func (b *SwpStyle) MaxWidthAlign(v int) *SwpStyle {
 	b.Disable.Max_width_align = v
 	return b
 }
-func (b *SwpStyle) MaxHeightAlign(v int) *SwpStyle {
+func (b *CompStyle) MaxHeightAlign(v int) *CompStyle {
 	b.Main.Max_height_align = v
 	b.Hover.Max_height_align = v
 	b.Touch_hover.Max_height_align = v
@@ -398,7 +398,7 @@ func (b *SwpStyle) MaxHeightAlign(v int) *SwpStyle {
 	return b
 }
 
-func (b *SwpStyle) Radius(v float64) *SwpStyle {
+func (b *CompStyle) Radius(v float64) *CompStyle {
 	b.Main.Radius = v
 	b.Hover.Radius = v
 	b.Touch_hover.Radius = v
@@ -407,7 +407,7 @@ func (b *SwpStyle) Radius(v float64) *SwpStyle {
 	return b
 }
 
-func (style *SwpStyle) GetDiv(enable bool, asset *Asset) *DivStyle {
+func (style *CompStyle) GetDiv(enable bool, asset *Asset) *DivStyle {
 
 	st := asset.app.root.levels.GetStack()
 
@@ -439,7 +439,7 @@ func (style *SwpStyle) GetDiv(enable bool, asset *Asset) *DivStyle {
 	return stylee
 }
 
-func (style *SwpStyle) IsClicked(enable bool, asset *Asset) (bool, bool, bool) {
+func (style *CompStyle) IsClicked(enable bool, asset *Asset) (bool, bool, bool) {
 	var click, rclick, inside bool
 	if enable {
 		st := asset.app.root.levels.GetStack()
@@ -456,7 +456,7 @@ func (style *SwpStyle) IsClicked(enable bool, asset *Asset) (bool, bool, bool) {
 	return click, rclick, inside
 }
 
-func (style *SwpStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_path string, image_margin float64, enable bool, asset *Asset) OsV4 {
+func (style *CompStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_path string, image_margin float64, enable bool, asset *Asset) OsV4 {
 
 	stylee := style.GetDiv(enable, asset)
 
@@ -474,38 +474,38 @@ func (style *SwpStyle) Paint(coord OsV4, text string, textOrig string, textSelec
 }
 
 type DivDefaultStyles struct {
-	Button             SwpStyle
-	ButtonLight        SwpStyle
-	ButtonAlpha        SwpStyle
-	ButtonMenu         SwpStyle
-	ButtonMenuSelected SwpStyle
+	Button             CompStyle
+	ButtonLight        CompStyle
+	ButtonAlpha        CompStyle
+	ButtonMenu         CompStyle
+	ButtonMenuSelected CompStyle
 
-	ButtonBorder SwpStyle
+	ButtonBorder CompStyle
 
-	ButtonLogo SwpStyle
+	ButtonLogo CompStyle
 
-	ButtonDanger     SwpStyle
-	ButtonDangerMenu SwpStyle
+	ButtonDanger     CompStyle
+	ButtonDangerMenu CompStyle
 
-	Text       SwpStyle
-	TextCenter SwpStyle
-	TextRight  SwpStyle
-	TextErr    SwpStyle
+	Text       CompStyle
+	TextCenter CompStyle
+	TextRight  CompStyle
+	TextErr    CompStyle
 
-	Editbox       SwpStyle
-	EditboxErr    SwpStyle
-	EditboxYellow SwpStyle
+	Editbox       CompStyle
+	EditboxErr    CompStyle
+	EditboxYellow CompStyle
 
-	Combo SwpStyle
+	Combo CompStyle
 
-	ProgressFrame  SwpStyle
-	ProgressStatus SwpStyle
+	ProgressFrame  CompStyle
+	ProgressStatus CompStyle
 
-	SliderTrack SwpStyle
-	SliderThumb SwpStyle
+	SliderTrack CompStyle
+	SliderThumb CompStyle
 
-	CheckboxCheck SwpStyle
-	CheckboxLabel SwpStyle
+	CheckboxCheck CompStyle
+	CheckboxLabel CompStyle
 }
 
 func DivStyles_getDefaults(root *Root) DivDefaultStyles {
@@ -757,7 +757,7 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 }
 
 type DivStyles struct {
-	styles []*SwpStyle
+	styles []*CompStyle
 	theme  int
 }
 
@@ -766,26 +766,26 @@ func NewDivStyles(asset *Asset) *DivStyles {
 
 	stls.theme = -1
 
-	stls.Add(&SwpStyle{}) //empty id=0
+	stls.Add(&CompStyle{}) //empty id=0
 
 	return &stls
 }
 
-func (stls *DivStyles) Get(i uint32) *SwpStyle {
+func (stls *DivStyles) Get(i uint32) *CompStyle {
 	if i > 0 && int(i) < len(stls.styles) {
 		return stls.styles[i]
 	}
 	return nil
 }
 
-func (stls *DivStyles) Add(st *SwpStyle) int {
+func (stls *DivStyles) Add(st *CompStyle) int {
 	stls.styles = append(stls.styles, st)
 	return len(stls.styles) - 1
 }
 
 func (stls *DivStyles) AddJs(js []byte) (int, error) {
 
-	var div SwpStyle
+	var div CompStyle
 	err := json.Unmarshal(js, &div)
 	if err != nil {
 		return -1, fmt.Errorf("Unmarshal() failed: %w", err)
