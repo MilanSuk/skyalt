@@ -275,27 +275,27 @@ func _sa_print_float(val float64) {
 
 //-------
 
-func _sa_sql_write(dbMem SAMem, queryMem SAMem) int64 {
+func _sa_sql_write(dbUrlMem SAMem, queryMem SAMem) int64 {
 	WriteUint64(10)
-	WriteMem(dbMem)
+	WriteMem(dbUrlMem)
 	WriteMem(queryMem)
 	ret := int64(ReadUint64())
 	_checkRead(10)
 	return ret
 }
 
-func _sa_sql_read(dbMem SAMem, queryMem SAMem) int64 {
+func _sa_sql_read(dbUrlMem SAMem, queryMem SAMem) int64 {
 	WriteUint64(11)
-	WriteMem(dbMem)
+	WriteMem(dbUrlMem)
 	WriteMem(queryMem)
 	ret := int64(ReadUint64())
 	_checkRead(11)
 	return ret
 }
 
-func _sa_sql_readRowCount(dbMem SAMem, queryMem SAMem, queryHash int64) int64 {
+func _sa_sql_readRowCount(dbUrlMem SAMem, queryMem SAMem, queryHash int64) int64 {
 	WriteUint64(12)
-	WriteMem(dbMem)
+	WriteMem(dbUrlMem)
 	WriteMem(queryMem)
 	WriteUint64(uint64(queryHash))
 	ret := int64(ReadUint64())
@@ -303,9 +303,9 @@ func _sa_sql_readRowCount(dbMem SAMem, queryMem SAMem, queryHash int64) int64 {
 	return ret
 }
 
-func _sa_sql_readRowLen(dbMem SAMem, queryMem SAMem, queryHash int64, row_i uint64) int64 {
+func _sa_sql_readRowLen(dbUrlMem SAMem, queryMem SAMem, queryHash int64, row_i uint64) int64 {
 	WriteUint64(13)
-	WriteMem(dbMem)
+	WriteMem(dbUrlMem)
 	WriteMem(queryMem)
 	WriteUint64(uint64(queryHash))
 	WriteUint64(row_i)
@@ -314,9 +314,9 @@ func _sa_sql_readRowLen(dbMem SAMem, queryMem SAMem, queryHash int64, row_i uint
 	return ret
 }
 
-func _sa_sql_readRow(dbMem SAMem, queryMem SAMem, queryHash int64, row_i uint64, resultMem SAMem) int64 {
+func _sa_sql_readRow(dbUrlMem SAMem, queryMem SAMem, queryHash int64, row_i uint64, resultMem SAMem) int64 {
 	WriteUint64(14)
-	WriteMem(dbMem)
+	WriteMem(dbUrlMem)
 	WriteMem(queryMem)
 	WriteUint64(uint64(queryHash))
 	WriteUint64(row_i)
@@ -796,10 +796,10 @@ func _sa_div_drop(groupName SAMem, vertical uint32, horizontal uint32, inside ui
 	return ret
 }
 
-func _sa_render_app(appMem SAMem, dbMem SAMem, sts_id uint64) int64 {
+func _sa_render_app(appNameMem SAMem, dbUrlMem SAMem, sts_id uint64) int64 {
 	WriteUint64(120)
-	WriteMem(appMem)
-	WriteMem(dbMem)
+	WriteMem(appNameMem)
+	WriteMem(dbUrlMem)
 	WriteUint64(sts_id)
 
 	ret := int64(ReadUint64())

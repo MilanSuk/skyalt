@@ -73,19 +73,19 @@ func _sa_blob(pathMem SAMem, dstMem SAMem) int64
 func _sa_blob_len(pathMem SAMem) int64
 
 //export _sa_sql_write
-func _sa_sql_write(dbMem SAMem, queryMem SAMem) int64
+func _sa_sql_write(dbUrlMem SAMem, queryMem SAMem) int64
 
 //export _sa_sql_read
-func _sa_sql_read(dbMem SAMem, queryMem SAMem) int64
+func _sa_sql_read(dbUrlMem SAMem, queryMem SAMem) int64
 
 //export _sa_sql_readRowCount
-func _sa_sql_readRowCount(dbMem SAMem, queryMem SAMem, queryHash int64) int64
+func _sa_sql_readRowCount(dbUrlMem SAMem, queryMem SAMem, queryHash int64) int64
 
 //export _sa_sql_readRowLen
-func _sa_sql_readRowLen(dbMem SAMem, queryMem SAMem, queryHash int64, row_i uint64) int64
+func _sa_sql_readRowLen(dbUrlMem SAMem, queryMem SAMem, queryHash int64, row_i uint64) int64
 
 //export _sa_sql_readRow
-func _sa_sql_readRow(dbMem SAMem, queryMem SAMem, queryHash int64, row_i uint64, resultMem SAMem) int64
+func _sa_sql_readRow(dbUrlMem SAMem, queryMem SAMem, queryHash int64, row_i uint64, resultMem SAMem) int64
 
 //export _sa_div_colResize
 func _sa_div_colResize(pos uint64, nameMem SAMem, val float64) float64
@@ -208,7 +208,7 @@ func _sa_div_drag(groupNameMem SAMem, id uint64) int64
 func _sa_div_drop(groupNameMem SAMem, vertical uint32, horizontal uint32, inside uint32, outMem SAMem) int64
 
 //export _sa_render_app
-func _sa_render_app(appMem SAMem, dbMem SAMem, sts_id uint64) int64
+func _sa_render_app(appNameMem SAMem, dbUrlMem SAMem, sts_id uint64) int64
 
 type SAMem struct {
 	v uint64

@@ -49,23 +49,23 @@ func SA_Time() float64 {
 
 /* -------------------- File Access -------------------- */
 
-func SA_FileFromDbs(file string) string {
-	return "dbs:" + file
+func SA_FileFromDbs(fileName string) string {
+	return "dbs:" + fileName
 }
 
-func SA_FileFromResources(asset string, file string) string {
-	return "assets:" + asset + "/" + file
+func SA_FileFromResources(assetName string, fileName string) string {
+	return "assets:" + assetName + "/" + fileName
 }
 
-func SA_FileGetBlob(path string, table string, column string, row int) string {
-	if len(path) == 0 {
-		path = SA_FileFromDbs("")
+func SA_FileGetBlob(url string, table string, column string, row int) string {
+	if len(url) == 0 {
+		url = SA_FileFromDbs("")
 	}
-	return path + "/" + table + "/" + column + "/" + strconv.Itoa(row)
+	return url + "/" + table + "/" + column + "/" + strconv.Itoa(row)
 }
 
-func SA_FileContent(path string) []byte {
-	pathMem := _SA_stringToPtr(path)
+func SA_FileContent(url string) []byte {
+	pathMem := _SA_stringToPtr(url)
 
 	sz := _sa_blob_len(pathMem)
 	if sz > 0 {
@@ -80,7 +80,7 @@ func SA_FileContent(path string) []byte {
 /* -------------------- SQLite storage -------------------- */
 
 type SA_Sql struct {
-	db         string
+	dbUrl      string
 	query      string
 	query_hash int64
 	row_i      uint64
@@ -88,18 +88,18 @@ type SA_Sql struct {
 	cache      []byte
 }
 
-func SA_SqlRead(db string, query string) *SA_Sql {
+func SA_SqlRead(dbUrl string, query string) *SA_Sql {
 
-	query_hash := _sa_sql_read(_SA_stringToPtr(db), _SA_stringToPtr(query))
+	query_hash := _sa_sql_read(_SA_stringToPtr(dbUrl), _SA_stringToPtr(query))
 	if query_hash == -1 {
 		return nil
 	}
 
 	var sql SA_Sql
-	sql.db = db
+	sql.dbUrl = dbUrl
 	sql.query = query
 	sql.query_hash = query_hash
-	sql.row_count = _sa_sql_readRowCount(_SA_stringToPtr(sql.db), _SA_stringToPtr(sql.query), sql.query_hash)
+	sql.row_count = _sa_sql_readRowCount(_SA_stringToPtr(sql.dbUrl), _SA_stringToPtr(sql.query), sql.query_hash)
 
 	return &sql
 }
@@ -110,7 +110,7 @@ func (sql *SA_Sql) Next(outs ...interface{}) bool {
 		return false
 	}
 
-	sz := _sa_sql_readRowLen(_SA_stringToPtr(sql.db), _SA_stringToPtr(sql.query), sql.query_hash, sql.row_i)
+	sz := _sa_sql_readRowLen(_SA_stringToPtr(sql.dbUrl), _SA_stringToPtr(sql.query), sql.query_hash, sql.row_i)
 	if sz <= 0 {
 		return false
 	}
@@ -121,7 +121,7 @@ func (sql *SA_Sql) Next(outs ...interface{}) bool {
 		sql.cache = sql.cache[:sz]
 	}
 
-	if _sa_sql_readRow(_SA_stringToPtr(sql.db), _SA_stringToPtr(sql.query), sql.query_hash, sql.row_i, _SA_bytesToPtr(sql.cache)) != 1 {
+	if _sa_sql_readRow(_SA_stringToPtr(sql.dbUrl), _SA_stringToPtr(sql.query), sql.query_hash, sql.row_i, _SA_bytesToPtr(sql.cache)) != 1 {
 		return false
 	}
 
@@ -131,8 +131,8 @@ func (sql *SA_Sql) Next(outs ...interface{}) bool {
 	return true
 }
 
-func SA_SqlWrite(db string, query string) int64 {
-	return _sa_sql_write(_SA_stringToPtr(db), _SA_stringToPtr(query))
+func SA_SqlWrite(dbUrl string, query string) int64 {
+	return _sa_sql_write(_SA_stringToPtr(dbUrl), _SA_stringToPtr(query))
 }
 
 /* -------------------- Layouts -------------------- */
@@ -1524,8 +1524,8 @@ func SA_MoveElement[T any](array_src *[]T, array_dst *[]T, src int, dst int, pos
 	}
 }
 
-func SA_RenderApp(app string, db string, sts_id int) bool {
-	return _sa_render_app(_SA_stringToPtr(app), _SA_stringToPtr(db), uint64(sts_id)) >= 0
+func SA_RenderApp(app string, dbUrl string, sts_id int) bool {
+	return _sa_render_app(_SA_stringToPtr(app), _SA_stringToPtr(dbUrl), uint64(sts_id)) >= 0
 }
 
 func SA_Rating(value int, max_value int, cdActive SACd, cdDeactive SACd, icon string) (int, bool) {

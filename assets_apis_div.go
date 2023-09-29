@@ -875,9 +875,9 @@ func (asset *Asset) render_app(appName string, dbUrl string, sts_id uint64) (int
 	return 1, nil
 }
 
-func (asset *Asset) _sa_render_app(appMem uint64, dbMem uint64, sts_id uint64) int64 {
+func (asset *Asset) _sa_render_app(appNameMem uint64, dbMem uint64, sts_id uint64) int64 {
 
-	app, err := asset.ptrToString(appMem)
+	app, err := asset.ptrToString(appNameMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
