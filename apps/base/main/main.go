@@ -545,8 +545,14 @@ func Files() {
 			//name
 			SA_DivStart(1, 0, 1, 1)
 			{
+				//cut .ext
+				nm := file.Name
+				if strings.HasSuffix(nm, ".sqlite") {
+					nm = nm[:len(nm)-7]
+				}
+
 				SA_ColMax(0, 100)
-				if SA_ButtonMenu(file.Name).Pressed(isSelected).Title("id: "+strconv.Itoa(file.Sts_id)).Show(0, 0, 1, 1).click {
+				if SA_ButtonMenu(nm).Pressed(isSelected).Title("id: "+strconv.Itoa(file.Sts_id)).Show(0, 0, 1, 1).click {
 					store.SelectedFile = file_i
 					store.SelectedApp = -1
 
@@ -587,7 +593,13 @@ func Files() {
 				if SA_ButtonMenu(trns.DUPLICATE).Show(0, 1, 1, 1).click {
 					SA_DialogClose()
 					SA_DialogOpen("DuplicateFile_"+file.Name, 1)
-					store.duplicateName = file.Name + "_2"
+
+					if strings.HasSuffix(file.Name, ".sqlite") {
+						store.duplicateName = file.Name[:len(file.Name)-7] + "_2.sqlite"
+					} else {
+						store.duplicateName += "_2"
+					}
+
 				}
 
 				if SA_ButtonMenu(trns.REMOVE).Show(0, 2, 1, 1).click {
@@ -875,11 +887,11 @@ func Render() uint32 {
 	app := FindSelectedApp()
 	if app != nil {
 		SA_DivStartName(1, 0, 1, 2, strconv.Itoa(app.Sts_id)+"_"+strconv.Itoa(file.Sts_id))
-		SA_RenderApp(app.Name, SA_FileFromDbs(file.Name+".sqlite"), app.Sts_id)
+		SA_RenderApp(app.Name, SA_FileFromDbs(file.Name), app.Sts_id)
 		SA_DivEnd()
 	} else if file != nil {
 		SA_DivStartName(1, 0, 1, 2, "_tables_"+strconv.Itoa(file.Sts_id))
-		SA_RenderApp("db", SA_FileFromDbs(file.Name+".sqlite"), file.Sts_id)
+		SA_RenderApp("db", SA_FileFromDbs(file.Name), file.Sts_id)
 		SA_DivEnd()
 	}
 

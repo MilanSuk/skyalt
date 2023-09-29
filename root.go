@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -283,7 +282,7 @@ func (root *Root) AddDb(path string) (*Db, error) {
 
 func (root *Root) CreateDb(name string) bool {
 
-	newPath := root.folderDatabases + "/" + name + ".sqlite"
+	newPath := root.folderDatabases + "/" + name
 	if OsFileExists(newPath) {
 		fmt.Printf("newPath(%s) already exist\n", newPath)
 		return false
@@ -312,8 +311,8 @@ func (root *Root) RenameDb(name string, newName string) bool {
 		return false
 	}
 
-	path := root.folderDatabases + "/" + name + ".sqlite"
-	newPath := root.folderDatabases + "/" + newName + ".sqlite"
+	path := root.folderDatabases + "/" + name
+	newPath := root.folderDatabases + "/" + newName
 	if OsFileExists(newPath) {
 		fmt.Printf("newPath(%s) already exist\n", newPath)
 		return false
@@ -359,8 +358,8 @@ func (root *Root) DuplicateDb(name string, newName string) bool {
 		return false
 	}
 
-	path := root.folderDatabases + "/" + name + ".sqlite"
-	newPath := root.folderDatabases + "/" + newName + ".sqlite"
+	path := root.folderDatabases + "/" + name
+	newPath := root.folderDatabases + "/" + newName
 	if OsFileExists(newPath) {
 		fmt.Printf("newPath(%s) already exist\n", newPath)
 		return false
@@ -390,7 +389,7 @@ func (root *Root) RemoveDb(name string) bool {
 	}
 
 	//delete file
-	path := root.folderDatabases + "/" + name + ".sqlite"
+	path := root.folderDatabases + "/" + name
 	err := OsFileRemove(path)
 	if err != nil {
 		fmt.Printf("OsFileRemove(%s) failed: %v\n", path, err)
@@ -553,10 +552,11 @@ func (root *Root) updateDbsList() {
 	root.dbsList = ""
 	for _, file := range dir {
 		if !file.IsDir() {
-			ext := filepath.Ext(file.Name())
-			if strings.EqualFold(ext, ".sqlite") && file.Name() != root.settings.DbSettings_GetName() {
-				root.dbsList += strings.TrimSuffix(file.Name(), ext) + "/"
+			if strings.HasSuffix(file.Name(), "-shm") || strings.HasSuffix(file.Name(), "-wal") {
+				continue //skip
 			}
+			root.dbsList += file.Name()
+			root.dbsList += "/"
 		}
 	}
 	root.dbsList = strings.TrimSuffix(root.dbsList, "/") //remove '/' at the end

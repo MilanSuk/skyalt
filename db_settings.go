@@ -69,10 +69,6 @@ func (sts *DbSettings) Destroy() error {
 	return nil
 }
 
-func (sts *DbSettings) DbSettings_GetName() string {
-	return sts.db.path + ".sqlite"
-}
-
 func (sts *DbSettings) AddSts_uid() int {
 	sts.max_sts_uid++
 	return sts.max_sts_uid
