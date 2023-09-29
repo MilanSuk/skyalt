@@ -19,19 +19,13 @@ package main
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
-	"os"
-	"path/filepath"
-	"sort"
-	"strings"
 )
 
 type Asset struct {
 	app  *App
 	name string
 
-	resourceFiles []string
-	translations  *Translations
+	translations *Translations
 
 	wasm  *AssetWasm
 	debug *AssetDebug
@@ -66,8 +60,6 @@ func NewAsset(app *App, name string) (*Asset, error) {
 	}
 
 	asset.translations = NewTranslations(asset.getTranslationsPath())
-
-	asset.UpdateResources()
 
 	asset.styles = NewDivStyles(&asset)
 
@@ -146,33 +138,6 @@ func (asset *Asset) getWasmPath() string {
 	return asset.getPath() + "/main.wasm"
 }
 
-func (asset *Asset) UpdateResources() {
-
-	asset.resourceFiles = nil
-
-	if !OsFolderExists(asset.getResourcesPath()) {
-		return
-	}
-
-	dir, err := os.ReadDir(asset.getResourcesPath())
-	if err != nil {
-		fmt.Printf("ReadDir() failed: %v\n", err)
-		return
-	}
-
-	for _, file := range dir {
-		if !file.IsDir() {
-			ext := filepath.Ext(file.Name())
-			if !strings.EqualFold(ext, ".go") && !strings.EqualFold(ext, ".wasm") && !strings.EqualFold(ext, "translations.json") {
-
-				asset.resourceFiles = append(asset.resourceFiles, file.Name())
-			}
-		}
-	}
-
-	sort.Strings(asset.resourceFiles)
-}
-
 func (asset *Asset) loadData() {
 	jsStore, err := asset.app.root.settings.GetContent(asset.sts_rowid)
 	if asset.AddLogErr(err) {
@@ -240,8 +205,6 @@ func (asset *Asset) Tick() {
 		asset.CallSet(asset.app.root.stylesJs, "_sa_styles")
 		asset.styles.theme = asset.app.root.ui.io.ini.Theme
 	}
-	//resources
-	asset.UpdateResources()
 }
 
 func (asset *Asset) SetDebugLine(line string) {
