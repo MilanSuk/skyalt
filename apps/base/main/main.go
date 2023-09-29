@@ -809,16 +809,22 @@ func Files() {
 	{
 		if SA_Button("+").Tooltip(trns.CREATE_DB).Show(0, 0, 1, 1).click {
 			SA_DialogOpen("newFile", 1)
+			store.createFile = "" //empty
 		}
 		if SA_DialogStart("newFile") {
 
+			fnm := store.createFile
+			if !strings.HasSuffix(fnm, ".sqlite") {
+				fnm += ".sqlite"
+			}
+
 			SA_ColMax(0, 9)
-			err := CheckFileName(store.createFile, FindFile(store.createFile) != nil)
+			err := CheckFileName(store.createFile, FindFile(fnm) != nil)
 
 			SA_Editbox(&store.createFile).Error(err).TempToValue(true).ShowDescription(0, 0, 1, 1, trns.NAME, 2, nil)
 
 			if SA_Button(trns.CREATE_FILE).Enable(err == nil).Show(0, 1, 1, 1).click {
-				SA_InfoSet("new_file", store.createFile)
+				SA_InfoSet("new_file", fnm)
 				SA_DialogClose()
 			}
 
