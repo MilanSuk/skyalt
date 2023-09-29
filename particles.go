@@ -124,7 +124,7 @@ func NewParticles(render *sdl.Renderer) (*Particles, error) {
 		return nil, fmt.Errorf("Decode(%s) failed: %w", SKYALT_LOGO, err)
 	}
 
-	ptcs.logo, ptcs.logoSize, err = CreateTextureFromImage(img, false, render)
+	ptcs.logo, ptcs.logoSize, err = CreateTextureFromImage(img, render)
 	if err != nil {
 		return nil, fmt.Errorf("CreateTextureFromImage() failed: %w", err)
 	}

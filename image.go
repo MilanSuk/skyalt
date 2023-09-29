@@ -170,8 +170,6 @@ type Image struct {
 
 	path MediaPath
 
-	inverserRGB bool
-
 	texture *sdl.Texture
 
 	lastDrawTick int
@@ -196,7 +194,7 @@ func InitImageGlobal() {
 	image.RegisterFormat("bmp", "bmp", bmp.Decode, bmp.DecodeConfig)
 }
 
-func CreateTextureFromImage(img image.Image, inverserRGB bool, render *sdl.Renderer) (*sdl.Texture, OsV2, error) {
+func CreateTextureFromImage(img image.Image, render *sdl.Renderer) (*sdl.Texture, OsV2, error) {
 
 	W := img.Bounds().Max.X
 	H := img.Bounds().Max.Y
@@ -225,13 +223,13 @@ func CreateTextureFromImage(img image.Image, inverserRGB bool, render *sdl.Rende
 		}
 	}
 
-	if inverserRGB {
+	/*if inverserRGB {
 		for i := 0; i < len(pixels); i++ {
 			if i%4 != 3 { //skip alpha channel
 				pixels[i] = 255 - pixels[i]
 			}
 		}
-	}
+	}*/
 
 	//copy(pixels, surf.Pixels()) //, surf.Pitch*surf.H)
 	texture.Unlock()
@@ -239,14 +237,14 @@ func CreateTextureFromImage(img image.Image, inverserRGB bool, render *sdl.Rende
 	return texture, OsV2{W, H}, nil
 }
 
-func Image_LoadTexture(blob []byte, inverserRGB bool, render *sdl.Renderer) (*sdl.Texture, error) {
+func Image_LoadTexture(blob []byte, render *sdl.Renderer) (*sdl.Texture, error) {
 
 	img, _, err := image.Decode(bytes.NewReader(blob))
 	if err != nil {
 		return nil, fmt.Errorf("Decode() failed: %w", err)
 	}
 
-	texture, _, err := CreateTextureFromImage(img, inverserRGB, render)
+	texture, _, err := CreateTextureFromImage(img, render)
 	if err != nil {
 		return nil, fmt.Errorf("CreateTextureFromImage() failed: %w", err)
 	}
@@ -254,12 +252,11 @@ func Image_LoadTexture(blob []byte, inverserRGB bool, render *sdl.Renderer) (*sd
 	return texture, nil
 }
 
-func NewImage(path MediaPath, inverserRGB bool, render *sdl.Renderer) (*Image, error) {
+func NewImage(path MediaPath, render *sdl.Renderer) (*Image, error) {
 
 	var self Image
 
 	self.path = path
-	self.inverserRGB = inverserRGB
 
 	var err error
 	blob, err := path.GetBlob()
@@ -270,7 +267,7 @@ func NewImage(path MediaPath, inverserRGB bool, render *sdl.Renderer) (*Image, e
 		return nil, nil //empty = no error
 	}
 
-	self.texture, err = Image_LoadTexture(blob, inverserRGB, render)
+	self.texture, err = Image_LoadTexture(blob, render)
 	if err != nil {
 		return nil, err
 	}

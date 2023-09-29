@@ -202,7 +202,7 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 			coordImg = coordImg.Inner(asset.getCellWidth(image_margin), asset.getCellWidth(image_margin), asset.getCellWidth(image_margin), asset.getCellWidth(image_margin))
 
 			imgRectBackup := stt.buff.AddCrop(stt.stack.crop.GetIntersect(coordImg))
-			stt.buff.AddImage(path, false, coordImg, st.Color, st.Image_alignV, st.Image_alignH, st.Image_fill)
+			stt.buff.AddImage(path, coordImg, st.Color, st.Image_alignV, st.Image_alignH, st.Image_fill)
 			stt.buff.AddCrop(imgRectBackup)
 		}
 	}

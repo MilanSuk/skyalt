@@ -113,7 +113,7 @@ func (asset *Asset) paint_file(x, y, w, h float64, file string, title string, ma
 		return -1
 	}
 
-	st.buff.AddImage(path, false, coord, cd, int(alignV), int(alignH), fill != 0)
+	st.buff.AddImage(path, coord, cd, int(alignV), int(alignH), fill != 0)
 
 	if len(title) > 0 {
 		asset.paint_title(0, 0, 1, 1, title)
