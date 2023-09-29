@@ -97,7 +97,7 @@ func (asset *Asset) _sa_paint_circle(x, y, w, h float64, margin float64, sx, sy,
 	return 1
 }
 
-func (asset *Asset) paint_file(x, y, w, h float64, file string, title string, margin, marginX, marginY float64, r, g, b, a uint32, alignV, alignH uint32, fill uint32) int64 {
+func (asset *Asset) paint_file(x, y, w, h float64, file string, tooltip string, margin, marginX, marginY float64, r, g, b, a uint32, alignV, alignH uint32, fill uint32) int64 {
 
 	st := asset.app.root.levels.GetStack()
 	if st.stack == nil || st.stack.crop.IsZero() {
@@ -115,27 +115,27 @@ func (asset *Asset) paint_file(x, y, w, h float64, file string, title string, ma
 
 	st.buff.AddImage(path, coord, cd, int(alignV), int(alignH), fill != 0)
 
-	if len(title) > 0 {
-		asset.paint_title(0, 0, 1, 1, title)
+	if len(tooltip) > 0 {
+		asset.paint_tooltip(0, 0, 1, 1, tooltip)
 	}
 
 	return 1
 }
-func (asset *Asset) _sa_paint_file(x, y, w, h float64, fileMem uint64, titleMem uint64, margin, marginX, marginY float64, r, g, b, a uint32, alignV, alignH uint32, fill uint32) int64 {
+func (asset *Asset) _sa_paint_file(x, y, w, h float64, fileMem uint64, tooltipMem uint64, margin, marginX, marginY float64, r, g, b, a uint32, alignV, alignH uint32, fill uint32) int64 {
 
 	file, err := asset.ptrToString(fileMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
-	title, err := asset.ptrToString(titleMem)
+	tooltip, err := asset.ptrToString(tooltipMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
 
-	return asset.paint_file(x, y, w, h, file, title, margin, marginX, marginY, r, g, b, a, alignV, alignH, fill)
+	return asset.paint_file(x, y, w, h, file, tooltip, margin, marginX, marginY, r, g, b, a, alignV, alignH, fill)
 }
 
-func (asset *Asset) paint_title(x, y, w, h float64, text string) int64 {
+func (asset *Asset) paint_tooltip(x, y, w, h float64, text string) int64 {
 
 	st := asset.app.root.levels.GetStack()
 	if st.stack == nil || st.stack.crop.IsZero() {
@@ -152,14 +152,14 @@ func (asset *Asset) paint_title(x, y, w, h float64, text string) int64 {
 	return 1
 }
 
-func (asset *Asset) _sa_paint_title(x, y, w, h float64, valueMem uint64) int64 {
+func (asset *Asset) _sa_paint_tooltip(x, y, w, h float64, valueMem uint64) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
 
-	return asset.paint_title(x, y, w, h, value)
+	return asset.paint_tooltip(x, y, w, h, value)
 }
 
 func (asset *Asset) paint_cursor(name string) (int64, error) {

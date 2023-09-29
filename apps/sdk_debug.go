@@ -524,14 +524,14 @@ func _sa_paint_circle(x, y, w, h float64, margin float64, sx, sy, rad float64, r
 	return ret
 }
 
-func _sa_paint_file(x, y, w, h float64, fileMem SAMem, titleMem SAMem, margin, marginX, marginY float64, r, g, b, a uint32, alignV, alignH uint32, fill uint32) int64 {
+func _sa_paint_file(x, y, w, h float64, fileMem SAMem, tooltipMem SAMem, margin, marginX, marginY float64, r, g, b, a uint32, alignV, alignH uint32, fill uint32) int64 {
 	WriteUint64(53)
 	WriteFloat64(x)
 	WriteFloat64(y)
 	WriteFloat64(w)
 	WriteFloat64(h)
 	WriteMem(fileMem)
-	WriteMem(titleMem)
+	WriteMem(tooltipMem)
 	WriteFloat64(margin)
 	WriteFloat64(marginX)
 	WriteFloat64(marginY)
@@ -601,7 +601,7 @@ func _sa_paint_textWidth(valueMem SAMem, fontPathMem SAMem, ratioH float64, curs
 	return ret
 }
 
-func _sa_paint_title(x, y, w, h float64, valueMem SAMem) int64 {
+func _sa_paint_tooltip(x, y, w, h float64, valueMem SAMem) int64 {
 	WriteUint64(56)
 	WriteFloat64(x)
 	WriteFloat64(y)
@@ -652,7 +652,7 @@ func _sa_fn_getReturn(argsMem SAMem) int64 {
 	return ret
 }
 
-func _sa_comp_drawButton(styleId uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, titleMem SAMem, enable uint32, outMem SAMem) int64 {
+func _sa_comp_drawButton(styleId uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, tooltipMem SAMem, enable uint32, outMem SAMem) int64 {
 	WriteUint64(80)
 
 	WriteUint64(uint64(styleId))
@@ -661,7 +661,7 @@ func _sa_comp_drawButton(styleId uint32, valueMem SAMem, iconMem SAMem, icon_mar
 	WriteMem(iconMem)
 	WriteFloat64(icon_margin)
 	WriteMem(urlMem)
-	WriteMem(titleMem)
+	WriteMem(tooltipMem)
 	WriteUint64(uint64(enable))
 
 	ReadMem(outMem)
@@ -671,7 +671,7 @@ func _sa_comp_drawButton(styleId uint32, valueMem SAMem, iconMem SAMem, icon_mar
 	return ret
 }
 
-func _sa_comp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, min float64, max float64, jump float64, titleMem SAMem, enable uint32, outMem SAMem) float64 {
+func _sa_comp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, min float64, max float64, jump float64, tooltipMem SAMem, enable uint32, outMem SAMem) float64 {
 	WriteUint64(81)
 	WriteUint64(uint64(styleTrackId))
 	WriteUint64(uint64(styleThumbId))
@@ -679,7 +679,7 @@ func _sa_comp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64
 	WriteFloat64(min)
 	WriteFloat64(max)
 	WriteFloat64(jump)
-	WriteMem(titleMem)
+	WriteMem(tooltipMem)
 	WriteUint64(uint64(enable))
 
 	ReadMem(outMem)
@@ -688,24 +688,24 @@ func _sa_comp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64
 	return ret
 }
 
-func _sa_comp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, titleMem SAMem, enable uint32) int64 {
+func _sa_comp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, tooltipMem SAMem, enable uint32) int64 {
 	WriteUint64(82)
 	WriteUint64(uint64(styleFrameId))
 	WriteUint64(uint64(styleStatusId))
 	WriteFloat64(value)
 	WriteUint64(uint64(prec))
-	WriteMem(titleMem)
+	WriteMem(tooltipMem)
 	WriteUint64(uint64(enable))
 	ret := int64(ReadUint64())
 	_checkRead(82)
 	return ret
 }
 
-func _sa_comp_drawText(styleId uint32, valueMem SAMem, titleMem SAMem, enable uint32, selection uint32) int64 {
+func _sa_comp_drawText(styleId uint32, valueMem SAMem, tooltipMem SAMem, enable uint32, selection uint32) int64 {
 	WriteUint64(83)
 	WriteUint64(uint64(styleId))
 	WriteMem(valueMem)
-	WriteMem(titleMem)
+	WriteMem(tooltipMem)
 	WriteUint64(uint64(enable))
 	WriteUint64(uint64(selection))
 
@@ -723,12 +723,12 @@ func _sa_comp_getEditValue(outMem SAMem) int64 {
 	return ret
 }
 
-func _sa_comp_drawEdit(styleId uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64 {
+func _sa_comp_drawEdit(styleId uint32, valueMem SAMem, valueOrigMem SAMem, tooltipMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64 {
 	WriteUint64(85)
 	WriteUint64(uint64(styleId))
 	WriteMem(valueMem)
 	WriteMem(valueOrigMem)
-	WriteMem(titleMem)
+	WriteMem(tooltipMem)
 	WriteMem(ghostMem)
 	WriteUint64(uint64(enable))
 
@@ -738,13 +738,13 @@ func _sa_comp_drawEdit(styleId uint32, valueMem SAMem, valueOrigMem SAMem, title
 	return ret
 }
 
-func _sa_comp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem SAMem, titleMem SAMem, enable uint32) int64 {
+func _sa_comp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem SAMem, tooltipMem SAMem, enable uint32) int64 {
 	WriteUint64(86)
 	WriteUint64(uint64(styleId))
 	WriteUint64(uint64(styleMenuId))
 	WriteUint64(value)
 	WriteMem(optionsMem)
-	WriteMem(titleMem)
+	WriteMem(tooltipMem)
 	WriteUint64(uint64(enable))
 
 	ret := int64(ReadUint64())
@@ -752,13 +752,13 @@ func _sa_comp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, option
 	return ret
 }
 
-func _sa_comp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem SAMem, titleMem SAMem, enable uint32) int64 {
+func _sa_comp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem SAMem, tooltipMem SAMem, enable uint32) int64 {
 	WriteUint64(87)
 	WriteUint64(uint64(styleCheckId))
 	WriteUint64(uint64(styleLabelId))
 	WriteUint64(value)
 	WriteMem(labelMem)
-	WriteMem(titleMem)
+	WriteMem(tooltipMem)
 	WriteUint64(uint64(enable))
 
 	ret := int64(ReadUint64())

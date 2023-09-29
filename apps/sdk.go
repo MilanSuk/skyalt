@@ -249,8 +249,8 @@ func SAPaint_CircleEx(x, y, w, h float64, margin float64, sx, sy, rad float64, c
 	return _sa_paint_circle(x, y, w, h, margin, sx, sy, rad, uint32(cd.R), uint32(cd.G), uint32(cd.G), uint32(cd.A), borderWidth) > 0
 }
 
-func SAPaint_File(x, y, w, h float64, file string, title string, margin, marginX, marginY float64, cd SACd, alignV, alignH uint32, fill bool) bool {
-	return _sa_paint_file(x, y, w, h, _SA_stringToPtr(file), _SA_stringToPtr(title), margin, marginX, marginY, uint32(cd.R), uint32(cd.G), uint32(cd.G), uint32(cd.A), alignV, alignH, _SA_boolToUint32(fill)) > 0
+func SAPaint_File(x, y, w, h float64, file string, tooltip string, margin, marginX, marginY float64, cd SACd, alignV, alignH uint32, fill bool) bool {
+	return _sa_paint_file(x, y, w, h, _SA_stringToPtr(file), _SA_stringToPtr(tooltip), margin, marginX, marginY, uint32(cd.R), uint32(cd.G), uint32(cd.G), uint32(cd.A), alignV, alignH, _SA_boolToUint32(fill)) > 0
 }
 
 func SAPaint_Text(x, y, w, h float64, value string, margin float64, marginX float64, marginY float64, cd SACd,
@@ -269,11 +269,11 @@ func SAPaint_TextWidth(value string, fontPath string, ratioH float64, cursorPos 
 	return _sa_paint_textWidth(_SA_stringToPtr(value), _SA_stringToPtr(fontPath), ratioH, int64(cursorPos))
 }
 
-func SAPaint_TitleEx(x, y, w, h float64, text string) bool {
-	return _sa_paint_title(x, y, w, h, _SA_stringToPtr(text)) > 0
+func SAPaint_TooltipEx(x, y, w, h float64, text string) bool {
+	return _sa_paint_tooltip(x, y, w, h, _SA_stringToPtr(text)) > 0
 }
-func SAPaint_Title(text string) bool {
-	return SAPaint_TitleEx(0, 0, 1, 1, text)
+func SAPaint_Tooltip(text string) bool {
+	return SAPaint_TooltipEx(0, 0, 1, 1, text)
 }
 
 func SAPaint_Cursor(name string) bool {
@@ -531,7 +531,7 @@ type _SA_Button struct {
 	value       string
 	icon        string
 	icon_margin float64
-	title       string
+	tooltip     string
 	url         string
 	enable      bool
 }
@@ -628,8 +628,8 @@ func (b *_SA_Button) Url(v string) *_SA_Button {
 	return b
 }
 
-func (b *_SA_Button) Title(v string) *_SA_Button {
-	b.title = v
+func (b *_SA_Button) Tooltip(v string) *_SA_Button {
+	b.tooltip = v
 	return b
 }
 func (b *_SA_Button) Enable(v bool) *_SA_Button {
@@ -652,7 +652,7 @@ func (b *_SA_Button) Show(x, y, w, h int) _SA_ButtonOut {
 		if err == nil {
 
 			var out [2 * 8]byte
-			_sa_comp_drawButton(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.icon), b.icon_margin, _SA_stringToPtr(b.url), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
+			_sa_comp_drawButton(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.icon), b.icon_margin, _SA_stringToPtr(b.url), _SA_stringToPtr(b.tooltip), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
 
 			ret.click = binary.LittleEndian.Uint64(out[0:]) != 0
 			ret.rclick = binary.LittleEndian.Uint64(out[8:]) != 0
@@ -667,10 +667,10 @@ type _SA_Progress struct {
 	styleFrame  *_SA_Style
 	styleStatus *_SA_Style
 
-	value  float64
-	prec   int
-	title  string
-	enable bool
+	value   float64
+	prec    int
+	tooltip string
+	enable  bool
 }
 
 func SA_Progress(value float64, prec int) *_SA_Progress {
@@ -686,8 +686,8 @@ func SA_Progress(value float64, prec int) *_SA_Progress {
 	return &b
 }
 
-func (b *_SA_Progress) Title(v string) *_SA_Progress {
-	b.title = v
+func (b *_SA_Progress) Tooltip(v string) *_SA_Progress {
+	b.tooltip = v
 	return b
 }
 func (b *_SA_Progress) Enable(v bool) *_SA_Progress {
@@ -698,7 +698,7 @@ func (b *_SA_Progress) Enable(v bool) *_SA_Progress {
 func (b *_SA_Progress) Show(x, y, w, h int) {
 
 	if SA_DivStart(x, y, w, h) {
-		_sa_comp_drawProgress(b.styleFrame.Id, b.styleStatus.Id, b.value, int32(b.prec), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable))
+		_sa_comp_drawProgress(b.styleFrame.Id, b.styleStatus.Id, b.value, int32(b.prec), _SA_stringToPtr(b.tooltip), _SA_boolToUint32(b.enable))
 	}
 
 	defer SA_DivEnd()
@@ -720,8 +720,8 @@ type _SA_Slider struct {
 	max   float64
 	jump  float64
 
-	enable bool
-	title  string
+	enable  bool
+	tooltip string
 }
 
 func SA_Slider(value *float64) *_SA_Slider {
@@ -759,7 +759,7 @@ func (b *_SA_Slider) Show(x, y, w, h int) _SA_SliderOut {
 
 		var out [3 * 8]byte
 
-		*b.value = _sa_comp_drawSlider(b.styleTrack.Id, b.styleThumb.Id, *b.value, b.min, b.max, b.jump, _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
+		*b.value = _sa_comp_drawSlider(b.styleTrack.Id, b.styleThumb.Id, *b.value, b.min, b.max, b.jump, _SA_stringToPtr(b.tooltip), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
 
 		ret.active = binary.LittleEndian.Uint64(out[0:]) != 0
 		ret.changed = binary.LittleEndian.Uint64(out[8:]) != 0
@@ -773,9 +773,9 @@ func (b *_SA_Slider) Show(x, y, w, h int) _SA_SliderOut {
 }
 
 type _SA_Text struct {
-	style *_SA_Style
-	value string
-	title string
+	style   *_SA_Style
+	value   string
+	tooltip string
 
 	enable    bool
 	selection bool
@@ -814,8 +814,8 @@ func (b *_SA_Text) ValueFloat(v float64, precision int) *_SA_Text {
 	return b
 }
 
-func (b *_SA_Text) Title(v string) *_SA_Text {
-	b.title = v
+func (b *_SA_Text) Tooltip(v string) *_SA_Text {
+	b.tooltip = v
 	return b
 }
 func (b *_SA_Text) Selection(v bool) *_SA_Text {
@@ -851,7 +851,7 @@ func (b *_SA_Text) Show(x, y, w, h int) {
 
 		err := b.style.Register()
 		if err == nil {
-			_sa_comp_drawText(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable), _SA_boolToUint32(b.selection))
+			_sa_comp_drawText(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.tooltip), _SA_boolToUint32(b.enable), _SA_boolToUint32(b.selection))
 		}
 	}
 	SA_DivEnd()
@@ -862,7 +862,7 @@ type _SA_Editbox struct {
 
 	value     interface{}
 	valueOrig string
-	title     string
+	tooltip   string
 
 	valueOrigSet bool
 
@@ -992,18 +992,18 @@ func (b *_SA_Editbox) Show(x, y, w, h int) _SA_EditboxOut {
 			valueOrig = b.valueOrig
 		}
 
-		title := ""
+		tooltip := ""
 		if b.err != nil {
-			title = b.err.Error()
-		} else if len(b.title) > 0 {
-			title = b.title
+			tooltip = b.err.Error()
+		} else if len(b.tooltip) > 0 {
+			tooltip = b.tooltip
 		}
 
 		var out [4 * 8]byte
 
 		err := b.style.Register()
 		if err == nil {
-			_sa_comp_drawEdit(b.style.Id, _SA_stringToPtr(value), _SA_stringToPtr(valueOrig), _SA_stringToPtr(title), _SA_stringToPtr(b.ghost), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
+			_sa_comp_drawEdit(b.style.Id, _SA_stringToPtr(value), _SA_stringToPtr(valueOrig), _SA_stringToPtr(tooltip), _SA_stringToPtr(b.ghost), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
 		}
 
 		ret.active = binary.LittleEndian.Uint64(out[0:]) != 0
@@ -1043,7 +1043,7 @@ type _SA_Combo struct {
 	value   *int
 	options string
 
-	title string
+	tooltip string
 
 	search bool //...
 	err    error
@@ -1120,18 +1120,18 @@ func (b *_SA_Combo) Show(x, y, w, h int) bool {
 			b.style = &styles.EditboxErr
 		}
 
-		title := ""
+		tooltip := ""
 		if b.err != nil {
-			title = b.err.Error()
-		} else if len(b.title) > 0 {
-			title = b.title
+			tooltip = b.err.Error()
+		} else if len(b.tooltip) > 0 {
+			tooltip = b.tooltip
 		}
 
 		var v int64
 		err1 := b.style.Register()
 		err2 := b.styleMenu.Register()
 		if err1 == nil && err2 == nil {
-			v = _sa_comp_drawCombo(b.style.Id, b.styleMenu.Id, uint64(*b.value), _SA_stringToPtr(b.options), _SA_stringToPtr(title), _SA_boolToUint32(b.enable))
+			v = _sa_comp_drawCombo(b.style.Id, b.styleMenu.Id, uint64(*b.value), _SA_stringToPtr(b.options), _SA_stringToPtr(tooltip), _SA_boolToUint32(b.enable))
 		}
 
 		changed = *b.value != int(v)
@@ -1146,10 +1146,10 @@ type _SA_Checkbox struct {
 	styleCheck *_SA_Style
 	styleLabel *_SA_Style
 
-	value  *bool
-	label  string
-	title  string
-	enable bool
+	value   *bool
+	label   string
+	tooltip string
+	enable  bool
 }
 
 func SA_Checkbox(value *bool, label string) *_SA_Checkbox {
@@ -1177,7 +1177,7 @@ func (b *_SA_Checkbox) Show(x, y, w, h int) bool {
 			val = 1
 		}
 
-		v := _sa_comp_drawCheckbox(b.styleCheck.Id, b.styleLabel.Id, val, _SA_stringToPtr(b.label), _SA_stringToPtr(b.title), _SA_boolToUint32(b.enable))
+		v := _sa_comp_drawCheckbox(b.styleCheck.Id, b.styleLabel.Id, val, _SA_stringToPtr(b.label), _SA_stringToPtr(b.tooltip), _SA_boolToUint32(b.enable))
 
 		changed = (val != uint64(v))
 		if changed {
@@ -1190,8 +1190,8 @@ func (b *_SA_Checkbox) Show(x, y, w, h int) bool {
 }
 
 type _SA_Image struct {
-	file  string
-	title string
+	file    string
+	tooltip string
 
 	margin  float64
 	marginX float64
@@ -1233,7 +1233,7 @@ func (b *_SA_Image) Show(x, y, w, h int) {
 
 	if SA_DivStart(x, y, w, h) {
 		_sa_paint_file(0, 0, 1, 1,
-			_SA_stringToPtr(b.file), _SA_stringToPtr(b.title), b.margin, b.marginX, b.marginY,
+			_SA_stringToPtr(b.file), _SA_stringToPtr(b.tooltip), b.margin, b.marginX, b.marginY,
 			uint32(b.cd.R), uint32(b.cd.G), uint32(b.cd.B), uint32(b.cd.A),
 			b.align, b.alignV, _SA_boolToUint32(b.fill))
 

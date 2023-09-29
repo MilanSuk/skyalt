@@ -116,7 +116,7 @@ func (aw *AssetWasm) InstantiateEnv() error {
 	env.NewFunctionBuilder().WithFunc(aw.asset._sa_paint_circle).Export("_sa_paint_circle")
 	env.NewFunctionBuilder().WithFunc(aw.asset._sa_paint_line).Export("_sa_paint_line")
 	env.NewFunctionBuilder().WithFunc(aw.asset._sa_paint_file).Export("_sa_paint_file")
-	env.NewFunctionBuilder().WithFunc(aw.asset._sa_paint_title).Export("_sa_paint_title")
+	env.NewFunctionBuilder().WithFunc(aw.asset._sa_paint_tooltip).Export("_sa_paint_tooltip")
 	env.NewFunctionBuilder().WithFunc(aw.asset._sa_paint_text).Export("_sa_paint_text")
 	env.NewFunctionBuilder().WithFunc(aw.asset._sa_paint_textWidth).Export("_sa_paint_textWidth")
 	env.NewFunctionBuilder().WithFunc(aw.asset._sa_paint_cursor).Export("_sa_paint_cursor")

@@ -429,7 +429,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			w := ad.ReadFloat64()
 			h := ad.ReadFloat64()
 			file := string(ad.ReadBytes())
-			title := string(ad.ReadBytes())
+			tooltip := string(ad.ReadBytes())
 			margin := ad.ReadFloat64()
 			marginX := ad.ReadFloat64()
 			marginY := ad.ReadFloat64()
@@ -440,7 +440,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			alignV := uint32(ad.ReadUint64())
 			alignH := uint32(ad.ReadUint64())
 			fill := uint32(ad.ReadUint64())
-			ret := asset.paint_file(x, y, w, h, file, title, margin, marginX, marginY, r, g, b, a, alignV, alignH, fill)
+			ret := asset.paint_file(x, y, w, h, file, tooltip, margin, marginX, marginY, r, g, b, a, alignV, alignH, fill)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -475,7 +475,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			w := ad.ReadFloat64()
 			h := ad.ReadFloat64()
 			value := string(ad.ReadBytes())
-			ret := asset.paint_title(x, y, w, h, value)
+			ret := asset.paint_tooltip(x, y, w, h, value)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -515,11 +515,11 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			icon := string(ad.ReadBytes())
 			icon_margin := ad.ReadFloat64()
 			url := string(ad.ReadBytes())
-			title := string(ad.ReadBytes())
+			tooltip := string(ad.ReadBytes())
 			enable := ad.ReadUint64() > 0
 
 			style := asset.styles.Get(styleId)
-			click, rclick, ret := asset.comp_drawButton(style, value, icon, icon_margin, url, title, enable)
+			click, rclick, ret := asset.comp_drawButton(style, value, icon, icon_margin, url, tooltip, enable)
 
 			var dst [2 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(click, 1, 0)))
@@ -535,12 +535,12 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			min := ad.ReadFloat64()
 			max := ad.ReadFloat64()
 			jump := ad.ReadFloat64()
-			title := string(ad.ReadBytes())
+			tooltip := string(ad.ReadBytes())
 			enable := ad.ReadUint64() > 0
 
 			styleTrack := asset.styles.Get(styleTrackId)
 			styleThumb := asset.styles.Get(styleThumbId)
-			value, active, changed, finished := asset.comp_drawSlider(styleTrack, styleThumb, value, min, max, jump, title, enable)
+			value, active, changed, finished := asset.comp_drawSlider(styleTrack, styleThumb, value, min, max, jump, tooltip, enable)
 
 			var dst [3 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(active, 1, 0)))    //active
@@ -555,24 +555,24 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			styleStatusId := uint32(ad.ReadUint64())
 			value := ad.ReadFloat64()
 			prec := int32(ad.ReadUint64())
-			title := string(ad.ReadBytes())
+			tooltip := string(ad.ReadBytes())
 			enable := ad.ReadUint64() > 0
 
 			styleFrame := asset.styles.Get(styleFrameId)
 			styleStatus := asset.styles.Get(styleStatusId)
-			ret := asset.comp_drawProgress(styleFrame, styleStatus, value, int(prec), title, enable)
+			ret := asset.comp_drawProgress(styleFrame, styleStatus, value, int(prec), tooltip, enable)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 83:
 			styleId := uint32(ad.ReadUint64())
 			value := string(ad.ReadBytes())
-			title := string(ad.ReadBytes())
+			tooltip := string(ad.ReadBytes())
 			enable := uint32(ad.ReadUint64()) > 0
 			selection := uint32(ad.ReadUint64()) > 0
 
 			style := asset.styles.Get(styleId)
-			ret := asset.comp_drawText(style, value, title, enable, selection)
+			ret := asset.comp_drawText(style, value, tooltip, enable, selection)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -586,12 +586,12 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			styleId := uint32(ad.ReadUint64())
 			value := string(ad.ReadBytes())
 			valueOrig := string(ad.ReadBytes())
-			title := string(ad.ReadBytes())
+			tooltip := string(ad.ReadBytes())
 			ghost := string(ad.ReadBytes())
 			enable := uint32(ad.ReadUint64()) > 0
 
 			style := asset.styles.Get(styleId)
-			last_edit, active, changed, finished := asset.comp_drawEdit(style, value, valueOrig, title, ghost, enable)
+			last_edit, active, changed, finished := asset.comp_drawEdit(style, value, valueOrig, tooltip, ghost, enable)
 
 			var dst [4 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(active, 1, 0)))    //active
@@ -607,13 +607,13 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			styleMenuId := uint32(ad.ReadUint64())
 			value := ad.ReadUint64()
 			options := string(ad.ReadBytes())
-			title := string(ad.ReadBytes())
+			tooltip := string(ad.ReadBytes())
 			enable := ad.ReadUint64() > 0
 
 			style := asset.styles.Get(styleId)
 			styleMenu := asset.styles.Get(styleMenuId)
 
-			valueOut := asset.comp_drawCombo(style, styleMenu, value, options, title, enable)
+			valueOut := asset.comp_drawCombo(style, styleMenu, value, options, tooltip, enable)
 			ad.WriteUint64(uint64(valueOut))
 			ad._checkRead(fnTp)
 
@@ -623,13 +623,13 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 
 			value := ad.ReadUint64()
 			label := string(ad.ReadBytes())
-			title := string(ad.ReadBytes())
+			tooltip := string(ad.ReadBytes())
 			enable := ad.ReadUint64() != 0
 
 			styleCheck := asset.styles.Get(styleCheckId)
 			styleLabel := asset.styles.Get(styleLabelId)
 
-			valueOut := asset.comp_drawCheckbox(styleCheck, styleLabel, value, label, title, enable)
+			valueOut := asset.comp_drawCheckbox(styleCheck, styleLabel, value, label, tooltip, enable)
 			ad.WriteUint64(uint64(valueOut))
 			ad._checkRead(fnTp)
 

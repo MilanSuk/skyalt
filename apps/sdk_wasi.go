@@ -139,7 +139,7 @@ func _sa_paint_line(x, y, w, h float64, margin float64, sx, sy, ex, ey float64, 
 func _sa_paint_circle(x, y, w, h float64, margin float64, sx, sy, rad float64, r, g, b, a uint32, borderWidth float64) int64
 
 //export _sa_paint_file
-func _sa_paint_file(x, y, w, h float64, fileMem SAMem, titleMem SAMem, margin, marginX, marginY float64, r, g, b, a uint32, alignV, alignH uint32, fill uint32) int64
+func _sa_paint_file(x, y, w, h float64, fileMem SAMem, tooltipMem SAMem, margin, marginX, marginY float64, r, g, b, a uint32, alignV, alignH uint32, fill uint32) int64
 
 //export _sa_paint_text
 func _sa_paint_text(x, y, w, h float64,
@@ -153,8 +153,8 @@ func _sa_paint_text(x, y, w, h float64,
 //export _sa_paint_textWidth
 func _sa_paint_textWidth(valueMem SAMem, fontPathMem SAMem, ratioH float64, cursorPos int64) float64
 
-//export _sa_paint_title
-func _sa_paint_title(x, y, w, h float64, valueMem SAMem) int64
+//export _sa_paint_tooltip
+func _sa_paint_tooltip(x, y, w, h float64, valueMem SAMem) int64
 
 //export _sa_paint_cursor
 func _sa_paint_cursor(nameMem SAMem) int64
@@ -175,28 +175,28 @@ func _sa_fn_setReturn(argsMem SAMem) int64
 func _sa_fn_getReturn(argsMem SAMem) int64
 
 //export _sa_comp_drawButton
-func _sa_comp_drawButton(style uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, titleMem SAMem, enable uint32, outMem SAMem) int64
+func _sa_comp_drawButton(style uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, tooltipMem SAMem, enable uint32, outMem SAMem) int64
 
 //export _sa_comp_drawSlider
-func _sa_comp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, min float64, max float64, jump float64, titleMem SAMem, enable uint32, outMem SAMem) float64
+func _sa_comp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, min float64, max float64, jump float64, tooltipMem SAMem, enable uint32, outMem SAMem) float64
 
 //export _sa_comp_drawProgress
-func _sa_comp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, titleMem SAMem, enable uint32) int64
+func _sa_comp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, tooltipMem SAMem, enable uint32) int64
 
 //export _sa_comp_drawText
-func _sa_comp_drawText(style uint32, valueMem SAMem, titleMem SAMem, enable uint32, selection uint32) int64
+func _sa_comp_drawText(style uint32, valueMem SAMem, tooltipMem SAMem, enable uint32, selection uint32) int64
 
 //export _sa_comp_getEditValue
 func _sa_comp_getEditValue(outMem SAMem) int64
 
 //export _sa_comp_drawEdit
-func _sa_comp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, titleMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64
+func _sa_comp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, tooltipMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64
 
 //export _sa_comp_drawCombo
-func _sa_comp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem SAMem, titleMem SAMem, enable uint32) int64
+func _sa_comp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem SAMem, tooltipMem SAMem, enable uint32) int64
 
 //export _sa_comp_drawCheckbox
-func _sa_comp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem SAMem, titleMem SAMem, enable uint32) int64
+func _sa_comp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem SAMem, tooltipMem SAMem, enable uint32) int64
 
 //export _sa_register_style
 func _sa_register_style(jsMem SAMem) int64

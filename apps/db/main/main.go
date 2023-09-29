@@ -494,7 +494,7 @@ func TopHeader() {
 	SA_ColMax(1, 100)
 	SA_Col(2, 2)
 
-	if SA_Button("+").Title(trns.CREATE_TABLE).Show(0, 0, 1, 1).click {
+	if SA_Button("+").Tooltip(trns.CREATE_TABLE).Show(0, 0, 1, 1).click {
 		SA_DialogOpen("CreateTable", 1)
 	}
 	if SA_DialogStart("CreateTable") {
@@ -1474,7 +1474,7 @@ func TableStats(table *Table) {
 
 		if col.isRowId() {
 			//add row
-			if SA_ButtonLight("+").Title(trns.ADD_ROW).Show(x, 0, 1, 1).click {
+			if SA_ButtonLight("+").Tooltip(trns.ADD_ROW).Show(x, 0, 1, 1).click {
 				SA_SqlWrite("", "INSERT INTO "+table.Name+" DEFAULT VALUES;")
 				table.scrollDown = true
 			}

@@ -58,7 +58,7 @@ func (root *Root) themeCd() OsCd {
 	return cd
 }
 
-func (asset *Asset) comp_drawButton(style *CompStyle, value string, icon string, icon_margin float64, url string, title string, enable bool) (bool, bool, int64) {
+func (asset *Asset) comp_drawButton(style *CompStyle, value string, icon string, icon_margin float64, url string, tooltip string, enable bool) (bool, bool, int64) {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
@@ -74,16 +74,16 @@ func (asset *Asset) comp_drawButton(style *CompStyle, value string, icon string,
 	}
 
 	style.Paint(st.stack.canvas, value, "", false, false, icon, icon_margin, enable, asset)
-	if len(title) > 0 {
-		asset.paint_title(0, 0, 1, 1, title)
+	if len(tooltip) > 0 {
+		asset.paint_tooltip(0, 0, 1, 1, tooltip)
 	} else if len(url) > 0 {
-		asset.paint_title(0, 0, 1, 1, url)
+		asset.paint_tooltip(0, 0, 1, 1, url)
 	}
 
 	return click, rclick, 1
 }
 
-func (asset *Asset) _sa_comp_drawButton(styleId uint32, valueMem uint64, iconMem uint64, icon_margin float64, urlMem uint64, titleMem uint64, enable uint32, outMem uint64) int64 {
+func (asset *Asset) _sa_comp_drawButton(styleId uint32, valueMem uint64, iconMem uint64, icon_margin float64, urlMem uint64, tooltipMem uint64, enable uint32, outMem uint64) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
@@ -97,14 +97,14 @@ func (asset *Asset) _sa_comp_drawButton(styleId uint32, valueMem uint64, iconMem
 	if asset.AddLogErr(err) {
 		return -1
 	}
-	title, err := asset.ptrToString(titleMem)
+	tooltip, err := asset.ptrToString(tooltipMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
 
 	style := asset.styles.Get(styleId)
 
-	click, rclick, ret := asset.comp_drawButton(style, value, icon, icon_margin, url, title, enable > 0)
+	click, rclick, ret := asset.comp_drawButton(style, value, icon, icon_margin, url, tooltip, enable > 0)
 
 	out, err := asset.ptrToBytesDirect(outMem)
 	if asset.AddLogErr(err) {
@@ -115,7 +115,7 @@ func (asset *Asset) _sa_comp_drawButton(styleId uint32, valueMem uint64, iconMem
 	return ret
 }
 
-func (asset *Asset) comp_drawText(style *CompStyle, value string, title string, enable bool, selection bool) int64 {
+func (asset *Asset) comp_drawText(style *CompStyle, value string, tooltip string, enable bool, selection bool) int64 {
 
 	root := asset.app.root
 	if style == nil {
@@ -123,28 +123,28 @@ func (asset *Asset) comp_drawText(style *CompStyle, value string, title string, 
 	}
 
 	asset.paint_textGrid(style, value, "", selection, false, enable)
-	if len(title) > 0 {
-		asset.paint_title(0, 0, 1, 1, title)
+	if len(tooltip) > 0 {
+		asset.paint_tooltip(0, 0, 1, 1, tooltip)
 	}
 
 	return 1
 }
 
-func (asset *Asset) _sa_comp_drawText(styleId uint32, valueMem uint64, titleMem uint64, enable uint32, selection uint32) int64 {
+func (asset *Asset) _sa_comp_drawText(styleId uint32, valueMem uint64, tooltipMem uint64, enable uint32, selection uint32) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
 
-	title, err := asset.ptrToString(titleMem)
+	tooltip, err := asset.ptrToString(tooltipMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
 
 	style := asset.styles.Get(styleId)
 
-	return asset.comp_drawText(style, value, title, enable > 0, selection > 0)
+	return asset.comp_drawText(style, value, tooltip, enable > 0, selection > 0)
 }
 
 func (asset *Asset) comp_getEditValue() string {
@@ -159,7 +159,7 @@ func (asset *Asset) _sa_comp_getEditValue(outMem uint64) int64 {
 	return 1
 }
 
-func (asset *Asset) comp_drawEdit(style *CompStyle, valueIn string, valueInOrig string, title string, ghost string, enable bool) (string, bool, bool, bool) {
+func (asset *Asset) comp_drawEdit(style *CompStyle, valueIn string, valueInOrig string, tooltip string, ghost string, enable bool) (string, bool, bool, bool) {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
@@ -197,14 +197,14 @@ func (asset *Asset) comp_drawEdit(style *CompStyle, valueIn string, valueInOrig 
 		asset.paint_text(0, 0, 1, 1, &stArrow, ghost, "", false, false, enable)
 	}
 
-	if len(title) > 0 {
-		asset.paint_title(0, 0, 1, 1, title)
+	if len(tooltip) > 0 {
+		asset.paint_tooltip(0, 0, 1, 1, tooltip)
 	}
 
 	return edit.last_edit, active, (active && value != edit.last_edit), (active && this_uid != edit.uid)
 }
 
-func (asset *Asset) _sa_comp_drawEdit(styleId uint32, valueMem uint64, valueInOrig uint64, titleMem uint64, ghostMem uint64, enable uint32, outMem uint64) int64 {
+func (asset *Asset) _sa_comp_drawEdit(styleId uint32, valueMem uint64, valueInOrig uint64, tooltipMem uint64, ghostMem uint64, enable uint32, outMem uint64) int64 {
 
 	value, err := asset.ptrToString(valueMem)
 	if asset.AddLogErr(err) {
@@ -215,7 +215,7 @@ func (asset *Asset) _sa_comp_drawEdit(styleId uint32, valueMem uint64, valueInOr
 		return -1
 	}
 
-	title, err := asset.ptrToString(titleMem)
+	tooltip, err := asset.ptrToString(tooltipMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
@@ -226,7 +226,7 @@ func (asset *Asset) _sa_comp_drawEdit(styleId uint32, valueMem uint64, valueInOr
 	}
 
 	style := asset.styles.Get(styleId)
-	last_edit, active, changed, finished := asset.comp_drawEdit(style, value, valueOrig, title, ghost, enable > 0)
+	last_edit, active, changed, finished := asset.comp_drawEdit(style, value, valueOrig, tooltip, ghost, enable > 0)
 
 	out, err := asset.ptrToBytesDirect(outMem)
 	if asset.AddLogErr(err) {
@@ -239,7 +239,7 @@ func (asset *Asset) _sa_comp_drawEdit(styleId uint32, valueMem uint64, valueInOr
 	return 1
 }
 
-func (asset *Asset) comp_drawProgress(styleFrame *CompStyle, styleStatus *CompStyle, value float64, prec int, title string, enable bool) int64 {
+func (asset *Asset) comp_drawProgress(styleFrame *CompStyle, styleStatus *CompStyle, value float64, prec int, tooltip string, enable bool) int64 {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
@@ -256,16 +256,16 @@ func (asset *Asset) comp_drawProgress(styleFrame *CompStyle, styleStatus *CompSt
 	styleFrame.Paint(st.stack.canvas, "", "", false, false, "", 0, enable, asset)
 	styleStatus.Paint(asset.getCoord(0, 0, value, 1, 0, 0, 0), strconv.FormatFloat(value*100, 'f', prec, 64)+"%", "", false, false, "", 0, enable, asset)
 
-	if len(title) > 0 {
-		asset.paint_title(0, 0, 1, 1, title)
+	if len(tooltip) > 0 {
+		asset.paint_tooltip(0, 0, 1, 1, tooltip)
 	}
 
 	return 1
 }
 
-func (asset *Asset) _sa_comp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, titleMem uint64, enable uint32) int64 {
+func (asset *Asset) _sa_comp_drawProgress(styleFrameId uint32, styleStatusId uint32, value float64, prec int32, tooltipMem uint64, enable uint32) int64 {
 
-	title, err := asset.ptrToString(titleMem)
+	tooltip, err := asset.ptrToString(tooltipMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
@@ -273,10 +273,10 @@ func (asset *Asset) _sa_comp_drawProgress(styleFrameId uint32, styleStatusId uin
 	styleFrame := asset.styles.Get(styleFrameId)
 	styleStatus := asset.styles.Get(styleStatusId)
 
-	return asset.comp_drawProgress(styleFrame, styleStatus, value, int(prec), title, enable > 0)
+	return asset.comp_drawProgress(styleFrame, styleStatus, value, int(prec), tooltip, enable > 0)
 }
 
-func (asset *Asset) comp_drawSlider(styleTrack *CompStyle, styleThumb *CompStyle, value float64, minValue float64, maxValue float64, jumpValue float64, title string, enable bool) (float64, bool, bool, bool) {
+func (asset *Asset) comp_drawSlider(styleTrack *CompStyle, styleThumb *CompStyle, value float64, minValue float64, maxValue float64, jumpValue float64, tooltip string, enable bool) (float64, bool, bool, bool) {
 	root := asset.app.root
 	st := root.levels.GetStack()
 
@@ -341,23 +341,23 @@ func (asset *Asset) comp_drawSlider(styleTrack *CompStyle, styleThumb *CompStyle
 		asset.app.root.tile.SetForce(p, strconv.FormatFloat(value, 'f', 2, 64), OsCd_black())
 	}
 
-	if len(title) > 0 {
-		asset.paint_title(0, 0, 1, 1, title)
+	if len(tooltip) > 0 {
+		asset.paint_tooltip(0, 0, 1, 1, tooltip)
 	}
 
 	return value, active, (active && old_value != value), end
 }
 
-func (asset *Asset) _sa_comp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, minValue float64, maxValue float64, jumpValue float64, titleMem uint64, enable uint32, outMem uint64) float64 {
+func (asset *Asset) _sa_comp_drawSlider(styleTrackId uint32, styleThumbId uint32, value float64, minValue float64, maxValue float64, jumpValue float64, tooltipMem uint64, enable uint32, outMem uint64) float64 {
 
-	title, err := asset.ptrToString(titleMem)
+	tooltip, err := asset.ptrToString(tooltipMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
 
 	styleTrack := asset.styles.Get(styleTrackId)
 	styleThumb := asset.styles.Get(styleThumbId)
-	value, active, changed, finished := asset.comp_drawSlider(styleTrack, styleThumb, value, minValue, maxValue, jumpValue, title, enable > 0)
+	value, active, changed, finished := asset.comp_drawSlider(styleTrack, styleThumb, value, minValue, maxValue, jumpValue, tooltip, enable > 0)
 
 	out, err := asset.ptrToBytesDirect(outMem)
 	if asset.AddLogErr(err) {
@@ -370,7 +370,7 @@ func (asset *Asset) _sa_comp_drawSlider(styleTrackId uint32, styleThumbId uint32
 	return value
 }
 
-func (asset *Asset) comp_drawCombo(style *CompStyle, styleMenu *CompStyle, value uint64, optionsIn string, title string, enable bool) int64 {
+func (asset *Asset) comp_drawCombo(style *CompStyle, styleMenu *CompStyle, value uint64, optionsIn string, tooltip string, enable bool) int64 {
 
 	root := asset.app.root
 	div := root.levels.GetStack().stack
@@ -449,20 +449,20 @@ func (asset *Asset) comp_drawCombo(style *CompStyle, styleMenu *CompStyle, value
 		asset._sa_div_dialogEnd()
 	}
 
-	if len(title) > 0 {
-		asset.paint_title(0, 0, 1, 1, title)
+	if len(tooltip) > 0 {
+		asset.paint_tooltip(0, 0, 1, 1, tooltip)
 	}
 
 	return int64(value)
 }
 
-func (asset *Asset) _sa_comp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem uint64, titleMem uint64, enable uint32) int64 {
+func (asset *Asset) _sa_comp_drawCombo(styleId uint32, styleMenuId uint32, value uint64, optionsMem uint64, tooltipMem uint64, enable uint32) int64 {
 
 	options, err := asset.ptrToString(optionsMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
-	title, err := asset.ptrToString(titleMem)
+	tooltip, err := asset.ptrToString(tooltipMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
@@ -470,10 +470,10 @@ func (asset *Asset) _sa_comp_drawCombo(styleId uint32, styleMenuId uint32, value
 	style := asset.styles.Get(styleId)
 	styleMenu := asset.styles.Get(styleMenuId)
 
-	return asset.comp_drawCombo(style, styleMenu, value, options, title, enable > 0)
+	return asset.comp_drawCombo(style, styleMenu, value, options, tooltip, enable > 0)
 }
 
-func (asset *Asset) comp_drawCheckbox(styleCheck *CompStyle, styleLabel *CompStyle, value uint64, label string, title string, enable bool) int64 {
+func (asset *Asset) comp_drawCheckbox(styleCheck *CompStyle, styleLabel *CompStyle, value uint64, label string, tooltip string, enable bool) int64 {
 
 	root := asset.app.root
 	st := root.levels.GetStack()
@@ -524,21 +524,21 @@ func (asset *Asset) comp_drawCheckbox(styleCheck *CompStyle, styleLabel *CompSty
 		//st.buff.AddLine(content.GetPos(1.0/3, 0.9), content.GetPos(0.95, 1.0/4), themeWhite(), asset.getCellWidth(0.05))
 	}
 
-	if len(title) > 0 {
-		asset.paint_title(0, 0, 1, 1, title)
+	if len(tooltip) > 0 {
+		asset.paint_tooltip(0, 0, 1, 1, tooltip)
 	}
 
 	return int64(value)
 }
 
-func (asset *Asset) _sa_comp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem uint64, titleMem uint64, enable uint32) int64 {
+func (asset *Asset) _sa_comp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, value uint64, labelMem uint64, tooltipMem uint64, enable uint32) int64 {
 
 	label, err := asset.ptrToString(labelMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
 
-	title, err := asset.ptrToString(titleMem)
+	tooltip, err := asset.ptrToString(tooltipMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
@@ -546,7 +546,7 @@ func (asset *Asset) _sa_comp_drawCheckbox(styleCheckId uint32, styleLabelId uint
 	styleCheck := asset.styles.Get(styleCheckId)
 	styleLabel := asset.styles.Get(styleLabelId)
 
-	return asset.comp_drawCheckbox(styleCheck, styleLabel, value, label, title, enable > 0)
+	return asset.comp_drawCheckbox(styleCheck, styleLabel, value, label, tooltip, enable > 0)
 }
 
 func (asset *Asset) paint_textWidth(value string, fontPath string, ratioH float64, cursorPos int64) float64 {

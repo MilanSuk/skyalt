@@ -710,7 +710,7 @@ func ModeMonth() {
 						var title string
 						for query.Next(&rowid, &start, &title) {
 
-							if SA_ButtonStyle(title, &g_ButtonEvent).Title(GetTextTime(start)).Show(0, y, 1, 1).click {
+							if SA_ButtonStyle(title, &g_ButtonEvent).Tooltip(GetTextTime(start)).Show(0, y, 1, 1).click {
 								SA_DialogOpen(fmt.Sprintf("eventDetail_%d", rowid), 1)
 							}
 
@@ -956,7 +956,7 @@ func DayEvent(t int64) {
 			}
 
 			for i, it := range cols[c] {
-				if SA_Button(it.title).Title(GetTextTime(it.start)+"-"+GetTextTime(it.end)).Show(0, i*2+1, 1, 1).click {
+				if SA_Button(it.title).Tooltip(GetTextTime(it.start)+"-"+GetTextTime(it.end)).Show(0, i*2+1, 1, 1).click {
 					SA_DialogOpen(fmt.Sprintf("eventDetail_%d", it.rowid), 1)
 				}
 
@@ -1065,7 +1065,7 @@ func ModePanel() {
 		SA_ColMax(4, 8)
 
 		//today
-		if SA_ButtonLight(trns.TODAY).Title(GetTextDate(int64(SA_Time()))).Show(0, 0, 1, 1).click {
+		if SA_ButtonLight(trns.TODAY).Tooltip(GetTextDate(int64(SA_Time()))).Show(0, 0, 1, 1).click {
 			store.Small_date = int64(SA_Time())
 			store.Small_page = int64(SA_Time())
 		}

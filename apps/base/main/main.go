@@ -552,7 +552,7 @@ func Files() {
 				}
 
 				SA_ColMax(0, 100)
-				if SA_ButtonMenu(nm).Pressed(isSelected).Title("id: "+strconv.Itoa(file.Sts_id)).Show(0, 0, 1, 1).click {
+				if SA_ButtonMenu(nm).Pressed(isSelected).Tooltip("id: "+strconv.Itoa(file.Sts_id)).Show(0, 0, 1, 1).click {
 					store.SelectedFile = file_i
 					store.SelectedApp = -1
 
@@ -569,7 +569,7 @@ func Files() {
 			SA_DivEnd()
 
 			//add app
-			if SA_ButtonStyle("+", &g_ButtonAddApp).Title(trns.ADD_APP).Show(2, 0, 1, 1).click {
+			if SA_ButtonStyle("+", &g_ButtonAddApp).Tooltip(trns.ADD_APP).Show(2, 0, 1, 1).click {
 				SA_DialogOpen("apps_"+file.Name, 1)
 			}
 			if SA_DialogStart("apps_" + file.Name) {
@@ -674,7 +674,7 @@ func Files() {
 					{
 						SA_ColMax(0, 100)
 
-						if SA_ButtonMenu(app.Label).Pressed(isSelected).Title("app: "+app.Name+", id: "+strconv.Itoa(app.Sts_id)).Show(0, 0, 1, 1).click {
+						if SA_ButtonMenu(app.Label).Pressed(isSelected).Tooltip("app: "+app.Name+", id: "+strconv.Itoa(app.Sts_id)).Show(0, 0, 1, 1).click {
 							store.SelectedFile = file_i
 							store.SelectedApp = app_i
 
@@ -807,7 +807,7 @@ func Files() {
 	//new database
 	SA_DivStart(0, y, 1, 1)
 	{
-		if SA_Button("+").Title(trns.CREATE_DB).Show(0, 0, 1, 1).click {
+		if SA_Button("+").Tooltip(trns.CREATE_DB).Show(0, 0, 1, 1).click {
 			SA_DialogOpen("newFile", 1)
 		}
 		if SA_DialogStart("newFile") {
