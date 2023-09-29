@@ -66,11 +66,11 @@ func _sa_info_string_len(keyMem SAMem) int64
 //export _sa_info_setString
 func _sa_info_setString(keyMem SAMem, valueMem SAMem) int64
 
-//export _sa_resource
-func _sa_resource(pathMem SAMem, dstMem SAMem) int64
+//export _sa_blob
+func _sa_blob(pathMem SAMem, dstMem SAMem) int64
 
-//export _sa_resource_len
-func _sa_resource_len(pathMem SAMem) int64
+//export _sa_blob_len
+func _sa_blob_len(pathMem SAMem) int64
 
 //export _sa_sql_write
 func _sa_sql_write(dbMem SAMem, queryMem SAMem) int64

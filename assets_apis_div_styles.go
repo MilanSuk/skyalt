@@ -124,7 +124,7 @@ func DivStyle_getCoord(coord OsV4, x, y, w, h float64) OsV4 {
 		int(float64(coord.Size.Y)*h))
 }
 
-func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_path string, image_margin float64, asset *Asset) OsV4 {
+func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_url string, image_margin float64, asset *Asset) OsV4 {
 
 	stt := asset.app.root.levels.GetStack()
 	if stt.stack == nil || stt.stack.crop.IsZero() {
@@ -174,7 +174,7 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 	coordImg := content
 	coordText := content
 
-	isImg := (len(image_path) > 0)
+	isImg := (len(image_url) > 0)
 	isText := (len(text) > 0 || textEdit)
 
 	if isImg && isText {
@@ -195,7 +195,7 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 	}
 
 	if isImg {
-		path, err := InitResourcePath(asset.app.root, image_path, asset.app.name)
+		path, err := MediaParseUrl(image_url, asset)
 		if err != nil {
 			asset.AddLogErr(err)
 		} else {

@@ -79,8 +79,8 @@ func (aw *AssetWasm) InstantiateEnv() error {
 	env.NewFunctionBuilder().WithFunc(aw.asset._sa_info_string_len).Export("_sa_info_string_len")
 	env.NewFunctionBuilder().WithFunc(aw.asset._sa_info_setString).Export("_sa_info_setString")
 
-	env.NewFunctionBuilder().WithFunc(aw.asset._sa_resource).Export("_sa_resource")
-	env.NewFunctionBuilder().WithFunc(aw.asset._sa_resource_len).Export("_sa_resource_len")
+	env.NewFunctionBuilder().WithFunc(aw.asset._sa_blob).Export("_sa_blob")
+	env.NewFunctionBuilder().WithFunc(aw.asset._sa_blob_len).Export("_sa_blob")
 	env.NewFunctionBuilder().WithFunc(aw.asset._sa_storage_write).Export("_sa_storage_write")
 
 	env.NewFunctionBuilder().WithFunc(aw.asset._sa_sql_write).Export("_sa_sql_write")

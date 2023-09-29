@@ -107,7 +107,7 @@ func (asset *Asset) paint_file(x, y, w, h float64, file string, title string, ma
 	coord := asset.getCoord(x, y, w, h, margin, marginX, marginY)
 	cd := InitOsCd32(r, g, b, a)
 
-	path, err := InitResourcePath(asset.app.root, file, asset.app.name)
+	path, err := MediaParseUrl(file, asset)
 	if err != nil {
 		asset.AddLogErr(err)
 		return -1

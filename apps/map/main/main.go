@@ -250,7 +250,7 @@ func Map(cam *Cam) {
 			q := SA_SqlRead("", "SELECT rowid FROM tiles WHERE name=='"+strconv.Itoa(int(zoom))+"-"+strconv.Itoa(int(x))+"-"+strconv.Itoa(int(y))+".png'")
 			var rowid int
 			if q.Next(&rowid) {
-				file := SA_ResourceBuildDbPath("", "tiles", "file", rowid)
+				file := SA_FileGetBlob("", "tiles", "file", rowid)
 
 				//extra margin will fix white spaces during zooming
 				SAPaint_File(tileCoord_sx, tileCoord_sy, tileW, tileH, file, "", float64(zooming)*-0.03, 0, 0, SA_ThemeWhite(), 0, 0, false)
@@ -282,7 +282,7 @@ func Map(cam *Cam) {
 			rad_y := rad / height
 
 			//SAPaint_Text()	//...
-			SAPaint_File(x-rad_x/2, y-rad_y, rad_x, rad_y, SA_ResourceBuildAssetPath("", "locator.png"), "", 0, 0, 0, SA_ThemeError(), 1, 0, false)
+			SAPaint_File(x-rad_x/2, y-rad_y, rad_x, rad_y, SA_FileFromResources("", "locator.png"), "", 0, 0, 0, SA_ThemeError(), 1, 0, false)
 			//SAPaint_Circle(x, y, 0.1, SA_ThemeError(), 0)
 
 			dnm := fmt.Sprintf("locator_%d", rowid)

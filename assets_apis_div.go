@@ -855,11 +855,18 @@ func (asset *Asset) _sa_register_style(jsMem uint64) int64 {
 	return asset.register_style(js)
 }
 
-func (asset *Asset) render_app(appName string, dbName string, sts_id uint64) (int64, error) {
+func (asset *Asset) render_app(appName string, dbUrl string, sts_id uint64) (int64, error) {
 
-	root := asset.app.root
+	dbPath, _, inAsset, err := FileParseUrl(dbUrl, asset)
+	if err != nil {
+		return -1, fmt.Errorf("DbParseUrl() failed: %w", err)
+	}
 
-	app, err := root.AddApp(appName, dbName, int(sts_id))
+	if inAsset {
+		return -1, fmt.Errorf("Can't pait app with read-only database", err)
+	}
+
+	app, err := asset.app.root.AddApp(appName, dbPath, int(sts_id))
 	if err != nil {
 		return -1, err
 	}

@@ -34,7 +34,7 @@ func NewDbSettings(root *Root) (*DbSettings, error) {
 	sts.root = root
 
 	var err error
-	sts.db, err = root.AddDb("settings")
+	sts.db, err = root.AddDb(root.folderDatabases + "/settings.sqlite")
 	if err != nil {
 		return nil, fmt.Errorf("AddDb() failed: %w", err)
 	}
@@ -70,7 +70,7 @@ func (sts *DbSettings) Destroy() error {
 }
 
 func (sts *DbSettings) DbSettings_GetName() string {
-	return sts.db.name + ".sqlite"
+	return sts.db.path + ".sqlite"
 }
 
 func (sts *DbSettings) AddSts_uid() int {

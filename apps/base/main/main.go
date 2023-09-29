@@ -223,7 +223,7 @@ func Settings() {
 						SA_MoveElement(&langs, &langs, int(src), i, pos)
 						changed = true
 					}
-					SA_Image(SA_ResourceBuildAssetPath("", "reorder.png")).Margin(0.15).Show(0, 0, 1, 1)
+					SA_Image(SA_FileFromResources("", "reorder.png")).Margin(0.15).Show(0, 0, 1, 1)
 				}
 				SA_DivEnd()
 
@@ -322,7 +322,7 @@ func About() {
 
 	SA_TextCenter(trns.ABOUT).Show(0, 0, 1, 1)
 
-	SA_Image(SA_ResourceBuildAssetPath("", "logo.png")).Show(0, 1, 1, 1)
+	SA_Image(SA_FileFromResources("", "logo.png")).Show(0, 1, 1, 1)
 
 	SA_TextCenter("v0.2").Show(0, 2, 1, 1)
 
@@ -520,7 +520,7 @@ func Files() {
 			if !file.Expand {
 				iconName = "tree_show.png"
 			}
-			if SA_ButtonAlpha("").Enable(len(file.Apps) > 0).Icon(SA_ResourceBuildAssetPath("", iconName), 0.05).Show(0, 0, 1, 1).click {
+			if SA_ButtonAlpha("").Enable(len(file.Apps) > 0).Icon(SA_FileFromResources("", iconName), 0.05).Show(0, 0, 1, 1).click {
 				file.Expand = !file.Expand
 			}
 
@@ -572,7 +572,7 @@ func Files() {
 			}
 
 			//context
-			if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "context.png"), 0.13).Show(3, 0, 1, 1).click {
+			if SA_ButtonAlpha("").Icon(SA_FileFromResources("", "context.png"), 0.13).Show(3, 0, 1, 1).click {
 				SA_DialogOpen("fileContext_"+file.Name, 1)
 			}
 
@@ -688,7 +688,7 @@ func Files() {
 								app.logs_showtime = SA_Time()
 							}
 							if app.logs_showtime+5 > SA_Time() {
-								if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "warning.png"), 0.0).Show(1, 0, 1, 1).click {
+								if SA_ButtonAlpha("").Icon(SA_FileFromResources("", "warning.png"), 0.0).Show(1, 0, 1, 1).click {
 									SA_DialogOpen("log_"+strconv.Itoa(app.Sts_id), 0)
 								}
 							}
@@ -717,7 +717,7 @@ func Files() {
 					SA_DivEnd()
 
 					//context
-					if SA_ButtonAlpha("").Icon(SA_ResourceBuildAssetPath("", "context.png"), 0.13).Show(2, 0, 1, 1).click {
+					if SA_ButtonAlpha("").Icon(SA_FileFromResources("", "context.png"), 0.13).Show(2, 0, 1, 1).click {
 						SA_DialogOpen("appContext_"+file.Name+"_"+strconv.Itoa(app.Sts_id), 1)
 					}
 
@@ -844,7 +844,7 @@ func Render() uint32 {
 		SA_ColMax(1, 100)
 
 		//Menu + dialogs
-		if SA_ButtonStyle("", &styles.ButtonLogo).Icon(SA_ResourceBuildAssetPath("", "logo_small.png"), 0).Show(0, 0, 1, 1).click {
+		if SA_ButtonStyle("", &styles.ButtonLogo).Icon(SA_FileFromResources("", "logo_small.png"), 0).Show(0, 0, 1, 1).click {
 			SA_DialogOpen("Menu", 1)
 		}
 		if SA_DialogStart("Menu") {
@@ -875,11 +875,11 @@ func Render() uint32 {
 	app := FindSelectedApp()
 	if app != nil {
 		SA_DivStartName(1, 0, 1, 2, strconv.Itoa(app.Sts_id)+"_"+strconv.Itoa(file.Sts_id))
-		SA_RenderApp(app.Name, file.Name, app.Sts_id)
+		SA_RenderApp(app.Name, SA_FileFromDbs(file.Name+".sqlite"), app.Sts_id)
 		SA_DivEnd()
 	} else if file != nil {
 		SA_DivStartName(1, 0, 1, 2, "_tables_"+strconv.Itoa(file.Sts_id))
-		SA_RenderApp("db", file.Name, file.Sts_id)
+		SA_RenderApp("db", SA_FileFromDbs(file.Name+".sqlite"), file.Sts_id)
 		SA_DivEnd()
 	}
 

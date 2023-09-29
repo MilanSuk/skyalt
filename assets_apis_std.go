@@ -170,12 +170,6 @@ func (asset *Asset) info_string(key string) (string, int64) {
 	}
 
 	switch strings.ToLower(key) {
-	case "asset":
-		return asset.name, 1
-
-	case "db":
-		return asset.app.db_name, 1
-
 	case "files":
 		return asset.app.root.dbsList, 1
 
@@ -310,11 +304,11 @@ func (asset *Asset) findAsset(assetName string) *Asset {
 	return asset
 }
 
-func (asset *Asset) _getResource(path string) ([]byte, error) {
+func (asset *Asset) _getResource(url string) ([]byte, error) {
 
-	res, err := InitResourcePath(asset.app.root, path, asset.app.name)
+	res, err := MediaParseUrl(url, asset)
 	if err != nil {
-		return nil, fmt.Errorf("InitResourcePath() failed: %w", err)
+		return nil, fmt.Errorf("MediaParseUrl() failed: %w", err)
 	}
 
 	data, err := res.GetBlob()
@@ -343,7 +337,7 @@ func (asset *Asset) resource_len(path string) (int64, error) {
 	return int64(len(data)), nil
 }
 
-func (asset *Asset) _sa_resource(pathMem uint64, dstMem uint64) int64 {
+func (asset *Asset) _sa_blob(pathMem uint64, dstMem uint64) int64 {
 
 	path, err := asset.ptrToString(pathMem)
 	if asset.AddLogErr(err) {
@@ -365,7 +359,7 @@ func (asset *Asset) _sa_resource(pathMem uint64, dstMem uint64) int64 {
 	return 1
 }
 
-func (asset *Asset) _sa_resource_len(pathMem uint64) int64 {
+func (asset *Asset) _sa_blob_len(pathMem uint64) int64 {
 
 	path, err := asset.ptrToString(pathMem)
 	if asset.AddLogErr(err) {

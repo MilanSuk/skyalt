@@ -150,7 +150,7 @@ func NewDbCache(query string, db *sql.DB) (*DbCache, error) {
 
 type Db struct {
 	root *Root
-	name string
+	path string
 
 	db *sql.DB
 	tx *sql.Tx
@@ -160,10 +160,10 @@ type Db struct {
 	lastChange int
 }
 
-func NewDb(root *Root, name string) (*Db, error) {
+func NewDb(root *Root, path string) (*Db, error) {
 	var db Db
 	db.root = root
-	db.name = name
+	db.path = path
 
 	var err error
 	db.db, err = sql.Open("sqlite3", "file:"+db.GetPath()+"?&_journal_mode=WAL")
@@ -192,7 +192,7 @@ func (db *Db) Begin() (*sql.Tx, error) {
 }
 
 func (db *Db) GetPath() string {
-	return db.root.folderDatabases + "/" + db.name + ".sqlite"
+	return db.path
 }
 
 func (db *Db) Commit() error {

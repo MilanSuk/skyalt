@@ -47,33 +47,34 @@ func SA_Time() float64 {
 	return SA_InfoFloat("time")
 }
 
-/* -------------------- Resources -------------------- */
+/* -------------------- File Access -------------------- */
 
-func SA_Resource(path string) []byte {
+func SA_FileFromDbs(file string) string {
+	return "dbs:" + file
+}
 
+func SA_FileFromResources(asset string, file string) string {
+	return "assets:" + asset + "/" + file
+}
+
+func SA_FileGetBlob(path string, table string, column string, row int) string {
+	if len(path) == 0 {
+		path = SA_FileFromDbs("")
+	}
+	return path + "/" + table + "/" + column + "/" + strconv.Itoa(row)
+}
+
+func SA_FileContent(path string) []byte {
 	pathMem := _SA_stringToPtr(path)
 
-	sz := _sa_resource_len(pathMem)
+	sz := _sa_blob_len(pathMem)
 	if sz > 0 {
 		ret := make([]byte, sz)
-		if _sa_resource(pathMem, _SA_bytesToPtr(ret)) > 0 {
+		if _sa_blob(pathMem, _SA_bytesToPtr(ret)) > 0 {
 			return ret
 		}
 	}
 	return nil
-}
-
-func SA_ResourceBuildDbPath(db string, table string, column string, row int) string {
-	if len(db) == 0 {
-		db = SA_Info("db")
-	}
-	return "db:" + db + "/" + table + "/" + column + "/" + strconv.Itoa(row)
-}
-func SA_ResourceBuildAssetPath(asset string, file string) string {
-	if len(asset) == 0 {
-		asset = SA_Info("asset")
-	}
-	return "asset:" + asset + "/" + file
 }
 
 /* -------------------- SQLite storage -------------------- */

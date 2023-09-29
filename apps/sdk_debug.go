@@ -243,7 +243,7 @@ func _sa_info_setString(keyMem SAMem, valueMem SAMem) int64 {
 	return ret
 }
 
-func _sa_resource(pathMem SAMem, dstMem SAMem) int64 {
+func _sa_blob(pathMem SAMem, dstMem SAMem) int64 {
 	WriteUint64(6)
 	WriteMem(pathMem)
 
@@ -253,7 +253,7 @@ func _sa_resource(pathMem SAMem, dstMem SAMem) int64 {
 	return ret
 }
 
-func _sa_resource_len(pathMem SAMem) int64 {
+func _sa_blob_len(pathMem SAMem) int64 {
 	WriteUint64(7)
 	WriteMem(pathMem)
 	ret := int64(ReadUint64())

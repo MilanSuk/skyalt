@@ -217,27 +217,6 @@ func (ui *Ui) SaveScreenshot() error {
 	return nil
 }
 
-func (ui *Ui) ResetImagesFromDb(db string) {
-	for _, img := range ui.images {
-		if img.path.db == db {
-			err := img.FreeTexture()
-			if err != nil {
-				fmt.Printf("FreeTexture failed: %v\n", err)
-			}
-		}
-	}
-}
-func (ui *Ui) ResetImagesFromApp(app string) {
-	for _, img := range ui.images {
-		if img.path.app == app {
-			err := img.FreeTexture()
-			if err != nil {
-				fmt.Printf("FreeTexture failed: %v\n", err)
-			}
-		}
-	}
-}
-
 func (ui *Ui) NumTextures() int {
 	n := 0
 	for _, img := range ui.images {

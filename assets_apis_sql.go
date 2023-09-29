@@ -18,21 +18,35 @@ package main
 
 import "fmt"
 
-func (asset *Asset) _getDb(dbName string) (*Db, error) {
+func (asset *Asset) _getDb(dbUrl string, needWrite bool) (*Db, error) {
+
+	var dbPath string
 	var err error
-	var db *Db
-	if len(dbName) == 0 {
-		db, err = asset.app.root.AddDb(asset.app.db_name)
+
+	if len(dbUrl) == 0 {
+		dbPath = asset.app.db_name
 	} else {
-		db, err = asset.app.root.AddDb(dbName)
+		var inAsset bool
+		dbPath, _, inAsset, err = FileParseUrl(dbUrl, asset)
+		if err != nil {
+			return nil, fmt.Errorf("DbParseUrl() failed: %w", err)
+		}
+		if needWrite && inAsset {
+			return nil, fmt.Errorf("database is read-only")
+		}
 	}
 
-	return db, err
+	db, err := asset.app.root.AddDb(dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("AddDb() failed: %w", err)
+	}
+
+	return db, nil
 }
 
-func (asset *Asset) sql_write(dbName string, query string) (int64, error) {
+func (asset *Asset) sql_write(dbUrl string, query string) (int64, error) {
 
-	db, err := asset._getDb(dbName)
+	db, err := asset._getDb(dbUrl, true)
 	if err != nil {
 		return -1, err
 	}
@@ -53,9 +67,9 @@ func (asset *Asset) sql_write(dbName string, query string) (int64, error) {
 	return 1, nil
 }
 
-func (asset *Asset) _sa_sql_write(dbMem uint64, queryMem uint64) int64 {
+func (asset *Asset) _sa_sql_write(dbUrlMem uint64, queryMem uint64) int64 {
 
-	db, err := asset.ptrToString(dbMem)
+	db, err := asset.ptrToString(dbUrlMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
@@ -69,9 +83,9 @@ func (asset *Asset) _sa_sql_write(dbMem uint64, queryMem uint64) int64 {
 	return ret
 }
 
-func (asset *Asset) sql_read(dbName string, query string) (int64, error) {
+func (asset *Asset) sql_read(dbUrl string, query string) (int64, error) {
 
-	db, err := asset._getDb(dbName)
+	db, err := asset._getDb(dbUrl, false)
 	if db == nil {
 		return -1, err
 	}
@@ -82,9 +96,9 @@ func (asset *Asset) sql_read(dbName string, query string) (int64, error) {
 
 	return cache.query_hash, nil
 }
-func (asset *Asset) _sa_sql_read(dbMem uint64, queryMem uint64) int64 {
+func (asset *Asset) _sa_sql_read(dbUrlMem uint64, queryMem uint64) int64 {
 
-	db, err := asset.ptrToString(dbMem)
+	db, err := asset.ptrToString(dbUrlMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
@@ -99,9 +113,9 @@ func (asset *Asset) _sa_sql_read(dbMem uint64, queryMem uint64) int64 {
 
 }
 
-func (asset *Asset) sql_readRowCount(dbName string, query string, queryHash int64) (int64, error) {
+func (asset *Asset) sql_readRowCount(dbUrl string, query string, queryHash int64) (int64, error) {
 
-	db, err := asset._getDb(dbName)
+	db, err := asset._getDb(dbUrl, false)
 	if db == nil {
 		return -1, err
 	}
@@ -119,9 +133,9 @@ func (asset *Asset) sql_readRowCount(dbName string, query string, queryHash int6
 	return int64(len(cache.result_rows)), nil
 }
 
-func (asset *Asset) sql_readRowLen(dbName string, query string, queryHash int64, row_i uint64) (int64, error) {
+func (asset *Asset) sql_readRowLen(dbUrl string, query string, queryHash int64, row_i uint64) (int64, error) {
 
-	db, err := asset._getDb(dbName)
+	db, err := asset._getDb(dbUrl, false)
 	if db == nil {
 		return -1, err
 	}
@@ -143,9 +157,9 @@ func (asset *Asset) sql_readRowLen(dbName string, query string, queryHash int64,
 	return 0, nil //no more rows
 }
 
-func (asset *Asset) _sa_sql_readRowCount(dbMem uint64, queryMem uint64, queryHash int64) int64 {
+func (asset *Asset) _sa_sql_readRowCount(dbUrlMem uint64, queryMem uint64, queryHash int64) int64 {
 
-	db, err := asset.ptrToString(dbMem)
+	db, err := asset.ptrToString(dbUrlMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
@@ -159,9 +173,9 @@ func (asset *Asset) _sa_sql_readRowCount(dbMem uint64, queryMem uint64, queryHas
 	return ret
 }
 
-func (asset *Asset) _sa_sql_readRowLen(dbMem uint64, queryMem uint64, queryHash int64, row_i uint64) int64 {
+func (asset *Asset) _sa_sql_readRowLen(dbUrlMem uint64, queryMem uint64, queryHash int64, row_i uint64) int64 {
 
-	db, err := asset.ptrToString(dbMem)
+	db, err := asset.ptrToString(dbUrlMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}
@@ -175,9 +189,9 @@ func (asset *Asset) _sa_sql_readRowLen(dbMem uint64, queryMem uint64, queryHash 
 	return ret
 }
 
-func (asset *Asset) sql_readRow(dbName string, query string, queryHash int64, row_i uint64) ([]byte, int64, error) {
+func (asset *Asset) sql_readRow(dbUrl string, query string, queryHash int64, row_i uint64) ([]byte, int64, error) {
 
-	db, err := asset._getDb(dbName)
+	db, err := asset._getDb(dbUrl, false)
 	if db == nil {
 		return nil, -1, err
 	}
@@ -198,9 +212,9 @@ func (asset *Asset) sql_readRow(dbName string, query string, queryHash int64, ro
 	return nil, 0, nil //no more rows
 }
 
-func (asset *Asset) _sa_sql_readRow(dbMem uint64, queryMem uint64, queryHash int64, row_i uint64, resultMem uint64) int64 {
+func (asset *Asset) _sa_sql_readRow(dbUrlMem uint64, queryMem uint64, queryHash int64, row_i uint64, resultMem uint64) int64 {
 
-	db, err := asset.ptrToString(dbMem)
+	db, err := asset.ptrToString(dbUrlMem)
 	if asset.AddLogErr(err) {
 		return -1
 	}

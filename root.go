@@ -53,8 +53,8 @@ type Root struct {
 
 	ui *Ui
 
-	baseApp string
-	baseDb  string
+	baseAppName string
+	baseDbPath  string
 
 	fonts *Fonts
 
@@ -76,7 +76,7 @@ type Root struct {
 	stylesJs []byte
 }
 
-func NewRoot(debugPORT int, folderApps string, folderDbs string, folderDevice string, ctx context.Context) (*Root, error) {
+func NewRoot(debugPORT int, folderApps string, folderDatabases string, folderDevice string, ctx context.Context) (*Root, error) {
 	var root Root
 	var err error
 	root.ctx = ctx
@@ -85,18 +85,18 @@ func NewRoot(debugPORT int, folderApps string, folderDbs string, folderDevice st
 	root.dbs = make(map[string]*Db)
 
 	root.folderApps = folderApps
-	root.folderDatabases = folderDbs
+	root.folderDatabases = folderDatabases
 	root.folderDevice = folderDevice
 
 	os.Mkdir(folderApps, 0700)
-	os.Mkdir(folderDbs, 0700)
+	os.Mkdir(folderDatabases, 0700)
 	os.Mkdir(folderDevice, 0700)
 
 	if !OsFolderExists(folderApps) {
 		return nil, fmt.Errorf("Folder(%s) not exist", folderApps)
 	}
-	if !OsFolderExists(folderDbs) {
-		return nil, fmt.Errorf("Folder(%s) not exist", folderDbs)
+	if !OsFolderExists(folderDatabases) {
+		return nil, fmt.Errorf("Folder(%s) not exist", folderDatabases)
 	}
 	if !OsFolderExists(folderDevice) {
 		return nil, fmt.Errorf("Folder(%s) not exist", folderDevice)
@@ -133,8 +133,8 @@ func NewRoot(debugPORT int, folderApps string, folderDbs string, folderDevice st
 		return nil, fmt.Errorf("NewLayoutLevels() failed: %w", err)
 	}
 
-	root.baseApp = "base"
-	root.baseDb = "settings"
+	root.baseAppName = "base"
+	root.baseDbPath = root.folderDatabases + "/settings.sqlite"
 
 	root.updateDbsList()
 	root.updateAppsList()
@@ -231,30 +231,30 @@ func (root *Root) FindAppId(sts_id int) *App {
 	return nil
 }
 
-func (root *Root) FindApp(appName string, dbName string, sts_id int) *App {
+func (root *Root) FindApp(appName string, dbPath string, sts_id int) *App {
 	for _, app := range root.apps {
-		if app.name == appName && (len(dbName) == 0 || app.db_name == dbName) && (sts_id < 0 || app.sts_id == sts_id) {
+		if app.name == appName && (len(dbPath) == 0 || app.db_name == dbPath) && (sts_id < 0 || app.sts_id == sts_id) {
 			return app
 		}
 	}
 	return nil
 }
 
-func (root *Root) AddApp(appName string, dbName string, sts_id int) (*App, error) {
+func (root *Root) AddApp(appName string, dbPath string, sts_id int) (*App, error) {
 	//find
-	app := root.FindApp(appName, dbName, sts_id)
+	app := root.FindApp(appName, dbPath, sts_id)
 	if app != nil {
 		return app, nil //ok
 	}
 
 	//add db
-	_, err := root.AddDb(dbName)
+	_, err := root.AddDb(dbPath)
 	if err != nil {
 		return nil, err
 	}
 
 	//add
-	app, err = NewApp(root, appName, dbName, sts_id)
+	app, err = NewApp(root, appName, dbPath, sts_id)
 	if err != nil {
 		return nil, err
 	}
@@ -262,22 +262,22 @@ func (root *Root) AddApp(appName string, dbName string, sts_id int) (*App, error
 	return app, nil
 }
 
-func (root *Root) AddDb(name string) (*Db, error) {
+func (root *Root) AddDb(path string) (*Db, error) {
 
 	//finds
-	db, found := root.dbs[name]
+	db, found := root.dbs[path]
 	if found {
 		return db, nil
 	}
 
 	//adds
 	var err error
-	db, err = NewDb(root, name)
+	db, err = NewDb(root, path)
 	if err != nil {
 		return nil, err
 	}
 
-	root.dbs[name] = db
+	root.dbs[path] = db
 	return db, nil
 }
 
@@ -438,9 +438,9 @@ func (root *Root) Render() {
 		root.ui.io.keys.esc = false
 	}
 
-	ist, err := root.AddApp(root.baseApp, root.baseDb, 0)
+	ist, err := root.AddApp(root.baseAppName, root.baseDbPath, 0)
 	if err != nil {
-		fmt.Printf("AddApp(%s).Db(%s) failed: %v\n", root.baseApp, root.baseDb, err)
+		fmt.Printf("AddApp(%s).Db(%s) failed: %v\n", root.baseAppName, root.baseDbPath, err)
 		return
 	}
 

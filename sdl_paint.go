@@ -365,7 +365,7 @@ func (b *PaintBuff) AddCircle(coord OsV4, cd OsCd, thick int) {
 	}
 }
 
-func PaintImage_load(path ResourcePath, inverserRGB bool, ui *Ui) (*Image, error) {
+func PaintImage_load(path MediaPath, inverserRGB bool, ui *Ui) (*Image, error) {
 	var img *Image
 	for _, it := range ui.images {
 		if it.path.Cmp(&path) && it.inverserRGB == inverserRGB {
@@ -389,7 +389,7 @@ func PaintImage_load(path ResourcePath, inverserRGB bool, ui *Ui) (*Image, error
 	return img, nil
 }
 
-func (b *PaintBuff) AddImage(path ResourcePath, inverserRGB bool, coord OsV4, cd OsCd, alignV int, alignH int, fill bool) {
+func (b *PaintBuff) AddImage(path MediaPath, inverserRGB bool, coord OsV4, cd OsCd, alignV int, alignH int, fill bool) {
 	img, err := PaintImage_load(path, inverserRGB, b.ui)
 	if err != nil {
 		b.AddText(path.GetString()+" has error", coord, path.root.fonts.Get(SKYALT_FONT_PATH), OsCd_error(), path.root.ui.io.GetDPI()/8, OsV2{1, 1}, nil)

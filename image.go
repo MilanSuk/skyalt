@@ -34,102 +34,111 @@ import (
 	"golang.org/x/image/webp"
 )
 
-type ResourcePath struct {
+func FileParseUrl(url string, asset *Asset) (string, string, bool, error) {
+
+	file, found := strings.CutPrefix(url, "dbs:")
+	if found {
+		d := strings.Index(file, "/")
+		if d == 0 {
+			return asset.app.db_name, file[d+1:], false, nil //default
+		}
+		if d > 0 {
+			return asset.app.root.folderDatabases + "/" + file[:d], file[d+1:], false, nil //optional(table/column/row)
+		}
+		return asset.app.root.folderDatabases + "/" + file, "", false, nil
+	}
+
+	file, found = strings.CutPrefix(url, "assets:")
+	if found {
+		d := strings.Index(file, "/")
+		if d < 0 {
+			return "", "", false, errors.New("asset '/' is missing")
+		}
+		var assetName string
+		if d == 0 {
+			assetName = asset.name //default
+		} else {
+			assetName = file[:d]
+		}
+		file = file[d+1:]
+
+		d = strings.Index(file, "/")
+		if d > 0 {
+			return asset.app.getPath() + "/" + assetName + "/resources/" + file[:d], file[d+1:], true, nil //optional(table/column/row)
+		}
+		return asset.app.getPath() + "/" + assetName + "/resources/" + file, "", true, nil
+	}
+
+	return "", "", false, fmt.Errorf("must start with 'dbs:' or 'assets:'")
+}
+
+type MediaPath struct {
 	root *Root
 
-	//is db
-	db     string
+	path string
+
+	//optional(blob)
 	table  string
 	column string
 	row    int
-
-	//is resource
-	app   string
-	asset string
-	file  string
 }
 
-func InitResourcePath(root *Root, path string, app string) (ResourcePath, error) {
-	var ip ResourcePath
-	ip.root = root
+func MediaParseUrl(url string, asset *Asset) (MediaPath, error) {
+	var ip MediaPath
+	ip.root = asset.app.root
 
-	var found bool
-	path, found = strings.CutPrefix(path, "db:")
-	if found {
-		//db
-		d := strings.Index(path, "/")
-		if d <= 0 {
-			return ip, errors.New("1st '/' invalid")
-		}
-		ip.db = path[:d]
-		path = path[d+1:]
+	filePath, opt, _, err := FileParseUrl(url, asset)
+	if err != nil {
+		return MediaPath{}, fmt.Errorf("DbParseUrl() failed: %w", err)
+	}
+	ip.path = filePath
 
+	if len(opt) > 0 {
 		//table
-		d = strings.Index(path, "/")
+		d := strings.Index(opt, "/")
 		if d <= 0 {
-			return ip, errors.New("2nd '/' invalid")
+			return ip, errors.New("table '/' is missing")
 		}
-		ip.table = path[:d]
-		path = path[d+1:]
+		ip.table = opt[:d]
+		opt = opt[d+1:]
 
 		//column
-		d = strings.Index(path, "/")
+		d = strings.Index(opt, "/")
 		if d <= 0 {
-			return ip, errors.New("3rd '/' invalid")
+			return ip, errors.New("column '/' is missing")
 		}
-		ip.column = path[:d]
-		path = path[d+1:]
+		ip.column = opt[:d]
+		opt = opt[d+1:]
 
 		//row
 		var err error
-		ip.row, err = strconv.Atoi(path)
+		ip.row, err = strconv.Atoi(opt)
 		if err != nil {
 			return ip, err
 		}
 	}
 
-	path, found = strings.CutPrefix(path, "asset:")
-	if found {
-		ip.app = app
-		//asset
-		d := strings.Index(path, "/")
-		if d < 0 {
-			return ip, errors.New("1st '/' invalid")
-		}
-		ip.asset = path[:d]
-		path = path[d+1:]
-
-		//name
-		ip.file = path
-	}
-
 	return ip, nil
 }
 
-func (ip *ResourcePath) Is() bool {
+func (ip *MediaPath) Is() bool {
 	return true
 }
 
-func (ip *ResourcePath) GetString() string {
-	if len(ip.db) > 0 {
-		return fmt.Sprintf("db:%s/%s/%d", ip.table, ip.column, ip.row)
-
-	} else if len(ip.app) > 0 {
-		return fmt.Sprintf("asset:%s/%s/%s", ip.app, ip.asset, ip.file)
-	}
-	return ""
+func (ip *MediaPath) GetString() string {
+	return fmt.Sprintf("%s - %s/%s/%d", ip.path, ip.table, ip.column, ip.row)
 }
 
-func (a *ResourcePath) Cmp(b *ResourcePath) bool {
-	return a.db == b.db && a.table == b.table && a.column == b.column && a.row == b.row &&
-		a.app == b.app && a.asset == b.asset && a.file == b.file
+func (a *MediaPath) Cmp(b *MediaPath) bool {
+	return a.path == b.path && a.table == b.table && a.column == b.column && a.row == b.row
 }
 
-func (ip *ResourcePath) GetBlob() ([]byte, error) {
+func (ip *MediaPath) GetBlob() ([]byte, error) {
 	var data []byte
 
-	if len(ip.db) > 0 {
-		db, err := ip.root.AddDb(ip.db)
+	if len(ip.table) > 0 {
+		//db blob
+		db, err := ip.root.AddDb(ip.path)
 		if err != nil {
 			return nil, fmt.Errorf("AddDb() failed: %w", err)
 		}
@@ -143,24 +152,12 @@ func (ip *ResourcePath) GetBlob() ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Scan() failed: %w", err)
 		}
-	} else if len(ip.app) > 0 {
-
-		app := ip.root.FindApp(ip.app, "", -1)
-		if app == nil {
-			return nil, fmt.Errorf("App(%s) not found", ip.app)
-		}
-
-		asset := app.FindAsset(ip.asset)
-		if asset == nil {
-			return nil, fmt.Errorf("Asset(%s.%s) not found", ip.app, ip.asset)
-		}
-
-		path := asset.getResourcesPath() + "/" + ip.file
-
+	} else {
+		//file
 		var err error
-		data, err = os.ReadFile(path)
+		data, err = os.ReadFile(ip.path)
 		if err != nil {
-			return nil, fmt.Errorf("ReadFile(%s) failed: %w", path, err)
+			return nil, fmt.Errorf("ReadFile(%s) failed: %w", ip.path, err)
 		}
 	}
 
@@ -171,7 +168,7 @@ type Image struct {
 	origSize   OsV2
 	maxUseSize OsV2
 
-	path ResourcePath
+	path MediaPath
 
 	inverserRGB bool
 
@@ -257,7 +254,7 @@ func Image_LoadTexture(blob []byte, inverserRGB bool, render *sdl.Renderer) (*sd
 	return texture, nil
 }
 
-func NewImage(path ResourcePath, inverserRGB bool, render *sdl.Renderer) (*Image, error) {
+func NewImage(path MediaPath, inverserRGB bool, render *sdl.Renderer) (*Image, error) {
 
 	var self Image
 
