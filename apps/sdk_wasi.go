@@ -1,55 +1,28 @@
 package main
 
 import (
-	"encoding/json"
-	"reflect"
 	"unsafe"
 )
 
 func main() {}
 
-//export _sa_render
-func _sa_render() uint32 {
-	return Render()
-}
-
 //export _sa_init
-func _sa_init(storeMem SAMem) {
-	jsStore := _SA_ptrToBytes(storeMem)
-	if !Open(jsStore) {
-		json.Unmarshal(jsStore, &store)
-	}
+func _sa_init() {
+	Init()
 }
 
-//export _sa_exit
-func _sa_exit() {
-	js, written := Save()
-	if !written {
-		js, _ = json.MarshalIndent(&store, "", "")
-	}
-	_sa_storage_write(_SA_bytesToPtr(js))
+//export _sa_render
+func _sa_render() {
+	Render()
+}
+
+//export _sa_save
+func _sa_save() {
+	_sa_storage_write(_SA_bytesToPtr(Save()))
 }
 
 //export _sa_storage_write
 func _sa_storage_write(jsonMem SAMem) int64
-
-//export _sa_styles
-func _sa_styles(jsonMem SAMem) {
-	jsStyles := _SA_ptrToBytes(jsonMem)
-	styles = SA_Styles{} //reset ids
-	json.Unmarshal(jsStyles, &styles)
-	Styles()
-}
-
-//export _sa_translations
-func _sa_translations(jsonMem SAMem) {
-	e := reflect.ValueOf(&trns).Elem()
-	for i := 0; i < e.NumField(); i++ {
-		e.Field(i).SetString("{" + e.Type().Field(i).Name + "}")
-	}
-
-	json.Unmarshal(_SA_ptrToBytes(jsonMem), &trns)
-}
 
 //export _sa_info_float
 func _sa_info_float(keyMem SAMem) float64
@@ -71,6 +44,12 @@ func _sa_blob(pathMem SAMem, dstMem SAMem) int64
 
 //export _sa_blob_len
 func _sa_blob_len(pathMem SAMem) int64
+
+//export _sa_sql_commit
+func _sa_sql_commit(dbUrlMem SAMem) int64
+
+//export _sa_sql_rollback
+func _sa_sql_rollback(dbUrlMem SAMem) int64
 
 //export _sa_sql_write
 func _sa_sql_write(dbUrlMem SAMem, queryMem SAMem) int64
@@ -165,15 +144,6 @@ func _sa_print(mem SAMem)
 //export _sa_print_float
 func _sa_print_float(val float64)
 
-//export _sa_fn_call
-func _sa_fn_call(assetMem SAMem, fnMem SAMem, argsMem SAMem) int64
-
-//export _sa_fn_setReturn
-func _sa_fn_setReturn(argsMem SAMem) int64
-
-//export _sa_fn_getReturn
-func _sa_fn_getReturn(argsMem SAMem) int64
-
 //export _sa_comp_drawButton
 func _sa_comp_drawButton(style uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, tooltipMem SAMem, enable uint32, outMem SAMem) int64
 
@@ -208,7 +178,7 @@ func _sa_div_drag(groupNameMem SAMem, id uint64) int64
 func _sa_div_drop(groupNameMem SAMem, vertical uint32, horizontal uint32, inside uint32, outMem SAMem) int64
 
 //export _sa_render_app
-func _sa_render_app(appNameMem SAMem, dbUrlMem SAMem, sts_id uint64) int64
+func _sa_render_app(dbUrlMem SAMem, app_rowid uint64) int64
 
 type SAMem struct {
 	v uint64

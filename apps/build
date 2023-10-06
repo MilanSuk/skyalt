@@ -2,26 +2,20 @@
 
 START=$(date +%s);
 
-echo "base/main"
-(cp sdk.go base/main/sdk.go;cp sdk_wasi.go base/main/sdk_wasi.go;cd base/main;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../) & 
+echo "base"
+(cp sdk.go base/sdk.go;cp sdk_wasi.go base/sdk_wasi.go;cd base;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../) & 
 
-echo "7gui/main"
-(cp sdk.go 7gui/main/sdk.go;cp sdk_wasi.go 7gui/main/sdk_wasi.go;cd 7gui/main;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../ ) &
+echo "7gui"
+(cp sdk.go 7gui/sdk.go;cp sdk_wasi.go 7gui/sdk_wasi.go;cd 7gui;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../ ) &
 
-echo "7gui/calendar"
-(cp sdk.go 7gui/calendar/sdk.go;cp sdk_wasi.go 7gui/calendar/sdk_wasi.go;cd 7gui/calendar;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../ ) &
+echo "calendar"
+(cp sdk.go calendar/sdk.go;cp sdk_wasi.go calendar/sdk_wasi.go;cd calendar;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../ ) &
 
-echo "calendar/main"
-(cp sdk.go calendar/main/sdk.go;cp sdk_wasi.go calendar/main/sdk_wasi.go;cd calendar/main;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../ ) &
+echo "map"
+(cp sdk.go map/sdk.go;cp sdk_wasi.go map/sdk_wasi.go;cd map;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../ ) &
 
-echo "map/main"
-(cp sdk.go map/main/sdk.go;cp sdk_wasi.go map/main/sdk_wasi.go;cd map/main;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../ ) &
-
-echo "db/calendar"
-(cp sdk.go db/calendar/sdk.go;cp sdk_wasi.go db/calendar/sdk_wasi.go;cd db/calendar;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../ ) &
-
-echo "db/main"
-(cp sdk.go db/main/sdk.go;cp sdk_wasi.go db/main/sdk_wasi.go;cd db/main;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../ ) &
+echo "db"
+(cp sdk.go db/sdk.go;cp sdk_wasi.go db/sdk_wasi.go;cd db;sh build;rm sdk.go;rm sdk_wasi.go;cd ../../ ) &
 
 wait
 END=$(date +%s);

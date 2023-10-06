@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -27,11 +28,15 @@ type Storage struct {
 	add_locator bool
 }
 
+var store Storage
+
 type Translations struct {
 	ADD_LOCATOR string
 	ZOOM        string
 	REMOVE      string
 }
+
+var trns Translations
 
 type V2 struct {
 	X, Y float64
@@ -250,7 +255,7 @@ func Map(cam *Cam) {
 			q := SA_SqlRead("", "SELECT rowid FROM tiles WHERE name=='"+strconv.Itoa(int(zoom))+"-"+strconv.Itoa(int(x))+"-"+strconv.Itoa(int(y))+".png'")
 			var rowid int
 			if q.Next(&rowid) {
-				file := SA_FileGetBlob("", "tiles", "file", rowid)
+				file := fmt.Sprintf("dbs::tiles/file/%d", rowid)
 
 				//extra margin will fix white spaces during zooming
 				SAPaint_File(tileCoord_sx, tileCoord_sy, tileW, tileH, file, "", float64(zooming)*-0.03, 0, 0, SA_ThemeWhite(), 0, 0, false)
@@ -282,7 +287,7 @@ func Map(cam *Cam) {
 			rad_y := rad / height
 
 			//SAPaint_Text()	//...
-			SAPaint_File(x-rad_x/2, y-rad_y, rad_x, rad_y, SA_FileFromResources("", "locator.png"), "", 0, 0, 0, SA_ThemeError(), 1, 0, false)
+			SAPaint_File(x-rad_x/2, y-rad_y, rad_x, rad_y, "app:resources/locator.png", "", 0, 0, 0, SA_ThemeError(), 1, 0, false)
 			//SAPaint_Circle(x, y, 0.1, SA_ThemeError(), 0)
 
 			dnm := fmt.Sprintf("locator_%d", rowid)
@@ -422,27 +427,24 @@ func Map(cam *Cam) {
 	SA_DivEnd()
 }
 
-func Render() uint32 {
+func Render() {
 	SA_ColMax(0, 100)
 	SA_RowMax(0, 100)
 
 	SA_DivStart(0, 0, 1, 1)
 	Map(&store.Cam)
 	SA_DivEnd()
-
-	return 0
 }
 
-func Styles() {
-}
+var styles SA_Styles
 
-func Open(buff []byte) bool {
-
-	return false //default json
+func Init() {
+	//default
+	json.Unmarshal(SA_File("storage_json"), &store)
+	json.Unmarshal(SA_File("translations_json:app:resources/translations.json"), &trns)
+	json.Unmarshal(SA_File("styles_json"), &styles)
 }
-func Save() ([]byte, bool) {
-	return nil, false //default json
-}
-func Debug() (int, int, string) {
-	return -1, 274, "main"
+func Save() []byte {
+	js, _ := json.MarshalIndent(&store, "", "")
+	return js
 }

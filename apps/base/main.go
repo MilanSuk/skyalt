@@ -17,10 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type Log struct {
@@ -28,29 +29,11 @@ type Log struct {
 	Text string
 }
 
-type App struct {
-	Name   string
-	Label  string
-	Sts_id int
-
-	logs          []Log
-	logs_showtime float64
-}
-
 type File struct {
-	Name   string
-	Sts_id int //for Table app
-
-	Apps   []*App
-	Expand bool
-}
-
-func (file *File) AddApp(file_i int, sts_id int, label string, app string) {
-	file.Apps = append(file.Apps, &App{Name: app, Label: label, Sts_id: sts_id})
-	file.Expand = true
-	store.SelectedFile = file_i
-	store.SelectedApp = len(file.Apps) - 1
-	store.SearchApp = ""
+	Name         string
+	Expand       bool
+	initAppTable bool
+	id           int
 }
 
 func FindInArray(arr []string, name string) int {
@@ -79,28 +62,6 @@ func FindSelectedFile() *File {
 	return nil
 }
 
-func FindSelectedApp() *App {
-	file := FindSelectedFile()
-	if file == nil {
-		return nil
-	}
-
-	if store.SelectedApp >= 0 && store.SelectedApp < len(file.Apps) {
-		return file.Apps[store.SelectedApp]
-	}
-	store.SelectedApp = -1
-	return nil
-}
-
-func (file *File) FindAppName(name string) *App {
-	for _, it := range file.Apps {
-		if it.Name == name {
-			return it
-		}
-	}
-	return nil
-}
-
 func FindFile(name string) *File {
 	for _, f := range store.Files {
 		if f.Name == name {
@@ -121,7 +82,12 @@ type Storage struct {
 
 	createFile    string
 	duplicateName string
+
+	last_file_id int
 }
+
+var store Storage
+
 type Translations struct {
 	SAVE            string
 	SETTINGS        string
@@ -170,6 +136,8 @@ type Translations struct {
 
 	LOGS string
 }
+
+var trns Translations
 
 // https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
 const g_langs = "|English|Chinese(中文)|Hindi(हिंदी)|Spanish(Español)|Russian(Руштина)|Czech(Česky)"
@@ -223,7 +191,7 @@ func Settings() {
 						SA_MoveElement(&langs, &langs, int(src), i, pos)
 						changed = true
 					}
-					SA_Image(SA_FileFromResources("", "reorder.png")).Margin(0.15).Show(0, 0, 1, 1)
+					SA_Image("app:resources/reorder.png").Margin(0.15).Show(0, 0, 1, 1)
 				}
 				SA_DivEnd()
 
@@ -322,9 +290,9 @@ func About() {
 
 	SA_TextCenter(trns.ABOUT).Show(0, 0, 1, 1)
 
-	SA_Image(SA_FileFromResources("", "logo.png")).Show(0, 1, 1, 1)
+	SA_Image("app:resources/logo.png").Show(0, 1, 1, 1)
 
-	SA_TextCenter("v0.2").Show(0, 2, 1, 1)
+	SA_TextCenter("v0.3").Show(0, 2, 1, 1)
 
 	SA_ButtonAlpha("www.skyalt.com").Url("https://www.skyalt.com").Show(0, 3, 1, 1)
 	SA_ButtonAlpha("github.com/milansuk/skyalt/").Url("https://github.com/milansuk/skyalt/").Show(0, 4, 1, 1)
@@ -413,12 +381,111 @@ func Menu() {
 
 }
 
-func Apps(file *File, file_i int) {
+func GetFileApps(file *File) []string {
+	var list []string
+
+	q := SA_SqlRead("dbs:"+file.Name, "SELECT app FROM __skyalt__  WHERE label != '__default__'")
+	var app string
+	for q.Next(&app) {
+		list = append(list, app)
+	}
+	return list
+}
+func GetFileNumApps(file *File) int {
+	var num int
+	q := SA_SqlRead("dbs:"+file.Name, "SELECT COUNT(*) FROM __skyalt__ WHERE label != '__default__'")
+	q.Next(&num)
+	return num
+}
+
+func WriteApp(file *File, query string, commit bool) int {
+	insRow := SA_SqlWrite("dbs:"+file.Name, query)
+
+	if commit {
+		SA_SqlCommit("dbs:" + file.Name)
+	}
+
+	return int(insRow)
+}
+
+func FindOrAddDefaultApp(file *File) int {
+
+	//SA_SqlCommit("dbs:" + file.Name)
+
+	//find
+	q := SA_SqlRead("dbs:"+file.Name, "SELECT rowid FROM __skyalt__ WHERE label='__default__' AND app='db'")
+	var rowid int
+	if q.Next(&rowid) {
+		return rowid
+	}
+
+	//insert
+	return WriteApp(file, "INSERT INTO __skyalt__(label, app, sort) VALUES('__default__','db', -1);", true)
+}
+
+func RefreshSort(file *File) {
+
+	q := SA_SqlRead("dbs:"+file.Name, "SELECT rowid FROM __skyalt__ ORDER BY sort")
+	var rowid int
+	i := 1.0
+	for q.Next(&rowid) {
+		WriteApp(file, fmt.Sprintf("UPDATE __skyalt__ SET sort=%f WHERE rowid=%d", i, rowid), false)
+		i++
+	}
+
+	SA_SqlCommit("dbs:" + file.Name)
+}
+
+func MoveApp(src_file *File, dst_file *File, src int, dst int, pos SA_Drop_POS) {
+
+	dst_sort := 1000.0
+	if pos != SA_Drop_INSIDE {
+		q := SA_SqlRead("dbs:"+dst_file.Name, fmt.Sprintf("SELECT sort FROM __skyalt__ WHERE rowid=%d", dst))
+		q.Next(&dst_sort)
+		if pos == SA_Drop_V_LEFT || pos == SA_Drop_H_LEFT {
+			dst_sort -= 0.5
+		} else {
+			dst_sort += 0.5
+		}
+	}
+
+	if src_file == dst_file {
+		//update
+		WriteApp(src_file, fmt.Sprintf("UPDATE __skyalt__ SET sort=%f WHERE rowid=%d", dst_sort, src), true)
+
+		//refresh
+		RefreshSort(src_file)
+	} else {
+
+		//backup
+		q := SA_SqlRead("dbs:"+src_file.Name, fmt.Sprintf("SELECT label, app, storage FROM __skyalt__ WHERE rowid=%d;", src))
+		var app_label string
+		var app_name string
+		var app_storage []byte
+		q.Next(&app_label, &app_name, &app_storage)
+
+		//remove
+		WriteApp(src_file, fmt.Sprintf("DELETE FROM __skyalt__ WHERE rowid=%d;", src), true)
+
+		//add
+		WriteApp(dst_file, fmt.Sprintf("INSERT INTO __skyalt__(label, app, sort, storage) VALUES('%s','%s', %f, '%s');", app_label, app_name, dst_sort, string(app_storage)), true)
+
+		//refresh
+		RefreshSort(src_file)
+		RefreshSort(dst_file)
+	}
+
+	dst_file.Expand = true
+}
+
+func AppList(file *File, file_i int) {
 	SA_ColMax(0, 7)
 
 	y := 0
 	SA_Editbox(&store.SearchApp).TempToValue(true).Ghost(trns.SEARCH).Show(0, 0, 1, 1)
 	y++
+
+	appsInUse := GetFileApps(file)
 
 	inf_apps := SA_Info("apps")
 	var apps []string
@@ -434,13 +501,17 @@ func Apps(file *File, file_i int) {
 		}
 
 		nm := app
-		if file.FindAppName(app) != nil {
-			nm += "(" + trns.IN_USE + ")"
+		for _, dapp := range appsInUse {
+			if dapp == app {
+				nm += "(" + trns.IN_USE + ")"
+				break
+			}
 		}
 
 		if SA_ButtonAlpha(nm).Show(0, y, 1, 1).click {
-			sts_id := int(SA_InfoFloat("sts_uid"))
-			file.AddApp(file_i, sts_id, app, app)
+			WriteApp(file, fmt.Sprintf("INSERT INTO __skyalt__(label, app, sort) VALUES('%s','%s',%d);", app, app, 1000), true)
+			RefreshSort(file)
+			file.Expand = true
 			SA_DialogClose()
 		}
 		y++
@@ -450,21 +521,17 @@ func Apps(file *File, file_i int) {
 
 func ProjectFiles() {
 	inf_files := SA_Info("files")
-	inf_apps := SA_Info("apps")
 	var files []string
-	var apps []string
 	if len(inf_files) > 0 {
 		files = strings.Split(inf_files, "/")
-	}
-	if len(inf_apps) > 0 {
-		apps = strings.Split(inf_apps, "/")
 	}
 
 	//add
 	for _, nm := range files {
 		if FindFile(nm) == nil {
-			store.Files = append(store.Files, &File{Name: nm, Sts_id: int(SA_InfoFloat("sts_uid")), Expand: true})
+			store.Files = append(store.Files, &File{Name: nm, Expand: true, id: store.last_file_id})
 			store.SelectedFile = len(store.Files) - 1
+			store.last_file_id++
 		}
 	}
 	//remove
@@ -475,18 +542,18 @@ func ProjectFiles() {
 		}
 	}
 
-	//remove apps
-	for _, f := range store.Files {
+	//check
+	for _, file := range store.Files {
+		if !file.initAppTable {
+			WriteApp(file, "CREATE TABLE IF NOT EXISTS __skyalt__(label TEXT NOT NULL, sort REAL NOT NULL, app TEXT NOT NULL, storage BLOB, gui BLOB);", true)
+			file.initAppTable = true
+		}
 
-		for i := len(f.Apps) - 1; i >= 0; i-- {
-			if FindInArray(apps, f.Apps[i].Name) < 0 {
-				f.Apps = append(f.Apps[:i], f.Apps[i+1:]...) //remove
-			}
+		if file.id == 0 {
+			file.id = store.last_file_id
+			store.last_file_id++
 		}
 	}
-
-	//check selected
-	FindSelectedApp()
 }
 
 func Files() {
@@ -496,6 +563,10 @@ func Files() {
 	SA_ColMax(0, 100)
 	y := 0
 	for file_i, file := range store.Files {
+
+		if file.Name == "base.sqlite" {
+			continue
+		}
 
 		if len(store.SearchFiles) > 0 {
 			if !strings.Contains(strings.ToLower(file.Name), strings.ToLower(store.SearchFiles)) {
@@ -513,14 +584,15 @@ func Files() {
 				SAPaint_Rect(0, 0, 1, 1, 0, SA_ThemeCd().Aprox(SA_ThemeWhite(), 0.8), 0)
 			}
 
-			if len(file.Apps) == 0 {
+			num_apps := GetFileNumApps(file)
+			if num_apps == 0 {
 				file.Expand = false
 			}
 			iconName := "tree_hide.png"
 			if !file.Expand {
 				iconName = "tree_show.png"
 			}
-			if SA_ButtonAlpha("").Enable(len(file.Apps) > 0).Icon(SA_FileFromResources("", iconName), 0.05).Show(0, 0, 1, 1).click {
+			if SA_ButtonAlpha("").Enable(num_apps > 0).Icon("app:resources/"+iconName, 0.05).Show(0, 0, 1, 1).click {
 				file.Expand = !file.Expand
 			}
 
@@ -529,14 +601,11 @@ func Files() {
 			{
 				src, _, done := SA_Div_IsDrop("app", false, false, true)
 				if done {
-					src_file_i := uint32(src >> 32)
-					src_app_i := uint32(src)
+					src_file := store.Files[uint32(src>>32)]
+					src_app_rowid := uint32(src)
 
-					backup := store.Files[src_file_i].Apps[src_app_i]
-					//remove
-					store.Files[src_file_i].Apps = append(store.Files[src_file_i].Apps[:src_app_i], store.Files[src_file_i].Apps[src_app_i+1:]...)
-					//add
-					file.Apps = append(file.Apps, backup)
+					MoveApp(src_file, file, int(src_app_rowid), 1000, SA_Drop_INSIDE) //1000=end
+
 					file.Expand = true
 				}
 			}
@@ -552,7 +621,7 @@ func Files() {
 				}
 
 				SA_ColMax(0, 100)
-				if SA_ButtonMenu(nm).Pressed(isSelected).Tooltip("id: "+strconv.Itoa(file.Sts_id)).Show(0, 0, 1, 1).click {
+				if SA_ButtonMenu(nm).Pressed(isSelected).Show(0, 0, 1, 1).click {
 					store.SelectedFile = file_i
 					store.SelectedApp = -1
 
@@ -573,12 +642,12 @@ func Files() {
 				SA_DialogOpen("apps_"+file.Name, 1)
 			}
 			if SA_DialogStart("apps_" + file.Name) {
-				Apps(file, file_i)
+				AppList(file, file_i)
 				SA_DialogEnd()
 			}
 
 			//context
-			if SA_ButtonAlpha("").Icon(SA_FileFromResources("", "context.png"), 0.13).Show(3, 0, 1, 1).click {
+			if SA_ButtonAlpha("").Icon("app:resources/context.png", 0.13).Show(3, 0, 1, 1).click {
 				SA_DialogOpen("fileContext_"+file.Name, 1)
 			}
 
@@ -657,14 +726,23 @@ func Files() {
 
 		//apps
 		if file.Expand {
-			for app_i, app := range file.Apps {
+			q := SA_SqlRead("dbs:"+file.Name, "SELECT rowid, label, app, sort FROM __skyalt__ ORDER BY sort")
+			var app_rowid int
+			var app_label string
+			var app_name string
+			var app_sort float64
+			for q.Next(&app_rowid, &app_label, &app_name, &app_sort) {
+
+				if app_label == "__default__" && app_name == "db" {
+					continue
+				}
 
 				SA_DivStart(0, y, 1, 1)
 				{
 					SA_Col(0, 1)
 					SA_ColMax(1, 100)
 
-					isSelected := (file_i == store.SelectedFile && app_i == store.SelectedApp)
+					isSelected := (file_i == store.SelectedFile && app_rowid == store.SelectedApp)
 					if isSelected {
 						SAPaint_Rect(0, 0, 1, 1, 0, SA_ThemeCd().Aprox(SA_ThemeWhite(), 0.8), 0)
 					}
@@ -674,37 +752,37 @@ func Files() {
 					{
 						SA_ColMax(0, 100)
 
-						if SA_ButtonMenu(app.Label).Pressed(isSelected).Tooltip("app: "+app.Name+", id: "+strconv.Itoa(app.Sts_id)).Show(0, 0, 1, 1).click {
+						if SA_ButtonMenu(app_label).Pressed(isSelected).Tooltip("app: "+app_name).Show(0, 0, 1, 1).click {
 							store.SelectedFile = file_i
-							store.SelectedApp = app_i
+							store.SelectedApp = app_rowid
 
 							if SA_DivInfoPos("touchClicks", 0, 0) > 1 { //double click
-								SA_DialogOpen("RenameApp_"+file.Name+"_"+strconv.Itoa(app.Sts_id), 1)
+								SA_DialogOpen("RenameApp_"+file.Name+"_"+strconv.Itoa(app_rowid), 1)
 							}
 						}
 
-						id := (uint64(file_i) << uint64(32)) | uint64(app_i)
+						id := (uint64(file_i) << uint64(32)) | uint64(app_rowid)
 						SA_Div_SetDrag("app", id)
 						src, pos, done := SA_Div_IsDrop("app", true, false, false)
 						if done {
-							src_file_i := uint32(src >> 32)
-							src_app_i := uint32(src)
-							SA_MoveElement(&store.Files[src_file_i].Apps, &file.Apps, int(src_app_i), app_i, pos)
+							src_file := store.Files[uint32(src>>32)]
+							src_app_rowid := uint32(src)
+							MoveApp(src_file, file, int(src_app_rowid), app_rowid, pos)
 						}
 
 						//logs
-						{
-							log := SA_Info("log_" + strconv.Itoa(app.Sts_id))
+						/*{
+							log := SA_Info("log_" + strconv.Itoa(app_i))
 							if len(log) > 0 {
 								app.logs = append(app.logs, Log{Text: log, Time: int64(SA_Time())})
 								app.logs_showtime = SA_Time()
 							}
 							if app.logs_showtime+5 > SA_Time() {
-								if SA_ButtonAlpha("").Icon(SA_FileFromResources("", "warning.png"), 0.0).Show(1, 0, 1, 1).click {
-									SA_DialogOpen("log_"+strconv.Itoa(app.Sts_id), 0)
+								if SA_ButtonAlpha("").Icon("app:resources/warning.png", 0.0).Show(1, 0, 1, 1).click {
+									SA_DialogOpen("log_"+strconv.Itoa(app_i), 0)
 								}
 							}
-							if SA_DialogStart("log_" + strconv.Itoa(app.Sts_id)) {
+							if SA_DialogStart("log_" + strconv.Itoa(app_i)) {
 								SA_ColMax(0, 20)
 								SA_RowMax(1, 20)
 								SA_TextCenter(trns.LOGS).Show(0, 0, 1, 1)
@@ -723,58 +801,63 @@ func Files() {
 
 								SA_DialogEnd()
 							}
-						}
-
+						}*/
 					}
 					SA_DivEnd()
 
 					//context
-					if SA_ButtonAlpha("").Icon(SA_FileFromResources("", "context.png"), 0.13).Show(2, 0, 1, 1).click {
-						SA_DialogOpen("appContext_"+file.Name+"_"+strconv.Itoa(app.Sts_id), 1)
+					if SA_ButtonAlpha("").Icon("app:resources/context.png", 0.13).Show(2, 0, 1, 1).click {
+						SA_DialogOpen("appContext_"+file.Name+"_"+strconv.Itoa(app_rowid), 1)
 					}
 
-					if SA_DialogStart("appContext_" + file.Name + "_" + strconv.Itoa(app.Sts_id)) {
+					if SA_DialogStart("appContext_" + file.Name + "_" + strconv.Itoa(app_rowid)) {
 						SA_ColMax(0, 5)
 
 						if SA_ButtonMenu(trns.RENAME).Show(0, 0, 1, 1).click {
 							SA_DialogClose()
-							SA_DialogOpen("RenameApp_"+file.Name+"_"+strconv.Itoa(app.Sts_id), 1)
+							SA_DialogOpen("RenameApp_"+file.Name+"_"+strconv.Itoa(app_rowid), 1)
+							store.duplicateName = app_label
 						}
 
 						if SA_ButtonMenu(trns.DUPLICATE).Show(0, 1, 1, 1).click {
 							SA_DialogClose()
-							SA_DialogOpen("DuplicateApp_"+file.Name+"_"+strconv.Itoa(app.Sts_id), 1)
-							store.duplicateName = app.Name + "_2"
+							SA_DialogOpen("DuplicateApp_"+file.Name+"_"+strconv.Itoa(app_rowid), 1)
+							store.duplicateName = app_label + "_2"
 						}
 
 						if SA_ButtonMenu(trns.REMOVE).Show(0, 2, 1, 1).click {
 							SA_DialogClose()
-							SA_DialogOpen("RemoveAppConfirm_"+file.Name+"_"+strconv.Itoa(app.Sts_id), 1)
+							SA_DialogOpen("RemoveAppConfirm_"+file.Name+"_"+strconv.Itoa(app_rowid), 1)
 
 						}
 						SA_DialogEnd()
 					}
 
-					if SA_DialogStart("RenameApp_" + file.Name + "_" + strconv.Itoa(app.Sts_id)) {
+					if SA_DialogStart("RenameApp_" + file.Name + "_" + strconv.Itoa(app_rowid)) {
 						SA_ColMax(0, 7)
-						backupLabel := app.Label
-						if SA_Editbox(&app.Label).Show(0, 0, 1, 1).finished {
-							if len(app.Label) == 0 {
-								app.Label = backupLabel
+						if SA_Editbox(&store.duplicateName).Show(0, 0, 1, 1).finished {
+							if len(store.duplicateName) > 0 {
+								WriteApp(file, fmt.Sprintf("UPDATE __skyalt__ SET label='%s' WHERE rowid=%d", store.duplicateName, app_rowid), true)
 							}
 							SA_DialogClose()
 						}
 						SA_DialogEnd()
 					}
 
-					if SA_DialogStart("DuplicateApp_" + file.Name + "_" + strconv.Itoa(app.Sts_id)) {
+					if SA_DialogStart("DuplicateApp_" + file.Name + "_" + strconv.Itoa(app_rowid)) {
 						SA_ColMax(0, 7)
 
 						SA_Editbox(&store.duplicateName).Error(nil).Show(0, 0, 1, 1)
 						if SA_Button(trns.DUPLICATE).Enable(len(store.duplicateName) > 0).Show(0, 1, 1, 1).click { //check if file name exist ...
-							dupId := SA_InfoSetVal("duplicate_setting", strconv.Itoa(app.Sts_id))
-							if dupId > 0 {
-								file.AddApp(file_i, dupId, store.duplicateName, app.Name)
+
+							if len(store.duplicateName) > 0 {
+								q := SA_SqlRead("dbs:"+file.Name, fmt.Sprintf("SELECT storage FROM __skyalt__ WHERE rowid=%d;", app_rowid))
+								var app_storage []byte
+								q.Next(&app_storage)
+
+								//add
+								WriteApp(file, fmt.Sprintf("INSERT INTO __skyalt__(label, app, sort, storage) VALUES('%s','%s', %f, '%s');", store.duplicateName, app_name, app_sort+0.5, string(app_storage)), true)
+								RefreshSort(file)
 							}
 							SA_DialogClose()
 						}
@@ -782,15 +865,15 @@ func Files() {
 						SA_DialogEnd()
 					}
 
-					if SA_DialogStart("RemoveAppConfirm_" + file.Name + "_" + strconv.Itoa(app.Sts_id)) {
+					if SA_DialogStart("RemoveAppConfirm_" + file.Name + "_" + strconv.Itoa(app_rowid)) {
 						if SA_DialogConfirm() {
-							if store.SelectedFile == file_i && store.SelectedApp == app_i {
+							if store.SelectedFile == file_i && store.SelectedApp == app_rowid {
 								store.SelectedApp = -1
 							}
 
-							file.Apps = append(file.Apps[:app_i], file.Apps[app_i+1:]...) //remove
-
+							WriteApp(file, fmt.Sprintf("DELETE FROM __skyalt__ WHERE rowid=%d;", app_rowid), true)
 							SA_DialogEnd() //!
+							SA_DivEnd()    //!
 							break
 						}
 						SA_DialogEnd()
@@ -850,7 +933,7 @@ func CheckFileName(name string, alreadyExist bool) error {
 	return err
 }
 
-func Render() uint32 {
+func Render() {
 	SA_Col(0, 4.5) //min
 	SA_ColResize(0, 7)
 	SA_ColMax(1, 100)
@@ -862,7 +945,7 @@ func Render() uint32 {
 		SA_ColMax(1, 100)
 
 		//Menu + dialogs
-		if SA_ButtonStyle("", &styles.ButtonLogo).Icon(SA_FileFromResources("", "logo_small.png"), 0).Show(0, 0, 1, 1).click {
+		if SA_ButtonStyle("", &styles.ButtonLogo).Icon("app:resources/logo_small.png", 0).Show(0, 0, 1, 1).click {
 			SA_DialogOpen("Menu", 1)
 		}
 		if SA_DialogStart("Menu") {
@@ -890,36 +973,37 @@ func Render() uint32 {
 	SA_DivEnd()
 
 	file := FindSelectedFile()
-	app := FindSelectedApp()
-	if app != nil {
-		SA_DivStartName(1, 0, 1, 2, strconv.Itoa(app.Sts_id)+"_"+strconv.Itoa(file.Sts_id))
-		SA_RenderApp(app.Name, SA_FileFromDbs(file.Name), app.Sts_id)
+	//app := FindSelectedApp()	//fix if not exist ...
+	if store.SelectedApp > 0 {
+		SA_DivStartName(1, 0, 1, 2, fmt.Sprintf("%d_%d", file.id, store.SelectedApp))
+		SA_RenderApp("dbs:"+file.Name, store.SelectedApp)
 		SA_DivEnd()
 	} else if file != nil {
-		SA_DivStartName(1, 0, 1, 2, "_tables_"+strconv.Itoa(file.Sts_id))
-		SA_RenderApp("db", SA_FileFromDbs(file.Name), file.Sts_id)
+		app_rowid := FindOrAddDefaultApp(file)
+		SA_DivStartName(1, 0, 1, 2, fmt.Sprintf("%d_%d", file.id, app_rowid))
+		SA_RenderApp("dbs:"+file.Name, app_rowid)
 		SA_DivEnd()
 	}
-
-	return 0
 }
 
+var styles SA_Styles
 var g_ButtonAddApp _SA_Style
 
-func Styles() {
+func Init() {
+	store.SelectedFile = -1
+	store.SelectedApp = -1
+	store.last_file_id = 1
+
+	//default
+	json.Unmarshal(SA_File("storage_json"), &store)
+	json.Unmarshal(SA_File("translations_json:app:resources/translations.json"), &trns)
+	json.Unmarshal(SA_File("styles_json"), &styles)
+
+	//styles
 	g_ButtonAddApp = styles.ButtonBorder
 	g_ButtonAddApp.Margin(0.17)
 }
-
-func Open(buff []byte) bool {
-	store.SelectedFile = -1
-	store.SelectedApp = -1
-
-	return false //default json
-}
-func Save() ([]byte, bool) {
-	return nil, false //default json
-}
-func Debug() (int, int, string) {
-	return -1, 0, "main" //0=base
+func Save() []byte {
+	js, _ := json.MarshalIndent(&store, "", "")
+	return js
 }

@@ -22,11 +22,7 @@ import (
 	"time"
 )
 
-type Storage struct {
-	Page int64
-}
-
-type Translations struct {
+type CalendarTranslations struct {
 	TODAY     string
 	YEAR      string
 	MONTH     string
@@ -52,32 +48,63 @@ type Translations struct {
 	SUN       string
 }
 
+var trnsCal CalendarTranslations
+
+var g_ButtonSelect _SA_Style
+var g_ButtonToday _SA_Style
+var g_ButtonOutsideMonth _SA_Style
+var g_ButtonOutsideMonthSelect _SA_Style
+var g_ButtonBorderDate _SA_Style
+
+func InitCalendar() {
+	g_ButtonSelect = styles.Button
+	g_ButtonSelect.Main.Color = SA_ThemeWhite()
+	g_ButtonSelect.Main.Content_color = SA_ThemeGrey(0.4)
+	g_ButtonSelect.Id = 0
+
+	g_ButtonToday = styles.ButtonAlpha
+	g_ButtonToday.Main.Color = SA_ThemeCd()
+	g_ButtonToday.Id = 0
+
+	g_ButtonOutsideMonth = styles.ButtonAlpha
+	g_ButtonOutsideMonth.Main.Color = SA_ThemeGrey(0.7)
+	g_ButtonOutsideMonth.Id = 0
+
+	g_ButtonOutsideMonthSelect = styles.Button
+	g_ButtonOutsideMonthSelect.Main.Color = SA_ThemeGrey(0.7)
+	g_ButtonOutsideMonthSelect.Id = 0
+
+	g_ButtonBorderDate = styles.ButtonBorder
+	g_ButtonBorderDate.FontAlignH(0)
+	g_ButtonBorderDate.Id = 0
+}
+
 func MonthText(month int) string {
 	switch month {
 	case 1:
-		return trns.JANUARY
+		return trnsCal.JANUARY
 	case 2:
-		return trns.FEBRUARY
+		return trnsCal.FEBRUARY
 	case 3:
-		return trns.MARCH
+		return trnsCal.MARCH
 	case 4:
-		return trns.APRIL
+		return trnsCal.APRIL
 	case 5:
-		return trns.MAY
+		return trnsCal.MAY
 	case 6:
-		return trns.JUNE
+		return trnsCal.JUNE
 	case 7:
-		return trns.JULY
+		return trnsCal.JULY
 	case 8:
-		return trns.AUGUST
+		return trnsCal.AUGUST
 	case 9:
-		return trns.SEPTEMBER
+		return trnsCal.SEPTEMBER
 	case 10:
-		return trns.OCTOBER
+		return trnsCal.OCTOBER
 	case 11:
-		return trns.NOVEMBER
+		return trnsCal.NOVEMBER
 	case 12:
-		return trns.DECEMBER
+		return trnsCal.DECEMBER
 	}
 	return ""
 }
@@ -86,28 +113,21 @@ func DayTextShort(day int) string {
 
 	switch day {
 	case 1:
-		return trns.MON
+		return trnsCal.MON
 	case 2:
-		return trns.TUE
+		return trnsCal.TUE
 	case 3:
-		return trns.WED
+		return trnsCal.WED
 	case 4:
-		return trns.THU
+		return trnsCal.THU
 	case 5:
-		return trns.FRI
+		return trnsCal.FRI
 	case 6:
-		return trns.SAT
+		return trnsCal.SAT
 	case 7:
-		return trns.SUN
+		return trnsCal.SUN
 	}
 	return ""
-}
-
-//export FormatDate
-func FormatDate(unix_sec int64) {
-	str := Format(unix_sec)
-
-	SA_CallSetReturn(str)
 }
 
 func Format(unix_sec int64) string {
@@ -138,7 +158,6 @@ func Format(unix_sec int64) string {
 	return ""
 }
 
-//export CmpDates
 func CmpDates(a int64, b int64) int64 {
 	ta := time.Unix(a, 0)
 	tb := time.Unix(b, 0)
@@ -175,7 +194,7 @@ func Calendar(value int64, page int64) (int64, int64) {
 	//--Today--
 	{
 		act_tm := int64(SA_Time())
-		if SA_ButtonBorder(trns.TODAY+"("+Format(act_tm)+")").Show(0, 0, 7, 1).click {
+		if SA_ButtonBorder(trnsCal.TODAY+"("+Format(act_tm)+")").Show(0, 0, 7, 1).click {
 			value = act_tm
 			page = act_tm
 		}
@@ -277,19 +296,13 @@ func Calendar(value int64, page int64) (int64, int64) {
 	return value, page
 }
 
-//export CalendarButton
-func CalendarButton(dialogNameMem SAMem, value int64, page int64, enable uint32) int64 {
-	dialogName := _SA_ptrToString(dialogNameMem)
-
-	if page == 0 {
-		page = store.Page
-	}
-
+func CalendarButton(dialogName string, value *int64, page *int64, enable bool) bool {
+	value_old := *value
 	SA_ColMax(0, 100)
 	SA_RowMax(0, 100)
-	if SA_ButtonStyle(Format(value), &g_ButtonBorderDate).Enable(enable != 0).Icon(SA_FileFromResources("", "type_date.png"), 0.13).Show(0, 0, 1, 1).click {
+	if SA_ButtonStyle(Format(*value), &g_ButtonBorderDate).Enable(enable).Icon("app:res_calendar/type_date.png", 0.13).Show(0, 0, 1, 1).click {
 		SA_DialogOpen(dialogName, 1)
-		page = value
+		*page = *value
 	}
 
 	if SA_DialogStart(dialogName) {
@@ -297,63 +310,10 @@ func CalendarButton(dialogNameMem SAMem, value int64, page int64, enable uint32)
 		SA_ColMax(0, 12)
 		SA_RowMax(0, 9)
 		SA_DivStart(0, 0, 1, 1)
-		value, page = Calendar(value, page)
+		*value, *page = Calendar(*value, *page)
 		SA_DivEnd()
 
-		store.Page = page
 		SA_DialogEnd()
 	}
-
-	return value
-}
-
-func Render() uint32 {
-
-	SA_ColMax(0, 100)
-	SA_RowMax(0, 100)
-	SA_DivStart(0, 0, 1, 1)
-	CalendarButton(_SA_stringToPtr("Calendar"), int64(SA_Time()), store.Page, 1)
-	SA_DivEnd()
-
-	return 0
-}
-
-var g_ButtonSelect _SA_Style
-var g_ButtonToday _SA_Style
-var g_ButtonOutsideMonth _SA_Style
-var g_ButtonOutsideMonthSelect _SA_Style
-var g_ButtonBorderDate _SA_Style
-
-func Styles() {
-	g_ButtonSelect = styles.Button
-	g_ButtonSelect.Main.Color = SA_ThemeWhite()
-	g_ButtonSelect.Main.Content_color = SA_ThemeGrey(0.4)
-	g_ButtonSelect.Id = 0
-
-	g_ButtonToday = styles.ButtonAlpha
-	g_ButtonToday.Main.Color = SA_ThemeCd()
-	g_ButtonToday.Id = 0
-
-	g_ButtonOutsideMonth = styles.ButtonAlpha
-	g_ButtonOutsideMonth.Main.Color = SA_ThemeGrey(0.7)
-	g_ButtonOutsideMonth.Id = 0
-
-	g_ButtonOutsideMonthSelect = styles.Button
-	g_ButtonOutsideMonthSelect.Main.Color = SA_ThemeGrey(0.7)
-	g_ButtonOutsideMonthSelect.Id = 0
-
-	g_ButtonBorderDate = styles.ButtonBorder
-	g_ButtonBorderDate.FontAlignH(0)
-	g_ButtonBorderDate.Id = 0
-}
-
-func Open(buff []byte) bool {
-
-	return false //default json
-}
-func Save() ([]byte, bool) {
-	return nil, false //default json
-}
-func Debug() (int, int, string) {
-	return -1, 00, "main"
+	return value_old != *value
 }

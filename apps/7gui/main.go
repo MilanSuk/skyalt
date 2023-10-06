@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -37,9 +38,10 @@ type Storage struct {
 	Celsius    float64
 	Fahrenheit float64
 
-	StartDate    int64
-	ReturnDate   int64
-	ReturnFlight int
+	StartDate     int64
+	ReturnDate    int64
+	ReturnFlight  int
+	calendar_page int64
 
 	StartTime float64
 	MaxTime   float64
@@ -57,6 +59,8 @@ type Storage struct {
 
 	Cells map[string]string
 }
+
+var store Storage
 
 type Translations struct {
 	COUNT      string
@@ -87,6 +91,8 @@ type Translations struct {
 	UNDO string
 	REDO string
 }
+
+var trns Translations
 
 func Counter() {
 	SA_ColMax(0, 100)
@@ -119,9 +125,8 @@ func TemperatureConverter() {
 func FlightBookerDialog() {
 	SA_ColMax(0, 15)
 
-	var startDate, returnDate string
-	SA_CallGetReturn(SA_CallFn("calendar", "FormatDate", store.StartDate), &startDate)
-	SA_CallGetReturn(SA_CallFn("calendar", "FormatDate", store.ReturnDate), &returnDate)
+	startDate := Format(store.StartDate)
+	returnDate := Format(store.ReturnDate)
 
 	text := trns.YOU_HAVE_BOOKED + " "
 	if store.ReturnFlight > 0 {
@@ -147,10 +152,15 @@ func FlightBooker() {
 
 	SA_Combo(&store.ReturnFlight, trns.ONE_WAY_FLIGHT+"|"+trns.RETURN_FLIGHT).Show(0, 0, 1, 1)
 
-	sz := SA_CallFnShow(0, 1, 1, 1, "calendar", "CalendarButton", "Calendar_Start", store.StartDate, 0, 1)
-	SA_CallGetReturn(sz, &store.StartDate)
-	sz = SA_CallFnShow(0, 2, 1, 1, "calendar", "CalendarButton", "Calendar_Return", store.ReturnDate, 0, store.ReturnFlight > 0)
-	SA_CallGetReturn(sz, &store.ReturnDate)
+	SA_DivStart(0, 1, 1, 1)
+	SA_ColMax(0, 100)
+	CalendarButton("Calendar_Start", &store.StartDate, &store.calendar_page, true)
+	SA_DivEnd()
+
+	SA_DivStart(0, 2, 1, 1)
+	SA_ColMax(0, 100)
+	CalendarButton("Calendar_Return", &store.ReturnDate, &store.calendar_page, store.ReturnFlight > 0)
+	SA_DivEnd()
 
 	if SA_Button(trns.BOOK).Show(0, 3, 1, 1).click {
 		SA_DialogOpen("FlightBookerDialog", 1)
@@ -433,7 +443,7 @@ func Cells() {
 	//todo: formulas ...
 }
 
-func Render() uint32 {
+func Render() {
 
 	SA_ColMax(0, 100)
 	SA_Col(1, 10)
@@ -498,23 +508,13 @@ func Render() uint32 {
 	SA_DivEnd()
 	//SA_RowSpacer(0, y+n, 3, 1)
 	//y += n + 1
-
-	return 0
 }
 
+var styles SA_Styles
 var g_TextCellHeader _SA_Style
 var g_EditboxNoBorder _SA_Style
 
-func Styles() {
-	g_TextCellHeader = styles.Text
-	g_TextCellHeader.ContentColor(SA_ThemeGrey(0.9))
-
-	g_EditboxNoBorder = styles.Editbox
-	g_EditboxNoBorder.Border(0)
-}
-
-func Open(buff []byte) bool {
-	//storage
+func Init() {
 	store.Cells = make(map[string]string)
 
 	store.People = append(store.People, Person{Surname: "Emil", Name: "Hans"})
@@ -523,54 +523,22 @@ func Open(buff []byte) bool {
 	store.People = append(store.People, Person{Surname: "Romba", Name: "John"})
 	store.SelectedPerson = -1
 
-	return false //default json
+	//default
+	json.Unmarshal(SA_File("storage_json"), &store)
+	json.Unmarshal(SA_File("translations_json:app:resources/translations.json"), &trns)
+	json.Unmarshal(SA_File("styles_json"), &styles)
+
+	//styles
+	g_TextCellHeader = styles.Text
+	g_TextCellHeader.ContentColor(SA_ThemeGrey(0.9))
+
+	g_EditboxNoBorder = styles.Editbox
+	g_EditboxNoBorder.Border(0)
+
+	//others
+	InitCalendar()
 }
-func Save() ([]byte, bool) {
-	return nil, false //default json
+func Save() []byte {
+	js, _ := json.MarshalIndent(&store, "", "")
+	return js
 }
-func Debug() (int, int, string) {
-	return -1, 225, "main"
-}
-
-//work-in-progress ...
-/*func io(buff []byte, w bool) []byte {
-	SA_Var(&store.Count, &buff, w)
-
-	SA_Var(&store.Celsius, &buff, w)
-	SA_Var(&store.Fahrenheit, &buff, w)
-
-	SA_Var(&store.StartDate, &buff, w)
-	SA_Var(&store.ReturnDate, &buff, w)
-	SA_Var(&store.Flight_dir, &buff, w)
-
-	SA_Var(&store.StartTime, &buff, w)
-	SA_Var(&store.MaxTime, &buff, w)
-
-	//people
-	num_people := len(store.People)
-	SA_Var(&num_people, &buff, w)
-	if !w {
-		store.People = make([]Person, num_people)
-	}
-	for i := 0; i < num_people; i++ {
-		SA_Var(&store.People[i].Name, &buff, w)
-		SA_Var(&store.People[i].Surname, &buff, w)
-	}
-	SA_Var(&store.Name, &buff, w)
-	SA_Var(&store.Surname, &buff, w)
-	SA_Var(&store.Search, &buff, w)
-
-	//circles
-	num_circles := len(store.Circles)
-	SA_Var(&num_circles, &buff, w)
-	if !w {
-		store.Circles = make([]Circle, num_circles)
-	}
-	for i := 0; i < num_circles; i++ {
-		SA_Var(&store.Circles[i].X, &buff, w)
-		SA_Var(&store.Circles[i].Y, &buff, w)
-		SA_Var(&store.Circles[i].Rad, &buff, w)
-	}
-
-	return buff
-}*/

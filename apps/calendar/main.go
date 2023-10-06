@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -43,6 +44,8 @@ type Storage struct {
 	event_description string
 	event_file        string
 }
+
+var store Storage
 
 type Translations struct {
 	YEAR      string
@@ -95,6 +98,8 @@ type Translations struct {
 	EDIT   string
 	DELETE string
 }
+
+var trns Translations
 
 func MonthText(month int) string {
 	switch month {
@@ -1136,7 +1141,7 @@ func ModePanel() {
 
 }
 
-func Render() uint32 {
+func Render() {
 
 	if store.ShowSide {
 		SA_Col(0, 6.3)
@@ -1151,17 +1156,26 @@ func Render() uint32 {
 	SA_DivStart(1, 0, 1, 1)
 	ModePanel()
 	SA_DivEnd()
-
-	return 0
 }
 
+var styles SA_Styles
 var g_ButtonSelect _SA_Style
 var g_ButtonToday _SA_Style
 var g_ButtonOutsideMonth _SA_Style
 var g_ButtonOutsideMonthSelect _SA_Style
 var g_ButtonEvent _SA_Style
 
-func Styles() {
+func Init() {
+	store.ShowSide = true
+	store.Small_date = int64(SA_Time())
+	store.Small_page = int64(SA_Time())
+
+	//default
+	json.Unmarshal(SA_File("storage_json"), &store)
+	json.Unmarshal(SA_File("translations_json:app:resources/translations.json"), &trns)
+	json.Unmarshal(SA_File("styles_json"), &styles)
+
+	//styles
 	g_ButtonSelect = styles.Button
 	g_ButtonSelect.Main.Color = SA_ThemeWhite()
 	g_ButtonSelect.Main.Content_color = SA_ThemeGrey(0.4)
@@ -1182,18 +1196,9 @@ func Styles() {
 	g_ButtonEvent = styles.ButtonLight
 	g_ButtonEvent.FontAlignH(0)
 	g_ButtonEvent.Id = 0
-}
 
-func Open(buff []byte) bool {
-	store.ShowSide = true
-	store.Small_date = int64(SA_Time())
-	store.Small_page = int64(SA_Time())
-
-	return false //default json
 }
-func Save() ([]byte, bool) {
-	return nil, false //default json
-}
-func Debug() (int, int, string) {
-	return -1, 223, "main"
+func Save() []byte {
+	js, _ := json.MarshalIndent(&store, "", "")
+	return js
 }

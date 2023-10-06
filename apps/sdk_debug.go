@@ -1,13 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"math"
 	"net"
+	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strconv"
 )
@@ -15,11 +14,14 @@ import (
 var conn *net.TCPConn
 
 func main() {
-	port, sts_id, asset := Debug()
+	port := 8091 //feel free to change the port number!
 
-	if port < 0 {
-		port = 8091
+	dir, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Getwd() failed: %v\n", err)
+		return
 	}
+	appName := filepath.Base(dir)
 
 	tcpServer, err := net.ResolveTCPAddr("tcp", "localhost:"+strconv.Itoa(port))
 	if err != nil {
@@ -33,8 +35,7 @@ func main() {
 		return
 	}
 
-	WriteUint64(uint64(sts_id))
-	WriteBytes([]byte(asset))
+	WriteBytes([]byte(appName))
 
 	fmt.Printf("Connected on port: %d\n", port)
 
@@ -46,45 +47,16 @@ func main() {
 			}
 			log.Panic(err)
 		}
-		args, err := ReadBytes()
-		if err != nil {
-			log.Panic(err)
-		}
 
 		switch string(fnName) {
+		case "_sa_init":
+			Init()
+
 		case "_sa_render":
 			Render()
 
-		case "_sa_init":
-			var jsStore []byte
-			_arrayToArgs(args, &jsStore)
-			if !Open(jsStore) {
-				json.Unmarshal(jsStore, &store)
-			}
-
-		case "_sa_exit":
-			js, written := Save()
-			if !written {
-				js, _ = json.MarshalIndent(&store, "", "")
-			}
-			_sa_storage_write(_SA_bytesToPtr(js))
-
-		case "_sa_styles":
-			var jsStyles []byte
-			_arrayToArgs(args, &jsStyles)
-			styles = SA_Styles{} //reset ids
-			json.Unmarshal(jsStyles, &styles)
-			Styles()
-
-		case "_sa_translations":
-			e := reflect.ValueOf(&trns).Elem()
-			for i := 0; i < e.NumField(); i++ {
-				e.Field(i).SetString("{" + e.Type().Field(i).Name + "}")
-			}
-
-			var js []byte
-			_arrayToArgs(args, &js)
-			json.Unmarshal(js, &trns)
+		case "_sa_save":
+			_sa_storage_write(_SA_bytesToPtr(Save()))
 
 		default:
 			log.Panic("Unknown function: ", string(fnName))
@@ -275,47 +247,62 @@ func _sa_print_float(val float64) {
 
 //-------
 
-func _sa_sql_write(dbUrlMem SAMem, queryMem SAMem) int64 {
+func _sa_sql_commit(dbUrlMem SAMem) int64 {
 	WriteUint64(10)
 	WriteMem(dbUrlMem)
-	WriteMem(queryMem)
 	ret := int64(ReadUint64())
 	_checkRead(10)
 	return ret
 }
-
-func _sa_sql_read(dbUrlMem SAMem, queryMem SAMem) int64 {
+func _sa_sql_rollback(dbUrlMem SAMem) int64 {
 	WriteUint64(11)
 	WriteMem(dbUrlMem)
-	WriteMem(queryMem)
 	ret := int64(ReadUint64())
 	_checkRead(11)
 	return ret
 }
 
-func _sa_sql_readRowCount(dbUrlMem SAMem, queryMem SAMem, queryHash int64) int64 {
+func _sa_sql_write(dbUrlMem SAMem, queryMem SAMem) int64 {
 	WriteUint64(12)
 	WriteMem(dbUrlMem)
 	WriteMem(queryMem)
-	WriteUint64(uint64(queryHash))
 	ret := int64(ReadUint64())
 	_checkRead(12)
 	return ret
 }
 
-func _sa_sql_readRowLen(dbUrlMem SAMem, queryMem SAMem, queryHash int64, row_i uint64) int64 {
+func _sa_sql_read(dbUrlMem SAMem, queryMem SAMem) int64 {
 	WriteUint64(13)
 	WriteMem(dbUrlMem)
 	WriteMem(queryMem)
-	WriteUint64(uint64(queryHash))
-	WriteUint64(row_i)
 	ret := int64(ReadUint64())
 	_checkRead(13)
 	return ret
 }
 
-func _sa_sql_readRow(dbUrlMem SAMem, queryMem SAMem, queryHash int64, row_i uint64, resultMem SAMem) int64 {
+func _sa_sql_readRowCount(dbUrlMem SAMem, queryMem SAMem, queryHash int64) int64 {
 	WriteUint64(14)
+	WriteMem(dbUrlMem)
+	WriteMem(queryMem)
+	WriteUint64(uint64(queryHash))
+	ret := int64(ReadUint64())
+	_checkRead(14)
+	return ret
+}
+
+func _sa_sql_readRowLen(dbUrlMem SAMem, queryMem SAMem, queryHash int64, row_i uint64) int64 {
+	WriteUint64(15)
+	WriteMem(dbUrlMem)
+	WriteMem(queryMem)
+	WriteUint64(uint64(queryHash))
+	WriteUint64(row_i)
+	ret := int64(ReadUint64())
+	_checkRead(15)
+	return ret
+}
+
+func _sa_sql_readRow(dbUrlMem SAMem, queryMem SAMem, queryHash int64, row_i uint64, resultMem SAMem) int64 {
+	WriteUint64(16)
 	WriteMem(dbUrlMem)
 	WriteMem(queryMem)
 	WriteUint64(uint64(queryHash))
@@ -323,7 +310,7 @@ func _sa_sql_readRow(dbUrlMem SAMem, queryMem SAMem, queryHash int64, row_i uint
 
 	ReadMem(resultMem)
 	ret := int64(ReadUint64())
-	_checkRead(14)
+	_checkRead(16)
 	return ret
 }
 
@@ -623,35 +610,6 @@ func _sa_paint_cursor(nameMem SAMem) int64 {
 	return ret
 }
 
-func _sa_fn_call(assetMem SAMem, fnMem SAMem, argsMem SAMem) int64 {
-	WriteUint64(70)
-	WriteMem(assetMem)
-	WriteMem(fnMem)
-	WriteMem(argsMem)
-
-	ret := int64(ReadUint64())
-	_checkRead(70)
-	return ret
-}
-
-func _sa_fn_setReturn(argsMem SAMem) int64 {
-	WriteUint64(71)
-	WriteMem(argsMem)
-
-	ret := int64(ReadUint64())
-	_checkRead(71)
-	return ret
-}
-
-func _sa_fn_getReturn(argsMem SAMem) int64 {
-	WriteUint64(72)
-
-	ReadMem(argsMem)
-	ret := int64(ReadUint64())
-	_checkRead(72)
-	return ret
-}
-
 func _sa_comp_drawButton(styleId uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, tooltipMem SAMem, enable uint32, outMem SAMem) int64 {
 	WriteUint64(80)
 
@@ -796,11 +754,10 @@ func _sa_div_drop(groupName SAMem, vertical uint32, horizontal uint32, inside ui
 	return ret
 }
 
-func _sa_render_app(appNameMem SAMem, dbUrlMem SAMem, sts_id uint64) int64 {
+func _sa_render_app(dbUrlMem SAMem, app_rowid uint64) int64 {
 	WriteUint64(120)
-	WriteMem(appNameMem)
 	WriteMem(dbUrlMem)
-	WriteUint64(sts_id)
+	WriteUint64(app_rowid)
 
 	ret := int64(ReadUint64())
 	_checkRead(120)

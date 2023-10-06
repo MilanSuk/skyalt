@@ -8,10 +8,6 @@ import (
 	"strconv"
 )
 
-var store Storage
-var trns Translations
-var styles SA_Styles
-
 /* -------------------- App information -------------------- */
 
 func SA_InfoFloat(key string) float64 {
@@ -49,22 +45,7 @@ func SA_Time() float64 {
 
 /* -------------------- File Access -------------------- */
 
-func SA_FileFromDbs(fileName string) string {
-	return "dbs:" + fileName
-}
-
-func SA_FileFromResources(assetName string, fileName string) string {
-	return "assets:" + assetName + "/" + fileName
-}
-
-func SA_FileGetBlob(url string, table string, column string, row int) string {
-	if len(url) == 0 {
-		url = SA_FileFromDbs("")
-	}
-	return url + "/" + table + "/" + column + "/" + strconv.Itoa(row)
-}
-
-func SA_FileContent(url string) []byte {
+func SA_File(url string) []byte {
 	pathMem := _SA_stringToPtr(url)
 
 	sz := _sa_blob_len(pathMem)
@@ -133,6 +114,141 @@ func (sql *SA_Sql) Next(outs ...interface{}) bool {
 
 func SA_SqlWrite(dbUrl string, query string) int64 {
 	return _sa_sql_write(_SA_stringToPtr(dbUrl), _SA_stringToPtr(query))
+}
+
+func SA_SqlCommit(dbUrl string) int64 {
+	return _sa_sql_commit(_SA_stringToPtr(dbUrl))
+}
+
+func SA_SqlRollback(dbUrl string) int64 {
+	return _sa_sql_rollback(_SA_stringToPtr(dbUrl))
+}
+
+func _arrayToArgs(args []byte, outs ...interface{}) {
+	p := 0
+	i := 0
+	for p < len(args) && i < len(outs) {
+
+		tp := args[p]
+		p += 1
+
+		arg := _SA_getUint64(args[p:])
+		p += 8
+
+		switch tp {
+		case _SA_TpI32:
+			vv := int32(arg)
+			switch v := outs[i].(type) {
+			case *bool:
+				*v = (vv != 0)
+			case *int:
+				*v = int(vv)
+			case *int32:
+				*v = int32(vv)
+			case *int64:
+				*v = int64(vv)
+			case *float32:
+				*v = float32(vv)
+			case *float64:
+				*v = float64(vv)
+			case *string:
+				*v = strconv.Itoa(int(vv))
+			}
+		case _SA_TpI64:
+			vv := int64(arg)
+			switch v := outs[i].(type) {
+			case *bool:
+				*v = (vv != 0)
+			case *int:
+				*v = int(vv)
+			case *int32:
+				*v = int32(vv)
+			case *int64:
+				*v = int64(vv)
+			case *float32:
+				*v = float32(vv)
+			case *float64:
+				*v = float64(vv)
+			case *string:
+				*v = strconv.Itoa(int(vv))
+			}
+		case _SA_TpF32:
+			vv := math.Float32frombits(uint32(arg))
+			switch v := outs[i].(type) {
+			case *bool:
+				*v = (vv != 0)
+			case *int:
+				*v = int(vv)
+			case *int32:
+				*v = int32(vv)
+			case *int64:
+				*v = int64(vv)
+			case *float32:
+				*v = float32(vv)
+			case *float64:
+				*v = float64(vv)
+			case *string:
+				*v = fmt.Sprintf("%f", vv)
+			}
+		case _SA_TpF64:
+			vv := math.Float64frombits(uint64(arg))
+			switch v := outs[i].(type) {
+			case *bool:
+				*v = (vv != 0)
+			case *int:
+				*v = int(vv)
+			case *int32:
+				*v = int32(vv)
+			case *int64:
+				*v = int64(vv)
+			case *float32:
+				*v = float32(vv)
+			case *float64:
+				*v = float64(vv)
+			case *string:
+				*v = fmt.Sprintf("%f", vv)
+			}
+
+		case _SA_TpBytes:
+			//clone
+			arr_n := int(arg)
+			arr := make([]byte, arr_n)
+			copy(arr, args[p:p+arr_n])
+			p += int(arg)
+
+			switch v := outs[i].(type) {
+			case *[]byte:
+				*v = arr
+			case *string:
+				//_sa_print(_stringToPtr(string(arr)))
+				*v = string(arr)
+			}
+		}
+
+		i++
+	}
+
+	//reset rest
+	for i < len(outs) {
+		switch v := outs[i].(type) {
+		case *bool:
+			*v = false
+		case *int:
+			*v = 0
+		case *int32:
+			*v = 0
+		case *int64:
+			*v = 0
+		case *float32:
+			*v = 0
+		case *float64:
+			*v = 0
+		case *string:
+			*v = ""
+		}
+
+		i++
+	}
 }
 
 /* -------------------- Layouts -------------------- */
@@ -278,240 +394,6 @@ func SAPaint_Tooltip(text string) bool {
 
 func SAPaint_Cursor(name string) bool {
 	return _sa_paint_cursor(_SA_stringToPtr(name)) > 0
-}
-
-/* -------------------- Function call -------------------- */
-
-func _argsToArray(data []byte, arg interface{}) []byte {
-
-	switch v := arg.(type) {
-
-	case bool:
-		data = append(data, _SA_TpI64)
-		if v {
-			data = _SA_appendUint64(data, 1)
-		} else {
-			data = _SA_appendUint64(data, 0)
-		}
-	case byte:
-		data = append(data, _SA_TpI64)
-		data = _SA_appendUint64(data, uint64(v))
-	case int:
-		data = append(data, _SA_TpI64)
-		data = _SA_appendUint64(data, uint64(v))
-	case uint:
-		data = append(data, _SA_TpI64)
-		data = _SA_appendUint64(data, uint64(v))
-
-	case int16:
-		data = append(data, _SA_TpI64)
-		data = _SA_appendUint64(data, uint64(v))
-	case uint16:
-		data = append(data, _SA_TpI64)
-		data = _SA_appendUint64(data, uint64(v))
-
-	case int32:
-		data = append(data, _SA_TpI64)
-		data = _SA_appendUint64(data, uint64(v))
-	case int64:
-		data = append(data, _SA_TpI64)
-		data = _SA_appendUint64(data, uint64(v))
-
-	case uint32:
-		data = append(data, _SA_TpI64)
-		data = _SA_appendUint64(data, uint64(v))
-	case uint64:
-		data = append(data, _SA_TpI64)
-		data = _SA_appendUint64(data, uint64(v))
-
-	case float32:
-		data = append(data, _SA_TpF32)
-		data = _SA_appendUint64(data, uint64(math.Float32bits(v)))
-
-	case float64:
-		data = append(data, _SA_TpF64)
-		data = _SA_appendUint64(data, uint64(math.Float64bits(v)))
-
-	case []byte:
-		data = append(data, _SA_TpBytes)
-		data = _SA_appendUint64(data, uint64(len(v)))
-		data = append(data, v...)
-	case string:
-		data = append(data, _SA_TpBytes)
-		data = _SA_appendUint64(data, uint64(len(v)))
-		data = append(data, v...)
-	}
-	return data
-}
-
-func _arrayToArgs(args []byte, outs ...interface{}) {
-	p := 0
-	i := 0
-	for p < len(args) && i < len(outs) {
-
-		tp := args[p]
-		p += 1
-
-		arg := _SA_getUint64(args[p:])
-		p += 8
-
-		switch tp {
-		case _SA_TpI32:
-			vv := int32(arg)
-			switch v := outs[i].(type) {
-			case *bool:
-				*v = (vv != 0)
-			case *int:
-				*v = int(vv)
-			case *int32:
-				*v = int32(vv)
-			case *int64:
-				*v = int64(vv)
-			case *float32:
-				*v = float32(vv)
-			case *float64:
-				*v = float64(vv)
-			case *string:
-				*v = strconv.Itoa(int(vv))
-			}
-		case _SA_TpI64:
-			vv := int64(arg)
-			switch v := outs[i].(type) {
-			case *bool:
-				*v = (vv != 0)
-			case *int:
-				*v = int(vv)
-			case *int32:
-				*v = int32(vv)
-			case *int64:
-				*v = int64(vv)
-			case *float32:
-				*v = float32(vv)
-			case *float64:
-				*v = float64(vv)
-			case *string:
-				*v = strconv.Itoa(int(vv))
-			}
-		case _SA_TpF32:
-			vv := math.Float32frombits(uint32(arg))
-			switch v := outs[i].(type) {
-			case *bool:
-				*v = (vv != 0)
-			case *int:
-				*v = int(vv)
-			case *int32:
-				*v = int32(vv)
-			case *int64:
-				*v = int64(vv)
-			case *float32:
-				*v = float32(vv)
-			case *float64:
-				*v = float64(vv)
-			case *string:
-				*v = fmt.Sprintf("%f", vv)
-			}
-		case _SA_TpF64:
-			vv := math.Float64frombits(uint64(arg))
-			switch v := outs[i].(type) {
-			case *bool:
-				*v = (vv != 0)
-			case *int:
-				*v = int(vv)
-			case *int32:
-				*v = int32(vv)
-			case *int64:
-				*v = int64(vv)
-			case *float32:
-				*v = float32(vv)
-			case *float64:
-				*v = float64(vv)
-			case *string:
-				*v = fmt.Sprintf("%f", vv)
-			}
-
-		case _SA_TpBytes:
-			//clone
-			arr_n := int(arg)
-			arr := make([]byte, arr_n)
-			copy(arr, args[p:p+arr_n])
-			p += int(arg)
-
-			switch v := outs[i].(type) {
-			case *[]byte:
-				*v = arr
-			case *string:
-				//_sa_print(_stringToPtr(string(arr)))
-				*v = string(arr)
-			}
-		}
-
-		i++
-	}
-
-	//reset rest
-	for i < len(outs) {
-		switch v := outs[i].(type) {
-		case *bool:
-			*v = false
-		case *int:
-			*v = 0
-		case *int32:
-			*v = 0
-		case *int64:
-			*v = 0
-		case *float32:
-			*v = 0
-		case *float64:
-			*v = 0
-		case *string:
-			*v = ""
-		}
-
-		i++
-	}
-
-}
-
-func SA_CallFn(asset string, fn string, args ...interface{}) int64 {
-
-	//inputs
-	data := make([]byte, 0, 256) //pre-alloc
-	for _, it := range args {
-		data = _argsToArray(data, it)
-	}
-
-	//call
-	val := _sa_fn_call(_SA_stringToPtr(asset), _SA_stringToPtr(fn), _SA_bytesToPtr(data))
-
-	return val
-}
-
-func SA_CallFnShow(x, y, w, h int, asset string, fn string, args ...interface{}) int64 {
-
-	SA_DivStart(x, y, w, h)
-	defer SA_DivEnd()
-
-	return SA_CallFn(asset, fn, args...)
-}
-
-func SA_CallSetReturn(args ...interface{}) bool {
-	data := make([]byte, 0, 256) //pre-alloc
-	for _, it := range args {
-		data = _argsToArray(data, it)
-	}
-	return _sa_fn_setReturn(_SA_bytesToPtr(data)) != 0
-}
-
-func SA_CallGetReturn(sz int64, outs ...interface{}) bool {
-	if sz <= 0 {
-		return false
-	}
-	args := make([]byte, sz)
-	_sa_fn_getReturn(_SA_bytesToPtr(args))
-
-	_arrayToArgs(args, outs...)
-
-	return true
 }
 
 /* -------------------- Ulits -------------------- */
@@ -1524,8 +1406,8 @@ func SA_MoveElement[T any](array_src *[]T, array_dst *[]T, src int, dst int, pos
 	}
 }
 
-func SA_RenderApp(app string, dbUrl string, sts_id int) bool {
-	return _sa_render_app(_SA_stringToPtr(app), _SA_stringToPtr(dbUrl), uint64(sts_id)) >= 0
+func SA_RenderApp(dbUrl string, app_rowid int) bool {
+	return _sa_render_app(_SA_stringToPtr(dbUrl), uint64(app_rowid)) >= 0
 }
 
 func SA_Rating(value int, max_value int, cdActive SACd, cdDeactive SACd, icon string) (int, bool) {
