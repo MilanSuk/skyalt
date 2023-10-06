@@ -141,7 +141,7 @@ func (app *App) Save() {
 		app.wasm.SaveData()
 	}
 
-	err := app.SaveGui()
+	err := app.saveGui()
 	app.AddLogErr(err)
 }
 
@@ -259,8 +259,10 @@ func (app *App) Render(startIt bool) {
 		if err != nil {
 			fmt.Print(err)
 		}
+
+		app.TryConnectDebug()
 	} else {
-		app.paint_text(0, 0, 1, 1, nil, "Error: 'Main.wasm' is missing or corrupted", "", false, false, true)
+		app.db.root.styles.TextCenter.Paint(app.getCoord(0, 0, 1, 1, 0, 0, 0), "Error: 'Main.wasm' is missing or corrupted", "", false, false, "", 0, false, app)
 	}
 
 	if app.debug != nil {
@@ -268,43 +270,48 @@ func (app *App) Render(startIt bool) {
 		blue := OsCd{50, 50, 255, 180}
 
 		style := app.db.root.styles.Text
-		style.Main.Font_alignV = 2
-		style.Main.Font_alignH = 2
-		style.Main.Color = blue
+		style.Margin(0.06)
+		style.BorderCd(blue)
+		style.Border(0.03)
+		style.FontAlignV(2)
+		style.FontAlignH(2)
+		style.Color(blue)
+		style.Cursor("")
 
-		app.paint_rect(0, 0, 1, 1, 0.06, blue, 0.03)
-		app.paint_text(0, 0, 1, 1, &style, "DEBUG ON", "", false, false, true)
+		style.Paint(app.getCoord(0, 0, 1, 1, 0, 0, 0), "DEBUG ON", "", false, false, "", 0, false, app)
 	}
 	if startIt {
 		app.renderEnd(true)
 	}
 }
 
-func (app *App) Tick() {
-
-	//odebrat pokud byl zavřen ...
-	//přidat ty co ještě nebyly přidány ... udělat v render_app() ...
-	//možná v Base zobrazit že je připojen debug + [X](zavře debug process) ...
-
-	//test: stejné 7gui, ale chci debug druhou ...
-
-	assetDebug := app.db.root.server.Find(app.name)
-	if assetDebug != nil && app.debug != assetDebug {
-		if app.debug != nil {
-			app.debug.Destroy()
-		}
-		app.debug = assetDebug
-		app.reload = true
-	}
-
-	//wasm
+func (app *App) CheckDebug() {
 	if app.debug != nil {
-		//connection lost, go back to wasm
 		if app.debug.conn == nil {
 			app.debug.Destroy()
 			app.debug = nil
-			app.reload = true
 		}
+	}
+}
+
+func (app *App) TryConnectDebug() {
+	if app.debug == nil {
+		assetDebug := app.db.root.server.Get(app.name)
+		if assetDebug != nil {
+			app.Save()
+			app.debug = assetDebug
+			app.Call("_sa_init")
+		}
+	}
+
+	app.CheckDebug()
+}
+
+func (app *App) Tick() {
+
+	if app.debug != nil {
+		app.CheckDebug()
+
 	} else if app.wasm != nil {
 		changed, err := app.wasm.Tick()
 		if err != nil {
@@ -375,7 +382,7 @@ func (app *App) AddGlobalScrollHash(hash uint64) *LayoutSaveItem {
 	return app.gui.AddGlobalScrollHash(hash)
 }
 
-func (app *App) SaveGui() error {
+func (app *App) saveGui() error {
 
 	err := app.CheckLoadGui()
 	if err != nil {

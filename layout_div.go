@@ -208,10 +208,7 @@ func (div *LayoutDiv) Maintenance() {
 		it := div.childs[i]
 		if !it.use {
 			it.Destroy()
-
-			//remove it
-			copy(div.childs[i:], div.childs[i+1:])
-			div.childs = div.childs[:len(div.childs)-1]
+			div.childs = append(div.childs[:i], div.childs[i+1:]...) //remove
 		} else {
 			it.Maintenance()
 		}

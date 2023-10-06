@@ -64,12 +64,13 @@ func (server *DebugServer) Destroy() {
 	server.listen.Close()
 }
 
-func (server *DebugServer) Find(assetName string) *AssetDebug {
+func (server *DebugServer) Get(assetName string) *AssetDebug {
 	server.mu.Lock()
 	defer server.mu.Unlock()
 
-	for _, asset := range server.assets {
-		if asset.name == assetName && asset.conn != nil {
+	for i, asset := range server.assets {
+		if asset.name == assetName {
+			server.assets = append(server.assets[:i], server.assets[i+1:]...) //remove
 			return asset
 		}
 	}
