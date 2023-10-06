@@ -64,12 +64,12 @@ func (server *DebugServer) Destroy() {
 	server.listen.Close()
 }
 
-func (server *DebugServer) Find(sts_id int, assetName string) *AssetDebug {
+func (server *DebugServer) Find(assetName string) *AssetDebug {
 	server.mu.Lock()
 	defer server.mu.Unlock()
 
 	for _, asset := range server.assets {
-		if asset.Is(sts_id, assetName) && asset.conn != nil {
+		if asset.name == assetName && asset.conn != nil {
 			return asset
 		}
 	}

@@ -22,7 +22,7 @@ type LayoutLevel struct {
 
 	buff *PaintBuff
 
-	infoLayout *RS_LScroll
+	//infoLayout *RS_LScroll
 
 	rootDiv *LayoutDiv
 	stack   *LayoutDiv
@@ -32,16 +32,16 @@ type LayoutLevel struct {
 	close bool
 }
 
-func NewLayoutLevel(name string, src_coordMoveCut OsV4, infoLayout *RS_LScroll, ui *Ui) *LayoutLevel {
+func NewLayoutLevel(name string, src_coordMoveCut OsV4, app *App, ui *Ui) *LayoutLevel {
 
 	var level LayoutLevel
 
 	level.name = name
 	level.src_coordMoveCut = src_coordMoveCut
-	level.infoLayout = infoLayout
+	//level.infoLayout = infoLayout
 
 	level.buff = NewPaintBuff(ui)
-	level.rootDiv = NewLayoutPack(nil, "", OsV4{}, infoLayout)
+	level.rootDiv = NewLayoutPack(nil, "", OsV4{}, app)
 
 	level.use = -1
 	return &level
@@ -49,7 +49,7 @@ func NewLayoutLevel(name string, src_coordMoveCut OsV4, infoLayout *RS_LScroll, 
 
 func (level *LayoutLevel) Destroy() {
 	level.buff.Destroy()
-	level.rootDiv.Destroy(level.infoLayout)
+	level.rootDiv.Destroy()
 }
 
 func (level *LayoutLevel) GetCoord(q OsV4, winRect OsV4) OsV4 {

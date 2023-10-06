@@ -24,9 +24,9 @@ import (
 	"strings"
 )
 
-func (asset *Asset) _VmBasic_touchScrollEnabled(packLayout *LayoutDiv) (bool, bool) {
+func (app *App) _VmBasic_touchScrollEnabled(packLayout *LayoutDiv) (bool, bool) {
 
-	root := asset.app.root
+	root := app.db.root
 
 	insideScrollV := false
 	insideScrollH := false
@@ -42,9 +42,9 @@ func (asset *Asset) _VmBasic_touchScrollEnabled(packLayout *LayoutDiv) (bool, bo
 	return insideScrollV, insideScrollH
 }
 
-func (asset *Asset) _VmBasic_touchScroll(packLayout *LayoutDiv, enableInput bool) {
+func (app *App) _VmBasic_touchScroll(packLayout *LayoutDiv, enableInput bool) {
 
-	root := asset.app.root
+	root := app.db.root
 
 	hasScrollV := packLayout.data.scrollV.Is()
 	hasScrollH := packLayout.data.scrollH.Is()
@@ -62,7 +62,7 @@ func (asset *Asset) _VmBasic_touchScroll(packLayout *LayoutDiv, enableInput bool
 	}
 }
 
-func (asset *Asset) _VmBasic_RenderScroll(packLayout *LayoutDiv, showBackground bool, buff *PaintBuff) {
+func (app *App) _VmBasic_RenderScroll(packLayout *LayoutDiv, showBackground bool, buff *PaintBuff) {
 
 	if packLayout.data.scrollV.Is() {
 		scrollQuad := packLayout.data.scrollV.GetScrollBackCoordV(packLayout.crop, buff.ui)
@@ -75,9 +75,9 @@ func (asset *Asset) _VmBasic_RenderScroll(packLayout *LayoutDiv, showBackground 
 	}
 }
 
-func (asset *Asset) renderStart() {
+func (app *App) renderStart() {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	st.stack.data.Reset() //here because after *dialog* needs to know old size
@@ -89,10 +89,10 @@ func (asset *Asset) renderStart() {
 	} else {
 		enableInput = enableInput && st.stack.parent.enableInput
 	}
-	asset._VmBasic_touchScroll(st.stack, enableInput)
+	app._VmBasic_touchScroll(st.stack, enableInput)
 
 	// scroll touch
-	insideScrollV, insideScrollH := asset._VmBasic_touchScrollEnabled(st.stack)
+	insideScrollV, insideScrollH := app._VmBasic_touchScrollEnabled(st.stack)
 	overScroll := enableInput && (insideScrollV || insideScrollH)
 	enableInput = enableInput && !insideScrollV && !insideScrollH //can NOT click through
 
@@ -122,12 +122,12 @@ func (asset *Asset) renderStart() {
 	st.buff.AddCrop(st.stack.crop)
 
 	if root.ui.io.ini.Grid {
-		asset.DrawGrid()
+		app.DrawGrid()
 	}
 }
 
-func (asset *Asset) DrawGrid() {
-	root := asset.app.root
+func (app *App) DrawGrid() {
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	start := st.stack.canvas.Start
@@ -139,14 +139,14 @@ func (asset *Asset) DrawGrid() {
 	px := start.X
 	for _, col := range st.stack.data.cols.outputs {
 		px += int(col)
-		st.buff.AddLine(OsV2{px, start.Y}, OsV2{px, start.Y + size.Y}, cd, asset.getCellWidth(0.03))
+		st.buff.AddLine(OsV2{px, start.Y}, OsV2{px, start.Y + size.Y}, cd, app.getCellWidth(0.03))
 	}
 
 	//rows
 	py := start.Y
 	for _, row := range st.stack.data.rows.outputs {
 		py += int(row)
-		st.buff.AddLine(OsV2{start.X, py}, OsV2{start.X + size.X, py}, cd, asset.getCellWidth(0.03))
+		st.buff.AddLine(OsV2{start.X, py}, OsV2{start.X + size.X, py}, cd, app.getCellWidth(0.03))
 	}
 
 	px = start.X
@@ -163,30 +163,30 @@ func (asset *Asset) DrawGrid() {
 
 }
 
-func (asset *Asset) renderEnd(baseDiv bool) {
+func (app *App) renderEnd(baseDiv bool) {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	st.stack.gridLock = false
 
 	// show scroll
 	st.buff.AddCrop(st.stack.CropWithScroll(root.ui))
-	asset._VmBasic_RenderScroll(st.stack, st.stack.data.scrollOnScreen, st.buff)
+	app._VmBasic_RenderScroll(st.stack, st.stack.data.scrollOnScreen, st.buff)
 
 	if st.stack.parent != nil {
 		st.stack = st.stack.parent
 		st.buff.AddCrop(st.stack.crop)
 	} else {
 		if !baseDiv {
-			asset.AddLogErr(fmt.Errorf("div==nil in level: %s. Check if every 'start' has 'end'. Check return/continue/break in the middle of 'start' - 'end'", st.name))
+			app.AddLogErr(fmt.Errorf("div==nil in level: %s. Check if every 'start' has 'end'. Check return/continue/break in the middle of 'start' - 'end'", st.name))
 		}
 	}
 }
 
-func (asset *Asset) div_start(x, y, w, h uint64, name string) int64 {
+func (app *App) div_start(x, y, w, h uint64, name string) int64 {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	if !st.stack.gridLock {
@@ -199,24 +199,24 @@ func (asset *Asset) div_start(x, y, w, h uint64, name string) int64 {
 	}
 
 	grid := InitOsQuad(int(x), int(y), int(w), int(h))
-	st.stack = st.stack.FindOrCreate(name, grid, &root.levels.infoLayout)
+	st.stack = st.stack.FindOrCreate(name, grid, app)
 
-	asset.renderStart()
+	app.renderStart()
 
 	return int64(OsTrn(!st.stack.crop.IsZero(), 1, 0))
 }
 
-func (asset *Asset) _sa_div_start(x, y, w, h uint64, nameMem uint64) int64 {
-	name, err := asset.ptrToString(nameMem)
-	if asset.AddLogErr(err) {
+func (app *App) _sa_div_start(x, y, w, h uint64, nameMem uint64) int64 {
+	name, err := app.ptrToString(nameMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
-	return asset.div_start(x, y, w, h, name)
+	return app.div_start(x, y, w, h, name)
 }
 
-func (asset *Asset) _sa_div_end() {
+func (app *App) _sa_div_end() {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	//if grid is empty
@@ -228,12 +228,12 @@ func (asset *Asset) _sa_div_end() {
 		st.stack.gridLock = true
 	}
 
-	asset.renderEnd(false)
+	app.renderEnd(false)
 }
 
-func (asset *Asset) checkGridLock() bool {
+func (app *App) checkGridLock() bool {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	if st.stack.gridLock {
@@ -243,23 +243,23 @@ func (asset *Asset) checkGridLock() bool {
 	return true
 }
 
-func (asset *Asset) _sa_div_col(pos uint64, val float64) float64 {
-	if !asset.checkGridLock() {
+func (app *App) _sa_div_col(pos uint64, val float64) float64 {
+	if !app.checkGridLock() {
 		return -1
 	}
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 	st.stack.GetInputCol(int(pos)).min = float32(val)
 
 	return float64(st.stack.data.cols.GetOutput(int(pos))) / float64(root.ui.Cell())
 }
 
-func (asset *Asset) div_colResize(pos uint64, name string, val float64) float64 {
-	if !asset.checkGridLock() {
+func (app *App) div_colResize(pos uint64, name string, val float64) float64 {
+	if !app.checkGridLock() {
 		return -1
 	}
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	//if 'resize' exist in layout than read it from there
@@ -275,11 +275,11 @@ func (asset *Asset) div_colResize(pos uint64, name string, val float64) float64 
 	return float64(st.stack.data.cols.GetOutput(int(pos))) / float64(root.ui.Cell())
 }
 
-func (asset *Asset) div_rowResize(pos uint64, name string, val float64) float64 {
-	if !asset.checkGridLock() {
+func (app *App) div_rowResize(pos uint64, name string, val float64) float64 {
+	if !app.checkGridLock() {
 		return -1
 	}
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	//if 'resize' exist in layout than read it from there
@@ -295,21 +295,21 @@ func (asset *Asset) div_rowResize(pos uint64, name string, val float64) float64 
 	return float64(st.stack.data.rows.GetOutput(int(pos))) / float64(root.ui.Cell())
 }
 
-func (asset *Asset) _sa_div_colResize(pos uint64, nameMem uint64, val float64) float64 {
-	name, err := asset.ptrToString(nameMem)
-	if asset.AddLogErr(err) {
+func (app *App) _sa_div_colResize(pos uint64, nameMem uint64, val float64) float64 {
+	name, err := app.ptrToString(nameMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return asset.div_colResize(pos, name, val)
+	return app.div_colResize(pos, name, val)
 }
 
-func (asset *Asset) _sa_div_colMax(pos uint64, val float64) float64 {
-	if !asset.checkGridLock() {
+func (app *App) _sa_div_colMax(pos uint64, val float64) float64 {
+	if !app.checkGridLock() {
 		return -1
 	}
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	st.stack.GetInputCol(int(pos)).max = float32(val)
@@ -317,34 +317,34 @@ func (asset *Asset) _sa_div_colMax(pos uint64, val float64) float64 {
 	return float64(st.stack.data.cols.GetOutput(int(pos))) / float64(root.ui.Cell())
 }
 
-func (asset *Asset) _sa_div_row(pos uint64, val float64) float64 {
-	if !asset.checkGridLock() {
+func (app *App) _sa_div_row(pos uint64, val float64) float64 {
+	if !app.checkGridLock() {
 		return -1
 	}
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 	st.stack.GetInputRow(int(pos)).min = float32(val)
 
 	return float64(st.stack.data.rows.GetOutput(int(pos))) / float64(root.ui.Cell())
 }
 
-func (asset *Asset) _sa_div_rowResize(pos uint64, nameMem uint64, val float64) float64 {
+func (app *App) _sa_div_rowResize(pos uint64, nameMem uint64, val float64) float64 {
 
-	name, err := asset.ptrToString(nameMem)
-	if asset.AddLogErr(err) {
+	name, err := app.ptrToString(nameMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return asset.div_rowResize(pos, name, val)
+	return app.div_rowResize(pos, name, val)
 }
 
-func (asset *Asset) _sa_div_rowMax(pos uint64, val float64) float64 {
-	if !asset.checkGridLock() {
+func (app *App) _sa_div_rowMax(pos uint64, val float64) float64 {
+	if !app.checkGridLock() {
 		return -1
 	}
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	st.stack.GetInputRow(int(pos)).max = float32(val)
@@ -352,14 +352,14 @@ func (asset *Asset) _sa_div_rowMax(pos uint64, val float64) float64 {
 	return float64(st.stack.data.rows.GetOutput(int(pos))) / float64(root.ui.Cell())
 }
 
-func (asset *Asset) _sa_div_dialogClose() {
-	root := asset.app.root
+func (app *App) _sa_div_dialogClose() {
+	root := app.db.root
 	root.levels.CloseAndAbove(root.levels.GetStack())
 }
 
-func (asset *Asset) _sa_div_dialogEnd() {
+func (app *App) _sa_div_dialogEnd() {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	//close dialog
@@ -373,22 +373,22 @@ func (asset *Asset) _sa_div_dialogEnd() {
 		}
 	}
 
-	asset.renderEnd(true)
+	app.renderEnd(true)
 
 	err := st.buff.EndLevel()
 	if err != nil {
-		asset.AddLogErr(err)
+		app.AddLogErr(err)
 	}
 
 	err = root.levels.EndCall()
 	if err != nil {
-		asset.AddLogErr(err)
+		app.AddLogErr(err)
 	}
 }
 
-func (asset *Asset) div_dialogOpen(name string, tp uint64) int64 {
-	root := asset.app.root
-	st := asset.app.root.levels.GetStack()
+func (app *App) div_dialogOpen(name string, tp uint64) int64 {
+	root := app.db.root
+	st := app.db.root.levels.GetStack()
 
 	//name
 	if len(name) == 0 {
@@ -398,7 +398,7 @@ func (asset *Asset) div_dialogOpen(name string, tp uint64) int64 {
 	//find
 	act := root.levels.Find(name)
 	if act != nil {
-		asset.AddLogErr(errors.New("dialog already opened"))
+		app.AddLogErr(errors.New("dialog already opened"))
 		return 0 //already open
 	}
 
@@ -416,7 +416,7 @@ func (asset *Asset) div_dialogOpen(name string, tp uint64) int64 {
 	}
 
 	//add
-	root.levels.AddDialog(name, src_coordMoveCut, root.ui)
+	root.levels.AddDialog(name, src_coordMoveCut, app, root.ui)
 	root.touch.Reset()
 	root.ui.io.ResetTouchAndKeys()
 	root.ui.io.edit.setFirstEditbox = true
@@ -424,19 +424,19 @@ func (asset *Asset) div_dialogOpen(name string, tp uint64) int64 {
 	return 1
 }
 
-func (asset *Asset) _sa_div_dialogOpen(nameMem uint64, tp uint64) int64 {
+func (app *App) _sa_div_dialogOpen(nameMem uint64, tp uint64) int64 {
 
-	name, err := asset.ptrToString(nameMem)
-	if asset.AddLogErr(err) {
+	name, err := app.ptrToString(nameMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return asset.div_dialogOpen(name, tp)
+	return app.div_dialogOpen(name, tp)
 }
 
-func (asset *Asset) div_dialogStart(name string) int64 {
-	root := asset.app.root
-	st := asset.app.root.levels.GetStack()
+func (app *App) div_dialogStart(name string) int64 {
+	root := app.db.root
+	st := app.db.root.levels.GetStack()
 
 	//name
 	if len(name) == 0 {
@@ -450,7 +450,7 @@ func (asset *Asset) div_dialogStart(name string) int64 {
 	}
 
 	if lev.use == 1 {
-		asset.AddLogErr(errors.New("dialog already drawn into"))
+		app.AddLogErr(errors.New("dialog already drawn into"))
 		return -1
 	}
 	lev.use = 1
@@ -475,27 +475,27 @@ func (asset *Asset) div_dialogStart(name string) int64 {
 
 	err := lev.buff.StartLevel(coord)
 	if err != nil {
-		asset.AddLogErr(err)
+		app.AddLogErr(err)
 	}
 
-	asset.renderStart()
+	app.renderStart()
 
 	return 1 //active/open
 }
 
-func (asset *Asset) _sa_div_dialogStart(nameMem uint64) int64 {
+func (app *App) _sa_div_dialogStart(nameMem uint64) int64 {
 
-	name, err := asset.ptrToString(nameMem)
-	if asset.AddLogErr(err) {
+	name, err := app.ptrToString(nameMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return asset.div_dialogStart(name)
+	return app.div_dialogStart(name)
 }
 
-func (asset *Asset) div_get_info(id string, x int64, y int64) float64 {
+func (app *App) div_get_info(id string, x int64, y int64) float64 {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	div := st.stack
@@ -614,9 +614,9 @@ func (asset *Asset) div_get_info(id string, x int64, y int64) float64 {
 	return -1
 }
 
-func (asset *Asset) div_set_info(id string, val float64, x int64, y int64) float64 {
+func (app *App) div_set_info(id string, val float64, x int64, y int64) float64 {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	div := st.stack
@@ -674,29 +674,29 @@ func (asset *Asset) div_set_info(id string, val float64, x int64, y int64) float
 	return -1
 }
 
-func (asset *Asset) _sa_div_get_info(idMem uint64, x int64, y int64) float64 {
+func (app *App) _sa_div_get_info(idMem uint64, x int64, y int64) float64 {
 
-	id, err := asset.ptrToString(idMem)
-	if asset.AddLogErr(err) {
+	id, err := app.ptrToString(idMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return asset.div_get_info(id, x, y)
+	return app.div_get_info(id, x, y)
 }
 
-func (asset *Asset) _sa_div_set_info(idMem uint64, val float64, x int64, y int64) float64 {
+func (app *App) _sa_div_set_info(idMem uint64, val float64, x int64, y int64) float64 {
 
-	id, err := asset.ptrToString(idMem)
-	if asset.AddLogErr(err) {
+	id, err := app.ptrToString(idMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return asset.div_set_info(id, val, x, y)
+	return app.div_set_info(id, val, x, y)
 }
 
-func (asset *Asset) div_drag(groupName string, id uint64) int64 {
+func (app *App) div_drag(groupName string, id uint64) int64 {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	if st.stack.data.touch_active {
@@ -707,13 +707,13 @@ func (asset *Asset) div_drag(groupName string, id uint64) int64 {
 		drag.id = id
 
 		//paint
-		asset.paint_rect(0, 0, 1, 1, 0, OsCd{0, 0, 0, 180}, 0) //fade
+		app.paint_rect(0, 0, 1, 1, 0, OsCd{0, 0, 0, 180}, 0) //fade
 	}
 	return 1
 }
-func (asset *Asset) div_drop(groupName string, vertical uint32, horizontal uint32, inside uint32) (uint64, uint64, int64) {
+func (app *App) div_drop(groupName string, vertical uint32, horizontal uint32, inside uint32) (uint64, uint64, int64) {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	id := uint64(0)
@@ -774,23 +774,23 @@ func (asset *Asset) div_drop(groupName string, vertical uint32, horizontal uint3
 		}
 
 		//paint
-		wx := float64(asset.getCellWidth(0.1)) / float64(st.stack.canvas.Size.X)
-		wy := float64(asset.getCellWidth(0.1)) / float64(st.stack.canvas.Size.Y)
+		wx := float64(app.getCellWidth(0.1)) / float64(st.stack.canvas.Size.X)
+		wy := float64(app.getCellWidth(0.1)) / float64(st.stack.canvas.Size.Y)
 		switch pos {
 		case 0: //SA_Drop_INSIDE
-			asset.paint_rect(0, 0, 1, 1, 0, OsCd{0, 0, 0, 180}, 0.03)
+			app.paint_rect(0, 0, 1, 1, 0, OsCd{0, 0, 0, 180}, 0.03)
 
 		case 1: //SA_Drop_V_LEFT
-			asset.paint_rect(0, 0, 1, wy, 0, OsCd{0, 0, 0, 180}, 0)
+			app.paint_rect(0, 0, 1, wy, 0, OsCd{0, 0, 0, 180}, 0)
 
 		case 2: //SA_Drop_V_RIGHT
-			asset.paint_rect(0, 1-wy, 1, 1, 0, OsCd{0, 0, 0, 180}, 0)
+			app.paint_rect(0, 1-wy, 1, 1, 0, OsCd{0, 0, 0, 180}, 0)
 
 		case 3: //SA_Drop_H_LEFT
-			asset.paint_rect(0, 0, wx, 1, 0, OsCd{0, 0, 0, 180}, 0)
+			app.paint_rect(0, 0, wx, 1, 0, OsCd{0, 0, 0, 180}, 0)
 
 		case 4: //SA_Drop_H_RIGHT
-			asset.paint_rect(1-wx, 0, 1, 1, 0, OsCd{0, 0, 0, 180}, 0)
+			app.paint_rect(1-wx, 0, 1, 1, 0, OsCd{0, 0, 0, 180}, 0)
 		}
 
 		id = drag.id
@@ -804,25 +804,25 @@ func (asset *Asset) div_drop(groupName string, vertical uint32, horizontal uint3
 	return id, pos, done
 }
 
-func (asset *Asset) _sa_div_drag(groupNameMem uint64, id uint64) int64 {
+func (app *App) _sa_div_drag(groupNameMem uint64, id uint64) int64 {
 
-	groupName, err := asset.ptrToString(groupNameMem)
-	if asset.AddLogErr(err) {
+	groupName, err := app.ptrToString(groupNameMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return asset.div_drag(groupName, id)
+	return app.div_drag(groupName, id)
 }
-func (asset *Asset) _sa_div_drop(groupNameMem uint64, vertical uint32, horizontal uint32, inside uint32, outMem uint64) int64 {
-	groupName, err := asset.ptrToString(groupNameMem)
-	if asset.AddLogErr(err) {
+func (app *App) _sa_div_drop(groupNameMem uint64, vertical uint32, horizontal uint32, inside uint32, outMem uint64) int64 {
+	groupName, err := app.ptrToString(groupNameMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
 
-	id, pos, done := asset.div_drop(groupName, vertical, horizontal, inside)
+	id, pos, done := app.div_drop(groupName, vertical, horizontal, inside)
 
-	out, err := asset.ptrToBytesDirect(outMem)
-	if asset.AddLogErr(err) {
+	out, err := app.ptrToBytesDirect(outMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
 	binary.LittleEndian.PutUint64(out[0:], uint64(id))
@@ -831,62 +831,65 @@ func (asset *Asset) _sa_div_drop(groupNameMem uint64, vertical uint32, horizonta
 	return done
 }
 
-func (asset *Asset) register_style(js []byte) int64 {
-	id, err := asset.styles.AddJs(js)
+func (app *App) register_style(js []byte) int64 {
+	id, err := app.styles.AddJs(js)
 
 	if err != nil {
-		asset.AddLogErr(err)
+		app.AddLogErr(err)
 		return -1
 	}
 
-	if len(asset.styles.styles) == 100 {
-		asset.AddLogErr(fmt.Errorf("register_style(%.70s) called 100times. Probably bug", string(js)))
+	if len(app.styles.styles) == 100 {
+		app.AddLogErr(fmt.Errorf("register_style(%.70s) called 100times. Probably bug", string(js)))
 	}
 
 	return int64(id)
 }
 
-func (asset *Asset) _sa_register_style(jsMem uint64) int64 {
+func (app *App) _sa_register_style(jsMem uint64) int64 {
 
-	js, err := asset.ptrToBytesDirect(jsMem)
-	if asset.AddLogErr(err) {
+	js, err := app.ptrToBytesDirect(jsMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
-	return asset.register_style(js)
+	return app.register_style(js)
 }
 
-func (asset *Asset) render_app(appName string, dbUrl string, sts_id uint64) (int64, error) {
+func (app *App) render_app(dbUrl string, app_rowid uint64) (int64, error) {
 
-	dbPath, _, inAsset, err := FileParseUrl(dbUrl, asset)
+	dbPath, _, inAsset, err := FileParseUrl(dbUrl, app)
 	if err != nil {
 		return -1, fmt.Errorf("DbParseUrl() failed: %w", err)
 	}
 
 	if inAsset {
-		return -1, fmt.Errorf("Can't pait app with read-only database", err)
+		return -1, fmt.Errorf("can't pait app with read-only database")
 	}
 
-	app, err := asset.app.root.AddApp(appName, dbPath, int(sts_id))
+	db, err := app.db.root.AddDb(dbPath)
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("AddDb() failed: %w", err)
 	}
 
-	app.Render(false)
+	ist, err := db.AddApp(int(app_rowid))
+	if err != nil {
+		return -1, fmt.Errorf("AddApp() failed: %w", err)
+	}
+
+	//app.db.root.levels.GetStack().rootDiv.data.app = ist
+
+	ist.Render(false)
 	return 1, nil
 }
 
-func (asset *Asset) _sa_render_app(appNameMem uint64, dbMem uint64, sts_id uint64) int64 {
+func (app *App) _sa_render_app(dbUrlMem uint64, app_rowid uint64) int64 {
 
-	app, err := asset.ptrToString(appNameMem)
-	if asset.AddLogErr(err) {
-		return -1
-	}
-	db, err := asset.ptrToString(dbMem)
-	if asset.AddLogErr(err) {
+	dbUrl, err := app.ptrToString(dbUrlMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
 
-	ret, err := asset.render_app(app, db, sts_id)
-	asset.AddLogErr(err)
+	ret, err := app.render_app(dbUrl, app_rowid)
+	app.AddLogErr(err)
 	return ret
 }

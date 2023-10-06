@@ -25,18 +25,13 @@ import (
 
 type AssetDebug struct {
 	conn net.Conn
-
-	sts_id int
-	asset  string
+	name string
 }
 
 func NewAssetDebug(conn net.Conn) *AssetDebug {
 	var as AssetDebug
 	as.conn = conn
-
-	as.sts_id = int(as.ReadUint64())
-	as.asset = string(as.ReadBytes())
-
+	as.name = string(as.ReadBytes())
 	return &as
 }
 
@@ -44,10 +39,6 @@ func (ad *AssetDebug) Destroy() {
 	if ad.conn != nil {
 		ad.conn.Close()
 	}
-}
-
-func (ad *AssetDebug) Is(sts_id int, assetName string) bool {
-	return ad.sts_id == sts_id && ad.asset == assetName
 }
 
 func (ad *AssetDebug) _connectionRead(data []byte) error {
@@ -131,8 +122,8 @@ func (ad *AssetDebug) WriteBytes(data []byte) {
 	}
 }
 
-func (ad *AssetDebug) SaveData(asset *Asset) {
-	ad.Call("_sa_exit", nil, asset)
+func (ad *AssetDebug) SaveData(app *App) {
+	ad.Call("_sa_save", app)
 }
 
 func (ad *AssetDebug) _checkRead(fnTp uint64) {
@@ -145,7 +136,7 @@ func (ad *AssetDebug) _checkRead(fnTp uint64) {
 	}
 }
 
-func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, error) {
+func (ad *AssetDebug) Call(fnName string, app *App) (int64, error) {
 
 	if ad.conn == nil {
 		return -1, fmt.Errorf("no connection")
@@ -155,7 +146,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 	ad.WriteBytes([]byte(fnName))
 
 	//arguments
-	ad.WriteBytes(args)
+	//ad.WriteBytes(nil)
 
 	for ad.conn != nil {
 		//recv
@@ -164,101 +155,96 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 		switch fnTp {
 		case 0:
 			json := ad.ReadBytes()
-			ret, err := asset.storage_write(json)
-			asset.AddLogErr(err)
+			ret, err := app.storage_write(json)
+			app.AddLogErr(err)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 1:
 			key := ad.ReadBytes()
-			ret := asset.info_float(string(key))
+			ret := app.info_float(string(key))
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
 		case 2:
 			key := ad.ReadBytes()
 			value := ad.ReadFloat64()
-			ret := asset.info_setFloat(string(key), value)
+			ret := app.info_setFloat(string(key), value)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 3:
 			key := ad.ReadBytes()
-			dst, ret := asset.info_string(string(key))
+			dst, ret := app.info_string(string(key))
 			ad.WriteBytes([]byte(dst))
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 4:
 			key := ad.ReadBytes()
-			ret := asset.info_string_len(string(key))
+			ret := app.info_string_len(string(key))
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 5:
 			key := ad.ReadBytes()
 			value := ad.ReadBytes()
-			ret := asset.info_setString(string(key), string(value))
+			ret := app.info_setString(string(key), string(value))
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 6:
 			path := ad.ReadBytes()
-			dst, ret, err := asset.resource(string(path))
-			asset.AddLogErr(err)
+			dst, ret, err := app.resource(string(path))
+			app.AddLogErr(err)
 			ad.WriteBytes([]byte(dst))
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 7:
 			path := ad.ReadBytes()
-			ret, err := asset.resource_len(string(path))
-			asset.AddLogErr(err)
+			ret, err := app.resource_len(string(path))
+			app.AddLogErr(err)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 8:
 			name := string(ad.ReadBytes())
-			asset.print(name)
+			app.print(name)
 			ad._checkRead(fnTp)
 
 		case 9:
 			val := ad.ReadFloat64()
-			asset._sa_print_float(val)
+			app._sa_print_float(val)
 			ad._checkRead(fnTp)
 
 		case 10:
 			db := ad.ReadBytes()
-			query := ad.ReadBytes()
-			ret, err := asset.sql_write(string(db), string(query))
-			asset.AddLogErr(err)
+			ret, err := app.sql_commit(string(db))
+			app.AddLogErr(err)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 11:
 			db := ad.ReadBytes()
-			query := ad.ReadBytes()
-			ret, err := asset.sql_read(string(db), string(query))
-			asset.AddLogErr(err)
+			ret, err := app.sql_rollback(string(db))
+			app.AddLogErr(err)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 12:
 			db := ad.ReadBytes()
 			query := ad.ReadBytes()
-			queryHash := int64(ad.ReadUint64())
-			ret, err := asset.sql_readRowCount(string(db), string(query), queryHash)
-			asset.AddLogErr(err)
+			ret, err := app.sql_write(string(db), string(query))
+			app.AddLogErr(err)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 13:
 			db := ad.ReadBytes()
 			query := ad.ReadBytes()
-			queryHash := int64(ad.ReadUint64())
-			row_i := ad.ReadUint64()
-			ret, err := asset.sql_readRowLen(string(db), string(query), queryHash, row_i)
-			asset.AddLogErr(err)
+			ret, err := app.sql_read(string(db), string(query))
+			app.AddLogErr(err)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -266,9 +252,28 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			db := ad.ReadBytes()
 			query := ad.ReadBytes()
 			queryHash := int64(ad.ReadUint64())
+			ret, err := app.sql_readRowCount(string(db), string(query), queryHash)
+			app.AddLogErr(err)
+			ad.WriteUint64(uint64(ret))
+			ad._checkRead(fnTp)
+
+		case 15:
+			db := ad.ReadBytes()
+			query := ad.ReadBytes()
+			queryHash := int64(ad.ReadUint64())
 			row_i := ad.ReadUint64()
-			dst, ret, err := asset.sql_readRow(string(db), string(query), queryHash, row_i)
-			asset.AddLogErr(err)
+			ret, err := app.sql_readRowLen(string(db), string(query), queryHash, row_i)
+			app.AddLogErr(err)
+			ad.WriteUint64(uint64(ret))
+			ad._checkRead(fnTp)
+
+		case 16:
+			db := ad.ReadBytes()
+			query := ad.ReadBytes()
+			queryHash := int64(ad.ReadUint64())
+			row_i := ad.ReadUint64()
+			dst, ret, err := app.sql_readRow(string(db), string(query), queryHash, row_i)
+			app.AddLogErr(err)
 			ad.WriteBytes([]byte(dst))
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
@@ -277,7 +282,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			pos := ad.ReadUint64()
 			name := string(ad.ReadBytes())
 			val := ad.ReadFloat64()
-			ret := asset.div_colResize(pos, name, val)
+			ret := app.div_colResize(pos, name, val)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
@@ -285,35 +290,35 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			pos := ad.ReadUint64()
 			name := string(ad.ReadBytes())
 			val := ad.ReadFloat64()
-			ret := asset.div_rowResize(pos, name, val)
+			ret := app.div_rowResize(pos, name, val)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
 		case 22:
 			pos := ad.ReadUint64()
 			val := ad.ReadFloat64()
-			ret := asset._sa_div_colMax(pos, val)
+			ret := app._sa_div_colMax(pos, val)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
 		case 23:
 			pos := ad.ReadUint64()
 			val := ad.ReadFloat64()
-			ret := asset._sa_div_rowMax(pos, val)
+			ret := app._sa_div_rowMax(pos, val)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
 		case 24:
 			pos := ad.ReadUint64()
 			val := ad.ReadFloat64()
-			ret := asset._sa_div_col(pos, val)
+			ret := app._sa_div_col(pos, val)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
 		case 25:
 			pos := ad.ReadUint64()
 			val := ad.ReadFloat64()
-			ret := asset._sa_div_row(pos, val)
+			ret := app._sa_div_row(pos, val)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
@@ -323,19 +328,19 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			w := ad.ReadUint64()
 			h := ad.ReadUint64()
 			name := string(ad.ReadBytes())
-			ret := asset.div_start(x, y, w, h, name)
+			ret := app.div_start(x, y, w, h, name)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 27:
-			asset._sa_div_end()
+			app._sa_div_end()
 			ad._checkRead(fnTp)
 
 		case 28:
 			name := string(ad.ReadBytes())
 			x := int64(ad.ReadUint64())
 			y := int64(ad.ReadUint64())
-			ret := asset.div_get_info(name, x, y)
+			ret := app.div_get_info(name, x, y)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
@@ -344,30 +349,30 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			val := ad.ReadFloat64()
 			x := int64(ad.ReadUint64())
 			y := int64(ad.ReadUint64())
-			ret := asset.div_set_info(name, val, x, y)
+			ret := app.div_set_info(name, val, x, y)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
 		case 40:
 			name := string(ad.ReadBytes())
 			tp := ad.ReadUint64()
-			ret := asset.div_dialogOpen(name, tp)
+			ret := app.div_dialogOpen(name, tp)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 41:
-			asset._sa_div_dialogClose()
+			app._sa_div_dialogClose()
 			ad._checkRead(fnTp)
 
 		case 42:
 			name := string(ad.ReadBytes())
 
-			ret := asset.div_dialogStart(name)
+			ret := app.div_dialogStart(name)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 43:
-			asset._sa_div_dialogEnd()
+			app._sa_div_dialogEnd()
 			ad._checkRead(fnTp)
 
 		case 50:
@@ -381,7 +386,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			b := uint32(ad.ReadUint64())
 			a := uint32(ad.ReadUint64())
 			borderWidth := ad.ReadFloat64()
-			ret := asset._sa_paint_rect(x, y, w, h, margin, r, g, b, a, borderWidth)
+			ret := app._sa_paint_rect(x, y, w, h, margin, r, g, b, a, borderWidth)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -401,7 +406,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			b := uint32(ad.ReadUint64())
 			a := uint32(ad.ReadUint64())
 			width := ad.ReadFloat64()
-			ret := asset._sa_paint_line(x, y, w, h, margin, sx, sy, ex, ey, r, g, b, a, width)
+			ret := app._sa_paint_line(x, y, w, h, margin, sx, sy, ex, ey, r, g, b, a, width)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -419,7 +424,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			b := uint32(ad.ReadUint64())
 			a := uint32(ad.ReadUint64())
 			borderWidth := ad.ReadFloat64()
-			ret := asset._sa_paint_circle(x, y, w, h, margin, sx, sy, rad, r, g, b, a, borderWidth)
+			ret := app._sa_paint_circle(x, y, w, h, margin, sx, sy, rad, r, g, b, a, borderWidth)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -440,7 +445,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			alignV := uint32(ad.ReadUint64())
 			alignH := uint32(ad.ReadUint64())
 			fill := uint32(ad.ReadUint64())
-			ret := asset.paint_file(x, y, w, h, file, tooltip, margin, marginX, marginY, r, g, b, a, alignV, alignH, fill)
+			ret := app.paint_file(x, y, w, h, file, tooltip, margin, marginX, marginY, r, g, b, a, alignV, alignH, fill)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -455,8 +460,8 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			edit := ad.ReadUint64() > 0
 			enable := ad.ReadUint64() > 0
 
-			style := asset.styles.Get(styleId)
-			ret := asset.paint_text(x, y, w, h, style, value, value, selection, edit, enable)
+			style := app.styles.Get(styleId)
+			ret := app.paint_text(x, y, w, h, style, value, value, selection, edit, enable)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -465,7 +470,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			font := string(ad.ReadBytes())
 			ratioH := ad.ReadFloat64()
 			cursorPos := int64(ad.ReadUint64())
-			ret := asset.paint_textWidth(value, font, ratioH, cursorPos)
+			ret := app.paint_textWidth(value, font, ratioH, cursorPos)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
@@ -475,37 +480,15 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			w := ad.ReadFloat64()
 			h := ad.ReadFloat64()
 			value := string(ad.ReadBytes())
-			ret := asset.paint_tooltip(x, y, w, h, value)
+			ret := app.paint_tooltip(x, y, w, h, value)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 57:
 			name := string(ad.ReadBytes())
-			ret, err := asset.paint_cursor(name)
-			asset.AddLogErr(err)
+			ret, err := app.paint_cursor(name)
+			app.AddLogErr(err)
 			ad.WriteUint64(uint64(ret))
-			ad._checkRead(fnTp)
-
-		case 70:
-			assetName := string(ad.ReadBytes())
-			fnName := string(ad.ReadBytes())
-			args := ad.ReadBytes()
-
-			v, err := asset.fn_call(assetName, fnName, args)
-			asset.AddLogErr(err)
-			ad.WriteUint64(uint64(v))
-			ad._checkRead(fnTp)
-
-		case 71:
-			args := ad.ReadBytes()
-			v := asset.fn_setReturn(args)
-			ad.WriteUint64(uint64(v))
-			ad._checkRead(fnTp)
-
-		case 72:
-			dst := asset.fn_getReturn()
-			ad.WriteBytes(dst)
-			ad.WriteUint64(1)
 			ad._checkRead(fnTp)
 
 		case 80:
@@ -518,8 +501,8 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			tooltip := string(ad.ReadBytes())
 			enable := ad.ReadUint64() > 0
 
-			style := asset.styles.Get(styleId)
-			click, rclick, ret := asset.comp_drawButton(style, value, icon, icon_margin, url, tooltip, enable)
+			style := app.styles.Get(styleId)
+			click, rclick, ret := app.comp_drawButton(style, value, icon, icon_margin, url, tooltip, enable)
 
 			var dst [2 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(click, 1, 0)))
@@ -538,9 +521,9 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			tooltip := string(ad.ReadBytes())
 			enable := ad.ReadUint64() > 0
 
-			styleTrack := asset.styles.Get(styleTrackId)
-			styleThumb := asset.styles.Get(styleThumbId)
-			value, active, changed, finished := asset.comp_drawSlider(styleTrack, styleThumb, value, min, max, jump, tooltip, enable)
+			styleTrack := app.styles.Get(styleTrackId)
+			styleThumb := app.styles.Get(styleThumbId)
+			value, active, changed, finished := app.comp_drawSlider(styleTrack, styleThumb, value, min, max, jump, tooltip, enable)
 
 			var dst [3 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(active, 1, 0)))    //active
@@ -558,9 +541,9 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			tooltip := string(ad.ReadBytes())
 			enable := ad.ReadUint64() > 0
 
-			styleFrame := asset.styles.Get(styleFrameId)
-			styleStatus := asset.styles.Get(styleStatusId)
-			ret := asset.comp_drawProgress(styleFrame, styleStatus, value, int(prec), tooltip, enable)
+			styleFrame := app.styles.Get(styleFrameId)
+			styleStatus := app.styles.Get(styleStatusId)
+			ret := app.comp_drawProgress(styleFrame, styleStatus, value, int(prec), tooltip, enable)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -571,13 +554,13 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			enable := uint32(ad.ReadUint64()) > 0
 			selection := uint32(ad.ReadUint64()) > 0
 
-			style := asset.styles.Get(styleId)
-			ret := asset.comp_drawText(style, value, tooltip, enable, selection)
+			style := app.styles.Get(styleId)
+			ret := app.comp_drawText(style, value, tooltip, enable, selection)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 84:
-			edit := asset.comp_getEditValue()
+			edit := app.comp_getEditValue()
 			ad.WriteBytes([]byte(edit))
 			ad.WriteUint64(1)
 			ad._checkRead(fnTp)
@@ -590,8 +573,8 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			ghost := string(ad.ReadBytes())
 			enable := uint32(ad.ReadUint64()) > 0
 
-			style := asset.styles.Get(styleId)
-			last_edit, active, changed, finished := asset.comp_drawEdit(style, value, valueOrig, tooltip, ghost, enable)
+			style := app.styles.Get(styleId)
+			last_edit, active, changed, finished := app.comp_drawEdit(style, value, valueOrig, tooltip, ghost, enable)
 
 			var dst [4 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(active, 1, 0)))    //active
@@ -610,10 +593,10 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			tooltip := string(ad.ReadBytes())
 			enable := ad.ReadUint64() > 0
 
-			style := asset.styles.Get(styleId)
-			styleMenu := asset.styles.Get(styleMenuId)
+			style := app.styles.Get(styleId)
+			styleMenu := app.styles.Get(styleMenuId)
 
-			valueOut := asset.comp_drawCombo(style, styleMenu, value, options, tooltip, enable)
+			valueOut := app.comp_drawCombo(style, styleMenu, value, options, tooltip, enable)
 			ad.WriteUint64(uint64(valueOut))
 			ad._checkRead(fnTp)
 
@@ -626,23 +609,23 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			tooltip := string(ad.ReadBytes())
 			enable := ad.ReadUint64() != 0
 
-			styleCheck := asset.styles.Get(styleCheckId)
-			styleLabel := asset.styles.Get(styleLabelId)
+			styleCheck := app.styles.Get(styleCheckId)
+			styleLabel := app.styles.Get(styleLabelId)
 
-			valueOut := asset.comp_drawCheckbox(styleCheck, styleLabel, value, label, tooltip, enable)
+			valueOut := app.comp_drawCheckbox(styleCheck, styleLabel, value, label, tooltip, enable)
 			ad.WriteUint64(uint64(valueOut))
 			ad._checkRead(fnTp)
 
 		case 100:
 			js := ad.ReadBytes()
-			ret := asset.register_style(js)
+			ret := app.register_style(js)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 110:
 			groupName := string(ad.ReadBytes())
 			id := ad.ReadUint64()
-			ret := asset.div_drag(groupName, id)
+			ret := app.div_drag(groupName, id)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -652,7 +635,7 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			horizontal := uint32(ad.ReadUint64())
 			inside := uint32(ad.ReadUint64())
 
-			id, pos, done := asset.div_drop(groupName, vertical, horizontal, inside)
+			id, pos, done := app.div_drop(groupName, vertical, horizontal, inside)
 
 			var dst [2 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(id))
@@ -662,18 +645,17 @@ func (ad *AssetDebug) Call(fnName string, args []byte, asset *Asset) (int64, err
 			ad._checkRead(fnTp)
 
 		case 120:
-			app := string(ad.ReadBytes())
 			db := string(ad.ReadBytes())
-			sts_id := ad.ReadUint64()
+			app_rowid := ad.ReadUint64()
 
-			ret, err := asset.render_app(app, db, sts_id)
-			asset.AddLogErr(err)
+			ret, err := app.render_app(db, app_rowid)
+			app.AddLogErr(err)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 130:
 			line := string(ad.ReadBytes())
-			asset.SetDebugLine(line)
+			app.SetDebugLine(line)
 			ad._checkRead(fnTp)
 
 		case 1000:

@@ -109,7 +109,7 @@ func (div *LayoutDiv) Hash() uint64 {
 	return binary.LittleEndian.Uint64(h.Sum(nil))
 }
 
-func NewLayoutPack(parent *LayoutDiv, name string, grid OsV4, infoLayout *RS_LScroll) *LayoutDiv {
+func NewLayoutPack(parent *LayoutDiv, name string, grid OsV4, app *App) *LayoutDiv {
 
 	var div LayoutDiv
 
@@ -117,32 +117,32 @@ func NewLayoutPack(parent *LayoutDiv, name string, grid OsV4, infoLayout *RS_LSc
 	div.parent = parent
 	div.grid = grid
 
-	div.data.Init(div.Hash(), infoLayout)
+	div.data.Init(div.Hash(), app)
 
 	div.Use()
 
 	return &div
 }
 
-func (div *LayoutDiv) ClearChilds(infoLayout *RS_LScroll) {
+func (div *LayoutDiv) ClearChilds() {
 
 	for _, it := range div.childs {
-		it.Destroy(infoLayout)
+		it.Destroy()
 	}
 	div.childs = []*LayoutDiv{}
 }
 
-func (div *LayoutDiv) Destroy(infoLayout *RS_LScroll) {
+func (div *LayoutDiv) Destroy() {
 
-	div.ClearChilds(infoLayout)
-	div.data.Close(div.Hash(), infoLayout)
+	div.ClearChilds()
+	div.data.Close(div.Hash())
 }
 
-func (div *LayoutDiv) FindOrCreate(name string, grid OsV4, infoLayout *RS_LScroll) *LayoutDiv {
+func (div *LayoutDiv) FindOrCreate(name string, grid OsV4, app *App) *LayoutDiv {
 
 	//finds
 	for _, it := range div.childs {
-		if strings.EqualFold(it.name, name) && it.grid.Cmp(grid) {
+		if strings.EqualFold(it.name, name) && it.grid.Cmp(grid) && it.data.app == app {
 			div.lastChild = it
 			it.Use()
 			return it
@@ -150,7 +150,7 @@ func (div *LayoutDiv) FindOrCreate(name string, grid OsV4, infoLayout *RS_LScrol
 	}
 
 	// creates
-	l := NewLayoutPack(div, name, grid, infoLayout)
+	l := NewLayoutPack(div, name, grid, app)
 	div.childs = append(div.childs, l)
 	div.lastChild = l
 	return l
@@ -200,20 +200,20 @@ func (div *LayoutDiv) GetLevelSize(winRect OsV4, ui *Ui) OsV4 {
 	return q
 }
 
-func (div *LayoutDiv) Maintenance(infoLayout *RS_LScroll) {
+func (div *LayoutDiv) Maintenance() {
 
 	div.use = false
 
 	for i := len(div.childs) - 1; i >= 0; i-- {
 		it := div.childs[i]
 		if !it.use {
-			it.Destroy(infoLayout)
+			it.Destroy()
 
 			//remove it
 			copy(div.childs[i:], div.childs[i+1:])
 			div.childs = div.childs[:len(div.childs)-1]
 		} else {
-			it.Maintenance(infoLayout)
+			it.Maintenance()
 		}
 	}
 }
@@ -415,12 +415,12 @@ func (div *LayoutDiv) RenderResizeSpliter(root *Root, buff *PaintBuff) {
 	}
 }
 
-func (div *LayoutDiv) Save(infoLayout *RS_LScroll) {
+func (div *LayoutDiv) Save() {
 
-	div.data.Save(div.Hash(), infoLayout)
+	div.data.Save(div.Hash())
 
 	for _, it := range div.childs {
-		it.Save(infoLayout)
+		it.Save()
 	}
 }
 

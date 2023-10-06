@@ -24,7 +24,7 @@ import (
 	"math"
 	"os"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 )
 
 type DbCache struct {
@@ -108,6 +108,7 @@ func NewDbCache(query string, db *sql.DB) (*DbCache, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Query(%s) failed: %w", query, err)
 	}
+	defer rows.Close()
 
 	cache.query = query
 	{
@@ -155,9 +156,22 @@ type Db struct {
 	db *sql.DB
 	tx *sql.Tx
 
-	cache []*DbCache
-
+	cache      []*DbCache
 	lastChange int
+
+	apps []*App
+}
+
+func InitDbGlobal() error {
+	sql.Register("sqlite3_skyalt",
+		&sqlite3.SQLiteDriver{
+			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
+				conn.SetLimit(sqlite3.SQLITE_LIMIT_ATTACHED, 11) //wont go above 10? Recompile sqlite? ...
+				//fmt.Println(conn.GetLimit(sqlite3.SQLITE_LIMIT_ATTACHED))
+				return nil
+			},
+		})
+	return nil
 }
 
 func NewDb(root *Root, path string) (*Db, error) {
@@ -166,18 +180,28 @@ func NewDb(root *Root, path string) (*Db, error) {
 	db.path = path
 
 	var err error
-	db.db, err = sql.Open("sqlite3", "file:"+db.GetPath()+"?&_journal_mode=WAL")
+	db.db, err = sql.Open("sqlite3", "file:"+db.GetPath()+"?&_journal_mode=WAL") //sqlite3 -> sqlite3_skyalt
 	if err != nil {
 		return nil, fmt.Errorf("Open(%s) failed: %w", db.GetPath(), err)
 	}
+
+	//db.Exec("ATTACH 'path/to/file.db' AS attached") ...
 
 	db.UpdateTime()
 
 	return &db, nil
 }
 
-func (db *Db) Destroy() error {
-	return db.db.Close()
+func (db *Db) Destroy() {
+
+	for _, app := range db.apps {
+		app.Destroy()
+	}
+
+	err := db.db.Close()
+	if err != nil {
+		fmt.Printf("db(%s).Destroy() failed: %v\n", db.path, err)
+	}
 }
 
 func (db *Db) Begin() (*sql.Tx, error) {
@@ -196,6 +220,10 @@ func (db *Db) GetPath() string {
 }
 
 func (db *Db) Commit() error {
+	if db.tx == nil {
+		return nil
+	}
+
 	err := db.tx.Commit()
 	db.tx = nil
 
@@ -204,18 +232,18 @@ func (db *Db) Commit() error {
 
 	return err
 }
-
-func (db *Db) ReOpen() error {
-	err := db.db.Close()
-	if err != nil {
-		return fmt.Errorf("Close(%s) failed: %w", db.GetPath(), err)
+func (db *Db) Rollback() error {
+	if db.tx == nil {
+		return nil
 	}
 
-	db.db, err = sql.Open("sqlite3", db.GetPath())
-	if err != nil {
-		return fmt.Errorf("Open(%s) failed: %w", db.GetPath(), err)
-	}
-	return nil
+	err := db.tx.Rollback()
+	db.tx = nil
+
+	//reset queries
+	db.cache = nil
+
+	return err
 }
 
 func (db *Db) UpdateTime() bool {
@@ -275,4 +303,50 @@ func (db *Db) Write(query string, params ...any) (sql.Result, error) {
 	}
 
 	return res, nil
+}
+
+func (db *Db) FindApp(app_rowid int) *App {
+	for _, app := range db.apps {
+		if app.app_rowid == app_rowid {
+			return app
+		}
+	}
+	return nil
+}
+
+func (db *Db) AddApp(app_rowid int) (*App, error) {
+	//find
+	app := db.FindApp(app_rowid)
+	if app != nil {
+		return app, nil //ok
+	}
+
+	//add
+	var err error
+	app, err = NewApp(db, app_rowid)
+	if err != nil {
+		return nil, err
+	}
+	db.apps = append(db.apps, app)
+	return app, nil
+}
+
+func (db *Db) SaveApps() {
+	for _, app := range db.apps {
+		app.Save()
+	}
+
+	db.db.Exec("PRAGMA wal_checkpoint(full);")
+}
+
+func (db *Db) ReloadApps() {
+	for _, app := range db.apps {
+		app.reload = true
+	}
+}
+
+func (db *Db) Tick() {
+	for _, app := range db.apps {
+		app.Tick()
+	}
 }

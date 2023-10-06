@@ -31,14 +31,12 @@ type Root struct {
 	ctx             context.Context
 	folderApps      string
 	folderDatabases string
-	folderDevice    string
 
 	cacheDir      string
 	cache         wazero.CompilationCache
 	runtimeConfig wazero.RuntimeConfig
 
-	apps []*App
-	dbs  map[string]*Db
+	dbs map[string]*Db
 
 	dbsList  string
 	appsList string
@@ -52,8 +50,7 @@ type Root struct {
 
 	ui *Ui
 
-	baseAppName string
-	baseDbPath  string
+	baseApp *App
 
 	fonts *Fonts
 
@@ -64,8 +61,6 @@ type Root struct {
 
 	server *DebugServer
 
-	settings *DbSettings
-
 	exit bool
 	save bool
 
@@ -75,7 +70,7 @@ type Root struct {
 	stylesJs []byte
 }
 
-func NewRoot(debugPORT int, folderApps string, folderDatabases string, folderDevice string, ctx context.Context) (*Root, error) {
+func NewRoot(debugPORT int, folderApps string, folderDatabases string, ctx context.Context) (*Root, error) {
 	var root Root
 	var err error
 	root.ctx = ctx
@@ -85,25 +80,15 @@ func NewRoot(debugPORT int, folderApps string, folderDatabases string, folderDev
 
 	root.folderApps = folderApps
 	root.folderDatabases = folderDatabases
-	root.folderDevice = folderDevice
 
 	os.Mkdir(folderApps, 0700)
 	os.Mkdir(folderDatabases, 0700)
-	os.Mkdir(folderDevice, 0700)
 
 	if !OsFolderExists(folderApps) {
 		return nil, fmt.Errorf("Folder(%s) not exist", folderApps)
 	}
 	if !OsFolderExists(folderDatabases) {
 		return nil, fmt.Errorf("Folder(%s) not exist", folderDatabases)
-	}
-	if !OsFolderExists(folderDevice) {
-		return nil, fmt.Errorf("Folder(%s) not exist", folderDevice)
-	}
-
-	root.settings, err = NewDbSettings(&root)
-	if err != nil {
-		return nil, fmt.Errorf("NewDbSettings() failed: %w", err)
 	}
 
 	// init wasm
@@ -117,35 +102,41 @@ func NewRoot(debugPORT int, folderApps string, folderDatabases string, folderDev
 	}
 	root.runtimeConfig = wazero.NewRuntimeConfig().WithCompilationCache(root.cache)
 
-	iniPath, scrollPath, err := root.GetSettingsPaths()
-	if err != nil {
-		return nil, fmt.Errorf("GetSettingsPaths() failed: %w", err)
-	}
-
-	root.ui, err = NewUi(iniPath)
+	root.ui, err = NewUi(root.GetIniPath())
 	if err != nil {
 		return nil, fmt.Errorf("NewUi() failed: %w", err)
 	}
-
-	root.levels, err = NewLayoutLevels(scrollPath, root.ui)
-	if err != nil {
-		return nil, fmt.Errorf("NewLayoutLevels() failed: %w", err)
-	}
-
-	root.baseAppName = "base"
-	root.baseDbPath = root.folderDatabases + "/settings.sqlite"
-
-	root.updateDbsList()
-	root.updateAppsList()
 
 	root.server, err = NewDebugServer(debugPORT)
 	if err != nil {
 		return nil, fmt.Errorf("NewDebugServer() failed: %w", err)
 	}
 
-	err = root.ReloadStyles()
+	db, err := root.AddDb(root.folderDatabases + "/base.sqlite")
 	if err != nil {
-		return nil, fmt.Errorf("ReloadStyles() failed: %w", err)
+		return nil, fmt.Errorf("AddDb() failed: %w", err)
+	}
+	err = db.AddFirstRowId("base")
+	if err != nil {
+		return nil, fmt.Errorf("AddFirstRowId() failed: %w", err)
+	}
+
+	root.baseApp, err = db.AddApp(1)
+	if err != nil {
+		return nil, fmt.Errorf("AddApp() failed: %w", err)
+	}
+
+	root.levels, err = NewLayoutLevels(root.baseApp, root.ui)
+	if err != nil {
+		return nil, fmt.Errorf("NewLayoutLevels() failed: %w", err)
+	}
+
+	root.updateDbsList()
+	root.updateAppsList()
+
+	err = root.ReloadApps()
+	if err != nil {
+		return nil, fmt.Errorf("ReloadApps() failed: %w", err)
 	}
 
 	return &root, nil
@@ -153,19 +144,12 @@ func NewRoot(debugPORT int, folderApps string, folderDatabases string, folderDev
 
 func (root *Root) Destroy() {
 
-	for _, app := range root.apps {
-		app.Destroy()
-	}
-
 	if root.server != nil {
 		root.server.Destroy()
 	}
 
-	for nm, db := range root.dbs {
-		err := db.Destroy()
-		if err != nil {
-			fmt.Printf("db(%s).Destroy() failed: %v\n", nm, err)
-		}
+	for _, db := range root.dbs {
+		db.Destroy()
 	}
 
 	root.fonts.Destroy()
@@ -173,27 +157,20 @@ func (root *Root) Destroy() {
 	root.cache.Close(root.ctx)
 	os.RemoveAll(root.cacheDir)
 
-	//save settings
+	//save storage
 	{
-		iniPath, scrollPath, err := root.GetSettingsPaths()
-		if err != nil {
-			fmt.Printf("GetSettingsPaths() failed: %v\n", err)
-		}
-
-		err = root.ui.io.Save(iniPath)
+		err := root.ui.io.Save(root.GetIniPath())
 		if err != nil {
 			fmt.Printf("Open() failed: %v\n", err)
 		}
 
-		root.levels.Destroy(scrollPath)
+		root.levels.Destroy()
 	}
-
-	root.settings.Destroy()
 
 	root.ui.Destroy() //also save ini.json
 }
 
-func (root *Root) ReloadStyles() error {
+func (root *Root) ReloadApps() error {
 
 	root.styles = DivStyles_getDefaults(root)
 	var err error
@@ -202,63 +179,16 @@ func (root *Root) ReloadStyles() error {
 		return fmt.Errorf("MarshalIndent() failed: %w", err)
 	}
 
+	for _, it := range root.dbs {
+		it.ReloadApps()
+	}
+
 	root.last_ticks = 0
 	return nil
 }
 
-func (root *Root) ReloadTranslations() {
-	for _, app := range root.apps {
-		app.ReloadTranslations()
-	}
-}
-
-func (root *Root) GetSettingsPaths() (string, string, error) {
-
-	dev, err := os.Hostname()
-	if err != nil {
-		return "", "", fmt.Errorf("Hostname() failed: %w", err)
-	}
-	return root.folderDevice + "/" + dev + "_ini.json", "device/" + dev + "_scroll.json", nil
-}
-
-func (root *Root) FindAppId(sts_id int) *App {
-	for _, app := range root.apps {
-		if app.sts_id == sts_id {
-			return app
-		}
-	}
-	return nil
-}
-
-func (root *Root) FindApp(appName string, dbPath string, sts_id int) *App {
-	for _, app := range root.apps {
-		if app.name == appName && (len(dbPath) == 0 || app.db_name == dbPath) && (sts_id < 0 || app.sts_id == sts_id) {
-			return app
-		}
-	}
-	return nil
-}
-
-func (root *Root) AddApp(appName string, dbPath string, sts_id int) (*App, error) {
-	//find
-	app := root.FindApp(appName, dbPath, sts_id)
-	if app != nil {
-		return app, nil //ok
-	}
-
-	//add db
-	_, err := root.AddDb(dbPath)
-	if err != nil {
-		return nil, err
-	}
-
-	//add
-	app, err = NewApp(root, appName, dbPath, sts_id)
-	if err != nil {
-		return nil, err
-	}
-	root.apps = append(root.apps, app)
-	return app, nil
+func (root *Root) GetIniPath() string {
+	return "ini.json"
 }
 
 func (root *Root) AddDb(path string) (*Db, error) {
@@ -319,14 +249,12 @@ func (root *Root) RenameDb(name string, newName string) bool {
 	}
 
 	//finds
-	db, found := root.dbs[name]
+	db, found := root.dbs[path]
 	if found {
 		//close
-		err := db.Destroy()
-		if err != nil {
-			fmt.Printf("db(%s).Destroy() failed: %v\n", name, err)
-		}
-		delete(root.dbs, name)
+		db.SaveApps()
+		db.Destroy()
+		delete(root.dbs, path)
 	}
 
 	//rename file
@@ -365,6 +293,12 @@ func (root *Root) DuplicateDb(name string, newName string) bool {
 		return false
 	}
 
+	//finds
+	db, found := root.dbs[path]
+	if found {
+		db.SaveApps()
+	}
+
 	//duplicate file
 	err := OsFileCopy(path, newPath)
 	if err != nil {
@@ -381,10 +315,7 @@ func (root *Root) RemoveDb(name string) bool {
 	db, found := root.dbs[name]
 	if found {
 		//close
-		err := db.Destroy()
-		if err != nil {
-			fmt.Printf("db(%s).Destroy() failed: %v\n", name, err)
-		}
+		db.Destroy()
 		delete(root.dbs, name)
 	}
 
@@ -413,10 +344,6 @@ func (root *Root) RemoveDb(name string) bool {
 
 func (root *Root) CommitDbs() {
 	for _, db := range root.dbs {
-		if db.tx == nil {
-			continue
-		}
-
 		err := db.Commit()
 		if err != nil {
 			fmt.Printf("Commit() failed: %v\n", err)
@@ -437,19 +364,13 @@ func (root *Root) Render() {
 		root.ui.io.keys.esc = false
 	}
 
-	ist, err := root.AddApp(root.baseAppName, root.baseDbPath, 0)
-	if err != nil {
-		fmt.Printf("AddApp(%s).Db(%s) failed: %v\n", root.baseAppName, root.baseDbPath, err)
-		return
-	}
-
 	root.levels.ResetStack()
 
 	st := root.levels.GetStack()
 
 	st.buff.Reset(st.stack.canvas) //background
 
-	ist.Render(true)
+	root.baseApp.Render(true)
 
 	root.levels.Maintenance()
 	root.levels.Draw()
@@ -458,8 +379,8 @@ func (root *Root) Render() {
 func (root *Root) Tick() (bool, error) {
 
 	if time.Now().UnixMilli() > root.last_ticks+2000 {
-		for _, app := range root.apps {
-			app.Tick()
+		for _, db := range root.dbs {
+			db.Tick()
 		}
 		root.last_ticks = time.Now().UnixMilli()
 
@@ -529,8 +450,8 @@ func (root *Root) Tick() (bool, error) {
 		root.CommitDbs()
 
 		if root.save {
-			for _, app := range root.apps {
-				app.SaveData()
+			for _, db := range root.dbs {
+				db.SaveApps()
 			}
 			root.save = false
 		}

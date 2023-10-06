@@ -22,11 +22,11 @@ import (
 	"unicode/utf8"
 )
 
-func (asset *Asset) paint_textGrid(style *CompStyle,
+func (app *App) paint_textGrid(style *CompStyle,
 	value string, valueOrigEdit string,
 	selection, edit, enable bool) int64 {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 	if st.stack == nil || st.stack.crop.IsZero() {
 		return -1
@@ -36,7 +36,7 @@ func (asset *Asset) paint_textGrid(style *CompStyle,
 		style = &root.styles.Text
 	}
 
-	sdiv := style.GetDiv(enable, asset)
+	sdiv := style.GetDiv(enable, app)
 
 	if !enable {
 		st.stack.data.touch_enabled = false
@@ -44,21 +44,21 @@ func (asset *Asset) paint_textGrid(style *CompStyle,
 	st.stack.data.scrollH.narrow = true
 	st.stack.data.scrollV.show = false
 
-	asset._sa_div_col(0, OsMaxFloat(asset.div_get_info("layoutWidth", -1, -1), asset.paint_textWidth(value, sdiv.Font_path, sdiv.Font_height, -1))) //+marginX*4+margin*2
-	asset._sa_div_row(0, asset.div_get_info("layoutHeight", -1, -1))
-	asset.div_start(0, 0, 1, 1, "")
-	style.Paint(st.stack.canvas, value, valueOrigEdit, selection, edit, "", 0, enable, asset)
-	asset._sa_div_end()
+	app._sa_div_col(0, OsMaxFloat(app.div_get_info("layoutWidth", -1, -1), app.paint_textWidth(value, sdiv.Font_path, sdiv.Font_height, -1))) //+marginX*4+margin*2
+	app._sa_div_row(0, app.div_get_info("layoutHeight", -1, -1))
+	app.div_start(0, 0, 1, 1, "")
+	style.Paint(st.stack.canvas, value, valueOrigEdit, selection, edit, "", 0, enable, app)
+	app._sa_div_end()
 
 	return 1
 }
 
-func (asset *Asset) paint_text(x, y, w, h float64,
+func (app *App) paint_text(x, y, w, h float64,
 	style *CompStyle,
 	value string, valueOrigEdit string,
 	selection, edit, enable bool) int64 {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 	if st.stack == nil || st.stack.crop.IsZero() {
 		return -1
@@ -68,7 +68,7 @@ func (asset *Asset) paint_text(x, y, w, h float64,
 		style = &root.styles.Text
 	}
 
-	//sdiv := style.GetDiv(enable, asset)
+	//sdiv := style.GetDiv(enable, app)
 
 	if !enable {
 		st.stack.data.touch_enabled = false
@@ -76,27 +76,27 @@ func (asset *Asset) paint_text(x, y, w, h float64,
 	st.stack.data.scrollH.narrow = true
 	st.stack.data.scrollV.show = false
 
-	//asset._sa_div_col(0, OsMaxFloat(asset.div_get_info("layoutWidth", -1, -1), asset.paint_textWidth(value, sdiv.Font_path, sdiv.Font_height, -1))) //+marginX*4+margin*2
-	//asset._sa_div_row(0, asset.div_get_info("layoutHeight", -1, -1))
-	//asset.div_start(0, 0, 1, 1, "")
-	style.Paint(asset.getCoord(x, y, w, h, 0, 0, 0), value, valueOrigEdit, selection, edit, "", 0, enable, asset)
-	//asset._sa_div_end()
+	//app._sa_div_col(0, OsMaxFloat(app.div_get_info("layoutWidth", -1, -1), app.paint_textWidth(value, sdiv.Font_path, sdiv.Font_height, -1))) //+marginX*4+margin*2
+	//app._sa_div_row(0, app.div_get_info("layoutHeight", -1, -1))
+	//app.div_start(0, 0, 1, 1, "")
+	style.Paint(app.getCoord(x, y, w, h, 0, 0, 0), value, valueOrigEdit, selection, edit, "", 0, enable, app)
+	//app._sa_div_end()
 
 	return 1
 }
 
-func (asset *Asset) _sa_paint_text(x, y, w, h float64,
+func (app *App) _sa_paint_text(x, y, w, h float64,
 	styleId uint32, valueMem uint64,
 	selection, edit, enable uint32) int64 {
 
-	value, err := asset.ptrToString(valueMem)
-	if asset.AddLogErr(err) {
+	value, err := app.ptrToString(valueMem)
+	if app.AddLogErr(err) {
 		return -1
 	}
 
-	style := asset.styles.Get(styleId)
+	style := app.styles.Get(styleId)
 
-	return asset.paint_text(x, y, w, h,
+	return app.paint_text(x, y, w, h,
 		style, value, value,
 		selection > 0, edit > 0, enable > 0)
 }
@@ -128,9 +128,9 @@ func _VmDraw_WordPos(str string, mid int) (int, int) {
 	return start, end
 }
 
-func (asset *Asset) _VmDraw_resetKeys(editable bool) {
+func (app *App) _VmDraw_resetKeys(editable bool) {
 
-	keys := &asset.app.root.ui.io.keys
+	keys := &app.db.root.ui.io.keys
 
 	//copy/cut/paste
 	keys.copy = false
@@ -152,9 +152,9 @@ func (asset *Asset) _VmDraw_resetKeys(editable bool) {
 	}
 }
 
-func (asset *Asset) _VmDraw_Text_VScrollInto(cursor OsV2, lineH int) {
+func (app *App) _VmDraw_Text_VScrollInto(cursor OsV2, lineH int) {
 
-	st := asset.app.root.levels.GetStack()
+	st := app.db.root.levels.GetStack()
 	if st.stack.parent == nil {
 		return
 	}
@@ -171,16 +171,16 @@ func (asset *Asset) _VmDraw_Text_VScrollInto(cursor OsV2, lineH int) {
 		st.stack.parent.data.scrollV.wheel = OsMax(0, v_pos-v_sz) //SetWheel() has boundary check, which is not good here
 	}
 }
-func (asset *Asset) _VmDraw_Text_HScrollInto(str string, cursor OsV2, font *Font, textH int, margin float64, marginX float64) error {
+func (app *App) _VmDraw_Text_HScrollInto(str string, cursor OsV2, font *Font, textH int, margin float64, marginX float64) error {
 
-	st := asset.app.root.levels.GetStack()
+	st := app.db.root.levels.GetStack()
 	if st.stack.parent == nil {
 		return nil
 	}
 
 	h_pos, err := font.GetPxPos(str, textH, cursor.X)
 	if err == nil {
-		h_align := asset.getCellWidth(margin + marginX) //margin + marginX
+		h_align := app.getCellWidth(margin + marginX) //margin + marginX
 
 		h_st := st.stack.parent.data.scrollH.GetWheel()
 		h_sz := st.stack.crop.Size.X - 3*h_align
@@ -195,9 +195,9 @@ func (asset *Asset) _VmDraw_Text_HScrollInto(str string, cursor OsV2, font *Font
 	return err
 }
 
-func (asset *Asset) _VmDraw_TextSelectTouch(str string, strEditOrig string, touchPos OsV2, lineEnd OsV2, editable bool, font *Font, textH int, lineH int, margin float64, marginX float64) {
+func (app *App) _VmDraw_TextSelectTouch(str string, strEditOrig string, touchPos OsV2, lineEnd OsV2, editable bool, font *Font, textH int, lineH int, margin float64, marginX float64) {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	//dict := stt.dict
@@ -262,8 +262,8 @@ func (asset *Asset) _VmDraw_TextSelectTouch(str string, strEditOrig string, touc
 		edit.end = touchPos //set end
 
 		//scroll
-		asset._VmDraw_Text_VScrollInto(touchPos, lineH)
-		asset._VmDraw_Text_HScrollInto(str, touchPos, font, textH, margin, marginX)
+		app._VmDraw_Text_VScrollInto(touchPos, lineH)
+		app._VmDraw_Text_HScrollInto(str, touchPos, font, textH, margin, marginX)
 
 		root.ui.SetNoSleep()
 	}
@@ -298,9 +298,9 @@ func _VmDraw_getStringSubBytePosEx(str string, sx int, ex int) (int, int) {
 	}
 	return subString(str, int(sx), int(ex))
 }
-func (asset *Asset) _VmDraw_getStringSubBytePos(str string) (int, int, int, int) {
+func (app *App) _VmDraw_getStringSubBytePos(str string) (int, int, int, int) {
 
-	root := asset.app.root
+	root := app.db.root
 	edit := &root.ui.io.edit
 
 	sx := edit.start.X
@@ -317,9 +317,9 @@ func (asset *Asset) _VmDraw_getStringSubBytePos(str string) (int, int, int, int)
 	return x, y, selFirst, selLast
 }
 
-func (asset *Asset) _VmDraw_TextSelectKeys(str string, lineY int, lineEnd OsV2, editable bool) {
+func (app *App) _VmDraw_TextSelectKeys(str string, lineY int, lineEnd OsV2, editable bool) {
 
-	root := asset.app.root
+	root := app.db.root
 	keys := &root.ui.io.keys
 	//dict := stt.dict
 	edit := &root.ui.io.edit
@@ -330,7 +330,7 @@ func (asset *Asset) _VmDraw_TextSelectKeys(str string, lineY int, lineEnd OsV2, 
 	if editable {
 		str = edit.temp
 	}
-	st, en, _, _ := asset._VmDraw_getStringSubBytePos(str)
+	st, en, _, _ := app._VmDraw_getStringSubBytePos(str)
 
 	//select all
 	if keys.selectAll {
@@ -384,9 +384,9 @@ func (asset *Asset) _VmDraw_TextSelectKeys(str string, lineY int, lineEnd OsV2, 
 	}
 }
 
-func (asset *Asset) _VmDraw_TextEditKeys(tabIsChar bool, font *Font, textH int, lineH int, margin float64, marginX float64) string {
+func (app *App) _VmDraw_TextEditKeys(tabIsChar bool, font *Font, textH int, lineH int, margin float64, marginX float64) string {
 
-	root := asset.app.root
+	root := app.db.root
 	//stt := &root.stack
 	edit := &root.ui.io.edit
 	keys := &root.ui.io.keys
@@ -402,7 +402,7 @@ func (asset *Asset) _VmDraw_TextEditKeys(tabIsChar bool, font *Font, textH int, 
 
 	//tempRec := &edit.temp
 	str := edit.temp
-	st, en, selFirst, selLast := asset._VmDraw_getStringSubBytePos(str)
+	st, en, selFirst, selLast := app._VmDraw_getStringSubBytePos(str)
 
 	//cut/paste(copy() is in selectKeys)
 	if keys.cut {
@@ -569,16 +569,16 @@ func (asset *Asset) _VmDraw_TextEditKeys(tabIsChar bool, font *Font, textH int, 
 	//scroll
 	newPos := *e
 	if old.Y != newPos.Y {
-		asset._VmDraw_Text_VScrollInto(newPos, lineH)
+		app._VmDraw_Text_VScrollInto(newPos, lineH)
 	}
 	if old.X != newPos.X {
-		asset._VmDraw_Text_HScrollInto(str, newPos, font, textH, margin, marginX)
+		app._VmDraw_Text_HScrollInto(str, newPos, font, textH, margin, marginX)
 	}
 
 	return edit.temp
 }
 
-func (asset *Asset) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
+func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	value string, valueOrigEdit string,
 	cd OsCd,
 	ratioH, lineHeight, margin, marginX float64,
@@ -586,7 +586,7 @@ func (asset *Asset) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	alignH, alignV int,
 	selection, editable, tabIsChar bool) bool {
 
-	root := asset.app.root
+	root := app.db.root
 	st := root.levels.GetStack()
 
 	align := OsV2{int(alignH), int(alignV)}
@@ -595,7 +595,7 @@ func (asset *Asset) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	if ratioH <= 0 {
 		ratioH = 0.35
 	}
-	textH := asset.getCellWidth(ratioH)
+	textH := app.getCellWidth(ratioH)
 
 	//font := root.fonts.Get(SKYALT_FONT_0) //...int(fontId))
 	font := root.fonts.Get(font_path)
@@ -616,7 +616,7 @@ func (asset *Asset) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	if selection || editable {
 
 		if coord.Inside(root.ui.io.touch.pos) || edit.setFirstEditbox {
-			asset._VmDraw_TextSelectTouch(value, valueOrigEdit, OsV2{touchPos, lineY}, lineEnd, editable, font, textH, lineH, margin, marginX)
+			app._VmDraw_TextSelectTouch(value, valueOrigEdit, OsV2{touchPos, lineY}, lineEnd, editable, font, textH, lineH, margin, marginX)
 		}
 
 		this_uid := st.stack //.Hash()
@@ -626,11 +626,11 @@ func (asset *Asset) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 		edit.last_edit = value
 		if active {
 			if lineY == edit.end.Y {
-				asset._VmDraw_TextSelectKeys(value, lineY, lineEnd, editable)
+				app._VmDraw_TextSelectKeys(value, lineY, lineEnd, editable)
 			}
 
 			if editable {
-				value = asset._VmDraw_TextEditKeys(tabIsChar, font, textH, lineH, margin, marginX) //rewrite 'str' with temp value
+				value = app._VmDraw_TextEditKeys(tabIsChar, font, textH, lineH, margin, marginX) //rewrite 'str' with temp value
 
 				//enter or Tab(key) or outside => save
 				isOutside := false

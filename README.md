@@ -79,7 +79,9 @@ There are few implementations of local-first platforms and most of them use Webk
 ## Versions
 - v0.1(Sep 11, 2023): Basic demo. Calendar, Map, 7Gui apps.
 - v0.2(Sep 25, 2023): Styles(for buttons, texts, etc.). Better debugging. Performance improvements. Bugs fixes.
+- v0.3(in progress): Frictionless developer experience.
 
+Downloads: [GitHub's Releases](https://github.com/MilanSuk/skyalt/releases)
 
 
 ## Compile & Run
@@ -127,6 +129,6 @@ Twitter: https://twitter.com/milansuk/
 ## Contributing
 Your feedback and code are welcome!
 
-For bug report or question, please use [GitHub's issues](https://github.com/MilanSuk/skyalt/issues)
+For bug report or question, please use [GitHub's Issues](https://github.com/MilanSuk/skyalt/issues)
 
 SkyAlt is licensed under **Apache v2.0** license. This repository includes 100% of the code.

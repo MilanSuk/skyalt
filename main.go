@@ -33,9 +33,19 @@ func main() {
 
 	defer DestroySDLGlobal()
 
-	ctx := context.Background()
+	InitDbGlobal()
 
-	root, err := NewRoot(8091, "apps", "databases", "device", ctx)
+	// Server
+	/*var server *Server
+	server, err = NewServer("server", 7000, "ssl")
+	if err != nil {
+		log.Fatal(err)
+	}
+	time.Sleep(250 * time.Millisecond) //give 'server thread' time to start
+	defer server.Destroy()*/
+
+	ctx := context.Background()
+	root, err := NewRoot(8091, "apps", "databases", ctx)
 	if err != nil {
 		fmt.Printf("NewRoot() failed: %v\n", err)
 		return

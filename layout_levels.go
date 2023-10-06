@@ -21,33 +21,17 @@ import "fmt"
 type LayoutLevels struct {
 	dialogs []*LayoutLevel
 	calls   []*LayoutLevel
-
-	infoLayout RS_LScroll
 }
 
-func NewLayoutLevels(scrollPath string, ui *Ui) (*LayoutLevels, error) {
-
+func NewLayoutLevels(app *App, ui *Ui) (*LayoutLevels, error) {
 	var levels LayoutLevels
 
-	//scroll
-	err := levels.infoLayout.Open(scrollPath)
-	if err != nil {
-		return nil, fmt.Errorf("Open() failed: %w", err)
-	}
-
-	levels.AddDialog("", OsV4{}, ui)
+	levels.AddDialog("", OsV4{}, app, ui)
 
 	return &levels, nil
 }
 
-func (levels *LayoutLevels) Destroy(scrollPath string) {
-
-	levels.dialogs[0].rootDiv.Save(&levels.infoLayout)
-	err := levels.infoLayout.Save(scrollPath)
-	if err != nil {
-		fmt.Printf("Open() failed: %v\n", err)
-	}
-
+func (levels *LayoutLevels) Destroy() {
 	for _, l := range levels.dialogs {
 		l.Destroy()
 	}
@@ -55,9 +39,15 @@ func (levels *LayoutLevels) Destroy(scrollPath string) {
 	levels.calls = nil
 }
 
-func (levels *LayoutLevels) AddDialog(name string, src_coordMoveCut OsV4, ui *Ui) {
+func (levels *LayoutLevels) Save() {
+	for _, l := range levels.dialogs {
+		l.rootDiv.Save()
+	}
+}
 
-	newDialog := NewLayoutLevel(name, src_coordMoveCut, &levels.infoLayout, ui)
+func (levels *LayoutLevels) AddDialog(name string, src_coordMoveCut OsV4, app *App, ui *Ui) {
+
+	newDialog := NewLayoutLevel(name, src_coordMoveCut, app, ui)
 	levels.dialogs = append(levels.dialogs, newDialog)
 
 	//disable bottom dialogs
@@ -117,7 +107,7 @@ func (levels *LayoutLevels) Maintenance() {
 
 	//layout
 	for _, l := range levels.dialogs {
-		l.rootDiv.Maintenance(&levels.infoLayout)
+		l.rootDiv.Maintenance()
 		l.use = 0
 	}
 }

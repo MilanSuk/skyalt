@@ -34,42 +34,36 @@ import (
 	"golang.org/x/image/webp"
 )
 
-func FileParseUrl(url string, asset *Asset) (string, string, bool, error) {
+func FileParseUrl(url string, app *App) (string, string, bool, error) {
 
 	file, found := strings.CutPrefix(url, "dbs:")
 	if found {
-		d := strings.Index(file, "/")
-		if d == 0 {
-			return asset.app.db_name, file[d+1:], false, nil //default
+		d := strings.Index(file, ":")
+		if d >= 0 {
+			if len(file[:d]) == 0 {
+				//empty db
+				return app.db.path, file[d+1:], false, nil //optional(table/column/row)
+			}
+			return app.db.root.folderDatabases + "/" + file[:d], file[d+1:], false, nil //optional(table/column/row)
 		}
-		if d > 0 {
-			return asset.app.root.folderDatabases + "/" + file[:d], file[d+1:], false, nil //optional(table/column/row)
+
+		if len(file) == 0 {
+			//empty db
+			return app.db.path, "", false, nil
 		}
-		return asset.app.root.folderDatabases + "/" + file, "", false, nil
+		return app.db.root.folderDatabases + "/" + file, "", false, nil
 	}
 
-	file, found = strings.CutPrefix(url, "assets:")
+	file, found = strings.CutPrefix(url, "app:")
 	if found {
-		d := strings.Index(file, "/")
-		if d < 0 {
-			return "", "", false, errors.New("asset '/' is missing")
+		d := strings.Index(file, ":")
+		if d >= 0 {
+			return app.getPath() + "/" + file[:d], file[d+1:], true, nil //optional(table/column/row)
 		}
-		var assetName string
-		if d == 0 {
-			assetName = asset.name //default
-		} else {
-			assetName = file[:d]
-		}
-		file = file[d+1:]
-
-		d = strings.Index(file, "/")
-		if d > 0 {
-			return asset.app.getPath() + "/" + assetName + "/resources/" + file[:d], file[d+1:], true, nil //optional(table/column/row)
-		}
-		return asset.app.getPath() + "/" + assetName + "/resources/" + file, "", true, nil
+		return app.getPath() + "/" + file, "", true, nil
 	}
 
-	return "", "", false, fmt.Errorf("must start with 'dbs:' or 'assets:'")
+	return "", "", false, fmt.Errorf("must start with 'dbs:' or 'app:'")
 }
 
 type MediaPath struct {
@@ -83,11 +77,11 @@ type MediaPath struct {
 	row    int
 }
 
-func MediaParseUrl(url string, asset *Asset) (MediaPath, error) {
+func MediaParseUrl(url string, app *App) (MediaPath, error) {
 	var ip MediaPath
-	ip.root = asset.app.root
+	ip.root = app.db.root
 
-	filePath, opt, _, err := FileParseUrl(url, asset)
+	filePath, opt, _, err := FileParseUrl(url, app)
 	if err != nil {
 		return MediaPath{}, fmt.Errorf("DbParseUrl() failed: %w", err)
 	}

@@ -31,16 +31,19 @@ type Layout struct {
 	touch_active  bool
 	touch_end     bool
 	touch_enabled bool
+
+	app *App
 }
 
-func (lay *Layout) Init(hash uint64, infoLayout *RS_LScroll) {
+func (lay *Layout) Init(hash uint64, app *App) {
 
+	lay.app = app
 	lay.touch_enabled = true
 
 	lay.scrollV.Init()
 	lay.scrollH.Init()
 
-	it := _Layout_findGlobalScrollHash(infoLayout, hash)
+	it := lay.app.FindGlobalScrollHash(hash)
 	if it != nil {
 
 		lay.scrollV.wheel = it.ScrollVpos
@@ -64,14 +67,14 @@ func (lay *Layout) Init(hash uint64, infoLayout *RS_LScroll) {
 	}
 }
 
-func (lay *Layout) Save(hash uint64, infoLayout *RS_LScroll) {
+func (lay *Layout) Save(hash uint64) {
 
 	hasColResize := lay.cols.HasResize()
 	hasRowResize := lay.rows.HasResize()
 
 	// save scroll into Rec
 	if lay.scrollV.wheel != 0 || lay.scrollH.wheel != 0 || hasColResize || hasRowResize {
-		it := _Layout_addGlobalScrollHash(infoLayout, hash)
+		it := lay.app.AddGlobalScrollHash(hash)
 
 		it.ScrollVpos = 0
 		it.ScrollHpos = 0
@@ -87,26 +90,26 @@ func (lay *Layout) Save(hash uint64, infoLayout *RS_LScroll) {
 
 		if hasColResize {
 			for _, c := range lay.cols.resizes {
-				it.Cols_resize = append(it.Cols_resize, RS_LResize{Name: c.name, Value: c.value})
+				it.Cols_resize = append(it.Cols_resize, LayoutSaveItemResize{Name: c.name, Value: c.value})
 			}
 		}
 
 		if hasRowResize {
 			for _, r := range lay.rows.resizes {
-				it.Rows_resize = append(it.Rows_resize, RS_LResize{Name: r.name, Value: r.value})
+				it.Rows_resize = append(it.Rows_resize, LayoutSaveItemResize{Name: r.name, Value: r.value})
 			}
 		}
 
 	} else {
-		sc := _Layout_findGlobalScrollHash(infoLayout, hash)
+		sc := lay.app.FindGlobalScrollHash(hash)
 		if sc != nil {
-			*sc = RS_LScrollItem{}
+			*sc = LayoutSaveItem{}
 		}
 	}
 }
 
-func (lay *Layout) Close(hash uint64, infoLayout *RS_LScroll) {
-	lay.Save(hash, infoLayout)
+func (lay *Layout) Close(hash uint64) {
+	lay.Save(hash)
 }
 
 func (lay *Layout) Reset() {
@@ -139,34 +142,4 @@ func (lay *Layout) ConvertMax(cell int, in OsV4) OsV4 {
 	r := lay.rows.ConvertMax(cell, in.Start.Y, in.Start.Y+in.Size.Y)
 
 	return OsV4{OsV2{c.X, r.X}, OsV2{c.Y, r.Y}}
-}
-
-func _Layout_findGlobalScrollHash(scroll *RS_LScroll, hash uint64) *RS_LScrollItem {
-
-	if scroll == nil {
-		return nil
-	}
-
-	for _, it := range scroll.items {
-		if it.Hash == hash {
-			return it
-		}
-	}
-
-	return nil
-}
-
-func _Layout_addGlobalScrollHash(scroll *RS_LScroll, hash uint64) *RS_LScrollItem {
-	if scroll == nil {
-		return nil
-	}
-
-	sc := _Layout_findGlobalScrollHash(scroll, hash)
-	if sc != nil {
-		return sc
-	}
-
-	nw := &RS_LScrollItem{Hash: hash}
-	scroll.items = append(scroll.items, nw)
-	return nw
 }

@@ -576,6 +576,10 @@ func (fonts *Fonts) Maintenance() {
 
 func (fonts *Fonts) Get(path string) *Font {
 
+	if len(path) == 0 {
+		path = SKYALT_FONT_PATH
+	}
+
 	//find
 	font, found := fonts.fonts[path]
 	if found {

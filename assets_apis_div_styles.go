@@ -70,42 +70,42 @@ func (st *DivStyle) Padding(v float64) {
 	st.Padding_right = v
 }
 
-func _paintBorder(out OsV4, top, bottom, left, right float64, radius float64, cd OsCd, asset *Asset) OsV4 {
+func _paintBorder(out OsV4, top, bottom, left, right float64, radius float64, cd OsCd, app *App) OsV4 {
 
-	stt := asset.app.root.levels.GetStack()
+	stt := app.db.root.levels.GetStack()
 
-	in := out.Inner(asset.getCellWidth(top), asset.getCellWidth(bottom), asset.getCellWidth(left), asset.getCellWidth(right))
+	in := out.Inner(app.getCellWidth(top), app.getCellWidth(bottom), app.getCellWidth(left), app.getCellWidth(right))
 
 	if cd.A == 0 {
 		return in
 	}
 
 	if radius > 0 {
-		rad := asset.getCellWidth(radius)
+		rad := app.getCellWidth(radius)
 		if rad*2 > out.Size.X && rad*2 > out.Size.Y {
 			//circle
-			stt.buff.AddCircle(out, cd, asset.getCellWidth(bottom))
-		} else {
+			stt.buff.AddCircle(out, cd, app.getCellWidth(bottom))
+		} /* else {
 			//rect with radius corners ...
-		}
+		}*/
 	} else {
 		//sharp edges
-		q := OsV4{Start: out.Start, Size: OsV2{out.Size.X, asset.getCellWidth(top)}}
+		q := OsV4{Start: out.Start, Size: OsV2{out.Size.X, app.getCellWidth(top)}}
 		if q.Is() {
 			stt.buff.AddRect(q, cd, 0)
 		}
 
-		q = OsV4{Start: OsV2{out.Start.X, in.Start.Y + in.Size.Y}, Size: OsV2{out.Size.X, asset.getCellWidth(bottom)}}
+		q = OsV4{Start: OsV2{out.Start.X, in.Start.Y + in.Size.Y}, Size: OsV2{out.Size.X, app.getCellWidth(bottom)}}
 		if q.Is() {
 			stt.buff.AddRect(q, cd, 0)
 		}
 
-		q = OsV4{Start: out.Start, Size: OsV2{asset.getCellWidth(left), out.Size.Y}}
+		q = OsV4{Start: out.Start, Size: OsV2{app.getCellWidth(left), out.Size.Y}}
 		if q.Is() {
 			stt.buff.AddRect(q, cd, 0)
 		}
 
-		q = OsV4{Start: OsV2{in.Start.X + in.Size.X, out.Start.Y}, Size: OsV2{asset.getCellWidth(right), out.Size.Y}}
+		q = OsV4{Start: OsV2{in.Start.X + in.Size.X, out.Start.Y}, Size: OsV2{app.getCellWidth(right), out.Size.Y}}
 		if q.Is() {
 
 			stt.buff.AddRect(q, cd, 0)
@@ -124,15 +124,15 @@ func DivStyle_getCoord(coord OsV4, x, y, w, h float64) OsV4 {
 		int(float64(coord.Size.Y)*h))
 }
 
-func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_url string, image_margin float64, asset *Asset) OsV4 {
+func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_url string, image_margin float64, app *App) OsV4 {
 
-	stt := asset.app.root.levels.GetStack()
+	stt := app.db.root.levels.GetStack()
 	if stt.stack == nil || stt.stack.crop.IsZero() {
 		return OsV4{}
 	}
 
 	if st.Max_width > 0 {
-		max := asset.getCellWidth(st.Max_width)
+		max := app.getCellWidth(st.Max_width)
 		if coord.Size.X > max {
 			switch st.Max_width_align {
 			case 1:
@@ -145,7 +145,7 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 	}
 
 	if st.Max_height > 0 {
-		max := asset.getCellWidth(st.Max_height)
+		max := app.getCellWidth(st.Max_height)
 		if coord.Size.Y > max {
 			switch st.Max_height_align {
 			case 1:
@@ -157,13 +157,13 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 		}
 	}
 
-	border := _paintBorder(coord, st.Margin_top, st.Margin_bottom, st.Margin_left, st.Margin_right, 0, OsCd{}, asset)
-	padding := _paintBorder(border, st.Border_top, st.Border_bottom, st.Border_left, st.Border_right, st.Radius, st.Border_color, asset)
-	content := _paintBorder(padding, st.Padding_top, st.Padding_bottom, st.Padding_left, st.Padding_right, 0, OsCd{}, asset)
+	border := _paintBorder(coord, st.Margin_top, st.Margin_bottom, st.Margin_left, st.Margin_right, 0, OsCd{}, app)
+	padding := _paintBorder(border, st.Border_top, st.Border_bottom, st.Border_left, st.Border_right, st.Radius, st.Border_color, app)
+	content := _paintBorder(padding, st.Padding_top, st.Padding_bottom, st.Padding_left, st.Padding_right, 0, OsCd{}, app)
 
 	//background
 	if st.Content_color.A > 0 {
-		rad := asset.getCellWidth(st.Radius)
+		rad := app.getCellWidth(st.Radius)
 		if rad*2 > padding.Size.X && rad*2 > padding.Size.Y {
 			stt.buff.AddCircle(padding, st.Content_color, 0)
 		} else {
@@ -179,7 +179,7 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 
 	if isImg && isText {
 
-		w := float64(asset.app.root.ui.Cell()) / float64(stt.stack.canvas.Size.X)
+		w := float64(app.db.root.ui.Cell()) / float64(stt.stack.canvas.Size.X)
 
 		switch st.Image_alignH {
 		case 0: //left
@@ -195,11 +195,11 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 	}
 
 	if isImg {
-		path, err := MediaParseUrl(image_url, asset)
+		path, err := MediaParseUrl(image_url, app)
 		if err != nil {
-			asset.AddLogErr(err)
+			app.AddLogErr(err)
 		} else {
-			coordImg = coordImg.Inner(asset.getCellWidth(image_margin), asset.getCellWidth(image_margin), asset.getCellWidth(image_margin), asset.getCellWidth(image_margin))
+			coordImg = coordImg.Inner(app.getCellWidth(image_margin), app.getCellWidth(image_margin), app.getCellWidth(image_margin), app.getCellWidth(image_margin))
 
 			imgRectBackup := stt.buff.AddCrop(stt.stack.crop.GetIntersect(coordImg))
 			stt.buff.AddImage(path, coordImg, st.Color, st.Image_alignV, st.Image_alignH, st.Image_fill)
@@ -212,7 +212,7 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 		imgRectBackup := stt.buff.AddCrop(stt.stack.crop.GetIntersect(coordText))
 
 		//one liner
-		active := asset._VmDraw_Text_line(coordText, 0, OsV2{utf8.RuneCountInString(text), 0},
+		active := app._VmDraw_Text_line(coordText, 0, OsV2{utf8.RuneCountInString(text), 0},
 			text, textOrig,
 			st.Color,
 			st.Font_height, 1, 0, 0,
@@ -220,7 +220,7 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 			textSelect, textEdit, false)
 
 		if active {
-			asset._VmDraw_resetKeys(textEdit)
+			app._VmDraw_resetKeys(textEdit)
 		}
 
 		// crop back
@@ -407,9 +407,9 @@ func (b *CompStyle) Radius(v float64) *CompStyle {
 	return b
 }
 
-func (style *CompStyle) GetDiv(enable bool, asset *Asset) *DivStyle {
+func (style *CompStyle) GetDiv(enable bool, app *App) *DivStyle {
 
-	st := asset.app.root.levels.GetStack()
+	st := app.db.root.levels.GetStack()
 
 	var stylee *DivStyle
 	var inside bool
@@ -439,13 +439,13 @@ func (style *CompStyle) GetDiv(enable bool, asset *Asset) *DivStyle {
 	return stylee
 }
 
-func (style *CompStyle) IsClicked(enable bool, asset *Asset) (bool, bool, bool) {
+func (style *CompStyle) IsClicked(enable bool, app *App) (bool, bool, bool) {
 	var click, rclick, inside bool
 	if enable {
-		st := asset.app.root.levels.GetStack()
+		st := app.db.root.levels.GetStack()
 		inside = st.stack.data.touch_inside
 		end := st.stack.data.touch_end
-		force := asset.app.root.ui.io.touch.rm
+		force := app.db.root.ui.io.touch.rm
 
 		if inside && end {
 			click = true
@@ -456,18 +456,18 @@ func (style *CompStyle) IsClicked(enable bool, asset *Asset) (bool, bool, bool) 
 	return click, rclick, inside
 }
 
-func (style *CompStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_path string, image_margin float64, enable bool, asset *Asset) OsV4 {
+func (style *CompStyle) Paint(coord OsV4, text string, textOrig string, textSelect bool, textEdit bool, image_path string, image_margin float64, enable bool, app *App) OsV4 {
 
-	stylee := style.GetDiv(enable, asset)
+	stylee := style.GetDiv(enable, app)
 
 	//draw
-	content := stylee.Paint(coord, text, textOrig, textSelect, textEdit, image_path, image_margin, asset)
+	content := stylee.Paint(coord, text, textOrig, textSelect, textEdit, image_path, image_margin, app)
 
 	//cursor
-	_, _, inside := style.IsClicked(enable, asset)
+	_, _, inside := style.IsClicked(enable, app)
 
 	if inside && len(stylee.Cursor) > 0 {
-		asset.paint_cursor(stylee.Cursor)
+		app.paint_cursor(stylee.Cursor)
 	}
 
 	return content
@@ -761,7 +761,7 @@ type DivStyles struct {
 	theme  int
 }
 
-func NewDivStyles(asset *Asset) *DivStyles {
+func NewDivStyles() *DivStyles {
 	var stls DivStyles
 
 	stls.theme = -1

@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"math"
@@ -586,4 +587,20 @@ func OsUlit_OpenBrowser(url string) error {
 	}
 
 	return err
+}
+
+func OsUlit_GetUID() (string, error) {
+
+	device, err := os.Hostname()
+	if err != nil {
+		return "", err
+	}
+
+	h := sha256.New()
+	_, err = h.Write([]byte(device))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+
 }

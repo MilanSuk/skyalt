@@ -17,72 +17,146 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"fmt"
-	"os"
-	"strings"
 )
 
 type App struct {
-	root   *Root
-	name   string
-	assets []*Asset
+	db        *Db
+	app_rowid int
+	name      string
 
-	baseAsset *Asset
-	db_name   string
+	wasm  *AssetWasm
+	debug *AssetDebug
 
-	sts_id int
+	styles *DivStyles
 
-	fn2Return  []byte
-	fn2Returns []byte
+	reload bool
 
 	logs []string
+
+	gui *LayoutSave
 }
 
-func NewApp(root *Root, name string, db_name string, sts_id int) (*App, error) {
+func NewApp(db *Db, app_rowid int) (*App, error) {
 	var app App
-	app.root = root
-	app.name = name
-	app.db_name = db_name
-	app.sts_id = sts_id
+	app.db = db
+	app.app_rowid = app_rowid
+	app.reload = true
 
-	//load assets
-	dir, err := os.ReadDir(app.getPath())
-	if err != nil {
-		return nil, fmt.Errorf("ReadDir(%s) failed: %w", app.getPath(), err)
-	}
-	for _, fld := range dir {
-		if fld.IsDir() {
-			asset, err := app.AddAsset(fld.Name())
-			if err != nil {
-				return nil, err
-			}
-			if strings.EqualFold(fld.Name(), "main") {
-				app.baseAsset = asset
-			}
+	//get app name
+	{
+		err := app.db.InitTable()
+		if err != nil {
+			return nil, fmt.Errorf("InitTable() failed: %w", err)
 		}
+
+		rows, err := db.db.Query("SELECT app FROM __skyalt__ WHERE rowid=?", app_rowid)
+		if err != nil {
+			return nil, fmt.Errorf("query SELECT failed: %w", err)
+		}
+		defer rows.Close()
+
+		if !rows.Next() {
+			return nil, fmt.Errorf("empty SELECT: %w", err)
+		}
+
+		err = rows.Scan(&app.name)
+		if err != nil {
+			return nil, fmt.Errorf("Scan() failed: %w", err)
+		}
+
 	}
+
+	//load wasm
+	var err error
+	app.wasm, err = NewAssetWasm(&app)
+	if err != nil {
+		return nil, err
+	}
+
+	app.styles = NewDivStyles()
+
+	app.Tick()
 
 	return &app, nil
 }
 func (app *App) Destroy() {
-	for _, asset := range app.assets {
-		asset.Destroy()
+	app.Save()
+
+	if app.wasm != nil {
+		app.wasm.Destroy()
+	}
+	if app.debug != nil {
+		app.debug.Destroy()
 	}
 }
 
-func (app *App) SaveData() {
-	for _, asset := range app.assets {
-		asset.SaveData()
+func (db *Db) InitTable() error {
+
+	_, err := db.Write("CREATE TABLE IF NOT EXISTS __skyalt__(label TEXT NOT NULL, sort REAL NOT NULL, app TEXT NOT NULL, storage BLOB, gui BLOB);")
+	if err != nil {
+		return fmt.Errorf("Write() failed: %w", err)
 	}
+	err = db.Commit()
+	if err != nil {
+		return fmt.Errorf("Commit() failed: %w", err)
+	}
+	return nil
 }
 
-func (app *App) AddLog(err string) {
-	//print
-	fmt.Printf("Error(%s): %s\n", app.getPath(), err)
+func (db *Db) AddFirstRowId(appName string) error {
 
-	//add
-	app.logs = append(app.logs, err)
+	err := db.InitTable()
+	if err != nil {
+		return fmt.Errorf("InitTable() failed: %w", err)
+	}
+
+	//check 0 rows
+	rows, err := db.db.Query("SELECT app FROM __skyalt__")
+	if err != nil {
+		return fmt.Errorf("SELECT() failed: %w", err)
+	}
+	if rows.Next() {
+		return nil //ok
+	}
+
+	//insert
+	_, err = db.Write("INSERT INTO __skyalt__(label, app, sort) VALUES(?,?,?);", appName, appName, 0)
+	if err != nil {
+		return fmt.Errorf("Write() failed: %w", err)
+	}
+	err = db.Commit()
+	if err != nil {
+		return fmt.Errorf("Commit() failed: %w", err)
+	}
+
+	return nil
 }
+
+func (app *App) Save() {
+	if app.debug != nil {
+		app.debug.SaveData(app)
+	} else if app.wasm != nil {
+		app.wasm.SaveData()
+	}
+
+	err := app.SaveGui()
+	app.AddLogErr(err)
+}
+
+func (app *App) AddLogErr(err error) bool {
+	if err != nil {
+		//print
+		fmt.Printf("Error(%s): %v\n", app.getPath(), err)
+
+		//add
+		app.logs = append(app.logs, err.Error())
+		return true
+	}
+	return false
+}
+
 func (app *App) GetLog() string {
 	var ret string
 	if len(app.logs) > 0 {
@@ -92,84 +166,238 @@ func (app *App) GetLog() string {
 	return ret
 }
 
-func (app *App) FindAsset(name string) *Asset {
-	for _, asset := range app.assets {
-		if asset.name == name {
-			return asset
-		}
+func (app *App) GetStorage() ([]byte, error) {
+
+	rows := app.db.db.QueryRow("SELECT storage FROM __skyalt__ WHERE rowid=?", app.app_rowid)
+
+	var js []byte
+	err := rows.Scan(&js)
+	if err != nil {
+		return nil, fmt.Errorf("Scan() failed: %w", err)
 	}
+	return js, nil
+}
+
+func (app *App) SetStorage(js []byte) error {
+
+	_, err := app.db.Write("UPDATE __skyalt__ SET storage=? WHERE rowid=?;", js, app.app_rowid)
+	if err != nil {
+		return fmt.Errorf("Write() failed: %w", err)
+	}
+
+	app.db.Commit()
 	return nil
 }
-func (app *App) AddAsset(name string) (*Asset, error) {
-	//find
-	asset := app.FindAsset(name)
-	if asset != nil {
-		return asset, nil //ok
-	}
 
-	//add
-	var err error
-	asset, err = NewAsset(app, name)
+func (app *App) GetGui() ([]byte, error) {
+
+	rows := app.db.db.QueryRow("SELECT gui FROM __skyalt__ WHERE rowid=?", app.app_rowid)
+
+	var js []byte
+	err := rows.Scan(&js)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Scan() failed: %w", err)
+	}
+	return js, nil
+}
+
+func (app *App) SetGui(js []byte) error {
+
+	_, err := app.db.Write("UPDATE __skyalt__ SET gui=? WHERE rowid=?;", js, app.app_rowid)
+	if err != nil {
+		return fmt.Errorf("Write() failed: %w", err)
 	}
 
-	app.assets = append(app.assets, asset)
-	return asset, nil
+	err = app.db.Commit()
+	if err != nil {
+		return fmt.Errorf("Commit() failed: %w", err)
+	}
+
+	return nil
 }
 
 func (app *App) getPath() string {
-	return app.root.folderApps + "/" + app.name
+	return app.db.root.folderApps + "/" + app.name
 }
 
-func (app *App) Tick() {
-	for _, asset := range app.assets {
-		asset.Tick()
-	}
+func (app *App) getWasmPath() string {
+	return app.getPath() + "/main.wasm"
 }
 
 func (app *App) IsReadyToFire() bool {
-	for _, asset := range app.assets {
-		if !asset.IsReadyToFire() {
-			return false
-		}
+	if app.debug != nil {
+		return app.debug.conn != nil
 	}
-	return true
+	if app.wasm != nil {
+		return app.wasm.mod != nil
+	}
+	return false
 }
 
-func (app *App) ReloadTranslations() {
-	for _, asset := range app.assets {
-		asset.translations.file_tm = 0
+func (app *App) Call(fnName string) (int64, error) {
+	var ret int64
+	var err error
+
+	if app.debug != nil {
+		ret, err = app.debug.Call(fnName, app)
+	} else if app.wasm != nil {
+		ret, err = app.wasm.Call(fnName)
+	} else {
+		err = errors.New("no call")
 	}
-	app.root.last_ticks = 0
+
+	return ret, err
 }
 
 func (app *App) Render(startIt bool) {
 
 	if startIt {
-		app.baseAsset.renderStart()
+		app.renderStart()
 	}
 	if app.IsReadyToFire() {
-		_, err := app.baseAsset.Call("_sa_render", nil)
+		_, err := app.Call("_sa_render")
 		if err != nil {
 			fmt.Print(err)
 		}
 	} else {
-		app.baseAsset.paint_text(0, 0, 1, 1, nil, "Error: 'Main.wasm' is missing or corrupted", "", false, false, true)
+		app.paint_text(0, 0, 1, 1, nil, "Error: 'Main.wasm' is missing or corrupted", "", false, false, true)
 	}
 
-	if app.baseAsset.debug != nil {
+	if app.debug != nil {
 		//draw blue rectangle, when debug mode is active
 		blue := OsCd{50, 50, 255, 180}
 
-		style := app.root.styles.Text
-		style.Main.Font_alignH = 0
+		style := app.db.root.styles.Text
+		style.Main.Font_alignV = 2
+		style.Main.Font_alignH = 2
 		style.Main.Color = blue
 
-		app.baseAsset.paint_rect(0, 0, 1, 1, 0.06, blue, 0.03)
-		app.baseAsset.paint_text(0, 0, 1, 1, &style, "DEBUG ON", "", false, false, true)
+		app.paint_rect(0, 0, 1, 1, 0.06, blue, 0.03)
+		app.paint_text(0, 0, 1, 1, &style, "DEBUG ON", "", false, false, true)
 	}
 	if startIt {
-		app.baseAsset.renderEnd(true)
+		app.renderEnd(true)
 	}
+}
+
+func (app *App) Tick() {
+
+	//odebrat pokud byl zavřen ...
+	//přidat ty co ještě nebyly přidány ... udělat v render_app() ...
+	//možná v Base zobrazit že je připojen debug + [X](zavře debug process) ...
+
+	//test: stejné 7gui, ale chci debug druhou ...
+
+	assetDebug := app.db.root.server.Find(app.name)
+	if assetDebug != nil && app.debug != assetDebug {
+		if app.debug != nil {
+			app.debug.Destroy()
+		}
+		app.debug = assetDebug
+		app.reload = true
+	}
+
+	//wasm
+	if app.debug != nil {
+		//connection lost, go back to wasm
+		if app.debug.conn == nil {
+			app.debug.Destroy()
+			app.debug = nil
+			app.reload = true
+		}
+	} else if app.wasm != nil {
+		changed, err := app.wasm.Tick()
+		if err != nil {
+			app.AddLogErr(err)
+			app.wasm = nil
+
+		} else if changed {
+			app.reload = true
+		}
+	}
+
+	//init
+	if app.reload {
+		app.Call("_sa_init")
+		app.reload = false
+	}
+}
+
+func (app *App) SetDebugLine(line string) {
+
+	st := app.db.root.levels.GetStack()
+	if st.stack == nil || st.stack.crop.IsZero() {
+		return
+	}
+
+	if st.stack.enableInput {
+		if st.stack.crop.Inside(app.db.root.ui.io.touch.pos) {
+			app.db.root.SetDebugLine(line)
+		}
+	}
+}
+
+func (app *App) CheckLoadGui() error {
+
+	if app.gui != nil {
+		return nil
+	}
+
+	js, err := app.GetGui()
+	if err != nil {
+		return fmt.Errorf("GetGui() failed: %w", err)
+	}
+
+	app.gui, err = NewRS_LScroll(js)
+	if err != nil {
+		return fmt.Errorf("NewRS_LScroll() failed: %w", err)
+	}
+	return nil
+}
+
+func (app *App) FindGlobalScrollHash(hash uint64) *LayoutSaveItem {
+
+	err := app.CheckLoadGui()
+	if err != nil {
+		fmt.Printf("CheckLoadGui() failed: %v\n", err)
+		return nil
+	}
+	return app.gui.FindGlobalScrollHash(hash)
+}
+
+func (app *App) AddGlobalScrollHash(hash uint64) *LayoutSaveItem {
+
+	err := app.CheckLoadGui()
+	if err != nil {
+		fmt.Printf("CheckLoadGui() failed: %v\n", err)
+		return nil
+	}
+	return app.gui.AddGlobalScrollHash(hash)
+}
+
+func (app *App) SaveGui() error {
+
+	err := app.CheckLoadGui()
+	if err != nil {
+		return err
+	}
+
+	js, err := app.GetGui()
+	if err != nil {
+		return fmt.Errorf("GetGui() failed: %w", err)
+	}
+
+	//save
+	app.db.root.levels.Save()
+
+	//convert into json
+	js, err = app.gui.Save(js)
+
+	//write into db
+	err = app.SetGui(js)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

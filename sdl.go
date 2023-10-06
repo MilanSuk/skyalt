@@ -113,7 +113,7 @@ type Ui struct {
 	skip_draw_on_screen     bool
 	num_skip_draw_on_screen int
 
-	poly   Poly
+	//poly   Poly
 	images []*Image
 
 	cursors []Cursor

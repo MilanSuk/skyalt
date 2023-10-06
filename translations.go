@@ -19,31 +19,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 )
 
-type Translations struct {
-	path    string
-	file_tm int64
-}
-
-func NewTranslations(path string) *Translations {
-	var trn Translations
-	trn.path = path
-	return &trn
-}
-
-func (trn *Translations) Read(langs []string) ([]byte, error) {
-
-	js, err := os.ReadFile(trn.path)
-	if err != nil {
-		return nil, err
-	}
+func TranslateJson(js []byte, langs []string) ([]byte, error) {
 
 	keys := make(map[string]string)
 
-	err = json.Unmarshal(js, &keys)
+	err := json.Unmarshal(js, &keys)
 	if err != nil {
 		fmt.Printf("Unmarshal() failed: %v\n", err)
 		return nil, err
@@ -76,18 +59,4 @@ func (trn *Translations) Read(langs []string) ([]byte, error) {
 		return nil, fmt.Errorf("MarshalIndent() failed: %w", err)
 	}
 	return js, nil
-}
-
-func (trn *Translations) Maintenance() bool {
-
-	stat, err := os.Stat(trn.path)
-	if err == nil {
-		tm := stat.ModTime().UnixMilli()
-		if tm != trn.file_tm {
-			trn.file_tm = tm
-			return true
-		}
-	}
-
-	return false
 }

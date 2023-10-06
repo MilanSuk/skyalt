@@ -29,22 +29,22 @@ func _ptrg(mem uint64) (uint32, uint32) {
 	return ptr, size
 }
 
-func (asset *Asset) ptrToString(mem uint64) (string, error) {
-	if asset.wasm == nil {
+func (app *App) ptrToString(mem uint64) (string, error) {
+	if app.wasm == nil {
 		return "", errors.New("wasm is nil")
 	}
 
 	ptr, size := _ptrg(mem)
 
-	bytes, ok := asset.wasm.mod.Memory().Read(ptr, size)
+	bytes, ok := app.wasm.mod.Memory().Read(ptr, size)
 	if !ok {
-		return "", fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d", ptr, size, asset.wasm.mod.Memory().Size())
+		return "", fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d", ptr, size, app.wasm.mod.Memory().Size())
 	}
 	return strings.Clone(string(bytes)), nil
 }
 
-func (asset *Asset) stringToPtr(str string, dst uint64) error {
-	if asset.wasm == nil {
+func (app *App) stringToPtr(str string, dst uint64) error {
+	if app.wasm == nil {
 		return errors.New("wasm is nil")
 	}
 
@@ -54,40 +54,40 @@ func (asset *Asset) stringToPtr(str string, dst uint64) error {
 		size = n
 	}
 
-	if !asset.wasm.mod.Memory().Write(ptr, []byte(str)) {
-		return fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d", ptr, size, asset.wasm.mod.Memory().Size())
+	if !app.wasm.mod.Memory().Write(ptr, []byte(str)) {
+		return fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d", ptr, size, app.wasm.mod.Memory().Size())
 	}
 	return nil
 }
 
-/*func (asset *Asset) ptrToBytes(mem uint64) ([]byte, error) {
-	if asset.wasm == nil {
+/*func (app *Asset) ptrToBytes(mem uint64) ([]byte, error) {
+	if app.wasm == nil {
 		return nil, errors.New("wasm is nil")
 	}
 
 	ptr, size := _ptrg(mem)
-	bts, ok := asset.wasm.mod.Memory().Read(ptr, size)
+	bts, ok := app.wasm.mod.Memory().Read(ptr, size)
 	if !ok {
-		return nil, fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d", ptr, size, asset.wasm.mod.Memory().Size())
+		return nil, fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d", ptr, size, app.wasm.mod.Memory().Size())
 	}
 	return bytes.Clone(bts)
 }*/
 
-func (asset *Asset) ptrToBytesDirect(mem uint64) ([]byte, error) {
-	if asset.wasm == nil {
+func (app *App) ptrToBytesDirect(mem uint64) ([]byte, error) {
+	if app.wasm == nil {
 		return nil, errors.New("wasm is nil")
 	}
 
 	ptr, size := _ptrg(mem)
-	bts, ok := asset.wasm.mod.Memory().Read(ptr, size)
+	bts, ok := app.wasm.mod.Memory().Read(ptr, size)
 	if !ok {
-		return nil, fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d", ptr, size, asset.wasm.mod.Memory().Size())
+		return nil, fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d", ptr, size, app.wasm.mod.Memory().Size())
 	}
 	return bts, nil
 }
 
-func (asset *Asset) bytesToPtr(src []byte, dst uint64) error {
-	if asset.wasm == nil {
+func (app *App) bytesToPtr(src []byte, dst uint64) error {
+	if app.wasm == nil {
 		return errors.New("wasm is nil")
 	}
 
@@ -98,30 +98,28 @@ func (asset *Asset) bytesToPtr(src []byte, dst uint64) error {
 	}
 
 	//copy string into memory
-	if !asset.wasm.mod.Memory().Write(ptr, src) {
-		return fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d", ptr, size, asset.wasm.mod.Memory().Size())
+	if !app.wasm.mod.Memory().Write(ptr, src) {
+		return fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d", ptr, size, app.wasm.mod.Memory().Size())
 	}
 	return nil
 }
 
-func (asset *Asset) storage_write(data []byte) (int64, error) {
-
-	//path := asset.app.GetStoragePath(asset.name)
-	//err := os.WriteFile(path, data, 0644)
-	err := asset.app.root.settings.SetContent(asset.sts_rowid, data)
+func (app *App) storage_write(data []byte) (int64, error) {
+	err := app.SetStorage(data)
 	if err != nil {
 		return -1, err
 	}
+
 	return 1, nil
 }
 
-func (asset *Asset) _sa_storage_write(jsonStorage uint64) int64 {
-	data, err := asset.ptrToBytesDirect(jsonStorage)
-	if asset.AddLogErr(err) {
+func (app *App) _sa_storage_write(jsonStorage uint64) int64 {
+	data, err := app.ptrToBytesDirect(jsonStorage)
+	if app.AddLogErr(err) {
 		return -1
 	}
 
-	ret, err := asset.storage_write(data)
-	asset.AddLogErr(err)
+	ret, err := app.storage_write(data)
+	app.AddLogErr(err)
 	return ret
 }
