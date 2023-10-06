@@ -516,11 +516,6 @@ var g_EditboxNoBorder _SA_Style
 
 func Init() {
 	store.Cells = make(map[string]string)
-
-	store.People = append(store.People, Person{Surname: "Emil", Name: "Hans"})
-	store.People = append(store.People, Person{Surname: "Mustermann", Name: "Max"})
-	store.People = append(store.People, Person{Surname: "Tisch", Name: "Roman"})
-	store.People = append(store.People, Person{Surname: "Romba", Name: "John"})
 	store.SelectedPerson = -1
 
 	//default
@@ -535,7 +530,14 @@ func Init() {
 	g_EditboxNoBorder = styles.Editbox
 	g_EditboxNoBorder.Border(0)
 
-	//others
+	//storage
+	if len(store.People) == 0 {
+		store.People = append(store.People, Person{Surname: "Emil", Name: "Hans"})
+		store.People = append(store.People, Person{Surname: "Mustermann", Name: "Max"})
+		store.People = append(store.People, Person{Surname: "Tisch", Name: "Roman"})
+		store.People = append(store.People, Person{Surname: "Romba", Name: "John"})
+	}
+
 	InitCalendar()
 }
 func Save() []byte {
