@@ -399,6 +399,9 @@ func (app *App) saveGui() error {
 
 	//convert into json
 	js, err = app.gui.Save(js)
+	if err != nil {
+		return fmt.Errorf("Save() failed: %w", err)
+	}
 
 	//write into db
 	err = app.SetGui(js)

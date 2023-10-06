@@ -95,6 +95,9 @@ func LayoutSave_parseBases(js []byte) (string, []LayoutSaveBase, int, error) {
 func (save *LayoutSave) Save(js []byte) ([]byte, error) {
 
 	_, bases, found_i, err := LayoutSave_parseBases(js)
+	if err != nil {
+		return nil, fmt.Errorf("LayoutSave_parseBases() failed: %w", err)
+	}
 
 	if found_i < 0 {
 		//new
