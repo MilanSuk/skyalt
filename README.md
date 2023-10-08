@@ -45,7 +45,7 @@ SkyAlt solves them with [Local-first software](https://www.inkandswitch.com/loca
 ## From Webkit to WASM
 There are few implementations of local-first platforms and most of them use Webkit. Webkit is huge and browsers are most complex things humans build and maintain. SkyAlt is heading in oposite direction - build large and complex worlds with few simple tools.
 
-**Front-end**: Instead of writing app in HTML/CSS/JS, you pick up from many languages which compile to WASM and you use SkyAlt's apis() to draw on screen through [Immediate mode GUI](https://en.wikipedia.org/wiki/Immediate_mode_GUI) model. Every WASM file is an asset, which can be compose with other assets together into an app.
+**Front-end**: Instead of writing app in HTML/CSS/JS, you pick up from many languages which compile to WASM and you use SkyAlt's apis() to draw on screen through [Immediate mode GUI](https://en.wikipedia.org/wiki/Immediate_mode_GUI) model.
 
 **Back-end**: There is no back-end. Front-end uses SQL to read/write data from local SQLite files.
 
@@ -108,7 +108,6 @@ go build
 ## Repository
 - /apps - application's repos
 - /databases - user's databases
-- /device - settings(dpi, language, scroll positions, etc.)
 - /resources - default fonts, images for GUI
 
 
