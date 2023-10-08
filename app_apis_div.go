@@ -857,12 +857,12 @@ func (app *App) _sa_register_style(jsMem uint64) int64 {
 
 func (app *App) render_app(dbUrl string, app_rowid uint64) (int64, error) {
 
-	dbPath, _, inAsset, err := FileParseUrl(dbUrl, app)
+	dbPath, _, inApp, err := FileParseUrl(dbUrl, app)
 	if err != nil {
 		return -1, fmt.Errorf("DbParseUrl() failed: %w", err)
 	}
 
-	if inAsset {
+	if inApp {
 		return -1, fmt.Errorf("can't pait app with read-only database")
 	}
 

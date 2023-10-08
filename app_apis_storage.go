@@ -60,7 +60,7 @@ func (app *App) stringToPtr(str string, dst uint64) error {
 	return nil
 }
 
-/*func (app *Asset) ptrToBytes(mem uint64) ([]byte, error) {
+/*func (app *App) ptrToBytes(mem uint64) ([]byte, error) {
 	if app.wasm == nil {
 		return nil, errors.New("wasm is nil")
 	}

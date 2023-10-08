@@ -31,7 +31,7 @@ const TpF64 = byte(0x7c)
 const TpBytes = byte(0x7b)
 const TpString = byte(0x7a)
 
-type AssetWasm struct {
+type AppWasm struct {
 	app *App
 
 	rt     wazero.Runtime
@@ -42,8 +42,8 @@ type AssetWasm struct {
 	load_tm int64
 }
 
-func NewAssetWasm(app *App) (*AssetWasm, error) {
-	var aw AssetWasm
+func NewAppWasm(app *App) (*AppWasm, error) {
+	var aw AppWasm
 	aw.app = app
 
 	err := aw.InstantiateEnv()
@@ -51,32 +51,32 @@ func NewAssetWasm(app *App) (*AssetWasm, error) {
 	return &aw, err
 }
 
-func (aw *AssetWasm) SaveData() {
+func (aw *AppWasm) SaveData() {
 	if aw.mod != nil {
 		aw.mod.ExportedFunction("_sa_save").Call(aw.app.db.root.ctx)
 	}
 }
 
-func (aw *AssetWasm) destroyMod() {
+func (aw *AppWasm) destroyMod() {
 	if aw.mod != nil {
 		aw.mod.Close(aw.app.db.root.ctx)
 		aw.mod = nil
 	}
 }
 
-func (aw *AssetWasm) Destroy() {
+func (aw *AppWasm) Destroy() {
 	aw.destroyMod()
 	aw.rt.Close(aw.app.db.root.ctx)
 }
 
-func (aw *AssetWasm) InstantiateEnv() error {
+func (aw *AppWasm) InstantiateEnv() error {
 
 	aw.rt = wazero.NewRuntimeWithConfig(aw.app.db.root.ctx, aw.app.db.root.runtimeConfig)
 	wasi_snapshot_preview1.MustInstantiate(aw.app.db.root.ctx, aw.rt)
 
 	env := aw.rt.NewHostModuleBuilder("env")
 
-	//these function are constraint into particular 'asset'!!!
+	//these function are constraint into particular 'app'!!!
 	env.NewFunctionBuilder().WithFunc(aw.app._sa_info_float).Export("_sa_info_float")
 	env.NewFunctionBuilder().WithFunc(aw.app._sa_info_setFloat).Export("_sa_info_setFloat")
 	env.NewFunctionBuilder().WithFunc(aw.app._sa_info_string).Export("_sa_info_string")
@@ -143,7 +143,7 @@ func (aw *AssetWasm) InstantiateEnv() error {
 	return err
 }
 
-func (aw *AssetWasm) Call(fnName string) (int64, error) {
+func (aw *AppWasm) Call(fnName string) (int64, error) {
 
 	if aw.mod == nil {
 		return 0, fmt.Errorf("mod is nil")
@@ -165,7 +165,7 @@ func (aw *AssetWasm) Call(fnName string) (int64, error) {
 	return ret, nil
 }
 
-func (aw *AssetWasm) LoadModule() error {
+func (aw *AppWasm) LoadModule() error {
 
 	wasmFile, err := os.ReadFile(aw.app.getWasmPath())
 	if err != nil {
@@ -188,7 +188,7 @@ func (aw *AssetWasm) LoadModule() error {
 	return nil
 }
 
-func (aw *AssetWasm) Tick() (bool, error) {
+func (aw *AppWasm) Tick() (bool, error) {
 
 	stat, err := os.Stat(aw.app.getWasmPath())
 	if err == nil && !stat.IsDir() {

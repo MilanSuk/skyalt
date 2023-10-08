@@ -7,7 +7,7 @@ You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by assetlicable law or agreed to in writing, software
+Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
@@ -26,7 +26,7 @@ import (
 type DebugServer struct {
 	mu     sync.Mutex
 	listen net.Listener
-	assets []*AssetDebug
+	apps   []*AppDebug
 }
 
 func NewDebugServer(PORT int) (*DebugServer, error) {
@@ -43,7 +43,7 @@ func NewDebugServer(PORT int) (*DebugServer, error) {
 			conn, err := server.listen.Accept()
 			if err == nil {
 				server.mu.Lock()
-				server.assets = append(server.assets, NewAssetDebug(conn))
+				server.apps = append(server.apps, NewAppDebug(conn))
 				server.mu.Unlock()
 			}
 		}
@@ -56,22 +56,22 @@ func (server *DebugServer) Destroy() {
 	//close connections
 	server.mu.Lock()
 	defer server.mu.Unlock()
-	for _, asset := range server.assets {
-		asset.Destroy()
+	for _, app := range server.apps {
+		app.Destroy()
 	}
 
 	//close server
 	server.listen.Close()
 }
 
-func (server *DebugServer) Get(assetName string) *AssetDebug {
+func (server *DebugServer) Get(appName string) *AppDebug {
 	server.mu.Lock()
 	defer server.mu.Unlock()
 
-	for i, asset := range server.assets {
-		if asset.name == assetName {
-			server.assets = append(server.assets[:i], server.assets[i+1:]...) //remove
-			return asset
+	for i, app := range server.apps {
+		if app.name == appName {
+			server.apps = append(server.apps[:i], server.apps[i+1:]...) //remove
+			return app
 		}
 	}
 

@@ -7,7 +7,7 @@ You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by assetlicable law or agreed to in writing, software
+Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
@@ -23,25 +23,25 @@ import (
 	"net"
 )
 
-type AssetDebug struct {
+type AppDebug struct {
 	conn net.Conn
 	name string
 }
 
-func NewAssetDebug(conn net.Conn) *AssetDebug {
-	var as AssetDebug
+func NewAppDebug(conn net.Conn) *AppDebug {
+	var as AppDebug
 	as.conn = conn
 	as.name = string(as.ReadBytes())
 	return &as
 }
 
-func (ad *AssetDebug) Destroy() {
+func (ad *AppDebug) Destroy() {
 	if ad.conn != nil {
 		ad.conn.Close()
 	}
 }
 
-func (ad *AssetDebug) _connectionRead(data []byte) error {
+func (ad *AppDebug) _connectionRead(data []byte) error {
 	p := 0
 	for p < len(data) {
 		n, err := ad.conn.Read(data[p:])
@@ -54,7 +54,7 @@ func (ad *AssetDebug) _connectionRead(data []byte) error {
 	return nil
 }
 
-func (ad *AssetDebug) WriteUint64(v uint64) {
+func (ad *AppDebug) WriteUint64(v uint64) {
 	if ad.conn == nil {
 		return
 	}
@@ -68,7 +68,7 @@ func (ad *AssetDebug) WriteUint64(v uint64) {
 	}
 }
 
-func (ad *AssetDebug) ReadUint64() uint64 {
+func (ad *AppDebug) ReadUint64() uint64 {
 	if ad.conn == nil {
 		return 0
 	}
@@ -81,15 +81,15 @@ func (ad *AssetDebug) ReadUint64() uint64 {
 	return binary.LittleEndian.Uint64(b[:])
 }
 
-func (ad *AssetDebug) WriteFloat64(v float64) {
+func (ad *AppDebug) WriteFloat64(v float64) {
 	ad.WriteUint64(math.Float64bits(v))
 }
 
-func (ad *AssetDebug) ReadFloat64() float64 {
+func (ad *AppDebug) ReadFloat64() float64 {
 	return math.Float64frombits(ad.ReadUint64())
 }
 
-func (ad *AssetDebug) ReadBytes() []byte {
+func (ad *AppDebug) ReadBytes() []byte {
 	if ad.conn == nil {
 		return nil
 	}
@@ -106,7 +106,7 @@ func (ad *AssetDebug) ReadBytes() []byte {
 	}
 	return data
 }
-func (ad *AssetDebug) WriteBytes(data []byte) {
+func (ad *AppDebug) WriteBytes(data []byte) {
 	if ad.conn == nil {
 		return
 	}
@@ -122,11 +122,11 @@ func (ad *AssetDebug) WriteBytes(data []byte) {
 	}
 }
 
-func (ad *AssetDebug) SaveData(app *App) {
+func (ad *AppDebug) SaveData(app *App) {
 	ad.Call("_sa_save", app)
 }
 
-func (ad *AssetDebug) _checkRead(fnTp uint64) {
+func (ad *AppDebug) _checkRead(fnTp uint64) {
 
 	ad.WriteUint64(fnTp) //send so other side can check as well
 
@@ -136,7 +136,7 @@ func (ad *AssetDebug) _checkRead(fnTp uint64) {
 	}
 }
 
-func (ad *AssetDebug) Call(fnName string, app *App) (int64, error) {
+func (ad *AppDebug) Call(fnName string, app *App) (int64, error) {
 
 	if ad.conn == nil {
 		return -1, fmt.Errorf("no connection")

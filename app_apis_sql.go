@@ -26,12 +26,12 @@ func (app *App) _getDb(dbUrl string, needWrite bool) (*Db, error) {
 	if len(dbUrl) == 0 {
 		dbPath = app.db.path
 	} else {
-		var inAsset bool
-		dbPath, _, inAsset, err = FileParseUrl(dbUrl, app)
+		var inApp bool
+		dbPath, _, inApp, err = FileParseUrl(dbUrl, app)
 		if err != nil {
 			return nil, fmt.Errorf("DbParseUrl() failed: %w", err)
 		}
-		if needWrite && inAsset {
+		if needWrite && inApp {
 			return nil, fmt.Errorf("database is read-only")
 		}
 	}

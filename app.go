@@ -26,8 +26,8 @@ type App struct {
 	app_rowid int
 	name      string
 
-	wasm  *AssetWasm
-	debug *AssetDebug
+	wasm  *AppWasm
+	debug *AppDebug
 
 	styles *DivStyles
 
@@ -70,7 +70,7 @@ func NewApp(db *Db, app_rowid int) (*App, error) {
 
 	//load wasm
 	var err error
-	app.wasm, err = NewAssetWasm(&app)
+	app.wasm, err = NewAppWasm(&app)
 	if err != nil {
 		return nil, err
 	}
@@ -296,10 +296,10 @@ func (app *App) CheckDebug() {
 
 func (app *App) TryConnectDebug() {
 	if app.debug == nil {
-		assetDebug := app.db.root.server.Get(app.name)
-		if assetDebug != nil {
+		appDebug := app.db.root.server.Get(app.name)
+		if appDebug != nil {
 			app.Save()
-			app.debug = assetDebug
+			app.debug = appDebug
 			app.Call("_sa_init")
 		}
 	}
