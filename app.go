@@ -278,7 +278,7 @@ func (app *App) Render(startIt bool) {
 		style.Color(blue)
 		style.Cursor("")
 
-		style.Paint(app.getCoord(0, 0, 1, 1, 0, 0, 0), "DEBUG ON", "", false, false, "", 0, false, app)
+		style.Paint(app.getCoord(0, 0, 1, 1, 0, 0, 0), "DEBUG ON    ", "", false, false, "", 0, false, app)
 	}
 	if startIt {
 		app.renderEnd(true)

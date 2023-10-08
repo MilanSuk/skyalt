@@ -89,10 +89,10 @@ type PaintBuffText struct {
 	height  int
 }
 
-func NewPaintBuffText(text string, height int, font *Font, render *sdl.Renderer) (*PaintBuffText, error) {
+func NewPaintBuffText(text string, height int, font *Font, enableFormating bool, render *sdl.Renderer) (*PaintBuffText, error) {
 	var bt PaintBuffText
 
-	sz, err := font.GetTextSize(text, height, height)
+	sz, err := font.GetTextSize(text, g_Font_DEFAULT_Weight, height, height, enableFormating)
 	if err != nil {
 		return nil, fmt.Errorf("GetTextSize() failed: %w", err)
 	}
@@ -119,7 +119,7 @@ func NewPaintBuffText(text string, height int, font *Font, render *sdl.Renderer)
 		return nil, fmt.Errorf("PrepareAlpha() failed: %w", err)
 	}
 
-	err = font.Print(text, height, OsV4{OsV2{}, sz}, OsV2{0, 0}, OsCd_white(), nil, false, render)
+	err = font.Print(text, g_Font_DEFAULT_Weight, height, OsV4{OsV2{}, sz}, OsV2{0, 0}, OsCd_white(), nil, false, enableFormating, render)
 	if err != nil {
 		return nil, fmt.Errorf("Print() failed: %w", err)
 	}
@@ -196,7 +196,7 @@ func (btc *PaintBuffTextCache) Find(text string, height int, font *Font, cd OsCd
 	return nil
 }
 
-func (btc *PaintBuffTextCache) Draw(text string, height int, font *Font, cd OsCd, coord OsV4, align OsV2, render *sdl.Renderer) error {
+func (btc *PaintBuffTextCache) Draw(text string, height int, font *Font, cd OsCd, coord OsV4, align OsV2, enableFormating bool, render *sdl.Renderer) error {
 	var err error
 
 	if len(text) == 0 || height <= 0 || font == nil {
@@ -206,7 +206,7 @@ func (btc *PaintBuffTextCache) Draw(text string, height int, font *Font, cd OsCd
 	it := btc.Find(text, height, font, cd)
 	if it == nil {
 		//add
-		it, err = NewPaintBuffText(text, height, font, render)
+		it, err = NewPaintBuffText(text, height, font, enableFormating, render)
 		if err != nil {
 			return fmt.Errorf("NewPaintBuffText() failed: %w", err)
 		}
@@ -392,7 +392,7 @@ func PaintImage_load(path MediaPath, ui *Ui) (*Image, error) {
 func (b *PaintBuff) AddImage(path MediaPath, coord OsV4, cd OsCd, alignV int, alignH int, fill bool) {
 	img, err := PaintImage_load(path, b.ui)
 	if err != nil {
-		b.AddText(path.GetString()+" has error", coord, path.root.fonts.Get(SKYALT_FONT_PATH), OsCd_error(), path.root.ui.io.GetDPI()/8, OsV2{1, 1}, nil)
+		b.AddText(path.GetString()+" has error", coord, path.root.fonts.Get(SKYALT_FONT_PATH), OsCd_error(), path.root.ui.io.GetDPI()/8, OsV2{1, 1}, nil, true)
 		return
 	}
 	if img == nil {
@@ -436,7 +436,7 @@ func (b *PaintBuff) AddImage(path MediaPath, coord OsV4, cd OsCd, alignV int, al
 	b.AddCrop(imgRectBackup)
 }
 
-func (b *PaintBuff) AddText(text string, coord OsV4, font *Font, cd OsCd, h int, align OsV2, cds []OsCd) {
+func (b *PaintBuff) AddText(text string, coord OsV4, font *Font, cd OsCd, h int, align OsV2, cds []OsCd, enableFormating bool) {
 
 	//cached
 	/*err := b.text_cache.Draw(text, h, font, cd, coord, align, b.ui.render)
@@ -445,28 +445,28 @@ func (b *PaintBuff) AddText(text string, coord OsV4, font *Font, cd OsCd, h int,
 	}*/
 
 	//no caching
-	err := font.Print(text, h, coord, align, cd, cds, true, b.ui.render)
+	err := font.Print(text, g_Font_DEFAULT_Weight, h, coord, align, cd, cds, true, enableFormating, b.ui.render)
 	if err != nil {
 		fmt.Printf("Print() failed: %v\n", err)
 	}
 }
 
-func (b *PaintBuff) AddTextBack(rangee OsV2, text string, coord OsV4, font *Font, cd OsCd, h int, align OsV2, underline bool, addSpaceY bool) error {
+func (b *PaintBuff) AddTextBack(rangee OsV2, text string, coord OsV4, font *Font, cd OsCd, h int, align OsV2, underline bool, addSpaceY bool, enableFormating bool) error {
 	if rangee.X == rangee.Y {
 		return nil
 	}
 
-	start, err := font.Start(text, h, coord, align, nil)
+	start, err := font.Start(text, g_Font_DEFAULT_Weight, h, coord, align, enableFormating, nil)
 	if err != nil {
 		return fmt.Errorf("Start() failed: %w", err)
 	}
 
 	var rng OsV2
-	rng.X, err = font.GetPxPos(text, h, rangee.X)
+	rng.X, err = font.GetPxPos(text, g_Font_DEFAULT_Weight, h, rangee.X, enableFormating)
 	if err != nil {
 		return fmt.Errorf("GetPxPos(1) failed: %w", err)
 	}
-	rng.Y, err = font.GetPxPos(text, h, rangee.Y)
+	rng.Y, err = font.GetPxPos(text, g_Font_DEFAULT_Weight, h, rangee.Y, enableFormating)
 	if err != nil {
 		return fmt.Errorf("GetPxPos(2) failed: %w", err)
 	}
@@ -487,16 +487,16 @@ func (b *PaintBuff) AddTextBack(rangee OsV2, text string, coord OsV4, font *Font
 	return nil
 }
 
-func (b *PaintBuff) AddTextCursor(text string, coord OsV4, font *Font, cd OsCd, h int, align OsV2, cursorPos int, cell int) (OsV4, error) {
+func (b *PaintBuff) AddTextCursor(text string, coord OsV4, font *Font, cd OsCd, h int, align OsV2, cursorPos int, cell int, enableFormating bool) (OsV4, error) {
 	b.ui.cursorEdit = true
 	cd.A = b.ui.cursorCdA
 
-	start, err := font.Start(text, h, coord, align, nil)
+	start, err := font.Start(text, g_Font_DEFAULT_Weight, h, coord, align, enableFormating, nil)
 	if err != nil {
 		return OsV4{}, fmt.Errorf("TextCursor().Start() failed: %w", err)
 	}
 
-	ex, err := font.GetPxPos(text, h, cursorPos)
+	ex, err := font.GetPxPos(text, g_Font_DEFAULT_Weight, h, cursorPos, enableFormating)
 	if err != nil {
 		return OsV4{}, fmt.Errorf("TextCursor().GetPxPos() failed: %w", err)
 	}

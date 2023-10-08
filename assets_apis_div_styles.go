@@ -26,9 +26,9 @@ type DivStyle struct {
 	Max_width, Max_height             float64
 	Max_width_align, Max_height_align int
 
-	Margin_top, Margin_bottom, Margin_left, Margin_right     float64 //from cell
-	Border_top, Border_bottom, Border_left, Border_right     float64 //from cell
-	Padding_top, Padding_bottom, Padding_left, Padding_right float64 //from cell
+	Margin_top, Margin_bottom, Margin_left, Margin_right     float64
+	Border_top, Border_bottom, Border_left, Border_right     float64
+	Padding_top, Padding_bottom, Padding_left, Padding_right float64
 
 	Border_color  OsCd
 	Content_color OsCd
@@ -43,6 +43,7 @@ type DivStyle struct {
 	//Font_angle float64	//italic	//0-10 ...
 	//Font_space float64				//0 ...
 	Font_alignV, Font_alignH int
+	Font_formating           bool
 
 	Cursor string
 
@@ -313,6 +314,14 @@ func (b *CompStyle) FontAlignV(v int) *CompStyle {
 	b.Disable.Font_alignV = v
 	return b
 }
+func (b *CompStyle) FontFormating(v bool) *CompStyle {
+	b.Main.Font_formating = v
+	b.Hover.Font_formating = v
+	b.Touch_hover.Font_formating = v
+	b.Touch_out.Font_formating = v
+	b.Disable.Font_formating = v
+	return b
+}
 
 func (b *CompStyle) Margin(v float64) *CompStyle {
 	b.Main.Margin(v)
@@ -523,6 +532,7 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		b.Font_alignV = 1
 		b.Font_alignH = 1
 		b.Font_height = SKYALT_FONT_HEIGHT
+		b.Font_formating = true
 		b.Margin(0.06)
 		b.Padding(0.1)
 
@@ -618,6 +628,7 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		b.Font_alignV = 1
 		b.Font_alignH = 0
 		b.Font_height = SKYALT_FONT_HEIGHT
+		b.Font_formating = true
 		b.Padding(0.16)
 
 		//copy .main to others
@@ -655,6 +666,7 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		b.Font_alignV = 1
 		b.Font_alignH = 0
 		b.Font_height = SKYALT_FONT_HEIGHT
+		b.Font_formating = true
 		b.Margin(0.03)
 		b.Border(0.03)
 		b.Padding(0.1)
@@ -714,6 +726,7 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.ProgressStatus.Color(OsCd_black())
 		stls.ProgressStatus.FontPath(SKYALT_FONT_PATH)
 		stls.ProgressStatus.FontH(0.35)
+		stls.ProgressStatus.FontFormating(true)
 		stls.ProgressStatus.FontAlignH(2) //right
 		stls.ProgressStatus.FontAlignV(1)
 		stls.ProgressStatus.DisableAuto()

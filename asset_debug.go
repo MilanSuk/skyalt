@@ -131,7 +131,7 @@ func (ad *AssetDebug) _checkRead(fnTp uint64) {
 	ad.WriteUint64(fnTp) //send so other side can check as well
 
 	tp := ad.ReadUint64()
-	if tp != fnTp {
+	if tp != fnTp && ad.conn != nil {
 		fmt.Printf("Error: Expecting(%d), but it's %d\n", fnTp, tp)
 	}
 }
@@ -466,11 +466,12 @@ func (ad *AssetDebug) Call(fnName string, app *App) (int64, error) {
 			ad._checkRead(fnTp)
 
 		case 55:
+			styleId := uint32(ad.ReadUint64())
 			value := string(ad.ReadBytes())
-			font := string(ad.ReadBytes())
-			ratioH := ad.ReadFloat64()
 			cursorPos := int64(ad.ReadUint64())
-			ret := app.paint_textWidth(value, font, ratioH, cursorPos)
+
+			style := app.styles.Get(styleId)
+			ret := app.paint_textWidth(style, value, cursorPos)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 

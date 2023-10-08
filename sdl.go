@@ -830,7 +830,7 @@ func (ui *Ui) RenderTile(text string, coord OsV4, cd OsCd, font *Font) error {
 	num_lines := strings.Count(text, "\n") + 1
 	cq := coord
 	lineH := int(float32(textH) * 1.7)
-	cq.Size, _ = font.GetTextSize(text, textH, lineH)
+	cq.Size, _ = font.GetTextSize(text, g_Font_DEFAULT_Weight, textH, lineH, true)
 	cq = cq.AddSpaceX((lineH - textH) / -2)
 
 	cq = OsV4_relativeSurround(coord, cq, OsV4{OsV2{}, OsV2{X: ui.io.ini.WinW, Y: ui.io.ini.WinH}})
@@ -842,7 +842,7 @@ func (ui *Ui) RenderTile(text string, coord OsV4, cd OsCd, font *Font) error {
 	_Ui_boxSE(ui.render, cq.Start, cq.End(), OsCd_white())
 	_Ui_boxSE_border(ui.render, cq.Start, cq.End(), OsCd_black(), 1)
 	cq.Size.Y /= num_lines
-	err = font.Print(text, textH, cq, OsV2{1, 1}, cd, nil, true, ui.render)
+	err = font.Print(text, g_Font_DEFAULT_Weight, textH, cq, OsV2{1, 1}, cd, nil, true, true, ui.render)
 	if err != nil {
 		fmt.Printf("Print() failed: %v\n", err)
 	}
@@ -866,7 +866,7 @@ func (ui *Ui) RenderInfoStats(ui_info *Info, vm_info *Info, font *Font) error {
 		runtime.NumGoroutine())
 	//netStats.num_connections_opened-netStats.num_connections_closed, netStats.num_sends, netStats.num_recvs)	//, Net(connections: %d, send: %dx, recv: %dx)
 
-	sz, _ := font.GetTextSize(text, textH, int(float32(textH)*1.2))
+	sz, _ := font.GetTextSize(text, g_Font_DEFAULT_Weight, textH, int(float32(textH)*1.2), true)
 
 	cq := OsV4{ui.io.GetCoord().Middle().Sub(sz.MulV(0.5)), sz}
 
@@ -875,7 +875,7 @@ func (ui *Ui) RenderInfoStats(ui_info *Info, vm_info *Info, font *Font) error {
 		fmt.Printf("SetClipRect() failed: %v\n", err)
 	}
 	_Ui_boxSE(ui.render, cq.Start, cq.End(), OsCd_white())
-	err = font.Print(text, textH, cq, OsV2{0, 1}, OsCd{255, 50, 50, 255}, nil, true, ui.render)
+	err = font.Print(text, g_Font_DEFAULT_Weight, textH, cq, OsV2{0, 1}, OsCd{255, 50, 50, 255}, nil, true, true, ui.render)
 	if err != nil {
 		fmt.Printf("Print() failed: %v\n", err)
 	}

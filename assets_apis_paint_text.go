@@ -36,15 +36,13 @@ func (app *App) paint_textGrid(style *CompStyle,
 		style = &root.styles.Text
 	}
 
-	sdiv := style.GetDiv(enable, app)
-
 	if !enable {
 		st.stack.data.touch_enabled = false
 	}
 	st.stack.data.scrollH.narrow = true
 	st.stack.data.scrollV.show = false
 
-	app._sa_div_col(0, OsMaxFloat(app.div_get_info("layoutWidth", -1, -1), app.paint_textWidth(value, sdiv.Font_path, sdiv.Font_height, -1))) //+marginX*4+margin*2
+	app._sa_div_col(0, OsMaxFloat(app.div_get_info("layoutWidth", -1, -1), app.paint_textWidth(style, value, -1))) //+marginX*4+margin*2
 	app._sa_div_row(0, app.div_get_info("layoutHeight", -1, -1))
 	app.div_start(0, 0, 1, 1, "")
 	style.Paint(st.stack.canvas, value, valueOrigEdit, selection, edit, "", 0, enable, app)
@@ -85,9 +83,7 @@ func (app *App) paint_text(x, y, w, h float64,
 	return 1
 }
 
-func (app *App) _sa_paint_text(x, y, w, h float64,
-	styleId uint32, valueMem uint64,
-	selection, edit, enable uint32) int64 {
+func (app *App) _sa_paint_text(x, y, w, h float64, styleId uint32, valueMem uint64, selection, edit, enable uint32) int64 {
 
 	value, err := app.ptrToString(valueMem)
 	if app.AddLogErr(err) {
@@ -171,14 +167,14 @@ func (app *App) _VmDraw_Text_VScrollInto(cursor OsV2, lineH int) {
 		st.stack.parent.data.scrollV.wheel = OsMax(0, v_pos-v_sz) //SetWheel() has boundary check, which is not good here
 	}
 }
-func (app *App) _VmDraw_Text_HScrollInto(str string, cursor OsV2, font *Font, textH int, margin float64, marginX float64) error {
+func (app *App) _VmDraw_Text_HScrollInto(str string, cursor OsV2, font *Font, textH int, margin float64, marginX float64, enableFormating bool) error {
 
 	st := app.db.root.levels.GetStack()
 	if st.stack.parent == nil {
 		return nil
 	}
 
-	h_pos, err := font.GetPxPos(str, textH, cursor.X)
+	h_pos, err := font.GetPxPos(str, g_Font_DEFAULT_Weight, textH, cursor.X, enableFormating)
 	if err == nil {
 		h_align := app.getCellWidth(margin + marginX) //margin + marginX
 
@@ -195,7 +191,7 @@ func (app *App) _VmDraw_Text_HScrollInto(str string, cursor OsV2, font *Font, te
 	return err
 }
 
-func (app *App) _VmDraw_TextSelectTouch(str string, strEditOrig string, touchPos OsV2, lineEnd OsV2, editable bool, font *Font, textH int, lineH int, margin float64, marginX float64) {
+func (app *App) _VmDraw_TextSelectTouch(str string, strEditOrig string, touchPos OsV2, lineEnd OsV2, editable bool, font *Font, textH int, lineH int, margin float64, marginX float64, enableFormating bool) {
 
 	root := app.db.root
 	st := root.levels.GetStack()
@@ -263,7 +259,7 @@ func (app *App) _VmDraw_TextSelectTouch(str string, strEditOrig string, touchPos
 
 		//scroll
 		app._VmDraw_Text_VScrollInto(touchPos, lineH)
-		app._VmDraw_Text_HScrollInto(str, touchPos, font, textH, margin, marginX)
+		app._VmDraw_Text_HScrollInto(str, touchPos, font, textH, margin, marginX, enableFormating)
 
 		root.ui.SetNoSleep()
 	}
@@ -384,7 +380,7 @@ func (app *App) _VmDraw_TextSelectKeys(str string, lineY int, lineEnd OsV2, edit
 	}
 }
 
-func (app *App) _VmDraw_TextEditKeys(tabIsChar bool, font *Font, textH int, lineH int, margin float64, marginX float64) string {
+func (app *App) _VmDraw_TextEditKeys(tabIsChar bool, font *Font, textH int, lineH int, margin float64, marginX float64, enableFormating bool) string {
 
 	root := app.db.root
 	//stt := &root.stack
@@ -572,7 +568,7 @@ func (app *App) _VmDraw_TextEditKeys(tabIsChar bool, font *Font, textH int, line
 		app._VmDraw_Text_VScrollInto(newPos, lineH)
 	}
 	if old.X != newPos.X {
-		app._VmDraw_Text_HScrollInto(str, newPos, font, textH, margin, marginX)
+		app._VmDraw_Text_HScrollInto(str, newPos, font, textH, margin, marginX, enableFormating)
 	}
 
 	return edit.temp
@@ -581,7 +577,7 @@ func (app *App) _VmDraw_TextEditKeys(tabIsChar bool, font *Font, textH int, line
 func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	value string, valueOrigEdit string,
 	cd OsCd,
-	ratioH, lineHeight, margin, marginX float64,
+	textHeight, lineHeight, margin, marginX float64,
 	font_path string,
 	alignH, alignV int,
 	selection, editable, tabIsChar bool) bool {
@@ -589,34 +585,34 @@ func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	root := app.db.root
 	st := root.levels.GetStack()
 
+	if textHeight <= 0 {
+		textHeight = 0.35
+	}
+	textH := app.getCellWidth(textHeight)
 	align := OsV2{int(alignH), int(alignV)}
 	lineH := coord.Size.Y
-
-	if ratioH <= 0 {
-		ratioH = 0.35
-	}
-	textH := app.getCellWidth(ratioH)
-
-	//font := root.fonts.Get(SKYALT_FONT_0) //...int(fontId))
 	font := root.fonts.Get(font_path)
 	edit := &root.ui.io.edit
 	keys := &root.ui.io.keys
 	touch := &root.ui.io.touch
 
+	active := false
+	oldCursorPos := edit.end
+	cursorPos := OsV2{-1, -1}
+
+	//...............
+
 	// mouse pos on text
-	touchPos, err := font.GetTextPos(root.ui.io.touch.pos, value, coord, textH, align)
+	touchPos, err := font.GetTextPos(root.ui.io.touch.pos, value, coord, g_Font_DEFAULT_Weight, textH, align, !active)
 	if err != nil {
 		fmt.Println("Error: VmDraw_Text.GetTextPos() failed: %w", err)
 		return false
 	}
 
-	active := false
-	oldCursorPos := edit.end
-	cursorPos := OsV2{-1, -1}
 	if selection || editable {
 
 		if coord.Inside(root.ui.io.touch.pos) || edit.setFirstEditbox {
-			app._VmDraw_TextSelectTouch(value, valueOrigEdit, OsV2{touchPos, lineY}, lineEnd, editable, font, textH, lineH, margin, marginX)
+			app._VmDraw_TextSelectTouch(value, valueOrigEdit, OsV2{touchPos, lineY}, lineEnd, editable, font, textH, lineH, margin, marginX, !active)
 		}
 
 		this_uid := st.stack //.Hash()
@@ -630,7 +626,7 @@ func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 			}
 
 			if editable {
-				value = app._VmDraw_TextEditKeys(tabIsChar, font, textH, lineH, margin, marginX) //rewrite 'str' with temp value
+				value = app._VmDraw_TextEditKeys(tabIsChar, font, textH, lineH, margin, marginX, !active) //rewrite 'str' with temp value
 
 				//enter or Tab(key) or outside => save
 				isOutside := false
@@ -696,7 +692,7 @@ func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 					ex = OsMax(s.X, e.X)
 				}
 
-				st.buff.AddTextBack(OsV2{sx, ex}, value, coord, font, OsCd_Aprox(OsCd_black(), OsCd_white(), 0.5), textH, align, false, false)
+				st.buff.AddTextBack(OsV2{sx, ex}, value, coord, font, OsCd_Aprox(OsCd_black(), OsCd_white(), 0.5), textH, align, false, false, !active)
 			}
 		}
 	}
@@ -736,7 +732,7 @@ func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	}*/
 
 	// draw
-	st.buff.AddText(value, coord, font, cd, textH, align, cds)
+	st.buff.AddText(value, coord, font, cd, textH, align, cds, !active)
 
 	if cursorPos.X >= 0 {
 		//cursor moved
@@ -745,7 +741,7 @@ func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 		}
 
 		var err error
-		_ /*cCursorQuad*/, err = st.buff.AddTextCursor(value, coord, font, cd, textH, align, cursorPos.X, root.ui.Cell())
+		_ /*cCursorQuad*/, err = st.buff.AddTextCursor(value, coord, font, cd, textH, align, cursorPos.X, root.ui.Cell(), !active)
 		if err != nil {
 			fmt.Println("Error: VmDraw_Text.PaintTextCursor() failed: %w", err)
 			return false

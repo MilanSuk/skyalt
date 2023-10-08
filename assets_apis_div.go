@@ -154,7 +154,7 @@ func (app *App) DrawGrid() {
 
 		py = start.Y
 		for y, row := range st.stack.data.rows.outputs {
-			st.buff.AddText(fmt.Sprintf("[%d, %d]", x, y), OsV4{OsV2{px, py}, OsV2{int(col), int(row)}}, root.fonts.Get(SKYALT_FONT_PATH), cd, root.ui.io.GetDPI()/8, OsV2{1, 1}, nil)
+			st.buff.AddText(fmt.Sprintf("[%d, %d]", x, y), OsV4{OsV2{px, py}, OsV2{int(col), int(row)}}, root.fonts.Get(SKYALT_FONT_PATH), cd, root.ui.io.GetDPI()/8, OsV2{1, 1}, nil, true)
 			py += int(row)
 		}
 
@@ -178,7 +178,7 @@ func (app *App) renderEnd(baseDiv bool) {
 		st.stack = st.stack.parent
 		st.buff.AddCrop(st.stack.crop)
 	} else {
-		if !baseDiv {
+		if !baseDiv && (app.debug == nil || app.debug.conn != nil) {
 			app.AddLogErr(fmt.Errorf("div==nil in level: %s. Check if every 'start' has 'end'. Check return/continue/break in the middle of 'start' - 'end'", st.name))
 		}
 	}
@@ -236,7 +236,7 @@ func (app *App) checkGridLock() bool {
 	root := app.db.root
 	st := root.levels.GetStack()
 
-	if st.stack.gridLock {
+	if st.stack.gridLock && (app.debug == nil || app.debug.conn != nil) {
 		fmt.Println("Warning: Trying to changed col/row dimension after you already draw div into")
 		return false
 	}

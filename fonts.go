@@ -48,6 +48,8 @@ var g_FontFamilyNames = []FontFamilyName{
 	{900, "Black"},
 }
 
+var g_Font_DEFAULT_Weight = 400
+
 func GetFontFamilyNamesIndex(weight int) int {
 	weight = OsClamp(weight, 100, 900)
 	i := (weight / 100) - 1
@@ -163,7 +165,7 @@ func (font *Font) Destroy() {
 func (font *Font) GetStyle(weight int, italic bool) ttf.Style {
 	style := ttf.STYLE_NORMAL
 	if !font.isFamily {
-		if weight > 400 {
+		if weight > g_Font_DEFAULT_Weight {
 			style = ttf.STYLE_BOLD
 		}
 		if italic {
@@ -254,6 +256,13 @@ func (font *Font) processLetter(text string, origW int, origH int, weight *int, 
 		return false
 	}
 
+	//new line = reset
+	if strings.HasPrefix(text, "\n") {
+		*weight = origW
+		*italic = false
+		*height = origH
+	}
+
 	//bold & italic
 	if strings.HasPrefix(text, "***") || strings.HasPrefix(text, "___") {
 		*weight = OsTrn(*weight != origW, origW, origW*3/2) //bold
@@ -293,18 +302,18 @@ func (font *Font) processLetter(text string, origW int, origH int, weight *int, 
 	return true
 }
 
-func (font *Font) GetPxPos(text string, h int, ch_pos int) (int, error) {
+func (font *Font) GetPxPos(text string, w int, h int, ch_pos int, enableFormating bool) (int, error) {
 
 	px := 0
 
-	weight := 400 //...
+	weight := w
 	italic := false
 	height := h
 	skip := 0
 
 	i := 0
 	for p, ch := range text {
-		if !font.processLetter(text[p:], 400, h, &weight, &italic, &height, &skip) {
+		if enableFormating && !font.processLetter(text[p:], w, h, &weight, &italic, &height, &skip) {
 			continue
 		}
 
@@ -322,16 +331,16 @@ func (font *Font) GetPxPos(text string, h int, ch_pos int) (int, error) {
 	return px, nil
 }
 
-func (font *Font) GetDownY(text string, h int, render *sdl.Renderer) (int, error) {
+func (font *Font) GetDownY(text string, w int, h int, enableFormating bool, render *sdl.Renderer) (int, error) {
 
-	weight := 400 //...
+	weight := w
 	italic := false
 	height := h
 	skip := 0
 
 	down_y := 0
 	for p, ch := range text {
-		if !font.processLetter(text[p:], 400, h, &weight, &italic, &height, &skip) {
+		if enableFormating && !font.processLetter(text[p:], w, h, &weight, &italic, &height, &skip) {
 			continue
 		}
 
@@ -346,20 +355,20 @@ func (font *Font) GetDownY(text string, h int, render *sdl.Renderer) (int, error
 	return down_y, nil
 }
 
-func (font *Font) Start(text string, h int, coord OsV4, align OsV2, render *sdl.Renderer) (OsV2, error) {
+func (font *Font) Start(text string, w int, h int, coord OsV4, align OsV2, enableFormating bool, render *sdl.Renderer) (OsV2, error) {
 
 	word_space := 0
 	len := 0
 	//down_y := 0
 	max_tex_h := 0
 
-	weight := 400 //...
+	weight := w
 	italic := false
 	height := h
 	skip := 0
 
 	for p, ch := range text {
-		if !font.processLetter(text[p:], 400, h, &weight, &italic, &height, &skip) {
+		if enableFormating && !font.processLetter(text[p:], w, h, &weight, &italic, &height, &skip) {
 			continue
 		}
 
@@ -412,18 +421,18 @@ func (font *Font) Start(text string, h int, coord OsV4, align OsV2, render *sdl.
 	return pos, nil
 }
 
-func (font *Font) GetChPos(text string, h int, px int) (int, error) {
+func (font *Font) GetChPos(text string, w int, h int, px int, enableFormating bool) (int, error) {
 
 	px_act := 0
 
-	weight := 400 //...
+	weight := w
 	italic := false
 	height := h
 	skip := 0
 
 	i := 0
 	for p, ch := range text {
-		if !font.processLetter(text[p:], 400, h, &weight, &italic, &height, &skip) {
+		if enableFormating && !font.processLetter(text[p:], w, h, &weight, &italic, &height, &skip) {
 			continue
 		}
 
@@ -442,16 +451,16 @@ func (font *Font) GetChPos(text string, h int, px int) (int, error) {
 	return len(text), nil
 }
 
-func (font *Font) GetTextPos(touchPos OsV2, text string, coord OsV4, h int, align OsV2) (int, error) {
+func (font *Font) GetTextPos(touchPos OsV2, text string, coord OsV4, w int, h int, align OsV2, enableFormating bool) (int, error) {
 
-	start, err := font.Start(text, h, coord, align, nil)
+	start, err := font.Start(text, w, h, coord, align, enableFormating, nil)
 	if err != nil {
 		return 0, fmt.Errorf("Start() failed: %w", err)
 	}
-	return font.GetChPos(text, h, touchPos.X-start.X)
+	return font.GetChPos(text, w, h, touchPos.X-start.X, enableFormating)
 }
 
-func (font *Font) GetTextSize(text string, textH int, lineH int) (OsV2, error) {
+func (font *Font) GetTextSize(text string, w int, h int, lineH int, enableFormating bool) (OsV2, error) {
 
 	nlines := 0
 	maxLineWidth := 0
@@ -460,7 +469,7 @@ func (font *Font) GetTextSize(text string, textH int, lineH int) (OsV2, error) {
 		nlines++
 	}
 
-	x, err := font.GetPxPos(text, textH, maxLineWidth) // + textH
+	x, err := font.GetPxPos(text, w, h, maxLineWidth, enableFormating) // + textH
 	if err != nil {
 		return OsV2{}, fmt.Errorf("GetPxPos() failed: %w", err)
 	}
@@ -469,22 +478,22 @@ func (font *Font) GetTextSize(text string, textH int, lineH int) (OsV2, error) {
 	return OsV2{x, y}, nil
 }
 
-func (font *Font) Print(text string, h int, coord OsV4, align OsV2, color OsCd, cds []OsCd, blendingOn bool, render *sdl.Renderer) error {
-	pos, err := font.Start(text, h, coord, align, render)
+func (font *Font) Print(text string, w int, h int, coord OsV4, align OsV2, color OsCd, cds []OsCd, blendingOn bool, enableFormating bool, render *sdl.Renderer) error {
+	pos, err := font.Start(text, w, h, coord, align, enableFormating, render)
 	if err != nil {
 		return fmt.Errorf("Print.Start() failed: %w", err)
 	}
 	posStart := pos.X
 	max_h := h
 
-	weight := 400 //...
+	weight := w
 	italic := false
 	height := h
 	skip := 0
 
 	i := 0
 	for p, ch := range text {
-		if !font.processLetter(text[p:], 400, h, &weight, &italic, &height, &skip) {
+		if enableFormating && !font.processLetter(text[p:], w, h, &weight, &italic, &height, &skip) {
 			continue
 		}
 		max_h = OsMax(max_h, height)

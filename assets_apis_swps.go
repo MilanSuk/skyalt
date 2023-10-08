@@ -549,20 +549,24 @@ func (app *App) _sa_comp_drawCheckbox(styleCheckId uint32, styleLabelId uint32, 
 	return app.comp_drawCheckbox(styleCheck, styleLabel, value, label, tooltip, enable > 0)
 }
 
-func (app *App) paint_textWidth(value string, fontPath string, ratioH float64, cursorPos int64) float64 {
+func (app *App) paint_textWidth(style *CompStyle, value string, cursorPos int64) float64 {
 
+	sdiv := style.GetDiv(true, app)
+
+	ratioH := sdiv.Font_height
+	if ratioH <= 0 {
+		ratioH = 0.35
+	}
+	font := app.db.root.fonts.Get(sdiv.Font_path)
 	textH := app.getCellWidth(ratioH)
-	font := app.db.root.fonts.Get(fontPath)
 	cell := float64(app.db.root.ui.Cell())
 	if cursorPos < 0 {
-
-		size, err := font.GetTextSize(value, textH, 0)
+		size, err := font.GetTextSize(value, g_Font_DEFAULT_Weight, textH, 0, sdiv.Font_formating)
 		if err == nil {
 			return float64(size.X) / cell // pixels for the whole string
 		}
-
 	} else {
-		px, err := font.GetPxPos(value, textH, int(cursorPos))
+		px, err := font.GetPxPos(value, g_Font_DEFAULT_Weight, textH, int(cursorPos), sdiv.Font_formating)
 		if err == nil {
 			return float64(px) / cell // pixels to cursor
 		}
@@ -570,17 +574,13 @@ func (app *App) paint_textWidth(value string, fontPath string, ratioH float64, c
 	return -1
 }
 
-func (app *App) _sa_paint_textWidth(valueMem uint64, fontPathMem uint64, ratioH float64, cursorPos int64) float64 {
+func (app *App) _sa_paint_textWidth(styleId uint32, valueMem uint64, cursorPos int64) float64 {
 
 	value, err := app.ptrToString(valueMem)
 	if app.AddLogErr(err) {
 		return -1
 	}
 
-	fond_path, err := app.ptrToString(fontPathMem)
-	if app.AddLogErr(err) {
-		return -1
-	}
-
-	return app.paint_textWidth(value, fond_path, ratioH, cursorPos)
+	style := app.styles.Get(styleId)
+	return app.paint_textWidth(style, value, cursorPos)
 }
