@@ -191,11 +191,18 @@ func (root *Root) GetIniPath() string {
 	return "ini.json"
 }
 
+func (root *Root) FindDb(path string) *Db {
+	db, found := root.dbs[path]
+	if found {
+		return db
+	}
+	return nil
+}
 func (root *Root) AddDb(path string) (*Db, error) {
 
 	//finds
-	db, found := root.dbs[path]
-	if found {
+	db := root.FindDb(path)
+	if db != nil {
 		return db, nil
 	}
 

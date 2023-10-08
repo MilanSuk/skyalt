@@ -175,7 +175,7 @@ func (ad *AppDebug) Call(fnName string, app *App) (int64, error) {
 
 		case 3:
 			key := ad.ReadBytes()
-			dst, ret := app.info_string(string(key))
+			dst, ret := app.info_string(string(key), false)
 			ad.WriteBytes([]byte(dst))
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)

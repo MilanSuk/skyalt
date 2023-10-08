@@ -17,7 +17,9 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -151,19 +153,31 @@ func (app *App) _sa_info_setFloat(keyMem uint64, v float64) int64 {
 	return app.info_setFloat(key, v)
 }
 
-func (app *App) info_string(key string) (string, int64) {
+func (app *App) info_string(key string, onlyLen bool) (string, int64) {
 
-	/*logSts_Id, found := strings.CutPrefix(key, "log_") //............
+	if app.name != "base" {
+		app.AddLogErr(errors.New("access denied, low privilages"))
+		return "", 0
+	}
+
+	//log
+	log, found := strings.CutPrefix(key, "log_") //log_<file.sqlite>/<approw_id>
 	if found {
-		sts_id, err := strconv.Atoi(logSts_Id)
-		if err == nil {
-			app := app.db.root.FindAppId(sts_id)
-			if app != nil {
-				return app.GetLog(), 1
+		d := strings.IndexByte(log, '/')
+		if d >= 0 {
+			db := app.db.root.FindDb(app.db.root.folderDatabases + "/" + log[:d])
+			if db != nil {
+				app_rowid, err := strconv.Atoi(log[d+1:])
+				if err == nil {
+					app2 := db.FindApp(app_rowid)
+					if app2 != nil {
+						return app2.GetLog(!onlyLen), 1
+					}
+				}
 			}
 		}
-		return "", 1
-	}*/
+		return "", 0
+	}
 
 	switch strings.ToLower(key) {
 	case "files":
@@ -187,7 +201,7 @@ func (app *App) info_string(key string) (string, int64) {
 }
 func (app *App) info_string_len(key string) int64 {
 
-	dst, ret := app.info_string(key)
+	dst, ret := app.info_string(key, true)
 	if ret > 0 {
 		return int64(len(dst))
 	}
@@ -201,7 +215,7 @@ func (app *App) _sa_info_string(keyMem uint64, dstMem uint64) int64 {
 		return -1
 	}
 
-	dst, ret := app.info_string(key)
+	dst, ret := app.info_string(key, false)
 	err = app.stringToPtr(dst, dstMem)
 	app.AddLogErr(err)
 	return ret

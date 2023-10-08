@@ -157,11 +157,13 @@ func (app *App) AddLogErr(err error) bool {
 	return false
 }
 
-func (app *App) GetLog() string {
+func (app *App) GetLog(remove bool) string {
 	var ret string
 	if len(app.logs) > 0 {
 		ret = app.logs[0]
-		app.logs = app.logs[1:] //cut
+		if remove {
+			app.logs = app.logs[1:] //cut
+		}
 	}
 	return ret
 }

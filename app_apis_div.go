@@ -179,7 +179,7 @@ func (app *App) renderEnd(baseDiv bool) {
 		st.buff.AddCrop(st.stack.crop)
 	} else {
 		if !baseDiv && (app.debug == nil || app.debug.conn != nil) {
-			app.AddLogErr(fmt.Errorf("div==nil in level: %s. Check if every 'start' has 'end'. Check return/continue/break in the middle of 'start' - 'end'", st.name))
+			app.AddLogErr(errors.New("div pair corrupted2. Check if every SA_DivStart() has SA_DivEnd(). Check return/continue/break in the middle"))
 		}
 	}
 }
@@ -237,7 +237,7 @@ func (app *App) checkGridLock() bool {
 	st := root.levels.GetStack()
 
 	if st.stack.gridLock && (app.debug == nil || app.debug.conn != nil) {
-		fmt.Println("Warning: Trying to changed col/row dimension after you already draw div into")
+		app.AddLogErr(errors.New("Trying to changed col/row dimension after you already draw div into"))
 		return false
 	}
 	return true
@@ -877,8 +877,21 @@ func (app *App) render_app(dbUrl string, app_rowid uint64) (int64, error) {
 	}
 
 	//app.db.root.levels.GetStack().rootDiv.data.app = ist
-
 	ist.Render(false)
+
+	//check if all divs were end ...
+	{
+		root := app.db.root
+		st := root.levels.GetStack()
+
+		if st != root.levels.GetStack() {
+			ist.AddLogErr(fmt.Errorf("dialog pair corrupted. Check if every SA_DialogStart() has SA_DialogEnd(). Check return/continue/break in the middle"))
+		} else if st.stack.parent != st.rootDiv {
+			//div_start/end
+			ist.AddLogErr(fmt.Errorf("div pair corrupted. Check if every SA_DivStart() has SA_DivEnd(). Check return/continue/break in the middle"))
+		}
+	}
+
 	return 1, nil
 }
 

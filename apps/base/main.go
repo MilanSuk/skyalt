@@ -22,11 +22,16 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Log struct {
-	Time int64
-	Text string
+	time int64
+	text string
+}
+type AppLog struct {
+	logs     []Log
+	showtime float64
 }
 
 type File struct {
@@ -34,6 +39,8 @@ type File struct {
 	Expand       bool
 	initAppTable bool
 	id           int
+
+	apps map[int]*AppLog
 }
 
 func FindInArray(arr []string, name string) int {
@@ -773,18 +780,29 @@ func Files() {
 						}
 
 						//logs
-						/*{
-							log := SA_Info("log_" + strconv.Itoa(app_i))
-							if len(log) > 0 {
-								app.logs = append(app.logs, Log{Text: log, Time: int64(SA_Time())})
-								app.logs_showtime = SA_Time()
+						{
+							log_name := fmt.Sprintf("log_%s/%d", file.Name, app_rowid)
+							log := SA_Info(log_name)
+
+							if file.apps == nil {
+								file.apps = make(map[int]*AppLog)
 							}
-							if app.logs_showtime+5 > SA_Time() {
-								if SA_ButtonAlpha("").Icon("app:resources/warning.png", 0.0).Show(1, 0, 1, 1).click {
-									SA_DialogOpen("log_"+strconv.Itoa(app_i), 0)
+							appL, found := file.apps[app_rowid]
+							if !found {
+								appL = &AppLog{}
+								file.apps[app_rowid] = appL
+							}
+
+							if len(log) > 0 {
+								appL.logs = append(appL.logs, Log{text: log, time: int64(SA_Time())})
+								appL.showtime = SA_Time()
+							}
+							if appL.showtime+5 > SA_Time() {
+								if SA_ButtonAlpha("").Icon("app:resources/warning.png", 0.1).Show(1, 0, 1, 1).click {
+									SA_DialogOpen(log_name, 0)
 								}
 							}
-							if SA_DialogStart("log_" + strconv.Itoa(app_i)) {
+							if SA_DialogStart(log_name) {
 								SA_ColMax(0, 20)
 								SA_RowMax(1, 20)
 								SA_TextCenter(trns.LOGS).Show(0, 0, 1, 1)
@@ -793,17 +811,17 @@ func Files() {
 								{
 									SA_ColMax(0, 4)
 									SA_ColMax(1, 100)
-									for i, l := range app.logs {
-										dt := time.Unix(l.Time, 0)
+									for i, l := range appL.logs {
+										dt := time.Unix(l.time, 0)
 										SA_Text(dt.Format("2006-01-02 15:04:05")).Show(0, i, 1, 1)
-										SA_Text(l.Text).Show(1, i, 1, 1)
+										SA_Text(l.text).Show(1, i, 1, 1)
 									}
 								}
 								SA_DivEnd()
 
 								SA_DialogEnd()
 							}
-						}*/
+						}
 					}
 					SA_DivEnd()
 
