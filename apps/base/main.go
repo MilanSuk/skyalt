@@ -84,6 +84,8 @@ type Storage struct {
 	duplicateName string
 
 	last_file_id int
+
+	Initialized bool
 }
 
 var store Storage
@@ -934,6 +936,12 @@ func CheckFileName(name string, alreadyExist bool) error {
 }
 
 func Render() {
+
+	if !store.Initialized {
+		SA_DialogOpen("Settings", 0)
+		store.Initialized = true
+	}
+
 	SA_Col(0, 4.5) //min
 	SA_ColResize(0, 7)
 	SA_ColMax(1, 100)
