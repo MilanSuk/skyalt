@@ -263,7 +263,7 @@ func (font *Font) processLetter(text string, origW int, origH int, weight *int, 
 		*height = origH
 	}
 
-	//bold & italic
+	//bold + italic
 	if strings.HasPrefix(text, "***") || strings.HasPrefix(text, "___") {
 		*weight = OsTrn(*weight != origW, origW, origW*3/2) //bold
 		*italic = !*italic
@@ -314,6 +314,7 @@ func (font *Font) GetPxPos(text string, w int, h int, ch_pos int, enableFormatin
 	i := 0
 	for p, ch := range text {
 		if enableFormating && !font.processLetter(text[p:], w, h, &weight, &italic, &height, &skip) {
+			i++
 			continue
 		}
 
@@ -433,6 +434,7 @@ func (font *Font) GetChPos(text string, w int, h int, px int, enableFormating bo
 	i := 0
 	for p, ch := range text {
 		if enableFormating && !font.processLetter(text[p:], w, h, &weight, &italic, &height, &skip) {
+			i++
 			continue
 		}
 
@@ -451,7 +453,7 @@ func (font *Font) GetChPos(text string, w int, h int, px int, enableFormating bo
 	return len(text), nil
 }
 
-func (font *Font) GetTextPos(touchPos OsV2, text string, coord OsV4, w int, h int, align OsV2, enableFormating bool) (int, error) {
+func (font *Font) GetTouchPos(touchPos OsV2, text string, coord OsV4, w int, h int, align OsV2, enableFormating bool) (int, error) {
 
 	start, err := font.Start(text, w, h, coord, align, enableFormating, nil)
 	if err != nil {
