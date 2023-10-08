@@ -124,6 +124,76 @@ func _VmDraw_WordPos(str string, mid int) (int, int) {
 	return start, end
 }
 
+func _VmDraw_RemoveFormating(str string) string {
+
+	str = strings.ReplaceAll(str, "***", "")
+	str = strings.ReplaceAll(str, "___", "")
+	str = strings.ReplaceAll(str, "###", "")
+
+	str = strings.ReplaceAll(str, "**", "")
+	str = strings.ReplaceAll(str, "__", "")
+	str = strings.ReplaceAll(str, "##", "")
+
+	return str
+}
+
+func _VmDraw_HashFormatingPreSuf_fix(str string, fn func(a, b string) bool) int {
+
+	if fn(str, "***") || fn(str, "___") || fn(str, "###") {
+		return 3
+	}
+	if fn(str, "**") || fn(str, "__") || fn(str, "##") {
+		return 2
+	}
+	return 0
+}
+
+func _VmDraw_CheckSelectionExplode(str string, start *int, end *int) {
+	if *start < *end {
+		*start -= _VmDraw_HashFormatingPreSuf_fix(str[:*start], strings.HasSuffix)
+		*end += _VmDraw_HashFormatingPreSuf_fix(str[*end:], strings.HasPrefix)
+	}
+	if *end < *start {
+		*end -= _VmDraw_HashFormatingPreSuf_fix(str[:*end], strings.HasSuffix)
+		*start += _VmDraw_HashFormatingPreSuf_fix(str[*start:], strings.HasPrefix)
+	}
+}
+
+/*func _VmDraw_CheckSelectionImplode(str string, start *int, end *int) {
+	if *start <= *end {
+		*start += _VmDraw_HashFormatingPreSuf_fix(str[*start:], strings.HasPrefix)
+		*end -= _VmDraw_HashFormatingPreSuf_fix(str[:*end], strings.HasSuffix)
+
+	}
+	if *end < *start {
+		*end += _VmDraw_HashFormatingPreSuf_fix(str[*end:], strings.HasPrefix)
+		*start -= _VmDraw_HashFormatingPreSuf_fix(str[:*start], strings.HasSuffix)
+	}
+}*/
+
+func _VmDraw_CursorPos(str string, curr int, move int, enableFormating bool) int {
+
+	n := utf8.RuneCountInString(str)
+
+	//raw string
+	if enableFormating {
+		if move < 0 {
+			curr -= _VmDraw_HashFormatingPreSuf_fix(str[:curr], strings.HasSuffix)
+		}
+
+		if move > 0 {
+			curr += _VmDraw_HashFormatingPreSuf_fix(str[curr:], strings.HasPrefix)
+		}
+	}
+	curr += move
+
+	//check
+	curr = OsMax(curr, 0) //min
+	curr = OsMin(curr, n) //max
+
+	return curr
+}
+
 func (app *App) _VmDraw_resetKeys(editable bool) {
 
 	keys := &app.db.root.ui.io.keys
@@ -313,7 +383,7 @@ func (app *App) _VmDraw_getStringSubBytePos(str string) (int, int, int, int) {
 	return x, y, selFirst, selLast
 }
 
-func (app *App) _VmDraw_TextSelectKeys(str string, lineY int, lineEnd OsV2, editable bool) {
+func (app *App) _VmDraw_TextSelectKeys(str string, lineY int, lineEnd OsV2, editable bool, enableFormating bool) {
 
 	root := app.db.root
 	keys := &root.ui.io.keys
@@ -336,7 +406,11 @@ func (app *App) _VmDraw_TextSelectKeys(str string, lineY int, lineEnd OsV2, edit
 
 	//copy, cut
 	if keys.copy || keys.cut {
-		keys.clipboard = str[st:en]
+		if keys.shift {
+			keys.clipboard = _VmDraw_RemoveFormating(str)
+		} else {
+			keys.clipboard = str[st:en]
+		}
 	}
 
 	//shift
@@ -346,7 +420,7 @@ func (app *App) _VmDraw_TextSelectKeys(str string, lineY int, lineEnd OsV2, edit
 		ex := e.X
 		if keys.ctrl {
 			if keys.arrowL {
-				p := OsMax(ex-1, 0)
+				p := _VmDraw_CursorPos(str, ex, -1, enableFormating)
 				first, _ := _VmDraw_WordPos(str, p)
 				if first == p && p > 0 {
 					first, _ = _VmDraw_WordPos(str, p-1)
@@ -354,7 +428,7 @@ func (app *App) _VmDraw_TextSelectKeys(str string, lineY int, lineEnd OsV2, edit
 				e.X = first
 			}
 			if keys.arrowR {
-				p := OsMin(ex+1, utf8.RuneCountInString(str))
+				p := _VmDraw_CursorPos(str, ex, +1, enableFormating)
 				_, last := _VmDraw_WordPos(str, p)
 				if last == p && p+1 < utf8.RuneCountInString(str) {
 					_, last = _VmDraw_WordPos(str, p+1)
@@ -363,10 +437,12 @@ func (app *App) _VmDraw_TextSelectKeys(str string, lineY int, lineEnd OsV2, edit
 			}
 		} else {
 			if keys.arrowL {
-				e.X = OsMax(ex-1, 0)
+				p := _VmDraw_CursorPos(str, ex, -1, enableFormating)
+				e.X = p
 			}
 			if keys.arrowR {
-				e.X = OsMin(ex+1, utf8.RuneCountInString(str))
+				p := _VmDraw_CursorPos(str, ex, +1, enableFormating)
+				e.X = p
 			}
 		}
 
@@ -580,7 +656,7 @@ func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	textHeight, lineHeight, margin, marginX float64,
 	font_path string,
 	alignH, alignV int,
-	selection, editable, tabIsChar bool) bool {
+	selection, editable, tabIsChar, enableFormating bool) bool {
 
 	root := app.db.root
 	st := root.levels.GetStack()
@@ -600,33 +676,35 @@ func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	oldCursorPos := edit.end
 	cursorPos := OsV2{-1, -1}
 
-	//...............
-
-	// mouse pos on text
-	touchPos, err := font.GetTextPos(root.ui.io.touch.pos, value, coord, g_Font_DEFAULT_Weight, textH, align, !active)
-	if err != nil {
-		fmt.Println("Error: VmDraw_Text.GetTextPos() failed: %w", err)
-		return false
-	}
-
 	if selection || editable {
 
-		if coord.Inside(root.ui.io.touch.pos) || edit.setFirstEditbox {
-			app._VmDraw_TextSelectTouch(value, valueOrigEdit, OsV2{touchPos, lineY}, lineEnd, editable, font, textH, lineH, margin, marginX, !active)
-		}
-
-		this_uid := st.stack //.Hash()
+		this_uid := st.stack
 		edit_uid := edit.uid
 		active = (edit_uid != nil && edit_uid == this_uid)
+		enableFormating = !editable || !active
+
+		touchPos, err := font.GetTouchPos(root.ui.io.touch.pos, value, coord, g_Font_DEFAULT_Weight, textH, align, enableFormating)
+		if err != nil {
+			fmt.Println("Error: VmDraw_Text.GetTextPos() failed: %w", err)
+			return false
+		}
+
+		if coord.Inside(root.ui.io.touch.pos) || edit.setFirstEditbox {
+			app._VmDraw_TextSelectTouch(value, valueOrigEdit, OsV2{touchPos, lineY}, lineEnd, editable, font, textH, lineH, margin, marginX, enableFormating)
+		}
+
+		//this_uid = st.stack
+		//edit_uid = edit.uid
+		//active = (edit_uid != nil && edit_uid == this_uid)
 
 		edit.last_edit = value
 		if active {
 			if lineY == edit.end.Y {
-				app._VmDraw_TextSelectKeys(value, lineY, lineEnd, editable)
+				app._VmDraw_TextSelectKeys(value, lineY, lineEnd, editable, enableFormating)
 			}
 
 			if editable {
-				value = app._VmDraw_TextEditKeys(tabIsChar, font, textH, lineH, margin, marginX, !active) //rewrite 'str' with temp value
+				value = app._VmDraw_TextEditKeys(tabIsChar, font, textH, lineH, margin, marginX, enableFormating) //rewrite 'str' with temp value
 
 				//enter or Tab(key) or outside => save
 				isOutside := false
@@ -692,7 +770,11 @@ func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 					ex = OsMax(s.X, e.X)
 				}
 
-				st.buff.AddTextBack(OsV2{sx, ex}, value, coord, font, OsCd_Aprox(OsCd_black(), OsCd_white(), 0.5), textH, align, false, false, !active)
+				st.buff.AddTextBack(OsV2{sx, ex}, value, coord, font, OsCd_Aprox(OsCd_black(), OsCd_white(), 0.5), textH, align, false, false, enableFormating)
+			}
+
+			if enableFormating {
+				_VmDraw_CheckSelectionExplode(value, &edit.start.X, &edit.end.X)
 			}
 		}
 	}
@@ -732,7 +814,7 @@ func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 	}*/
 
 	// draw
-	st.buff.AddText(value, coord, font, cd, textH, align, cds, !active)
+	st.buff.AddText(value, coord, font, cd, textH, align, cds, enableFormating)
 
 	if cursorPos.X >= 0 {
 		//cursor moved
@@ -741,7 +823,7 @@ func (app *App) _VmDraw_Text_line(coord OsV4, lineY int, lineEnd OsV2,
 		}
 
 		var err error
-		_ /*cCursorQuad*/, err = st.buff.AddTextCursor(value, coord, font, cd, textH, align, cursorPos.X, root.ui.Cell(), !active)
+		_ /*cCursorQuad*/, err = st.buff.AddTextCursor(value, coord, font, cd, textH, align, cursorPos.X, root.ui.Cell(), enableFormating)
 		if err != nil {
 			fmt.Println("Error: VmDraw_Text.PaintTextCursor() failed: %w", err)
 			return false

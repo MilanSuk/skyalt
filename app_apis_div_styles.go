@@ -218,7 +218,7 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 			st.Color,
 			st.Font_height, 1, 0, 0,
 			st.Font_path, st.Font_alignH, st.Font_alignV,
-			textSelect, textEdit, false)
+			textSelect, textEdit, false, st.Font_formating)
 
 		if active {
 			app._VmDraw_resetKeys(textEdit)
