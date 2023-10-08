@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+for d in ../apps/*/ ; do
+    echo "$d"
+    rm $d/sdk.go
+    rm $d/sdk_wasi.go
+    rm $d/sdk_debug.go
+done
+

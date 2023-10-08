@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+START=$(date +%s);
+
+for d in ../apps/*/ ; do
+    echo "$d"
+    (cd $d;sh build_wasm) & 
+done
+
+wait
+END=$(date +%s);
+echo $((END-START)) | awk '{print "Compiled in "int($1/60)"min "int($1%60)"sec"}'

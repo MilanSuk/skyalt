@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+for d in ../apps/*/ ; do
+    echo "$d"
+    cp sdk.go $d/sdk.go
+    cp sdk_wasi.go $d/sdk_wasi.go
+    cp sdk_debug.go $d/sdk_debug.go
+done
+
