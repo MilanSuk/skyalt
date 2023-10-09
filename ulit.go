@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"math"
@@ -597,12 +598,11 @@ func OsUlit_GetUID() (string, error) {
 		return "", err
 	}
 
-	h := sha256.New()
-	_, err = h.Write([]byte(device))
+	h, err := InitOsHash([]byte(device))
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	return fmt.Sprintf("%x", h.h), nil
 }
 
 type OsHash struct {
@@ -626,4 +626,8 @@ func InitOsHash(src []byte) (OsHash, error) {
 
 func (a *OsHash) Cmp(b *OsHash) bool {
 	return bytes.Equal(a.h[:], b.h[:])
+}
+
+func (h *OsHash) GetInt64() int64 {
+	return int64(binary.LittleEndian.Uint64(h.h[:]))
 }

@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"crypto/sha256"
 	"database/sql"
 	"encoding/binary"
 	"fmt"
@@ -111,9 +110,11 @@ func NewDbCache(query string, db *sql.DB) (*DbCache, error) {
 
 	cache.query = query
 	{
-		h := sha256.New()
-		h.Write([]byte(query))
-		cache.query_hash = int64(binary.LittleEndian.Uint64(h.Sum(nil)))
+		h, err := InitOsHash([]byte(query))
+		if err != nil {
+			return nil, fmt.Errorf("InitOsHash() failed: %w", err)
+		}
+		cache.query_hash = h.GetInt64()
 	}
 
 	// out fields
