@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -184,7 +185,11 @@ func (app *App) info_string(key string, onlyLen bool) (string, int64) {
 		return app.db.root.dbsList, 1
 
 	case "apps":
-		return app.db.root.appsList, 1
+		list := app.db.root.GetAppsList()
+		js, err := json.MarshalIndent(&list, "", "")
+		if err == nil {
+			return string(js), 1
+		}
 
 	case "languages":
 		lngs := ""
@@ -268,6 +273,29 @@ func (app *App) info_setString(key string, value string) int64 {
 
 	case "remove_file":
 		if app.db.root.RemoveDb(value) {
+			return 1
+		}
+		return -1
+
+	case "new_repo":
+		d := strings.IndexByte(value, '/')
+		if d > 0 && d < len(value)-1 {
+			name := value[:d]
+			lang := value[d+1:]
+			if app.db.root.CreateApp(name, lang) {
+				return 1
+			}
+		}
+		return -1
+
+	case "package_repo":
+		if app.db.root.PackageApp(value) {
+			return 1
+		}
+		return -1
+
+	case "extract_repo":
+		if app.db.root.ExtractApp(value) {
 			return 1
 		}
 		return -1

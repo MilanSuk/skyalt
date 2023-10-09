@@ -38,8 +38,7 @@ type Root struct {
 
 	dbs map[string]*Db
 
-	dbsList  string
-	appsList string
+	dbsList string
 
 	last_ticks int64
 
@@ -132,7 +131,6 @@ func NewRoot(debugPORT int, folderApps string, folderDatabases string, ctx conte
 	}
 
 	root.updateDbsList()
-	root.updateAppsList()
 
 	err = root.ReloadApps()
 	if err != nil {
@@ -392,7 +390,6 @@ func (root *Root) Tick() (bool, error) {
 		root.last_ticks = time.Now().UnixMilli()
 
 		root.updateDbsList()
-		root.updateAppsList()
 
 		root.fonts.Maintenance()
 	}
@@ -490,21 +487,9 @@ func (root *Root) updateDbsList() {
 	root.dbsList = strings.TrimSuffix(root.dbsList, "/") //remove '/' at the end
 }
 
-func (root *Root) updateAppsList() {
-
-	dir, err := os.ReadDir(root.folderApps)
-	if err != nil {
-		fmt.Printf("ReadDir() failed: %v\n", err)
-		return
-	}
-
-	root.appsList = ""
-	for _, file := range dir {
-		if file.IsDir() && file.Name() != "base" {
-			root.appsList += file.Name() + "/"
-		}
-	}
-	root.appsList = strings.TrimSuffix(root.appsList, "/") //remove '/' at the end
+func (root *Root) GetAppsList() []OsFileList {
+	list := OsFileListBuild(root.folderApps, root.folderApps, true, "base")
+	return list.Subs
 }
 
 func (root *Root) SetDebugLine(line string) {

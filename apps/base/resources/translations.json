@@ -56,7 +56,6 @@
 "THEME_GREY.en": "Grey", 
 "THEME_GREY.cs": "Šedá",
 
-
 "DPI.en": "Dots per inch(DPI)", 
 "DPI.cs": "Bodů na palec(DPI)",
 "SHOW_STATS.en": "Show statistics", 
@@ -64,11 +63,11 @@
 "SHOW_GRID.en": "Show grid", 
 "SHOW_GRID.cs": "Zobrazovat mřížku",
 
+"LANGUAGE.en": "Language", 
+"LANGUAGE.cs": "Jazyk",
 
 "LANGUAGES.en": "Languages", 
 "LANGUAGES.cs": "Jazyky",
-
-
 
 "NAME.en": "Name",
 "NAME.cs": "Název",
@@ -95,7 +94,6 @@
 "INVALID_NAME.en": "Invalid nam", 
 "INVALID_NAME.cs": "Neplatné jméno",
 
-
 "IN_USE.en": "in use", 
 "IN_USE.cs": "použitá",
 
@@ -104,6 +102,24 @@
 
 "CREATE_DB.en": "Create database",
 "CREATE_DB.cs": "Vytvořit databázi",
+
+"DEVELOPERS.en": "Developers", 
+"DEVELOPERS.cs": "Vývojáři",
+
+"CREATE_REPO.en": "Create repository",
+"CREATE_REPO.cs": "Vytvořit repozitář",
+
+"PACKAGE_REPO.en": "Package repository",
+"PACKAGE_REPO.cs": "Zabalit repozitář",
+
+"EXTRACT_REPO.en": "Extract repository",
+"EXTRACT_REPO.cs": "Rozbalit repozitář",
+
+"REPO.en": "Repository",
+"REPO.cs": "Repozitář",
+
+"PACKAGE.en": "Package",
+"PACKAGE.cs": "Balíček",
 
 "LOGS.en": "Logs",
 "LOGS.cs": "Logy"

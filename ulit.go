@@ -631,3 +631,27 @@ func (a *OsHash) Cmp(b *OsHash) bool {
 func (h *OsHash) GetInt64() int64 {
 	return int64(binary.LittleEndian.Uint64(h.h[:]))
 }
+
+type OsFileList struct {
+	Name  string
+	IsDir bool
+	Subs  []OsFileList
+}
+
+func OsFileListBuild(path string, name string, isDir bool, ignore string) OsFileList {
+	var fl OsFileList
+	fl.Name = name
+	fl.IsDir = isDir
+
+	if isDir {
+		dir, err := os.ReadDir(path)
+		if err == nil {
+			for _, file := range dir {
+				if file.Name() != ignore {
+					fl.Subs = append(fl.Subs, OsFileListBuild(path+"/"+file.Name(), file.Name(), file.IsDir(), ""))
+				}
+			}
+		}
+	}
+	return fl
+}
