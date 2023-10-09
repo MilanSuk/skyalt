@@ -22,7 +22,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"os"
 
 	"github.com/mattn/go-sqlite3"
 )
@@ -156,8 +155,8 @@ type Db struct {
 	db *sql.DB
 	tx *sql.Tx
 
-	cache      []*DbCache
-	lastChange int
+	cache          []*DbCache
+	lastWriteTicks int64
 
 	apps []*App
 }
@@ -186,8 +185,6 @@ func NewDb(root *Root, path string) (*Db, error) {
 	}
 
 	//db.Exec("ATTACH 'path/to/file.db' AS attached") ...
-
-	db.UpdateTime()
 
 	return &db, nil
 }
@@ -246,20 +243,6 @@ func (db *Db) Rollback() error {
 	return err
 }
 
-func (db *Db) UpdateTime() bool {
-
-	info, err := os.Stat(db.GetPath())
-	if os.IsNotExist(err) {
-		return false
-	}
-
-	diff := info.ModTime().Unix() != int64(db.lastChange)
-
-	db.lastChange = int(info.ModTime().Unix())
-	return diff
-
-}
-
 func (db *Db) FindCache(query_hash int64) *DbCache {
 
 	//find
@@ -301,6 +284,8 @@ func (db *Db) Write(query string, params ...any) (sql.Result, error) {
 	if err != nil {
 		return nil, fmt.Errorf("query(%s) failed: %w", query, err)
 	}
+
+	db.lastWriteTicks = int64(OsTicks())
 
 	return res, nil
 }

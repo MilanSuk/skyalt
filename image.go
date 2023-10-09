@@ -115,8 +115,11 @@ func MediaParseUrl(url string, app *App) (MediaPath, error) {
 	return ip, nil
 }
 
-func (ip *MediaPath) Is() bool {
-	return true
+func (ip *MediaPath) IsDb() bool {
+	return len(ip.table) > 0
+}
+func (ip *MediaPath) IsFile() bool {
+	return !ip.IsDb()
 }
 
 func (ip *MediaPath) GetString() string {
@@ -127,46 +130,50 @@ func (a *MediaPath) Cmp(b *MediaPath) bool {
 	return a.path == b.path && a.table == b.table && a.column == b.column && a.row == b.row
 }
 
-func (ip *MediaPath) GetBlob() ([]byte, error) {
+func (ip *MediaPath) GetBlob() ([]byte, *Db, error) {
 	var data []byte
+	var err error
 
-	if len(ip.table) > 0 {
+	var db *Db
+	if ip.IsDb() {
 		//db blob
-		db, err := ip.root.AddDb(ip.path)
+		db, err = ip.root.AddDb(ip.path)
 		if err != nil {
-			return nil, fmt.Errorf("AddDb() failed: %w", err)
+			return nil, nil, fmt.Errorf("AddDb() failed: %w", err)
 		}
 
 		res := db.db.QueryRow("SELECT "+ip.column+" FROM "+ip.table+" WHERE _rowid_ = ?;", ip.row)
 		if res == nil {
-			return nil, fmt.Errorf("QueryRow() failed")
+			return nil, nil, fmt.Errorf("QueryRow() failed")
 		}
 
 		err = res.Scan(&data)
 		if err != nil {
-			return nil, fmt.Errorf("Scan() failed: %w", err)
+			return nil, nil, fmt.Errorf("Scan() failed: %w", err)
 		}
 	} else {
 		//file
-		var err error
 		data, err = os.ReadFile(ip.path)
 		if err != nil {
-			return nil, fmt.Errorf("ReadFile(%s) failed: %w", ip.path, err)
+			return nil, nil, fmt.Errorf("ReadFile(%s) failed: %w", ip.path, err)
 		}
 	}
 
-	return data, nil
+	return data, db, nil
 }
 
 type Image struct {
 	origSize   OsV2
 	maxUseSize OsV2
 
-	path MediaPath
+	path              MediaPath
+	db                *Db
+	dbWrite_loadTicks int64
+	blobHash          OsHash
 
 	texture *sdl.Texture
 
-	lastDrawTick int
+	lastDrawTick int64
 }
 
 func (img *Image) GetSize() (OsV2, error) {
@@ -248,12 +255,13 @@ func Image_LoadTexture(blob []byte, render *sdl.Renderer) (*sdl.Texture, error) 
 
 func NewImage(path MediaPath, render *sdl.Renderer) (*Image, error) {
 
-	var self Image
+	var img Image
 
-	self.path = path
+	img.path = path
 
 	var err error
-	blob, err := path.GetBlob()
+	var blob []byte
+	blob, img.db, err = path.GetBlob()
 	if err != nil {
 		return nil, fmt.Errorf("GetBlob() failed: %w", err)
 	}
@@ -261,17 +269,26 @@ func NewImage(path MediaPath, render *sdl.Renderer) (*Image, error) {
 		return nil, nil //empty = no error
 	}
 
-	self.texture, err = Image_LoadTexture(blob, render)
-	if err != nil {
-		return nil, err
+	if img.db != nil {
+		img.dbWrite_loadTicks = img.db.lastWriteTicks
 	}
 
-	self.origSize, err = self.GetSize()
+	img.blobHash, err = InitOsHash(blob)
+	if err != nil {
+		return nil, fmt.Errorf("InitOsHash() failed: %w", err)
+	}
+
+	img.texture, err = Image_LoadTexture(blob, render)
+	if err != nil {
+		return nil, fmt.Errorf("Image_LoadTexture() failed: %w", err)
+	}
+
+	img.origSize, err = img.GetSize()
 	if err != nil {
 		return nil, fmt.Errorf("GetSize() failed: %w", err)
 	}
 
-	return &self, nil
+	return &img, nil
 }
 
 func (img *Image) FreeTexture() error {
@@ -301,6 +318,24 @@ func (img *Image) Destroy() error {
 
 func (img *Image) Maintenance(render *sdl.Renderer) (bool, error) {
 
+	//is db changed
+	if img.db != nil {
+		if img.dbWrite_loadTicks < img.db.lastWriteTicks {
+			blob, _, err := img.path.GetBlob()
+			if err == nil {
+				blobHash, err := InitOsHash(blob)
+				if err == nil {
+					img.dbWrite_loadTicks = img.db.lastWriteTicks
+
+					if !img.blobHash.Cmp(&blobHash) {
+						return false, nil //remove & later reload it
+					}
+				}
+			}
+		}
+	}
+
+	//is used
 	if !img.maxUseSize.Is() && !OsIsTicksIn(img.lastDrawTick, 10000) {
 		// free un-used
 		if img.texture != nil && !OsIsTicksIn(img.lastDrawTick, 10000) {

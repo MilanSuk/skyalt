@@ -316,7 +316,7 @@ func (app *App) _getResource(url string) ([]byte, error) {
 		return nil, fmt.Errorf("MediaParseUrl() failed: %w", err)
 	}
 
-	data, err := res.GetBlob()
+	data, _, err := res.GetBlob()
 	if err != nil {
 		return nil, fmt.Errorf("GetBlob() failed: %w", err)
 	}

@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -29,12 +30,12 @@ import (
 	"time"
 )
 
-func OsTicks() int {
-	return int(time.Now().UnixMilli())
+func OsTicks() int64 {
+	return time.Now().UnixMilli()
 }
 
-func OsIsTicksIn(start_ticks int, delay_ms int) bool {
-	return (start_ticks + delay_ms) > OsTicks()
+func OsIsTicksIn(start_ticks int64, delay_ms int) bool {
+	return (start_ticks + int64(delay_ms)) > OsTicks()
 }
 
 func OsTime() float64 {
@@ -602,5 +603,27 @@ func OsUlit_GetUID() (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
 
+type OsHash struct {
+	h [32]byte
+}
+
+func InitOsHash(src []byte) (OsHash, error) {
+
+	if len(src) == 0 {
+		return OsHash{}, nil //zeros
+	}
+
+	h := sha256.New()
+	_, err := h.Write(src)
+	if err != nil {
+		return OsHash{}, err
+	}
+
+	return OsHash{h: [32]byte(h.Sum(nil))}, nil
+}
+
+func (a *OsHash) Cmp(b *OsHash) bool {
+	return bytes.Equal(a.h[:], b.h[:])
 }
