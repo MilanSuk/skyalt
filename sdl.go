@@ -64,7 +64,7 @@ type Info struct {
 	sum_frames int
 	sum_time   int
 
-	last_show_time int
+	last_show_time int64
 
 	max_dt int
 
@@ -108,8 +108,8 @@ type Ui struct {
 	numClicks uint8
 
 	redraw_num              int
-	last_input_tick         int
-	last_redraw_tick        int
+	last_input_tick         int64
+	last_redraw_tick        int64
 	skip_draw_on_screen     bool
 	num_skip_draw_on_screen int
 

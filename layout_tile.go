@@ -22,7 +22,7 @@ type LayerTile struct {
 	cd    OsCd
 	force bool
 
-	ticks          int
+	ticks          int64
 	needRedraw     bool
 	tickOpenForSet bool
 }
@@ -33,7 +33,7 @@ func (layTile *LayerTile) NextTick() {
 }
 
 func (layTile *LayerTile) timeToShow() int {
-	return layTile.ticks + 200 - OsTicks()
+	return int(layTile.ticks + 200 - OsTicks())
 }
 
 func (layTile *LayerTile) IsActive(touchPos OsV2) bool {

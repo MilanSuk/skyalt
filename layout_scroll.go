@@ -24,7 +24,7 @@ type LayerScroll struct {
 
 	clickRel int
 
-	timeWheel int
+	timeWheel int64
 
 	show   bool
 	narrow bool
@@ -380,7 +380,7 @@ func (scroll *LayerScroll) TouchH(needShiftWheel bool, packLayout *LayoutDiv, ro
 func (scroll *LayerScroll) TryDragScroll(fast_dt int, sign int, ui *Ui) bool {
 	wheelOld := scroll.GetWheel()
 
-	dt := int((1.0 / 2.0) / float32(fast_dt) * 1000)
+	dt := int64((1.0 / 2.0) / float32(fast_dt) * 1000)
 
 	if OsTicks()-scroll.timeWheel > dt {
 		scroll.SetWheel(scroll.GetWheel() + scroll._GetTempScroll(sign, ui))

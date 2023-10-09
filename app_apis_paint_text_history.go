@@ -27,7 +27,7 @@ type VmTextHistory struct {
 	items []VmTextHistoryItem
 
 	act          int
-	lastAddTicks int
+	lastAddTicks int64
 }
 
 func NewVmTextHistoryItem(uid *LayoutDiv, init VmTextHistoryItem) *VmTextHistory {
