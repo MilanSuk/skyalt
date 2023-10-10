@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-#starting with go 1.21 more here: https://tip.golang.org/doc/go1.21
-
-#probably will need to change '//export' into 'go:wasmimport'
-
-GOARCH=wasip1 GOOS=js go build -o main.wasm
-
