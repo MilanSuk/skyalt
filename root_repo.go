@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -280,7 +281,7 @@ func (root *Root) PackageApp(name string) error {
 
 	_, err = db.Write("CREATE TABLE IF NOT EXISTS __skyalt__(path TEXT NOT NULL, file BLOB);")
 	if err != nil {
-		return fmt.Errorf("Exec(CREATE TABLE ...) failed: %w", err)
+		return fmt.Errorf("Write(CREATE TABLE ...) failed: %w", err)
 	}
 
 	err = _packageAppImport(db, folderPath, "")
@@ -307,6 +308,53 @@ func (root *Root) PackageAllApps() {
 
 func (root *Root) ExtractApp(name string) error {
 
-	//...
+	//cut ext
+	name, _ = strings.CutSuffix(name, ".sqlite")
+	if len(name) == 0 {
+		return fmt.Errorf("name is empty")
+	}
+
+	folderPath := root.folderApps + "/" + name
+	packagePath := root.folderApps + "/" + name + ".sqlite"
+
+	//open db
+	db, err := NewDb(root, packagePath)
+	if err != nil {
+		return fmt.Errorf("NewDb(%s) failed: %w", packagePath, err)
+	}
+	defer db.Destroy()
+
+	q, err := db.db.Query("SELECT path, file FROM __skyalt__")
+	if err != nil {
+		return fmt.Errorf("Query(SELECT ...) failed: %w", err)
+	}
+	for q.Next() {
+		var path string
+		var data []byte
+		err = q.Scan(&path, &data)
+		if err != nil {
+			return fmt.Errorf("Scan() failed: %w", err)
+		}
+
+		path = folderPath + "/" + path
+
+		//create folders
+		dir := filepath.Dir(path)
+		err = os.MkdirAll(dir, 0700)
+		if err != nil {
+			return fmt.Errorf("MkdirAll(%s) failed: %w", dir, err)
+		}
+
+		//write file
+		err = os.WriteFile(path, data, 0644)
+		if err != nil {
+			return fmt.Errorf("WriteFile(%s) failed: %w", path, err)
+		}
+	}
+	err = q.Close()
+	if err != nil {
+		return fmt.Errorf("Close() failed: %w", err)
+	}
+
 	return nil
 }
