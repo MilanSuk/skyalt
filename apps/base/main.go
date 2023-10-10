@@ -350,7 +350,7 @@ func DevPackageRepo() {
 
 	//select files: Where to save checkboxes(store.appsList), send fileList back into SkyAlt ...
 
-	if SA_Button(trns.EXTRACT_REPO).Enable(len(ids) > 0).Show(0, 3, 1, 1).click {
+	if SA_Button(trns.PACKAGE_REPO).Enable(len(ids) > 0).Show(0, 3, 1, 1).click {
 		SA_InfoSet("package_repo", store.appList[ids[store.app_id]].Name)
 		SA_DialogClose()
 	}
@@ -626,6 +626,14 @@ func UpdateAppList() {
 	store.appList = nil
 	appsJs := SA_Info("apps")
 	json.Unmarshal([]byte(appsJs), &store.appList)
+
+	//remove "base"
+	for i, app := range store.appList {
+		if app.Name == "base" {
+			store.appList = append(store.appList[:i], store.appList[i+1:]...) //remove
+			break
+		}
+	}
 }
 
 func AppList(file *File, file_i int) {
