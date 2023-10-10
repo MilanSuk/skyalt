@@ -282,20 +282,23 @@ func (app *App) info_setString(key string, value string) int64 {
 		if d > 0 && d < len(value)-1 {
 			name := value[:d]
 			lang := value[d+1:]
-			if app.db.root.CreateApp(name, lang) {
+			err := app.db.root.CreateApp(name, lang)
+			if !app.AddLogErr(err) {
 				return 1
 			}
 		}
 		return -1
 
 	case "package_repo":
-		if app.db.root.PackageApp(value) {
+		err := app.db.root.PackageApp(value)
+		if !app.AddLogErr(err) {
 			return 1
 		}
 		return -1
 
 	case "extract_repo":
-		if app.db.root.ExtractApp(value) {
+		err := app.db.root.ExtractApp(value)
+		if !app.AddLogErr(err) {
 			return 1
 		}
 		return -1
