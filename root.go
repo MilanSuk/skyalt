@@ -488,7 +488,7 @@ func (root *Root) updateDbsList() {
 }
 
 func (root *Root) GetAppsList() []OsFileList {
-	list := OsFileListBuild(root.folderApps, root.folderApps, true, "base")
+	list := OsFileListBuild(root.folderApps, root.folderApps, true)
 	return list.Subs
 }
 

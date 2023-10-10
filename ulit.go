@@ -638,7 +638,7 @@ type OsFileList struct {
 	Subs  []OsFileList
 }
 
-func OsFileListBuild(path string, name string, isDir bool, ignore string) OsFileList {
+func OsFileListBuild(path string, name string, isDir bool) OsFileList {
 	var fl OsFileList
 	fl.Name = name
 	fl.IsDir = isDir
@@ -647,9 +647,7 @@ func OsFileListBuild(path string, name string, isDir bool, ignore string) OsFile
 		dir, err := os.ReadDir(path)
 		if err == nil {
 			for _, file := range dir {
-				if file.Name() != ignore {
-					fl.Subs = append(fl.Subs, OsFileListBuild(path+"/"+file.Name(), file.Name(), file.IsDir(), ""))
-				}
+				fl.Subs = append(fl.Subs, OsFileListBuild(path+"/"+file.Name(), file.Name(), file.IsDir()))
 			}
 		}
 	}
