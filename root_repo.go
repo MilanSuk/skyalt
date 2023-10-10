@@ -22,13 +22,12 @@ import (
 	"strings"
 )
 
-func (root *Root) _createGoApp(appFolder string) bool {
+func (root *Root) _createGoApp(appFolder string) error {
 
 	vsCodeFolder := appFolder + "/.vscode"
 	err := os.Mkdir(vsCodeFolder, 0700)
 	if err != nil {
-		fmt.Printf("Mkdir(%s) failed: %v", vsCodeFolder, err)
-		return false
+		return fmt.Errorf("Mkdir(%s) failed: %w", vsCodeFolder, err)
 	}
 
 	{
@@ -51,8 +50,7 @@ func (root *Root) _createGoApp(appFolder string) bool {
 		path := vsCodeFolder + "/launch.json"
 		err = os.WriteFile(path, []byte(str), 0644)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", path, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", path, err)
 		}
 	}
 	{
@@ -76,8 +74,7 @@ func (root *Root) _createGoApp(appFolder string) bool {
 		path := vsCodeFolder + "/tasks.json"
 		err = os.WriteFile(path, []byte(str), 0644)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", path, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", path, err)
 		}
 	}
 
@@ -87,8 +84,7 @@ go build -tags=debug`
 		path := appFolder + "/build_debug"
 		err = os.WriteFile(path, []byte(str), 0644)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", path, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", path, err)
 		}
 	}
 
@@ -98,8 +94,7 @@ tinygo build -o main.wasm -target=wasi`
 		path := appFolder + "/build_wasm"
 		err = os.WriteFile(path, []byte(str), 0644)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", path, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", path, err)
 		}
 	}
 
@@ -112,8 +107,7 @@ tinygo build -o main.wasm -target=wasi`
 		path := appFolder + "/translations.json"
 		err = os.WriteFile(path, []byte(str), 0644)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", path, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", path, err)
 		}
 	}
 
@@ -161,8 +155,7 @@ func Save() []byte {
 		path := appFolder + "/main.go"
 		err = os.WriteFile(path, []byte(str), 0644)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", path, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", path, err)
 		}
 	}
 
@@ -171,70 +164,149 @@ func Save() []byte {
 		src := "sdk/sdk.go"
 		str, err := os.ReadFile(src)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", src, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", src, err)
 		}
 		path := appFolder + "/sdk.go"
 		err = os.WriteFile(path, []byte(str), 0644)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", path, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", path, err)
 		}
 
 		src = "sdk/sdk_debug.go"
 		str, err = os.ReadFile(src)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", src, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", src, err)
 		}
 		path = appFolder + "/sdk_debug.go"
 		err = os.WriteFile(path, []byte(str), 0644)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", path, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", path, err)
 		}
 
 		src = "sdk/sdk_wasi.go"
 		str, err = os.ReadFile(src)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", src, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", src, err)
 		}
 		path = appFolder + "/sdk_wasi.go"
 		err = os.WriteFile(path, []byte(str), 0644)
 		if err != nil {
-			fmt.Printf("Mkdir(%s) failed: %v", path, err)
-			return false
+			return fmt.Errorf("Mkdir(%s) failed: %w", path, err)
 		}
 	}
 
-	return true
+	return nil
 }
 
-func (root *Root) CreateApp(name string, lang string) bool {
+func (root *Root) CreateApp(name string, lang string) error {
+
+	if len(name) == 0 {
+		return fmt.Errorf("name is empty")
+	}
 
 	appFolder := root.folderApps + "/" + name
 	err := os.Mkdir(appFolder, 0700)
 	if err != nil {
-		fmt.Printf("Mkdir(%s) failed: %v", appFolder, err)
-		return false
+		return fmt.Errorf("Mkdir(%s) failed: %w", appFolder, err)
 	}
 
 	if strings.ToLower(lang) == "go" {
 		return root._createGoApp(appFolder)
 	}
 
-	return false
+	return fmt.Errorf("unknown language(%s)", lang)
 }
 
-func (root *Root) PackageApp(name string) bool {
+func _packageAppImport(db *Db, path string, sortPath string) error {
 
-	//...
-	return true
+	dir, err := os.ReadDir(path)
+	if err == nil {
+		for _, file := range dir {
+
+			fpath := path + "/" + file.Name()
+			fspath := sortPath + OsTrnString(len(sortPath) > 0, "/", "") + file.Name()
+
+			if file.IsDir() {
+				err = _packageAppImport(db, path+"/"+file.Name(), fspath)
+				if err != nil {
+					return err
+				}
+			} else {
+				data, err := os.ReadFile(fpath)
+				if err != nil {
+					return fmt.Errorf("ReadFile(%s) failed: %w", path, err)
+				}
+
+				_, err = db.Write("INSERT INTO __skyalt__(path, file) VALUES(?,?);", fspath, data)
+				if err != nil {
+					return fmt.Errorf("Write(INSERT INTO ...) failed: %w", err)
+				}
+			}
+		}
+	}
+	return nil
 }
 
-func (root *Root) ExtractApp(name string) bool {
+func (root *Root) PackageApp(name string) error {
+
+	//cut ext
+	name, _ = strings.CutSuffix(name, ".sqlite")
+	if len(name) == 0 {
+		return fmt.Errorf("name is empty")
+	}
+
+	folderPath := root.folderApps + "/" + name
+	packagePath := root.folderApps + "/" + name + ".sqlite"
+
+	//check for 'main.wasm'
+	if !OsFileExists(folderPath + "/main.wasm") {
+		return fmt.Errorf("'main.wasm' is not in app folder(%s)", folderPath)
+	}
+
+	//remove old
+	if OsFileExists(packagePath) {
+		err := OsFileRemove(packagePath)
+		if err != nil {
+			return fmt.Errorf("OsFileRemove(%s) failed: %w", packagePath, err)
+		}
+	}
+
+	//open db
+	db, err := NewDb(root, packagePath)
+	if err != nil {
+		return fmt.Errorf("NewDb(%s) failed: %w", packagePath, err)
+	}
+	defer db.Destroy()
+
+	_, err = db.Write("CREATE TABLE IF NOT EXISTS __skyalt__(path TEXT NOT NULL, file BLOB);")
+	if err != nil {
+		return fmt.Errorf("Exec(CREATE TABLE ...) failed: %w", err)
+	}
+
+	err = _packageAppImport(db, folderPath, "")
+	if err != nil {
+		return fmt.Errorf("_packageAppImport() failed: %w", err)
+	}
+
+	err = db.Commit()
+	if err != nil {
+		return fmt.Errorf("Commit() failed: %w", err)
+	}
+	return nil
+}
+
+func (root *Root) PackageAllApps() {
+	apps := root.GetAppsList()
+	for _, app := range apps {
+		err := root.PackageApp(app.Name)
+		if err != nil {
+			fmt.Printf("PackageApp(%s) failed: %v\n", app.Name, err)
+		}
+	}
+}
+
+func (root *Root) ExtractApp(name string) error {
 
 	//...
-	return true
+	return nil
 }
