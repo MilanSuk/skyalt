@@ -180,9 +180,9 @@ func NewDb(root *Root, path string) (*Db, error) {
 	db.path = path
 
 	var err error
-	db.db, err = sql.Open("sqlite3", "file:"+db.GetPath()+"?&_journal_mode=WAL") //sqlite3 -> sqlite3_skyalt
+	db.db, err = sql.Open("sqlite3", "file:"+path+"?&_journal_mode=WAL") //sqlite3 -> sqlite3_skyalt
 	if err != nil {
-		return nil, fmt.Errorf("Open(%s) failed: %w", db.GetPath(), err)
+		return nil, fmt.Errorf("Open(%s) failed: %w", path, err)
 	}
 
 	//db.Exec("ATTACH 'path/to/file.db' AS attached") ...
@@ -207,14 +207,10 @@ func (db *Db) Begin() (*sql.Tx, error) {
 		var err error
 		db.tx, err = db.db.Begin()
 		if err != nil {
-			return nil, fmt.Errorf("Begin(%s) failed: %w", db.GetPath(), err)
+			return nil, fmt.Errorf("Begin(%s) failed: %w", db.path, err)
 		}
 	}
 	return db.tx, nil
-}
-
-func (db *Db) GetPath() string {
-	return db.path
 }
 
 func (db *Db) Commit() error {
@@ -267,7 +263,7 @@ func (db *Db) AddCache(query string) (*DbCache, error) {
 	//add
 	cache, err := NewDbCache(query, db.db)
 	if err != nil {
-		return nil, fmt.Errorf("NewDbCache(%s) failed: %w", db.GetPath(), err)
+		return nil, fmt.Errorf("NewDbCache(%s) failed: %w", db.path, err)
 	}
 
 	db.cache = append(db.cache, cache)

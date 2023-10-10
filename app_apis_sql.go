@@ -107,12 +107,12 @@ func (app *App) sql_write(dbUrl string, query string) (int64, error) {
 
 	res, err := db.Write(query)
 	if err != nil {
-		return -1, fmt.Errorf("Exec(%s) for query(%s) failed: %w", db.GetPath(), query, err)
+		return -1, fmt.Errorf("Exec(%s) for query(%s) failed: %w", db.path, query, err)
 	}
 
 	aff, err := res.RowsAffected()
 	if err != nil {
-		return -1, fmt.Errorf("RowsAffected(%s) failed: %w", db.GetPath(), err)
+		return -1, fmt.Errorf("RowsAffected(%s) failed: %w", db.path, err)
 	}
 
 	if aff <= 0 {
