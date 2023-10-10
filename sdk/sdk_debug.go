@@ -131,8 +131,8 @@ func ReadFloat64() float64 {
 }
 
 func WriteMem(mem SAMem) {
-	WriteUint64(uint64(len(mem.v))) //size
-	_, err := conn.Write(mem.v)     //data
+	WriteUint64(uint64(len(mem))) //size
+	_, err := conn.Write(mem)     //data
 	if err != nil {
 		log.Panic(err)
 	}
@@ -164,10 +164,10 @@ func WriteBytes(data []byte) {
 
 func ReadMem(mem SAMem) {
 	sz := int(ReadUint64())
-	if sz != len(mem.v) {
+	if sz != len(mem) {
 		log.Panic("Wrong size")
 	}
-	_connectionRead(mem.v)
+	_connectionRead(mem)
 }
 
 //-------
@@ -791,17 +791,15 @@ func _SA_DebugLine() {
 	return unsafe.String((*byte)(unsafe.Pointer(uintptr(ptr))), size)
 }*/
 
-type SAMem struct {
-	v []byte
-}
+type SAMem []byte
 
 func _SA_stringToPtr(s string) SAMem {
-	return SAMem{v: []byte(s)}
+	return []byte(s)
 }
 
 func _SA_bytesToPtr(s []byte) SAMem {
-	return SAMem{v: s}
+	return s
 }
 func _SA_ptrToBytes(mem SAMem) []byte {
-	return mem.v
+	return mem
 }
