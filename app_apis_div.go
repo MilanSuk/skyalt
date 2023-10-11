@@ -237,7 +237,7 @@ func (app *App) checkGridLock() bool {
 	st := root.levels.GetStack()
 
 	if st.stack.gridLock && (app.debug == nil || app.debug.conn != nil) {
-		app.AddLogErr(errors.New("Trying to changed col/row dimension after you already draw div into"))
+		app.AddLogErr(errors.New("trying to changed col/row dimension after you already draw div into"))
 		return false
 	}
 	return true
