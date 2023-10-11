@@ -652,6 +652,9 @@ func AppList(file *File, file_i int) {
 	appsInUse := GetFileApps(file)
 
 	for _, app := range store.appList {
+		if !app.IsDir {
+			continue //ignore files <app>.sqlite
+		}
 
 		if len(store.SearchApp) > 0 {
 			if !strings.Contains(strings.ToLower(app.Name), strings.ToLower(store.SearchApp)) {
