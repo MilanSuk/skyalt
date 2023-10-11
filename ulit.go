@@ -45,7 +45,7 @@ func OsTime() float64 {
 
 func OsTimeZone() int {
 	_, zn := time.Now().Zone()
-	return zn / (24 * 60 * 60)
+	return zn / 3600
 }
 
 // Ternary operator

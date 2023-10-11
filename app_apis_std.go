@@ -49,17 +49,15 @@ func (app *App) info_float(key string) float64 {
 	case "date":
 		return float64(app.db.root.ui.io.ini.Date)
 
-	case "time_zone":
-		_, o := time.Now().Zone()
-		return float64(o) / 3600
+	case "timezone":
+		return float64(app.db.root.ui.io.ini.TimeZone)
 
 	case "time_utc":
 		return float64(time.Now().UnixMicro()) / 1000000 //seconds
 
 	case "time":
 		tm := time.Now()
-		_, zone_sec := tm.Zone()
-		return (float64(tm.UnixMicro()) / 1000000) + float64(zone_sec) //seconds
+		return (float64(tm.UnixMicro()) / 1000000) + float64(app.db.root.ui.io.ini.TimeZone*3600) //seconds
 
 	case "dpi":
 		return float64(app.db.root.ui.io.ini.Dpi)
@@ -91,6 +89,10 @@ func (app *App) info_setFloat(key string, v float64) int64 {
 		return 1
 	case "date":
 		app.db.root.ui.io.ini.Date = int(v)
+		return 1
+
+	case "timezone":
+		app.db.root.ui.io.ini.TimeZone = int(v)
 		return 1
 
 	case "dpi":

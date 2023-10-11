@@ -32,6 +32,9 @@
 "WARRANTY.en": "Copyright © 2023 - SkyAlt team", 
 "WARRANTY.cs": "Copyright © 2023 - SkyAlt team",
 
+"TIME_ZONE.en": "Time zone", 
+"TIME_ZONE.cs": "Časové pásmo",
+
 "DATE_FORMAT.en": "Date format", 
 "DATE_FORMAT.cs": "Formát datumu",
 "DATE_FORMAT_EU.en": "EU(31/5/2019)", 

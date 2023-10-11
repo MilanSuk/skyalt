@@ -130,8 +130,11 @@ type Cursor struct {
 type Ini struct {
 	Dpi         int
 	Dpi_default int
-	Date        int
-	Theme       int
+
+	Date  int
+	Theme int
+
+	TimeZone int
 
 	Fullscreen bool
 	Stats      bool
@@ -229,6 +232,8 @@ func _IO_getDPI() (int, error) {
 
 func (io *IO) _IO_setDefault() error {
 
+	isDefault := (io.ini.Dpi_default == 0)
+
 	io.SetDeviceDPI()
 
 	//dpi
@@ -240,8 +245,13 @@ func (io *IO) _IO_setDefault() error {
 		io.ini.Dpi = dpi
 	}
 
+	//timezone
+	if isDefault {
+		io.ini.TimeZone = OsTimeZone()
+	}
+
 	//date
-	if io.ini.Date == 0 {
+	if isDefault {
 		io.ini.Date = OsTrn((OsTimeZone() <= -3 && OsTimeZone() >= -10), 1, 0)
 	}
 

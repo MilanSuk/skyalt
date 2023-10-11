@@ -123,6 +123,8 @@ type Translations struct {
 	COPYRIGHT string
 	WARRANTY  string
 
+	TIME_ZONE string
+
 	DATE_FORMAT      string
 	DATE_FORMAT_EU   string
 	DATE_FORMAT_US   string
@@ -262,17 +264,23 @@ func Settings() {
 		y++ //space
 	}
 
+	timezone := int(SA_InfoFloat("timezone"))
+	if SA_Editbox(&timezone).ShowDescription(1, y, 1, 2, trns.TIME_ZONE, 4, nil).finished {
+		SA_InfoSetFloat("timezone", float64(timezone))
+	}
+	y += 2
+
 	date := int(SA_InfoFloat("date"))
-	if SA_Combo(&date, trns.DATE_FORMAT_EU+"|"+trns.DATE_FORMAT_US+"|"+trns.DATE_FORMAT_ISO+"|"+trns.DATE_FORMAT_TEXT).Search(true).ShowDescription(1, y, 1, 2, trns.DATE_FORMAT, 0, nil) {
+	if SA_Combo(&date, trns.DATE_FORMAT_EU+"|"+trns.DATE_FORMAT_US+"|"+trns.DATE_FORMAT_ISO+"|"+trns.DATE_FORMAT_TEXT).Search(true).ShowDescription(1, y, 1, 2, trns.DATE_FORMAT, 4, nil) {
 		SA_InfoSetFloat("date", float64(date))
 	}
-	y += 3
+	y += 2
 
 	theme := int(SA_InfoFloat("theme"))
-	if SA_Combo(&theme, trns.THEME_OCEAN+"|"+trns.THEME_RED+"|"+trns.THEME_BLUE+"|"+trns.THEME_GREEN+"|"+trns.THEME_GREY).Search(true).ShowDescription(1, y, 1, 2, trns.THEME, 0, nil) {
+	if SA_Combo(&theme, trns.THEME_OCEAN+"|"+trns.THEME_RED+"|"+trns.THEME_BLUE+"|"+trns.THEME_GREEN+"|"+trns.THEME_GREY).Search(true).ShowDescription(1, y, 1, 2, trns.THEME, 4, nil) {
 		SA_InfoSetFloat("theme", float64(theme))
 	}
-	y += 3
+	y += 2
 
 	dpi := strconv.Itoa(int(SA_InfoFloat("dpi")))
 	if SA_Editbox(&dpi).ShowDescription(1, y, 1, 2, trns.DPI, 4, nil).finished {
