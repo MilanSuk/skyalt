@@ -2,7 +2,7 @@
 <img src="https://raw.githubusercontent.com/MilanSuk/skyalt/main/screenshots/logo.png" />
 </p>
 
-<br/><br/>
+<br/>
 <p align="center">
 <img src="https://raw.githubusercontent.com/MilanSuk/skyalt/main/screenshots/main.gif" style="border:1px solid LightGrey" />
 </p>
@@ -59,10 +59,10 @@ There are few implementations of local-first platforms and most of them use Webk
 
 
 ## App examples
-- [7Gui](https://github.com/milansuk/skyalt/blob/main/apps/7gui/main/main.go)
-- [Calendar](https://github.com/milansuk/skyalt/blob/main/apps/calendar/main/main.go)
-- [Map](https://github.com/milansuk/skyalt/blob/main/apps/map/main/main.go)
-- [Database](https://github.com/milansuk/skyalt/blob/main/apps/db/main/main.go)
+- [7Gui](https://github.com/milansuk/skyalt/blob/main/apps/7gui/main.go)
+- [Calendar](https://github.com/milansuk/skyalt/blob/main/apps/calendar/main.go)
+- [Map](https://github.com/milansuk/skyalt/blob/main/apps/map/main/go)
+- [Database](https://github.com/milansuk/skyalt/blob/main/apps/db/main.go)
 
 
 
@@ -77,14 +77,16 @@ There are few implementations of local-first platforms and most of them use Webk
 
 
 ## Versions
+- v0.0(Aug 5, 2023): 1st line written.
 - v0.1(Sep 11, 2023): Basic demo. Calendar, Map, 7Gui apps.
-- v0.2(Sep 25, 2023): Styles(for buttons, texts, etc.). Better debugging. Performance improvements. Bugs fixes.
+- v0.2(Sep 25, 2023): Styles(for buttons, texts, etc.). Better debugging. Performance improvements. Bugs fixed.
 - v0.3(in progress): Frictionless developer experience.
 
 Downloads: [GitHub's Releases](https://github.com/MilanSuk/skyalt/releases)
 
 
-## Compile & Run
+
+## Compile SkyAlt
 SkyAlt is written in Go language. You can install golang from here: https://go.dev/doc/install
 
 Dependencies(sqlite, wazero, websocket, sdl):
@@ -106,9 +108,9 @@ go build
 
 
 ## Repository
-- /apps - application's repos
+- /apps - application's repos & packages
 - /databases - user's databases
-- /resources - default fonts, images for GUI
+- /resources - default fonts, images
 
 
 
