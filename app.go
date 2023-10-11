@@ -68,6 +68,11 @@ func NewApp(db *Db, app_rowid int) (*App, error) {
 
 	}
 
+	//extract
+	if !OsFolderExists(app.getPath()) {
+		app.db.root.ExtractApp(app.name)
+	}
+
 	//load wasm
 	var err error
 	app.wasm, err = NewAppWasm(&app)
