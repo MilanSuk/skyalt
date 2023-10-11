@@ -535,6 +535,9 @@ func OsFolderExists(fileName string) bool {
 	return info.IsDir()
 }
 
+func OsFolderRemove(path string) error {
+	return os.RemoveAll(path)
+}
 func OsFileRemove(path string) error {
 	return os.Remove(path)
 }
