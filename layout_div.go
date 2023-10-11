@@ -183,7 +183,7 @@ func (div *LayoutDiv) GetGridMax(minSize OsV2) OsV2 {
 		mx = mx.Max(it.grid.End())
 	}
 
-	mx = mx.Max(OsV2{div.data.cols.NumIns(), div.data.rows.NumIns()})
+	mx = mx.Max(OsV2{div.data.cols.NumInputs(), div.data.rows.NumInputs()})
 
 	return mx
 }
@@ -351,7 +351,7 @@ func (div *LayoutDiv) RenderResizeSpliter(root *Root, buff *PaintBuff) {
 				col = div.touchResizeIndex
 				vHighlight = true
 
-				if div.data.cols.IsLastResizeValid() && int(col) == div.data.cols.NumIns()-2 {
+				if div.data.cols.IsLastResizeValid() && int(col) == div.data.cols.NumInputs()-2 {
 					r = float64(div.canvas.Size.X - tpos.X) // last
 				} else {
 					r = float64(tpos.X - div.data.cols.GetResizerPos(int(col)-1, cell))
@@ -362,7 +362,7 @@ func (div *LayoutDiv) RenderResizeSpliter(root *Root, buff *PaintBuff) {
 				row = div.touchResizeIndex
 				hHighlight = true
 
-				if div.data.rows.IsLastResizeValid() && int(row) == div.data.rows.NumIns()-2 {
+				if div.data.rows.IsLastResizeValid() && int(row) == div.data.rows.NumInputs()-2 {
 					r = float64(div.canvas.Size.Y - tpos.Y) // last
 				} else {
 					r = float64(tpos.Y - (div.data.rows.GetResizerPos(int(row)-1, cell)))
@@ -380,7 +380,7 @@ func (div *LayoutDiv) RenderResizeSpliter(root *Root, buff *PaintBuff) {
 
 		defaultCd := OsCd_Aprox(OsCd_white(), OsCd_black(), 0.3)
 
-		for i := 0; i < div.data.cols.NumIns(); i++ {
+		for i := 0; i < div.data.cols.NumInputs(); i++ {
 			if div.data.cols.GetResizeIndex(i) >= 0 {
 				if vHighlight && i == int(col) {
 					div.RenderResizeDraw(div.canvas, i, activeCd, true, buff)
@@ -390,7 +390,7 @@ func (div *LayoutDiv) RenderResizeSpliter(root *Root, buff *PaintBuff) {
 			}
 		}
 
-		for i := 0; i < div.data.rows.NumIns(); i++ {
+		for i := 0; i < div.data.rows.NumInputs(); i++ {
 			if div.data.rows.GetResizeIndex(i) >= 0 {
 				if hHighlight && i == int(row) {
 					div.RenderResizeDraw(div.canvas, i, activeCd, false, buff)
@@ -435,7 +435,7 @@ func (div *LayoutDiv) SetResizer(i int, value float64, isCol bool, ui *Ui) {
 	}
 
 	if ind >= 0 {
-		arr.items[ind].resize.value = float32(value)
+		arr.inputs[ind].resize.value = float32(value)
 	}
 }
 

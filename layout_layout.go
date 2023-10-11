@@ -119,10 +119,10 @@ func (lay *Layout) Reset() {
 
 func (lay *Layout) UpdateArray(cell int, window OsV2, endGrid OsV2) {
 
-	if endGrid.X > lay.cols.NumIns() {
+	if endGrid.X > lay.cols.NumInputs() {
 		lay.cols.Resize(int(endGrid.X))
 	}
-	if endGrid.Y > lay.rows.NumIns() {
+	if endGrid.Y > lay.rows.NumInputs() {
 		lay.rows.Resize(int(endGrid.Y))
 	}
 	lay.cols.Update(cell, window.X)
