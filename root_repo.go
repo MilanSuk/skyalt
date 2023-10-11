@@ -317,6 +317,14 @@ func (root *Root) ExtractApp(name string) error {
 	folderPath := root.folderApps + "/" + name
 	packagePath := root.folderApps + "/" + name + ".sqlite"
 
+	//remove old
+	if OsFileExists(folderPath) {
+		err := OsFolderRemove(folderPath)
+		if err != nil {
+			return fmt.Errorf("OsFolderRemove(%s) failed: %w", folderPath, err)
+		}
+	}
+
 	//open db
 	db, err := NewDb(root, packagePath)
 	if err != nil {
