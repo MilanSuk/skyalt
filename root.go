@@ -137,6 +137,7 @@ func NewRoot(debugPORT int, folderApps string, folderDatabases string, ctx conte
 		return nil, fmt.Errorf("ReloadApps() failed: %w", err)
 	}
 
+	//root.PackageAllApps()
 	return &root, nil
 }
 
@@ -390,6 +391,8 @@ func (root *Root) Tick() (bool, error) {
 		root.last_ticks = time.Now().UnixMilli()
 
 		root.updateDbsList()
+
+		root.ExtractUnpackedApps()
 
 		root.fonts.Maintenance()
 	}

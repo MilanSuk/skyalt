@@ -299,9 +299,11 @@ func (root *Root) PackageApp(name string) error {
 func (root *Root) PackageAllApps() {
 	apps := root.GetAppsList()
 	for _, app := range apps {
-		err := root.PackageApp(app.Name)
-		if err != nil {
-			fmt.Printf("PackageApp(%s) failed: %v\n", app.Name, err)
+		if app.IsDir {
+			err := root.PackageApp(app.Name)
+			if err != nil {
+				fmt.Printf("PackageApp(%s) failed: %v\n", app.Name, err)
+			}
 		}
 	}
 }
@@ -365,4 +367,21 @@ func (root *Root) ExtractApp(name string) error {
 	}
 
 	return nil
+}
+
+func (root *Root) ExtractUnpackedApps() {
+	apps := root.GetAppsList()
+	for _, app := range apps {
+		if !app.IsDir {
+			name, _ := strings.CutSuffix(app.Name, ".sqlite") //cut ext
+			folderPath := root.folderApps + "/" + name
+
+			if !OsFolderExists(folderPath) {
+				err := root.ExtractApp(app.Name)
+				if err != nil {
+					fmt.Printf("PackageApp(%s) failed: %v\n", app.Name, err)
+				}
+			}
+		}
+	}
 }
