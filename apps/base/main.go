@@ -349,11 +349,10 @@ func DevPackageRepo() {
 		if app.IsDir {
 			ids = append(ids, i)
 			list += app.Name
-			if i+1 < len(store.appList) {
-				list += "|"
-			}
+			list += "|"
 		}
 	}
+	list, _ = strings.CutSuffix(list, "|")
 	SA_Combo(&store.app_id, list).ShowDescription(0, 1, 1, 1, trns.REPO, 3, nil)
 
 	//select files: Where to save checkboxes(store.appsList), send fileList back into SkyAlt ...
@@ -373,11 +372,10 @@ func DevExtractRepo() {
 		if !app.IsDir {
 			ids = append(ids, i)
 			list += app.Name
-			if i+1 < len(store.appList) {
-				list += "|"
-			}
+			list += "|"
 		}
 	}
+	list, _ = strings.CutSuffix(list, "|")
 	SA_Combo(&store.app_id, list).ShowDescription(0, 1, 1, 1, trns.PACKAGE, 3, nil)
 
 	if SA_Button(trns.EXTRACT_REPO).Enable(len(ids) > 0).Show(0, 3, 1, 1).click {
