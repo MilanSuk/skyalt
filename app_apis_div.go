@@ -190,7 +190,6 @@ func (app *App) div_start(x, y, w, h uint64, name string) int64 {
 	st := root.levels.GetStack()
 
 	if !st.stack.gridLock {
-
 		// cols/rows resizer
 		st.stack.RenderResizeSpliter(root, st.buff)
 		st.stack.UpdateGrid(root.ui)
@@ -232,7 +231,6 @@ func (app *App) _sa_div_end() {
 }
 
 func (app *App) checkGridLock() bool {
-
 	root := app.db.root
 	st := root.levels.GetStack()
 
