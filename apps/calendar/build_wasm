@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
 tinygo build -o main.wasm -target=wasi
+#GOOS=wasip1 GOARCH=wasm go build -o main.wasm -tags=wasi
