@@ -61,7 +61,7 @@ There are few implementations of local-first platforms and most of them use Webk
 ## App examples
 - [7Gui](https://github.com/milansuk/skyalt/blob/main/apps/7gui/main.go)
 - [Calendar](https://github.com/milansuk/skyalt/blob/main/apps/calendar/main.go)
-- [Map](https://github.com/milansuk/skyalt/blob/main/apps/map/main/go)
+- [Map](https://github.com/milansuk/skyalt/blob/main/apps/map/main.go)
 - [Database](https://github.com/milansuk/skyalt/blob/main/apps/db/main.go)
 
 
@@ -72,7 +72,7 @@ There are few implementations of local-first platforms and most of them use Webk
 - Linux / Windows / Mac(untested)
 - ~15K LOC
 
-*SkyAlt is ~2 months old. Right now, highest priority is providing best developer experience through high range of use-cases so we iterate and change apis() a lot => apps need to be edited and recompiled to wasm!*
+*SkyAlt is ~3 months old. Right now, highest priority is providing best developer experience through high range of use-cases so we iterate and change apis() a lot => apps need to be edited and recompiled to wasm!*
 
 
 
@@ -80,7 +80,6 @@ There are few implementations of local-first platforms and most of them use Webk
 - v0.0(Aug 5, 2023): 1st line written.
 - v0.1(Sep 11, 2023): Basic demo. Calendar, Map, 7Gui apps.
 - v0.2(Sep 25, 2023): Styles(for buttons, texts, etc.). Better debugging. Performance improvements. Bugs fixed.
-- v0.3(in progress): Frictionless developer experience.
 
 Downloads: [GitHub's Releases](https://github.com/MilanSuk/skyalt/releases)
 
