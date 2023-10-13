@@ -113,7 +113,7 @@ func (app *App) paint_file(x, y, w, h float64, file string, tooltip string, marg
 		return -1
 	}
 
-	st.buff.AddImage(path, coord, cd, int(alignV), int(alignH), fill != 0)
+	st.buff.AddImage(path, coord, cd, int(alignV), int(alignH), fill != 0, app)
 
 	if len(tooltip) > 0 {
 		app.paint_tooltip(0, 0, 1, 1, tooltip)
