@@ -148,7 +148,11 @@ type Translations struct {
 	REMOVE      string
 	RENAME      string
 	DUPLICATE   string
+	VACUUM      string
 	CREATE_FILE string
+	CHANGE_APP  string
+
+	SETUP_DB string
 
 	ALREADY_EXISTS string
 	EMPTY_FIELD    string
@@ -159,14 +163,16 @@ type Translations struct {
 	ADD_APP   string
 	CREATE_DB string
 
-	DEVELOPERS   string
-	CREATE_REPO  string
-	PACKAGE_REPO string
-	EXTRACT_REPO string
+	DEVELOPERS    string
+	CREATE_APP    string
+	PACKAGE_APP   string
+	REINSTALL_APP string
+	VACUUM_DBS    string
 
 	REPO    string
 	PACKAGE string
 
+	SIZE string
 	LOGS string
 }
 
@@ -200,7 +206,7 @@ func Settings() {
 		SA_TextCenter(trns.LANGUAGES).Show(1, y, 1, 1)
 		y++
 
-		inf_langs := SA_Info("languages")
+		inf_langs := SA_InfoGet("languages", "", "")
 		var langs []string
 		if len(inf_langs) > 0 {
 			langs = strings.Split(inf_langs, "/")
@@ -243,7 +249,7 @@ func Settings() {
 					for _, lng := range langs {
 						ll += lng + "/"
 					}
-					SA_InfoSet("languages", strings.TrimSuffix(ll, "/"))
+					SA_InfoSet("languages", strings.TrimSuffix(ll, "/"), "", "")
 
 					SA_DivEnd() //!
 					break
@@ -256,7 +262,7 @@ func Settings() {
 
 		SA_DivStart(1, y, 1, 1)
 		if SA_ButtonLight("+").Show(0, 0, 1, 1).click {
-			SA_InfoSet("languages", SA_Info("languages")+"/")
+			SA_InfoSet("languages", SA_InfoGet("languages", "", "")+"/", "", "")
 		}
 		y++
 		SA_DivEnd()
@@ -264,36 +270,36 @@ func Settings() {
 		y++ //space
 	}
 
-	timezone := int(SA_InfoFloat("timezone"))
+	timezone := int(SA_InfoGetFloat("timezone", "", ""))
 	if SA_Editbox(&timezone).ShowDescription(1, y, 1, 2, trns.TIME_ZONE, 4, nil).finished {
-		SA_InfoSetFloat("timezone", float64(timezone))
+		SA_InfoSet("timezone", strconv.Itoa(timezone), "", "")
 	}
 	y += 2
 
-	date := int(SA_InfoFloat("date"))
+	date := int(SA_InfoGetFloat("date", "", ""))
 	if SA_Combo(&date, trns.DATE_FORMAT_EU+"|"+trns.DATE_FORMAT_US+"|"+trns.DATE_FORMAT_ISO+"|"+trns.DATE_FORMAT_TEXT).Search(true).ShowDescription(1, y, 1, 2, trns.DATE_FORMAT, 4, nil) {
-		SA_InfoSetFloat("date", float64(date))
+		SA_InfoSet("date", strconv.Itoa(date), "", "")
 	}
 	y += 2
 
-	theme := int(SA_InfoFloat("theme"))
+	theme := int(SA_InfoGetFloat("theme", "", ""))
 	if SA_Combo(&theme, trns.THEME_OCEAN+"|"+trns.THEME_RED+"|"+trns.THEME_BLUE+"|"+trns.THEME_GREEN+"|"+trns.THEME_GREY).Search(true).ShowDescription(1, y, 1, 2, trns.THEME, 4, nil) {
-		SA_InfoSetFloat("theme", float64(theme))
+		SA_InfoSet("theme", strconv.Itoa(theme), "", "")
 	}
 	y += 2
 
-	dpi := strconv.Itoa(int(SA_InfoFloat("dpi")))
+	dpi := strconv.Itoa(int(SA_InfoGetFloat("dpi", "", "")))
 	if SA_Editbox(&dpi).ShowDescription(1, y, 1, 2, trns.DPI, 4, nil).finished {
 		dpiV, err := strconv.Atoi(dpi)
 		if err == nil {
-			SA_InfoSetFloat("dpi", float64(dpiV))
+			SA_InfoSet("dpi", strconv.Itoa(dpiV), "", "")
 		}
 	}
 	y += 2
 
 	{
 		stats := false
-		if SA_InfoFloat("stats") > 0 {
+		if SA_InfoGetFloat("stats", "", "") > 0 {
 			stats = true
 		}
 		if SA_Checkbox(&stats, trns.SHOW_STATS).Show(1, y, 1, 1) {
@@ -301,14 +307,14 @@ func Settings() {
 			if stats {
 				statsV = 1
 			}
-			SA_InfoSetFloat("stats", float64(statsV))
+			SA_InfoSet("stats", strconv.Itoa(statsV), "", "")
 		}
 	}
 	y++
 
 	{
 		grid := false
-		if SA_InfoFloat("grid") > 0 {
+		if SA_InfoGetFloat("grid", "", "") > 0 {
 			grid = true
 		}
 		if SA_Checkbox(&grid, trns.SHOW_GRID).Show(1, y, 1, 1) {
@@ -316,7 +322,7 @@ func Settings() {
 			if grid {
 				gridV = 1
 			}
-			SA_InfoSetFloat("grid", float64(gridV))
+			SA_InfoSet("grid", strconv.Itoa(gridV), "", "")
 		}
 	}
 	y++
@@ -325,7 +331,7 @@ func Settings() {
 
 func DevCreateRepo() {
 	SA_ColMax(0, 8)
-	SA_TextCenter(trns.CREATE_REPO).Show(0, 0, 1, 1)
+	SA_TextCenter(trns.CREATE_APP).Show(0, 0, 1, 1)
 
 	SA_Editbox(&store.repo_name).TempToValue(true).ShowDescription(0, 1, 1, 1, trns.NAME, 3, nil)
 
@@ -333,15 +339,15 @@ func DevCreateRepo() {
 
 	SA_Combo(&store.Repo_lang, "Go").ShowDescription(0, 2, 1, 1, trns.LANGUAGE, 3, nil) //"Go/C/Rust"
 
-	if SA_Button(trns.CREATE_REPO).Enable(len(store.repo_name) > 0).Show(0, 4, 1, 1).click {
-		SA_InfoSet("new_repo", store.repo_name+"/"+langs[store.Repo_lang])
+	if SA_Button(trns.CREATE_APP).Enable(len(store.repo_name) > 0).Show(0, 4, 1, 1).click {
+		SA_InfoSet("new_app", store.repo_name+"/"+langs[store.Repo_lang], "", "")
 		store.repo_name = "" //reset
 		SA_DialogClose()
 	}
 }
 func DevPackageRepo() {
 	SA_ColMax(0, 10)
-	SA_TextCenter(trns.PACKAGE_REPO).Show(0, 0, 1, 1)
+	SA_TextCenter(trns.PACKAGE_APP).Show(0, 0, 1, 1)
 
 	var ids []int
 	var list string
@@ -357,14 +363,14 @@ func DevPackageRepo() {
 
 	//select files: Where to save checkboxes(store.appsList), send fileList back into SkyAlt ...
 
-	if SA_Button(trns.PACKAGE_REPO).Enable(len(ids) > 0).Show(0, 3, 1, 1).click {
-		SA_InfoSet("package_repo", store.appList[ids[store.app_id]].Name)
+	if SA_Button(trns.PACKAGE_APP).Enable(len(ids) > 0).Show(0, 3, 1, 1).click {
+		SA_InfoSet("package_app", store.appList[ids[store.app_id]].Name, "", "")
 		SA_DialogClose()
 	}
 }
 func DevExtractRepo() {
 	SA_ColMax(0, 10)
-	SA_TextCenter(trns.EXTRACT_REPO).Show(0, 0, 1, 1)
+	SA_TextCenter(trns.REINSTALL_APP).Show(0, 0, 1, 1)
 
 	var ids []int
 	var list string
@@ -378,8 +384,8 @@ func DevExtractRepo() {
 	list, _ = strings.CutSuffix(list, "|")
 	SA_Combo(&store.app_id, list).ShowDescription(0, 1, 1, 1, trns.PACKAGE, 3, nil)
 
-	if SA_Button(trns.EXTRACT_REPO).Enable(len(ids) > 0).Show(0, 3, 1, 1).click {
-		SA_InfoSet("extract_repo", store.appList[ids[store.app_id]].Name)
+	if SA_Button(trns.REINSTALL_APP).Enable(len(ids) > 0).Show(0, 3, 1, 1).click {
+		SA_InfoSet("extract_app", store.appList[ids[store.app_id]].Name, "", "")
 		SA_DialogClose()
 	}
 }
@@ -402,23 +408,24 @@ func About() {
 }
 
 func Menu() {
+
+	dev_h := 0
+	if store.ShowDeveloperMenu {
+		dev_h = 4
+	}
+
 	SA_ColMax(0, 8)
 	SA_Row(1, 0.2)
 	SA_Row(3, 0.2)
 	SA_Row(5, 0.2)
 	SA_Row(7, 0.2)
-	if store.ShowDeveloperMenu {
-		SA_Row(12, 0.2)
-		SA_Row(14, 0.2)
-	} else {
-		SA_Row(9, 0.2)
-		SA_Row(11, 0.2)
-	}
+	SA_Row(9+dev_h, 0.2)
+	SA_Row(11+dev_h, 0.2)
 
 	y := 0
 	//save
 	if SA_ButtonMenu(trns.SAVE).Show(0, y, 1, 1).click {
-		SA_InfoSetFloat("save", 1)
+		SA_InfoSet("save", "", "", "")
 		SA_DialogClose()
 	}
 	y++
@@ -442,15 +449,15 @@ func Menu() {
 
 		SA_Text(trns.ZOOM).Show(0, 0, 1, 1)
 
-		dpi := SA_InfoFloat("dpi")
-		dpi_default := SA_InfoFloat("dpi_default")
+		dpi := SA_InfoGetFloat("dpi", "", "")
+		dpi_default := SA_InfoGetFloat("dpi_default", "", "")
 		if SA_ButtonBorder("+").Show(1, 0, 1, 1).click {
-			SA_InfoSetFloat("dpi", dpi+3)
+			SA_InfoSet("dpi", strconv.Itoa(int(dpi)+3), "", "")
 		}
 		dpiV := int(dpi / dpi_default * 100)
 		SA_TextCenter(strconv.Itoa(dpiV)+"%").Show(2, 0, 1, 1)
 		if SA_ButtonBorder("-").Show(3, 0, 1, 1).click {
-			SA_InfoSetFloat("dpi", dpi-3)
+			SA_InfoSet("dpi", strconv.Itoa(int(dpi)-3), "", "")
 		}
 	}
 	SA_DivEnd()
@@ -460,7 +467,7 @@ func Menu() {
 
 	//window/fullscreen switch
 	{
-		isFullscreen := SA_InfoFloat("fullscreen")
+		isFullscreen := int(SA_InfoGetFloat("fullscreen", "", ""))
 		ff := trns.WINDOW_MODE
 		if isFullscreen == 0 {
 			ff = trns.FULLSCREEN_MODE
@@ -471,7 +478,7 @@ func Menu() {
 			} else {
 				isFullscreen = 1
 			}
-			SA_InfoSetFloat("fullscreen", isFullscreen)
+			SA_InfoSet("fullscreen", strconv.Itoa(isFullscreen), "", "")
 		}
 	}
 	y++
@@ -490,27 +497,31 @@ func Menu() {
 		y++
 
 		if store.ShowDeveloperMenu {
-			SA_DivStart(0, y, 1, 3)
+			SA_DivStart(0, y, 1, dev_h)
 			{
 				SA_ColMax(1, 100)
-				if SA_ButtonMenu(trns.CREATE_REPO).Show(1, 0, 1, 1).click {
+				if SA_ButtonMenu(trns.CREATE_APP).Show(1, 0, 1, 1).click {
 					SA_DialogClose()
-					SA_DialogOpen("dev_create_repo", 0)
+					SA_DialogOpen("dev_create_app", 0)
 					UpdateAppList()
 				}
-				if SA_ButtonMenu(trns.PACKAGE_REPO).Show(1, 1, 1, 1).click {
+				if SA_ButtonMenu(trns.PACKAGE_APP).Show(1, 1, 1, 1).click {
 					SA_DialogClose()
-					SA_DialogOpen("dev_package_repo", 0)
+					SA_DialogOpen("dev_package_app", 0)
 					UpdateAppList()
 				}
-				if SA_ButtonMenu(trns.EXTRACT_REPO).Show(1, 2, 1, 1).click {
+				if SA_ButtonMenu(trns.REINSTALL_APP).Show(1, 2, 1, 1).click {
 					SA_DialogClose()
-					SA_DialogOpen("dev_extract_repo", 0)
+					SA_DialogOpen("dev_reinstall", 0)
 					UpdateAppList()
+				}
+				if SA_ButtonMenu(trns.VACUUM_DBS).Show(1, 3, 1, 1).click {
+					SA_InfoSet("vacuum", "", "", "")
+					SA_DialogClose()
 				}
 			}
 			SA_DivEnd()
-			y += 3
+			y += dev_h
 		}
 	}
 	SA_RowSpacer(0, y, 1, 1)
@@ -525,7 +536,7 @@ func Menu() {
 	y++
 
 	if SA_ButtonMenu(trns.QUIT).Show(0, y, 1, 1).click {
-		SA_InfoSetFloat("exit", 1)
+		SA_InfoSet("exit", "", "", "")
 		SA_DialogClose()
 	}
 	y++
@@ -630,7 +641,7 @@ func MoveApp(src_file *File, dst_file *File, src int, dst int, pos SA_Drop_POS) 
 
 func UpdateAppList() {
 	store.appList = nil
-	appsJs := SA_Info("apps")
+	appsJs := SA_InfoGet("apps", "", "")
 	json.Unmarshal([]byte(appsJs), &store.appList)
 
 	//remove "base"
@@ -682,7 +693,7 @@ func AppList(file *File, file_i int) {
 }
 
 func ProjectFiles() {
-	inf_files := SA_Info("files")
+	inf_files := SA_InfoGet("files", "", "")
 	var files []string
 	if len(inf_files) > 0 {
 		files = strings.Split(inf_files, "/")
@@ -783,7 +794,7 @@ func Files() {
 				}
 
 				SA_ColMax(0, 100)
-				if SA_ButtonMenu(nm).Pressed(isSelected).Show(0, 0, 1, 1).click {
+				if SA_ButtonMenu(nm).Pressed(isSelected).Tooltip(fmt.Sprintf("%s: %.3fMB", trns.SIZE, SA_InfoGetFloat("file_size", file.Name, "")/1024/1024)).Show(0, 0, 1, 1).click {
 					store.SelectedFile = file_i
 					store.SelectedApp = -1
 
@@ -831,10 +842,14 @@ func Files() {
 					} else {
 						store.duplicateName += "_2"
 					}
-
 				}
 
-				if SA_ButtonMenu(trns.REMOVE).Show(0, 2, 1, 1).click {
+				if SA_ButtonMenu(trns.VACUUM).Show(0, 2, 1, 1).click {
+					SA_InfoSet("vacuum_file", file.Name, "", "")
+					SA_DialogClose()
+				}
+
+				if SA_ButtonMenu(trns.REMOVE).Show(0, 3, 1, 1).click {
 					SA_DialogClose()
 					SA_DialogOpen("RemoveFileConfirm_"+file.Name, 1)
 				}
@@ -848,7 +863,7 @@ func Files() {
 
 				newName := file.Name
 				if SA_Editbox(&newName).Error(nil).Show(0, 0, 1, 1).finished { //check if file name exist ...
-					if file.Name != newName && SA_InfoSet("rename_file", file.Name+"/"+newName) {
+					if file.Name != newName && SA_InfoSet("rename_file", file.Name, newName, "") {
 						file.Name = newName
 					}
 					SA_DialogClose()
@@ -863,7 +878,7 @@ func Files() {
 
 				SA_Editbox(&store.duplicateName).Error(nil).Show(0, 0, 1, 1)
 				if SA_Button(trns.DUPLICATE).Enable(len(store.duplicateName) > 0).Show(0, 1, 1, 1).click { //check if file name exist ...
-					if SA_InfoSet("duplicate_file", file.Name+"/"+store.duplicateName) {
+					if SA_InfoSet("duplicate_file", file.Name, store.duplicateName, "") {
 						file.Name = store.duplicateName
 					}
 					SA_DialogClose()
@@ -878,7 +893,7 @@ func Files() {
 						store.SelectedFile = -1
 						store.SelectedApp = -1
 					}
-					SA_InfoSet("remove_file", file.Name)
+					SA_InfoSet("remove_file", file.Name, "", "")
 				}
 				SA_DialogEnd()
 			}
@@ -935,8 +950,7 @@ func Files() {
 
 						//logs
 						{
-							log_name := fmt.Sprintf("log_%s/%d", file.Name, app_rowid)
-							log := SA_Info(log_name)
+							log := SA_InfoGet("log", file.Name, strconv.Itoa(app_rowid))
 
 							if file.apps == nil {
 								file.apps = make(map[int]*AppLog)
@@ -951,6 +965,7 @@ func Files() {
 								appL.logs = append(appL.logs, Log{text: log, time: int64(SA_Time())})
 								appL.showtime = SA_Time()
 							}
+							log_name := fmt.Sprintf("log_%s/%d", file.Name, app_rowid)
 							if appL.showtime+5 > SA_Time() {
 								if SA_ButtonAlpha("").Icon("app:resources/warning.png", 0.1).Show(1, 0, 1, 1).click {
 									SA_DialogOpen(log_name, 0)
@@ -999,10 +1014,32 @@ func Files() {
 							store.duplicateName = app_label + "_2"
 						}
 
-						if SA_ButtonMenu(trns.REMOVE).Show(0, 2, 1, 1).click {
+						if SA_ButtonMenu(trns.CHANGE_APP).Show(0, 2, 1, 1).click {
+							SA_DialogClose()
+							UpdateAppList()
+
+							//set 'store.app_id'
+							ai := 0
+							for _, app := range store.appList {
+								if app.IsDir {
+									if app.Name == app_name {
+										store.app_id = ai
+										break
+									}
+									ai++
+								}
+							}
+							SA_DialogOpen("ChangeApp_"+file.Name+"_"+strconv.Itoa(app_rowid), 1)
+						}
+
+						if SA_ButtonMenu(trns.SETUP_DB).Show(0, 3, 1, 1).click {
+							SA_DialogClose()
+							SA_DialogOpen("SetupDb_"+file.Name+"_"+strconv.Itoa(app_rowid), 1)
+						}
+
+						if SA_ButtonMenu(trns.REMOVE).Show(0, 4, 1, 1).click {
 							SA_DialogClose()
 							SA_DialogOpen("RemoveAppConfirm_"+file.Name+"_"+strconv.Itoa(app_rowid), 1)
-
 						}
 						SA_DialogEnd()
 					}
@@ -1035,7 +1072,34 @@ func Files() {
 							}
 							SA_DialogClose()
 						}
+						SA_DialogEnd()
+					}
 
+					if SA_DialogStart("ChangeApp_" + file.Name + "_" + strconv.Itoa(app_rowid)) {
+						SA_ColMax(0, 10)
+
+						var ids []int
+						var list string
+						for i, app := range store.appList {
+							if app.IsDir {
+								ids = append(ids, i)
+								list += app.Name
+								list += "|"
+							}
+						}
+						list, _ = strings.CutSuffix(list, "|")
+						if SA_Combo(&store.app_id, list).ShowDescription(0, 0, 1, 1, trns.PACKAGE, 3, nil) {
+							WriteApp(file, fmt.Sprintf("UPDATE __skyalt__ SET app='%s' WHERE rowid=%d", store.appList[ids[store.app_id]].Name, app_rowid), false)
+							SA_DialogClose()
+						}
+
+						SA_DialogEnd()
+					}
+
+					if SA_DialogStart("SetupDb_" + file.Name + "_" + strconv.Itoa(app_rowid)) {
+						if SA_DialogConfirm() {
+							SA_InfoSet("setup_db", file.Name, strconv.Itoa(app_rowid), "")
+						}
 						SA_DialogEnd()
 					}
 
@@ -1081,7 +1145,7 @@ func Files() {
 			SA_Editbox(&store.createFile).Error(err).TempToValue(true).ShowDescription(0, 0, 1, 1, trns.NAME, 2, nil)
 
 			if SA_Button(trns.CREATE_FILE).Enable(err == nil).Show(0, 1, 1, 1).click {
-				SA_InfoSet("new_file", fnm)
+				SA_InfoSet("new_file", fnm, "", "")
 				SA_DialogClose()
 			}
 
@@ -1142,15 +1206,15 @@ func Render() {
 			SA_DialogEnd()
 		}
 
-		if SA_DialogStart("dev_create_repo") {
+		if SA_DialogStart("dev_create_app") {
 			DevCreateRepo()
 			SA_DialogEnd()
 		}
-		if SA_DialogStart("dev_package_repo") {
+		if SA_DialogStart("dev_package_app") {
 			DevPackageRepo()
 			SA_DialogEnd()
 		}
-		if SA_DialogStart("dev_extract_repo") {
+		if SA_DialogStart("dev_reinstall") {
 			DevExtractRepo()
 			SA_DialogEnd()
 		}
@@ -1182,7 +1246,7 @@ func Render() {
 var styles SA_Styles
 var g_ButtonAddApp _SA_Style
 
-func Init() {
+func Open() {
 	store.SelectedFile = -1
 	store.SelectedApp = -1
 	store.last_file_id = 1
@@ -1196,6 +1260,10 @@ func Init() {
 	g_ButtonAddApp = styles.ButtonBorder
 	g_ButtonAddApp.Margin(0.17)
 }
+
+func SetupDB() {
+}
+
 func Save() []byte {
 	js, _ := json.MarshalIndent(&store, "", "")
 	return js

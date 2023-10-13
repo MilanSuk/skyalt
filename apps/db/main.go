@@ -215,7 +215,7 @@ func (table *Table) UpdateColumn(old string, new string) {
 func GetDbStructure() []*Table {
 	var tables []*Table
 
-	qt := SA_SqlRead("", "SELECT name FROM sqlite_master WHERE type = 'table'")
+	qt := SA_SqlRead("", "SELECT name FROM sqlite_master WHERE type='table'")
 	var tname string
 	for qt.Next(&tname) {
 
@@ -1749,7 +1749,7 @@ var g_ButtonStat _SA_Style
 var g_ButtonLeft _SA_Style
 var g_ButtonLightLeft _SA_Style
 
-func Init() {
+func Open() {
 	//default
 	json.Unmarshal(SA_File("storage_json"), &store)
 	json.Unmarshal(SA_File("translations_json:app:resources/translations.json"), &trns)
@@ -1773,6 +1773,10 @@ func Init() {
 	//others
 	InitCalendar()
 }
+
+func SetupDB() {
+}
+
 func Save() []byte {
 	js, _ := json.MarshalIndent(&store, "", "")
 	return js

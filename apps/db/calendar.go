@@ -138,7 +138,7 @@ func Format(unix_sec int64) string {
 	m := strconv.Itoa(int(tm.Month()))
 	y := strconv.Itoa(tm.Year())
 
-	switch SA_InfoFloat("date") {
+	switch SA_InfoGetFloat("date", "", "") {
 	case 0: //eu
 		return d + "/" + m + "/" + y
 
@@ -185,7 +185,7 @@ func GetStartWeekDay(date time.Time, format float64) time.Time {
 }
 
 func Calendar(value int64, page int64) (int64, int64) {
-	format := SA_InfoFloat("date")
+	format := SA_InfoGetFloat("date", "", "")
 
 	for x := 0; x < 7; x++ {
 		SA_ColMax(x, 10)

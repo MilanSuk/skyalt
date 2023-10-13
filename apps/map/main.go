@@ -217,7 +217,7 @@ func Map(cam *Cam) {
 		lon = cam.lonOld + (cam.Lon-cam.lonOld)*t
 		lat = cam.latOld + (cam.Lat-cam.latOld)*t
 		zooming = 1
-		SA_InfoSetFloat("nosleep", 1)
+		SA_InfoSet("nosleep", "", "", "")
 	}
 
 	cell := SA_DivInfo("cell")
@@ -438,12 +438,18 @@ func Render() {
 
 var styles SA_Styles
 
-func Init() {
+func Open() {
 	//default
 	json.Unmarshal(SA_File("storage_json"), &store)
 	json.Unmarshal(SA_File("translations_json:app:resources/translations.json"), &trns)
 	json.Unmarshal(SA_File("styles_json"), &styles)
 }
+
+func SetupDB() {
+	SA_SqlWrite("", "CREATE TABLE IF NOT EXISTS tiles(name TEXT, file BLOB);")
+	SA_SqlWrite("", "CREATE TABLE IF NOT EXISTS locators(title TEXT, pos TEXT);")
+}
+
 func Save() []byte {
 	js, _ := json.MarshalIndent(&store, "", "")
 	return js

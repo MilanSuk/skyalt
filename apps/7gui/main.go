@@ -191,7 +191,7 @@ func Timer() {
 		dt = store.MaxTime
 	}
 	if dt < store.MaxTime {
-		SA_InfoSetFloat("nosleep", 1)
+		SA_InfoSet("nosleep", "", "", "")
 	}
 
 	SA_Text(trns.ELAPSED_TIME).Show(0, 0, 1, 1)
@@ -514,7 +514,7 @@ var styles SA_Styles
 var g_TextCellHeader _SA_Style
 var g_EditboxNoBorder _SA_Style
 
-func Init() {
+func Open() {
 	store.Cells = make(map[string]string)
 	store.SelectedPerson = -1
 
@@ -540,6 +540,10 @@ func Init() {
 
 	InitCalendar()
 }
+
+func SetupDB() {
+}
+
 func Save() []byte {
 	js, _ := json.MarshalIndent(&store, "", "")
 	return js

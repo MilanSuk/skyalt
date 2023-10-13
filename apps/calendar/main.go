@@ -248,7 +248,7 @@ func GetTextDate(unix_sec int64) string {
 	m := strconv.Itoa(int(tm.Month()))
 	y := strconv.Itoa(tm.Year())
 
-	switch SA_InfoFloat("date") {
+	switch SA_InfoGetFloat("date", "", "") {
 	case 0: //eu
 		return d + "/" + m + "/" + y
 
@@ -269,7 +269,7 @@ func GetTextDate(unix_sec int64) string {
 }
 
 func Calendar(value *int64, page *int64) {
-	format := SA_InfoFloat("date")
+	format := SA_InfoGetFloat("date", "", "")
 
 	for x := 0; x < 7; x++ {
 		SA_Col(x, 0.9)
@@ -627,7 +627,7 @@ func ModeYear() {
 
 func ModeMonth() {
 
-	format := SA_InfoFloat("date")
+	format := SA_InfoGetFloat("date", "", "")
 
 	for x := 0; x < 7; x++ {
 		SA_ColMax(x, 100)
@@ -760,7 +760,7 @@ func eventDialogs(rowid int64) {
 
 func ModeWeek() {
 
-	format := SA_InfoFloat("date")
+	format := SA_InfoGetFloat("date", "", "")
 
 	SA_ColMax(0, 100)
 	SA_RowMax(1, 100)
@@ -1165,7 +1165,7 @@ var g_ButtonOutsideMonth _SA_Style
 var g_ButtonOutsideMonthSelect _SA_Style
 var g_ButtonEvent _SA_Style
 
-func Init() {
+func Open() {
 	store.ShowSide = true
 	store.Small_date = int64(SA_Time())
 	store.Small_page = int64(SA_Time())
@@ -1196,8 +1196,12 @@ func Init() {
 	g_ButtonEvent = styles.ButtonLight
 	g_ButtonEvent.FontAlignH(0)
 	g_ButtonEvent.Id = 0
-
 }
+
+func SetupDB() {
+	SA_SqlWrite("", "CREATE TABLE IF NOT EXISTS events(title TEXT, description TEXT, start INTEGER, end INTEGER);")
+}
+
 func Save() []byte {
 	js, _ := json.MarshalIndent(&store, "", "")
 	return js
