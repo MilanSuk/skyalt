@@ -26,37 +26,37 @@ import (
 
 /* -------------------- App information -------------------- */
 
-func SA_InfoFloat(key string) float64 {
-	return _sa_info_float(_SA_stringToPtr(key))
-}
+func SA_InfoGet(cmd string, prm1 string, prm2 string) string {
+	//parameters
+	keyMem := _SA_stringToPtr(cmd)
+	prm1Mem := _SA_stringToPtr(prm1)
+	prm2Mem := _SA_stringToPtr(prm2)
 
-func SA_InfoSetFloat(key string, v float64) bool {
-	return _sa_info_setFloat(_SA_stringToPtr(key), v) > 0
-}
-
-func SA_Info(key string) string {
-	keyMem := _SA_stringToPtr(key)
-	sz := _sa_info_string_len(keyMem)
+	//get value's len
+	sz := _sa_info_get_prepare(keyMem, prm1Mem, prm2Mem)
 	if sz > 0 {
 		ret := make([]byte, sz)
-		if _sa_info_string(keyMem, _SA_bytesToPtr(ret)) > 0 {
+		//get value
+		if _sa_info_get(_SA_bytesToPtr(ret)) > 0 {
 			return string(ret)
 		}
 	}
 	return ""
 }
-
-func SA_InfoSetVal(key string, value string) int {
-	return int(_sa_info_setString(_SA_stringToPtr(key), _SA_stringToPtr(value)))
+func SA_InfoSet(cmd string, prm1 string, prm2 string, prm3 string) bool {
+	return int(_sa_info_set(_SA_stringToPtr(cmd), _SA_stringToPtr(prm1), _SA_stringToPtr(prm2), _SA_stringToPtr(prm3))) > 0
 }
-func SA_InfoSet(key string, value string) bool {
-	return SA_InfoSetVal(key, value) > 0
+
+func SA_InfoGetFloat(cmd string, prm1 string, prm2 string) float64 {
+	str := SA_InfoGet(cmd, prm1, prm2)
+	v, _ := strconv.ParseFloat(str, 64)
+	return v
 }
 
 /* -------------------- Time/Date -------------------- */
 
 func SA_Time() float64 {
-	return SA_InfoFloat("time")
+	return SA_InfoGetFloat("time", "", "")
 }
 
 /* -------------------- File Access -------------------- */
@@ -1179,7 +1179,7 @@ func (s SACd) Aprox(e SACd, t float32) SACd {
 func SA_ThemeCd() SACd {
 
 	cd := SACd{90, 180, 180, 255} // ocean
-	switch SA_InfoFloat("theme") {
+	switch SA_InfoGetFloat("theme", "", "") {
 	case 1:
 		cd = SACd{200, 100, 80, 255}
 	case 2:

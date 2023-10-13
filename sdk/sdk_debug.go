@@ -67,8 +67,11 @@ func main() {
 		}
 
 		switch string(fnName) {
-		case "_sa_init":
-			Init()
+		case "_sa_open":
+			Open()
+
+		case "_sa_setup_db":
+			SetupDB()
 
 		case "_sa_render":
 			Render()
@@ -189,47 +192,34 @@ func _sa_storage_write(jsonMem SAMem) int64 {
 	return ret
 }
 
-func _sa_info_float(keyMem SAMem) float64 {
+func _sa_info_get_prepare(keyMem SAMem, prm1Mem SAMem, prm2Mem SAMem) int64 {
 	WriteUint64(1)
 	WriteMem(keyMem)
-	ret := ReadFloat64()
+	WriteMem(prm1Mem)
+	WriteMem(prm2Mem)
+
+	ret := int64(ReadUint64())
 	_checkRead(1)
 	return ret
 }
 
-func _sa_info_setFloat(keyMem SAMem, value float64) int64 {
+func _sa_info_get(dstMem SAMem) int64 {
 	WriteUint64(2)
-	WriteMem(keyMem)
-	WriteFloat64(value)
+	ReadMem(dstMem)
 	ret := int64(ReadUint64())
 	_checkRead(2)
 	return ret
 }
 
-func _sa_info_string(keyMem SAMem, dstMem SAMem) int64 {
+func _sa_info_set(keyMem SAMem, prm1Mem SAMem, prm2Mem SAMem, prm3Mem SAMem) int64 {
 	WriteUint64(3)
 	WriteMem(keyMem)
+	WriteMem(prm1Mem)
+	WriteMem(prm2Mem)
+	WriteMem(prm3Mem)
 
-	ReadMem(dstMem)
 	ret := int64(ReadUint64())
 	_checkRead(3)
-	return ret
-}
-
-func _sa_info_string_len(keyMem SAMem) int64 {
-	WriteUint64(4)
-	WriteMem(keyMem)
-	ret := int64(ReadUint64())
-	_checkRead(4)
-	return ret
-}
-
-func _sa_info_setString(keyMem SAMem, valueMem SAMem) int64 {
-	WriteUint64(5)
-	WriteMem(keyMem)
-	WriteMem(valueMem)
-	ret := int64(ReadUint64())
-	_checkRead(5)
 	return ret
 }
 

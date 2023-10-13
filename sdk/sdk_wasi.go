@@ -24,16 +24,16 @@ import (
 
 func main() {}
 
-//export _sa_init
-//go:wasmexport _sa_init
-func _sa_init() {
-	Init()
+//export _sa_open
+//go:wasmexport _sa_open
+func _sa_open() {
+	Open()
 }
 
-//export _sa_render
-//go:wasmexport _sa_render
-func _sa_render() {
-	Render()
+//export _sa_setup_db
+//go:wasmexport _sa_setup_db
+func _sa_setup_db() {
+	SetupDB()
 }
 
 //export _sa_save
@@ -42,29 +42,27 @@ func _sa_save() {
 	_sa_storage_write(_SA_bytesToPtr(Save()))
 }
 
+//export _sa_render
+//go:wasmexport _sa_render
+func _sa_render() {
+	Render()
+}
+
 //export _sa_storage_write
 //go:wasmimport env _sa_storage_write
 func _sa_storage_write(jsonMem SAMem) int64
 
-//export _sa_info_float
-//go:wasmimport env _sa_info_float
-func _sa_info_float(keyMem SAMem) float64
+//export _sa_info_get_prepare
+//go:wasmimport env _sa_info_get_prepare
+func _sa_info_get_prepare(keyMem SAMem, prm1Mem SAMem, prm2Mem SAMem) int64
 
-//export _sa_info_setFloat
-//go:wasmimport env _sa_info_setFloat
-func _sa_info_setFloat(keyMem SAMem, value float64) int64
+//export _sa_info_get
+//go:wasmimport env _sa_info_get
+func _sa_info_get(dstMem SAMem) int64
 
-//export _sa_info_string
-//go:wasmimport env _sa_info_string
-func _sa_info_string(keyMem SAMem, dstMem SAMem) int64
-
-//export _sa_info_string_len
-//go:wasmimport env _sa_info_string_len
-func _sa_info_string_len(keyMem SAMem) int64
-
-//export _sa_info_setString
-//go:wasmimport env _sa_info_setString
-func _sa_info_setString(keyMem SAMem, valueMem SAMem) int64
+//export _sa_info_set
+//go:wasmimport env _sa_info_set
+func _sa_info_set(keyMem SAMem, prm1Mem SAMem, prm2Mem SAMem, prm3Mem SAMem) int64
 
 //export _sa_blob
 //go:wasmimport env _sa_blob
