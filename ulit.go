@@ -545,6 +545,14 @@ func OsFileRename(path string, newPath string) error {
 	return os.Rename(path, newPath)
 }
 
+func OsFileSize(path string) (int64, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return -1, err
+	}
+	return info.Size(), nil
+}
+
 func OsFileCopy(src, dst string) error {
 	sourceFileStat, err := os.Stat(src)
 	if err != nil {
