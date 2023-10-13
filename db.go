@@ -160,6 +160,8 @@ type Db struct {
 	lastWriteTicks int64
 
 	apps []*App
+
+	bytes int64
 }
 
 func InitDbGlobal() error {
@@ -187,6 +189,7 @@ func NewDb(root *Root, path string) (*Db, error) {
 
 	//db.Exec("ATTACH 'path/to/file.db' AS attached") ...
 
+	db.updateBytes()
 	return &db, nil
 }
 
@@ -213,6 +216,26 @@ func (db *Db) Begin() (*sql.Tx, error) {
 	return db.tx, nil
 }
 
+func (db *Db) updateBytes() {
+
+	db.bytes = 0
+
+	b, err := OsFileSize(db.path)
+	if err == nil {
+		db.bytes += b
+	}
+
+	b, err = OsFileSize(db.path + "-shm")
+	if err == nil {
+		db.bytes += b
+	}
+
+	b, err = OsFileSize(db.path + "-wal")
+	if err == nil {
+		db.bytes += b
+	}
+}
+
 func (db *Db) Commit() error {
 	if db.tx == nil {
 		return nil
@@ -224,6 +247,7 @@ func (db *Db) Commit() error {
 	//reset queries
 	db.cache = nil
 
+	db.updateBytes()
 	return err
 }
 func (db *Db) Rollback() error {
@@ -321,14 +345,21 @@ func (db *Db) SaveApps() {
 	db.db.Exec("PRAGMA wal_checkpoint(full);")
 }
 
-func (db *Db) ReloadApps() {
+func (db *Db) ReopenApps() {
 	for _, app := range db.apps {
-		app.reload = true
+		app.reopen = true
 	}
 }
 
 func (db *Db) Tick() {
-	for _, app := range db.apps {
-		app.Tick()
+	for i, app := range db.apps {
+		if !app.Tick() {
+			app.Destroy()
+			db.apps = append(db.apps[:i], db.apps[i+1:]...) //remove
+		}
 	}
+}
+
+func (db *Db) Vacuum() {
+	db.db.Exec("VACUUM;")
 }

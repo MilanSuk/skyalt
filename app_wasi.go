@@ -77,11 +77,9 @@ func (aw *AppWasm) InstantiateEnv() error {
 	env := aw.rt.NewHostModuleBuilder("env")
 
 	//these function are constraint into particular 'app'!!!
-	env.NewFunctionBuilder().WithFunc(aw.app._sa_info_float).Export("_sa_info_float")
-	env.NewFunctionBuilder().WithFunc(aw.app._sa_info_setFloat).Export("_sa_info_setFloat")
-	env.NewFunctionBuilder().WithFunc(aw.app._sa_info_string).Export("_sa_info_string")
-	env.NewFunctionBuilder().WithFunc(aw.app._sa_info_string_len).Export("_sa_info_string_len")
-	env.NewFunctionBuilder().WithFunc(aw.app._sa_info_setString).Export("_sa_info_setString")
+	env.NewFunctionBuilder().WithFunc(aw.app._sa_info_get_prepare).Export("_sa_info_get_prepare")
+	env.NewFunctionBuilder().WithFunc(aw.app._sa_info_get).Export("_sa_info_get")
+	env.NewFunctionBuilder().WithFunc(aw.app._sa_info_set).Export("_sa_info_set")
 
 	env.NewFunctionBuilder().WithFunc(aw.app._sa_blob).Export("_sa_blob")
 	env.NewFunctionBuilder().WithFunc(aw.app._sa_blob_len).Export("_sa_blob_len")

@@ -31,18 +31,22 @@ type App struct {
 
 	styles *DivStyles
 
-	reload bool
+	reopen bool
 
 	logs []string
 
 	gui *LayoutSave
+
+	images []*Image
+
+	info_string string
 }
 
 func NewApp(db *Db, app_rowid int) (*App, error) {
 	var app App
 	app.db = db
 	app.app_rowid = app_rowid
-	app.reload = true
+	app.reopen = true
 
 	//get app name
 	{
@@ -51,21 +55,7 @@ func NewApp(db *Db, app_rowid int) (*App, error) {
 			return nil, fmt.Errorf("InitTable() failed: %w", err)
 		}
 
-		rows, err := db.db.Query("SELECT app FROM __skyalt__ WHERE rowid=?", app_rowid)
-		if err != nil {
-			return nil, fmt.Errorf("query SELECT failed: %w", err)
-		}
-		defer rows.Close()
-
-		if !rows.Next() {
-			return nil, fmt.Errorf("empty SELECT: %w", err)
-		}
-
-		err = rows.Scan(&app.name)
-		if err != nil {
-			return nil, fmt.Errorf("Scan() failed: %w", err)
-		}
-
+		app.name, _, err = app.GetAppName()
 	}
 
 	//extract
@@ -95,6 +85,13 @@ func (app *App) Destroy() {
 	if app.debug != nil {
 		app.debug.Destroy()
 	}
+
+	for _, img := range app.images {
+		err := img.Destroy()
+		if err != nil {
+			fmt.Printf("Destroy() failed: %v\n", err)
+		}
+	}
 }
 
 func (db *Db) InitTable() error {
@@ -108,6 +105,26 @@ func (db *Db) InitTable() error {
 		return fmt.Errorf("Commit() failed: %w", err)
 	}
 	return nil
+}
+
+func (app *App) GetAppName() (string, bool, error) {
+	rows, err := app.db.db.Query("SELECT app FROM __skyalt__ WHERE rowid=?", app.app_rowid)
+	if err != nil {
+		return "", false, fmt.Errorf("query SELECT failed: %w", err)
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return "", false, nil
+	}
+
+	var name string
+	err = rows.Scan(&name)
+	if err != nil {
+		return "", false, fmt.Errorf("Scan() failed: %w", err)
+	}
+
+	return name, true, nil //true = row exist
 }
 
 func (db *Db) AddFirstRowId(appName string) error {
@@ -307,34 +324,93 @@ func (app *App) TryConnectDebug() {
 		if appDebug != nil {
 			app.Save()
 			app.debug = appDebug
-			app.Call("_sa_init")
+			app.CallOpen()
 		}
 	}
 
 	app.CheckDebug()
 }
 
-func (app *App) Tick() {
+func (app *App) SetupDB() {
+	app.Call("_sa_setup_db")
+}
+
+func (app *App) CallOpen() {
+	app.Call("_sa_open")
+
+	//if db is empty, call SetupDB()
+	{
+		rows, err := app.db.db.Query("SELECT name FROM sqlite_master WHERE type='table'")
+		if err != nil {
+			fmt.Printf("Query() failed: %v\n", err)
+			return
+		}
+		num_tables := 0
+		for rows.Next() {
+			var nm string
+			err = rows.Scan(&nm)
+			if err != nil {
+				fmt.Printf("Scan() failed: %v\n", err)
+				return
+			}
+
+			if nm != "__skyalt__" {
+				num_tables++
+			}
+		}
+		if num_tables == 0 {
+			app.SetupDB()
+		}
+	}
+}
+
+func (app *App) Tick() bool {
+
+	for i := len(app.images) - 1; i >= 0; i-- {
+		ok, _ := app.images[i].Maintenance(app.db.root.ui.render)
+		if !ok {
+			app.images = append(app.images[:i], app.images[i+1:]...)
+		}
+	}
 
 	if app.debug != nil {
 		app.CheckDebug()
-
 	} else if app.wasm != nil {
 		changed, err := app.wasm.Tick()
 		if err != nil {
 			app.AddLogErr(err)
 			app.wasm = nil
-
 		} else if changed {
-			app.reload = true
+			app.reopen = true
+		}
+	}
+
+	{
+		nm, exist, err := app.GetAppName()
+		if err != nil {
+			fmt.Printf("GetAppName() failed: %v\n", err)
+			return true
+		}
+
+		if !exist {
+			return false //remove from db
+		}
+
+		if nm != app.name {
+			app.Save()
+			app.images = nil
+
+			app.name = nm //this change wasm path => app.wasm.Tick() will have different time => reload wasm + reopen
 		}
 	}
 
 	//init
-	if app.reload {
-		app.Call("_sa_init")
-		app.reload = false
+	if app.reopen {
+		app.CallOpen()
+		app.reopen = false
 	}
+
+	return true
 }
 
 func (app *App) SetDebugLine(line string) {

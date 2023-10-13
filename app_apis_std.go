@@ -18,171 +18,72 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func (app *App) print(str string) {
-	fmt.Println(str)
-}
-func (app *App) _sa_print(strMem uint64) {
-
-	str, err := app.ptrToString(strMem)
-	if app.AddLogErr(err) {
-		return
+func (app *App) hasRootPriviliges(cmd string) bool {
+	if app.name != "base" {
+		app.AddLogErr(fmt.Errorf("command '%s' denied, low privilages", cmd))
+		return false
 	}
-
-	app.print(str)
-}
-func (app *App) _sa_print_float(val float64) {
-	fmt.Println(val)
+	return true
 }
 
-func (app *App) info_float(key string) float64 {
-	switch strings.ToLower(key) {
+func (app *App) _info_get_prepare(cmd string, prm1 string, prm2 string, onlyLen bool) (string, int64) {
+	switch strings.ToLower(cmd) {
 	case "theme":
-		return float64(app.db.root.ui.io.ini.Theme)
+		return strconv.Itoa(app.db.root.ui.io.ini.Theme), 1
 
 	case "date":
-		return float64(app.db.root.ui.io.ini.Date)
+		return strconv.Itoa(app.db.root.ui.io.ini.Date), 1
 
 	case "timezone":
-		return float64(app.db.root.ui.io.ini.TimeZone)
+		return strconv.Itoa(app.db.root.ui.io.ini.TimeZone), 1
 
 	case "time_utc":
-		return float64(time.Now().UnixMicro()) / 1000000 //seconds
+		return strconv.FormatFloat(float64(time.Now().UnixMicro())/1000000, 'f', -1, 64), 1 //seconds
 
 	case "time":
 		tm := time.Now()
-		return (float64(tm.UnixMicro()) / 1000000) + float64(app.db.root.ui.io.ini.TimeZone*3600) //seconds
+		return strconv.FormatFloat(float64(tm.UnixMicro())/1000000+float64(app.db.root.ui.io.ini.TimeZone*3600), 'f', -1, 64), 1 //seconds
+	}
 
+	if !app.hasRootPriviliges(cmd) {
+		return "", 0
+	}
+
+	switch strings.ToLower(cmd) {
 	case "dpi":
-		return float64(app.db.root.ui.io.ini.Dpi)
+		return strconv.Itoa(app.db.root.ui.io.ini.Dpi), 1
 
 	case "dpi_default":
-		return float64(app.db.root.ui.io.ini.Dpi_default)
+		return strconv.Itoa(app.db.root.ui.io.ini.Dpi_default), 1
 
 	case "fullscreen":
-		return OsTrnFloat(app.db.root.ui.io.ini.Fullscreen, 1, 0)
+		return strconv.Itoa(OsTrn(app.db.root.ui.io.ini.Fullscreen, 1, 0)), 1
 
 	case "stats":
-		return OsTrnFloat(app.db.root.ui.io.ini.Stats, 1, 0)
+		return strconv.Itoa(OsTrn(app.db.root.ui.io.ini.Stats, 1, 0)), 1
 
 	case "grid":
-		return OsTrnFloat(app.db.root.ui.io.ini.Grid, 1, 0)
+		return strconv.Itoa(OsTrn(app.db.root.ui.io.ini.Grid, 1, 0)), 1
 
-	default:
-		fmt.Println("info_float(): Unknown key: ", key)
-	}
-
-	return -1
-}
-
-func (app *App) info_setFloat(key string, v float64) int64 {
-	switch strings.ToLower(key) {
-	case "theme":
-		app.db.root.ui.io.ini.Theme = int(v)
-		app.db.root.ReloadApps()
-		return 1
-	case "date":
-		app.db.root.ui.io.ini.Date = int(v)
-		return 1
-
-	case "timezone":
-		app.db.root.ui.io.ini.TimeZone = int(v)
-		return 1
-
-	case "dpi":
-		app.db.root.ui.io.ini.Dpi = int(v)
-		return 1
-	case "fullscreen":
-		app.db.root.ui.io.ini.Fullscreen = (v > 0)
-		return 1
-
-	case "stats":
-		app.db.root.ui.io.ini.Stats = (v > 0)
-		return 1
-
-	case "grid":
-		app.db.root.ui.io.ini.Grid = (v > 0)
-		return 1
-
-	case "nosleep":
-		app.db.root.ui.SetNoSleep()
-		return 1
-
-	case "save":
-		if v > 0 {
-			app.db.root.save = true //call app.SaveData() after tick
-			return 1
+	case "file_size":
+		db := app.db.root.FindDb(app.db.root.folderDatabases + "/" + prm1)
+		if db != nil {
+			return strconv.Itoa(int(db.bytes)), 1
 		}
-		return 0
 
-	case "exit":
-		if v > 0 {
-			app.db.root.exit = true
-			return 1
-		}
-		return 0
-
-	default:
-		fmt.Println("info_setFloat(): Unknown key: ", key)
-
-	}
-
-	return -1
-}
-
-func (app *App) _sa_info_float(keyMem uint64) float64 {
-
-	key, err := app.ptrToString(keyMem)
-	if app.AddLogErr(err) {
-		return -1
-	}
-
-	return app.info_float(key)
-}
-
-func (app *App) _sa_info_setFloat(keyMem uint64, v float64) int64 {
-
-	key, err := app.ptrToString(keyMem)
-	if app.AddLogErr(err) {
-		return -1
-	}
-
-	return app.info_setFloat(key, v)
-}
-
-func (app *App) info_string(key string, onlyLen bool) (string, int64) {
-
-	if app.name != "base" {
-		app.AddLogErr(errors.New("access denied, low privilages"))
-		return "", 0
-	}
-
-	//log
-	log, found := strings.CutPrefix(key, "log_") //log_<file.sqlite>/<approw_id>
-	if found {
-		d := strings.IndexByte(log, '/')
-		if d >= 0 {
-			db := app.db.root.FindDb(app.db.root.folderDatabases + "/" + log[:d])
-			if db != nil {
-				app_rowid, err := strconv.Atoi(log[d+1:])
-				if err == nil {
-					app2 := db.FindApp(app_rowid)
-					if app2 != nil {
-						return app2.GetLog(!onlyLen), 1
-					}
-				}
-			}
+	case "log":
+		app2 := app.GetAppFromValue(prm1, prm2)
+		if app2 != nil {
+			return app2.GetLog(!onlyLen), 1
 		}
 		return "", 0
-	}
 
-	switch strings.ToLower(key) {
 	case "files":
 		return app.db.root.dbsList, 1
 
@@ -201,129 +102,244 @@ func (app *App) info_string(key string, onlyLen bool) (string, int64) {
 		return strings.TrimSuffix(lngs, "/"), 1
 
 	default:
-		fmt.Println("info_string(): Unknown key: ", key)
+		fmt.Println("info_string(): Unknown key: ", cmd)
 
 	}
+
 	return "", -1
 }
-func (app *App) info_string_len(key string) int64 {
 
-	dst, ret := app.info_string(key, true)
-	if ret > 0 {
-		return int64(len(dst))
+func (app *App) info_set(cmd string, prm1 string, prm2 string, prm3 string) int64 {
+
+	switch strings.ToLower(cmd) {
+	case "nosleep":
+		app.db.root.ui.SetNoSleep()
+		return 1
 	}
-	return -1
-}
 
-func (app *App) _sa_info_string(keyMem uint64, dstMem uint64) int64 {
-
-	key, err := app.ptrToString(keyMem)
-	if app.AddLogErr(err) {
+	if !app.hasRootPriviliges(cmd) {
 		return -1
 	}
 
-	dst, ret := app.info_string(key, false)
-	err = app.stringToPtr(dst, dstMem)
-	app.AddLogErr(err)
-	return ret
-}
+	switch strings.ToLower(cmd) {
+	case "theme":
+		v, err := strconv.Atoi(prm1)
+		if err == nil {
+			app.db.root.ui.io.ini.Theme = v
+			app.db.root.ReopenApps()
+			return 1
+		}
+		fmt.Printf("Atoi() failed: %v\n", err)
+	case "date":
+		v, err := strconv.Atoi(prm1)
+		if err == nil {
+			app.db.root.ui.io.ini.Date = v
+			return 1
+		}
+		fmt.Printf("Atoi() failed: %v\n", err)
+	case "timezone":
+		v, err := strconv.Atoi(prm1)
+		if err == nil {
+			app.db.root.ui.io.ini.TimeZone = v
+			return 1
+		}
+		fmt.Printf("Atoi() failed: %v\n", err)
+	case "dpi":
+		v, err := strconv.Atoi(prm1)
+		if err == nil {
+			app.db.root.ui.io.ini.Dpi = v
+			return 1
+		}
+		fmt.Printf("Atoi() failed: %v\n", err)
+	case "fullscreen":
+		v, err := strconv.Atoi(prm1)
+		if err == nil {
+			app.db.root.ui.io.ini.Fullscreen = (v > 0)
+			return 1
+		}
+		fmt.Printf("Atoi() failed: %v\n", err)
+	case "stats":
+		v, err := strconv.Atoi(prm1)
+		if err == nil {
+			app.db.root.ui.io.ini.Stats = (v > 0)
+			return 1
+		}
+		fmt.Printf("Atoi() failed: %v\n", err)
+	case "grid":
+		v, err := strconv.Atoi(prm1)
+		if err == nil {
+			app.db.root.ui.io.ini.Grid = (v > 0)
+			return 1
+		}
+		fmt.Printf("Atoi() failed: %v\n", err)
+	case "nosleep":
+		app.db.root.ui.SetNoSleep()
+		return 1
 
-func (app *App) _sa_info_string_len(keyMem uint64) int64 {
+	case "vacuum":
+		app.db.root.Vacuum()
+		return 1
 
-	key, err := app.ptrToString(keyMem)
-	if app.AddLogErr(err) {
-		return -1
-	}
+	case "save":
+		app.db.root.save = true //call app.SaveData() after tick
+		return 1
 
-	return app.info_string_len(key)
-}
+	case "exit":
+		app.db.root.exit = true
+		return 1
 
-func (app *App) info_setString(key string, value string) int64 {
-	switch strings.ToLower(key) {
 	case "languages":
-		if len(value) > 0 {
-			app.db.root.ui.io.ini.Languages = strings.Split(value, "/")
+		if len(prm1) > 0 {
+			app.db.root.ui.io.ini.Languages = strings.Split(prm1, "/")
 		} else {
 			app.db.root.ui.io.ini.Languages = nil
 		}
-		app.db.root.ReloadApps()
+		app.db.root.ReopenApps()
 		return 1
 
 	case "new_file":
-		if app.db.root.CreateDb(value) {
+		if app.db.root.CreateDb(prm1) {
 			return 1
 		}
 		return -1
 
 	case "rename_file":
-		d := strings.IndexByte(value, '/')
-		if d > 0 && d < len(value)-1 {
-			if app.db.root.RenameDb(value[:d], value[d+1:]) {
-				return 1
-			}
+		if app.db.root.RenameDb(prm1, prm2) {
+			return 1
 		}
+
 		return -1
 
 	case "duplicate_file":
-		d := strings.IndexByte(value, '/')
-		if d > 0 && d < len(value)-1 {
-			if app.db.root.DuplicateDb(value[:d], value[d+1:]) {
-				return 1
-			}
+		if app.db.root.DuplicateDb(prm1, prm2) {
+			return 1
 		}
 		return -1
 
 	case "remove_file":
-		if app.db.root.RemoveDb(value) {
+		if app.db.root.RemoveDb(app.db.root.folderDatabases + "/" + prm1) {
 			return 1
 		}
 		return -1
 
-	case "new_repo":
-		d := strings.IndexByte(value, '/')
-		if d > 0 && d < len(value)-1 {
-			name := value[:d]
-			lang := value[d+1:]
-			err := app.db.root.CreateApp(name, lang)
-			if !app.AddLogErr(err) {
-				return 1
-			}
+	case "vacuum_file":
+		db := app.db.root.FindDb(app.db.root.folderDatabases + "/" + prm1)
+		if db != nil {
+			db.Vacuum()
+			return 1
 		}
 		return -1
 
-	case "package_repo":
-		err := app.db.root.PackageApp(value)
+	case "new_app":
+		err := app.db.root.CreateApp(prm1, prm2)
 		if !app.AddLogErr(err) {
 			return 1
 		}
 		return -1
 
-	case "extract_repo":
-		err := app.db.root.ExtractApp(value)
+	case "package_app":
+		err := app.db.root.PackageApp(prm1)
 		if !app.AddLogErr(err) {
 			return 1
 		}
 		return -1
+
+	case "extract_app":
+		err := app.db.root.ExtractApp(prm1)
+		if !app.AddLogErr(err) {
+			return 1
+		}
+		return -1
+
+	case "save_app":
+		app2 := app.GetAppFromValue(prm1, prm2)
+		if app2 != nil {
+			app2.Save()
+		}
+
+	case "setup_db":
+		app2 := app.GetAppFromValue(prm1, prm2)
+		if app2 != nil {
+			app2.SetupDB()
+		}
 
 	default:
-		fmt.Println("info_setString(): Unknown key: ", key)
+		fmt.Println("info_setFloat(): Unknown key: ", cmd)
 	}
 
 	return -1
 }
 
-func (app *App) _sa_info_setString(keyMem uint64, valueMem uint64) int64 {
+func (app *App) info_get_prepare(cmd string, prm1 string, prm2 string) int64 {
+
+	var ret int64
+	app.info_string, ret = app._info_get_prepare(cmd, prm1, prm2, true)
+	if ret > 0 {
+		return int64(len(app.info_string))
+	}
+	return -1
+}
+
+func (app *App) _sa_info_get_prepare(keyMem uint64, prm1Mem uint64, prm2Mem uint64) int64 {
+	key, err := app.ptrToString(keyMem)
+	if app.AddLogErr(err) {
+		return -1
+	}
+	prm1, err := app.ptrToString(prm1Mem)
+	if app.AddLogErr(err) {
+		return -1
+	}
+	prm2, err := app.ptrToString(prm2Mem)
+	if app.AddLogErr(err) {
+		return -1
+	}
+
+	return app.info_get_prepare(key, prm1, prm2)
+}
+
+func (app *App) _sa_info_get(dstMem uint64) int64 {
+	err := app.stringToPtr(app.info_string, dstMem)
+	if app.AddLogErr(err) {
+		return -1
+	}
+	return 1
+}
+
+func (app *App) _sa_info_set(keyMem uint64, prm1Mem uint64, prm2Mem uint64, prm3Mem uint64) int64 {
 
 	key, err := app.ptrToString(keyMem)
 	if app.AddLogErr(err) {
 		return -1
 	}
-	value, err := app.ptrToString(valueMem)
+	prm1, err := app.ptrToString(prm1Mem)
+	if app.AddLogErr(err) {
+		return -1
+	}
+	prm2, err := app.ptrToString(prm2Mem)
+	if app.AddLogErr(err) {
+		return -1
+	}
+	prm3, err := app.ptrToString(prm3Mem)
 	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return app.info_setString(key, value)
+	return app.info_set(key, prm1, prm2, prm3)
+}
+
+// prm1 = <file.sqlite>
+// prm2 = <approw_id>
+func (app *App) GetAppFromValue(prm1 string, prm2 string) *App {
+	db := app.db.root.FindDb(app.db.root.folderDatabases + "/" + prm1)
+	if db != nil {
+		app_rowid, err := strconv.Atoi(prm2)
+		if err == nil {
+			return db.FindApp(app_rowid)
+		} else {
+			fmt.Printf("Atoi() failed: %v\n", err)
+		}
+	}
+	return nil
 }
 
 func (app *App) _getResource(url string) ([]byte, error) {
@@ -415,4 +431,20 @@ func (app *App) _sa_blob_len(pathMem uint64) int64 {
 	ret, err := app.resource_len(path)
 	app.AddLogErr(err)
 	return ret
+}
+
+func (app *App) print(str string) {
+	fmt.Println(str)
+}
+func (app *App) _sa_print(strMem uint64) {
+
+	str, err := app.ptrToString(strMem)
+	if app.AddLogErr(err) {
+		return
+	}
+
+	app.print(str)
+}
+func (app *App) _sa_print_float(val float64) {
+	fmt.Println(val)
 }

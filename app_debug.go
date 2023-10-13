@@ -161,35 +161,24 @@ func (ad *AppDebug) Call(fnName string, app *App) (int64, error) {
 			ad._checkRead(fnTp)
 
 		case 1:
-			key := ad.ReadBytes()
-			ret := app.info_float(string(key))
-			ad.WriteFloat64(ret)
+			cmd := ad.ReadBytes()
+			prm1 := ad.ReadBytes()
+			prm2 := ad.ReadBytes()
+			ret := app.info_get_prepare(string(cmd), string(prm1), string(prm2))
+			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 2:
-			key := ad.ReadBytes()
-			value := ad.ReadFloat64()
-			ret := app.info_setFloat(string(key), value)
-			ad.WriteUint64(uint64(ret))
+			ad.WriteBytes([]byte(app.info_string))
+			ad.WriteUint64(uint64(1))
 			ad._checkRead(fnTp)
 
 		case 3:
-			key := ad.ReadBytes()
-			dst, ret := app.info_string(string(key), false)
-			ad.WriteBytes([]byte(dst))
-			ad.WriteUint64(uint64(ret))
-			ad._checkRead(fnTp)
-
-		case 4:
-			key := ad.ReadBytes()
-			ret := app.info_string_len(string(key))
-			ad.WriteUint64(uint64(ret))
-			ad._checkRead(fnTp)
-
-		case 5:
-			key := ad.ReadBytes()
-			value := ad.ReadBytes()
-			ret := app.info_setString(string(key), string(value))
+			cmd := ad.ReadBytes()
+			prm1 := ad.ReadBytes()
+			prm2 := ad.ReadBytes()
+			prm3 := ad.ReadBytes()
+			ret := app.info_set(string(cmd), string(prm1), string(prm2), string(prm3))
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 

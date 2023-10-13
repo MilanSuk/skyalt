@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -132,7 +133,7 @@ func NewRoot(debugPORT int, folderApps string, folderDatabases string, ctx conte
 
 	root.updateDbsList()
 
-	err = root.ReloadApps()
+	err = root.ReopenApps()
 	if err != nil {
 		return nil, fmt.Errorf("ReloadApps() failed: %w", err)
 	}
@@ -169,7 +170,7 @@ func (root *Root) Destroy() {
 	root.ui.Destroy() //also save ini.json
 }
 
-func (root *Root) ReloadApps() error {
+func (root *Root) ReopenApps() error {
 
 	root.styles = DivStyles_getDefaults(root)
 	var err error
@@ -179,7 +180,7 @@ func (root *Root) ReloadApps() error {
 	}
 
 	for _, it := range root.dbs {
-		it.ReloadApps()
+		it.ReopenApps()
 	}
 
 	root.last_ticks = 0
@@ -315,18 +316,17 @@ func (root *Root) DuplicateDb(name string, newName string) bool {
 	return true
 }
 
-func (root *Root) RemoveDb(name string) bool {
+func (root *Root) RemoveDb(path string) bool {
 
 	//finds
-	db, found := root.dbs[name]
+	db, found := root.dbs[path]
 	if found {
 		//close
 		db.Destroy()
-		delete(root.dbs, name)
+		delete(root.dbs, path)
 	}
 
 	//delete file
-	path := root.folderDatabases + "/" + name
 	err := OsFileRemove(path)
 	if err != nil {
 		fmt.Printf("OsFileRemove(%s) failed: %v\n", path, err)
@@ -447,7 +447,7 @@ func (root *Root) Tick() (bool, error) {
 
 		// show fps
 		if root.ui.io.ini.Stats {
-			root.ui.RenderInfoStats(&root.ui_info, &root.vm_info, root.fonts.Get(SKYALT_FONT_PATH))
+			root.RenderInfoStats(&root.ui_info, &root.vm_info, root.fonts.Get(SKYALT_FONT_PATH))
 		}
 
 		root.vm_info.Update(int(OsTicks() - stVmTicks))
@@ -467,6 +467,39 @@ func (root *Root) Tick() (bool, error) {
 	}
 
 	return (run && !root.exit), err
+}
+
+func (root *Root) RenderInfoStats(ui_info *Info, vm_info *Info, font *Font) error {
+	if root.ui == nil {
+		return nil
+	}
+
+	textH := root.ui.io.GetDPI() / 6
+
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	text := fmt.Sprintf("worst FPS(ui: %.1f, vm: %.1f), avg FPS(ui: %.1f, vm: %.1f), Memory(imgs(%dx): %.2fMB, process: %.2fMB), Threads(%d)",
+		ui_info.out_worst_fps, vm_info.out_worst_fps,
+		ui_info.out_avg_fps, vm_info.out_avg_fps,
+		root.NumTextures(), float64(root.GetImagesBytes())/1024/1024, float64(mem.Sys)/1024/1024,
+		runtime.NumGoroutine())
+	//netStats.num_connections_opened-netStats.num_connections_closed, netStats.num_sends, netStats.num_recvs)	//, Net(connections: %d, send: %dx, recv: %dx)
+
+	sz, _ := font.GetTextSize(text, g_Font_DEFAULT_Weight, textH, int(float32(textH)*1.2), true)
+
+	cq := OsV4{root.ui.io.GetCoord().Middle().Sub(sz.MulV(0.5)), sz}
+
+	err := root.ui.render.SetClipRect(cq.GetSDLRect())
+	if err != nil {
+		fmt.Printf("SetClipRect() failed: %v\n", err)
+	}
+	_Ui_boxSE(root.ui.render, cq.Start, cq.End(), OsCd_white())
+	err = font.Print(text, g_Font_DEFAULT_Weight, textH, cq, OsV2{0, 1}, OsCd{255, 50, 50, 255}, nil, true, true, root.ui.render)
+	if err != nil {
+		fmt.Printf("Print() failed: %v\n", err)
+	}
+
+	return nil
 }
 
 func (root *Root) updateDbsList() {
@@ -497,4 +530,36 @@ func (root *Root) GetAppsList() []OsFileList {
 
 func (root *Root) SetDebugLine(line string) {
 	root.debug_line = line
+}
+
+func (root *Root) NumTextures() int {
+	n := 0
+	for _, db := range root.dbs {
+		for _, app := range db.apps {
+			for _, img := range app.images {
+				if img.texture != nil {
+					n++
+				}
+			}
+		}
+	}
+	return n
+}
+
+func (root *Root) GetImagesBytes() int64 {
+	bytes := int64(0)
+	for _, db := range root.dbs {
+		for _, app := range db.apps {
+			for _, img := range app.images {
+				bytes += img.GetBytes()
+			}
+		}
+	}
+	return bytes
+}
+
+func (root *Root) Vacuum() {
+	for _, db := range root.dbs {
+		db.Vacuum()
+	}
 }

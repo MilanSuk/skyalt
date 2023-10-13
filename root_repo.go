@@ -142,11 +142,15 @@ func Render() {
 
 var styles SA_Styles
 
-func Init() {
+func Open() {
 	//default
 	json.Unmarshal(SA_File("storage_json"), &store)
 	json.Unmarshal(SA_File("translations_json:app:translations.json"), &trns)
 	json.Unmarshal(SA_File("styles_json"), &styles)
+}
+
+func SetupDB() {
+	//SA_SqlWrite("", "CREATE TABLE IF NOT EXISTS example(col1 TEXT NOT NULL, col2 REAL NOT NULL);")
 }
 
 func Save() []byte {
@@ -293,6 +297,9 @@ func (root *Root) PackageApp(name string) error {
 	if err != nil {
 		return fmt.Errorf("Commit() failed: %w", err)
 	}
+
+	db.Vacuum()
+
 	return nil
 }
 
@@ -320,7 +327,7 @@ func (root *Root) ExtractApp(name string) error {
 	packagePath := root.folderApps + "/" + name + ".sqlite"
 
 	//remove old
-	if OsFileExists(folderPath) {
+	if OsFolderExists(folderPath) {
 		err := OsFolderRemove(folderPath)
 		if err != nil {
 			return fmt.Errorf("OsFolderRemove(%s) failed: %w", folderPath, err)
