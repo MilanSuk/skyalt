@@ -365,9 +365,9 @@ func (b *PaintBuff) AddCircle(coord OsV4, cd OsCd, thick int) {
 	}
 }
 
-func PaintImage_load(path MediaPath, ui *Ui) (*Image, error) {
+func PaintImage_load(path MediaPath, app *App) (*Image, error) {
 	var img *Image
-	for _, it := range ui.images {
+	for _, it := range app.images {
 		if it.path.Cmp(&path) {
 			img = it
 			break
@@ -376,21 +376,21 @@ func PaintImage_load(path MediaPath, ui *Ui) (*Image, error) {
 
 	if img == nil {
 		var err error
-		img, err = NewImage(path, ui.render)
+		img, err = NewImage(path, app.db.root.ui.render)
 		if err != nil {
 			return nil, fmt.Errorf("NewImage() failed: %w", err)
 		}
 
 		if img != nil {
-			ui.images = append(ui.images, img)
+			app.images = append(app.images, img)
 		}
 	}
 
 	return img, nil
 }
 
-func (b *PaintBuff) AddImage(path MediaPath, coord OsV4, cd OsCd, alignV int, alignH int, fill bool) {
-	img, err := PaintImage_load(path, b.ui)
+func (b *PaintBuff) AddImage(path MediaPath, coord OsV4, cd OsCd, alignV int, alignH int, fill bool, app *App) {
+	img, err := PaintImage_load(path, app)
 	if err != nil {
 		b.AddText(path.GetString()+" has error", coord, path.root.fonts.Get(SKYALT_FONT_PATH), OsCd_error(), path.root.ui.io.GetDPI()/8, OsV2{1, 1}, nil, true)
 		return

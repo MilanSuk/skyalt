@@ -24,7 +24,6 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 	"unsafe"
@@ -112,9 +111,6 @@ type Ui struct {
 	last_redraw_tick        int64
 	skip_draw_on_screen     bool
 	num_skip_draw_on_screen int
-
-	//poly   Poly
-	images []*Image
 
 	cursors []Cursor
 
@@ -217,24 +213,6 @@ func (ui *Ui) SaveScreenshot() error {
 	return nil
 }
 
-func (ui *Ui) NumTextures() int {
-	n := 0
-	for _, img := range ui.images {
-		if img.texture != nil {
-			n++
-		}
-	}
-	return n
-}
-
-func (ui *Ui) GetImagesBytes() int64 {
-	bytes := int64(0)
-	for _, img := range ui.images {
-		bytes += img.GetBytes()
-	}
-	return bytes
-}
-
 func (ui *Ui) StartupAnim() (bool, error) {
 	if ui.particles != nil {
 		ui.particles.StartAnim(5)
@@ -334,13 +312,6 @@ func (ui *Ui) Destroy() error {
 	err = ui.io.Destroy()
 	if err != nil {
 		return fmt.Errorf("IO.Destroy() failed: %w", err)
-	}
-
-	for _, img := range ui.images {
-		err = img.Destroy()
-		if err != nil {
-			return fmt.Errorf("Image.Destroy() failed: %w", err)
-		}
 	}
 
 	for _, cur := range ui.cursors {
@@ -528,12 +499,7 @@ func (ui *Ui) Event() (bool, error) {
 }
 
 func (ui *Ui) Maintenance() {
-	for i := len(ui.images) - 1; i >= 0; i-- {
-		ok, _ := ui.images[i].Maintenance(ui.render)
-		if !ok {
-			ui.images = append(ui.images[:i], ui.images[i+1:]...)
-		}
-	}
+
 }
 
 func (ui *Ui) UpdateIO() (bool, error) {
@@ -848,37 +814,4 @@ func (ui *Ui) RenderTile(text string, coord OsV4, cd OsCd, font *Font) error {
 	}
 
 	return err
-}
-
-func (ui *Ui) RenderInfoStats(ui_info *Info, vm_info *Info, font *Font) error {
-	if ui == nil {
-		return nil
-	}
-
-	textH := ui.io.GetDPI() / 6
-
-	var mem runtime.MemStats
-	runtime.ReadMemStats(&mem)
-	text := fmt.Sprintf("worst FPS(ui: %.1f, vm: %.1f), avg FPS(ui: %.1f, vm: %.1f), Memory(imgs(%dx): %.2fMB, process: %.2fMB), Threads(%d)",
-		ui_info.out_worst_fps, vm_info.out_worst_fps,
-		ui_info.out_avg_fps, vm_info.out_avg_fps,
-		ui.NumTextures(), float64(ui.GetImagesBytes())/1024/1024, float64(mem.Sys)/1024/1024,
-		runtime.NumGoroutine())
-	//netStats.num_connections_opened-netStats.num_connections_closed, netStats.num_sends, netStats.num_recvs)	//, Net(connections: %d, send: %dx, recv: %dx)
-
-	sz, _ := font.GetTextSize(text, g_Font_DEFAULT_Weight, textH, int(float32(textH)*1.2), true)
-
-	cq := OsV4{ui.io.GetCoord().Middle().Sub(sz.MulV(0.5)), sz}
-
-	err := ui.render.SetClipRect(cq.GetSDLRect())
-	if err != nil {
-		fmt.Printf("SetClipRect() failed: %v\n", err)
-	}
-	_Ui_boxSE(ui.render, cq.Start, cq.End(), OsCd_white())
-	err = font.Print(text, g_Font_DEFAULT_Weight, textH, cq, OsV2{0, 1}, OsCd{255, 50, 50, 255}, nil, true, true, ui.render)
-	if err != nil {
-		fmt.Printf("Print() failed: %v\n", err)
-	}
-
-	return nil
 }
