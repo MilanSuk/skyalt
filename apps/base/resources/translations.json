@@ -84,9 +84,17 @@
 "DUPLICATE.en": "Duplicate",
 "DUPLICATE.cs": "Duplikovat",
 
+"VACUUM.en": "Vacuum",
+"VACUUM.cs": "Vákuovat",
+
 "CREATE_FILE.en": "Create file",
 "CREATE_FILE.cs": "Vytvořit soubor",
 
+"CHANGE_APP.en": "Change App",
+"CHANGE_APP.cs": "Změnit Aplikaci",
+
+"SETUP_DB.en": "Setup database",
+"SETUP_DB.cs": "Přednastavit databázi",
 
 "ALREADY_EXISTS.en": "Already exists", 
 "ALREADY_EXISTS.cs": "Již existuje",
@@ -109,20 +117,26 @@
 "DEVELOPERS.en": "Developers", 
 "DEVELOPERS.cs": "Vývojáři",
 
-"CREATE_REPO.en": "Create repository",
-"CREATE_REPO.cs": "Vytvořit repozitář",
+"CREATE_APP.en": "Create App",
+"CREATE_APP.cs": "Vytvořit aplikaci",
 
-"PACKAGE_REPO.en": "Package repository",
-"PACKAGE_REPO.cs": "Zabalit repozitář",
+"PACKAGE_APP.en": "Package App",
+"PACKAGE_APP.cs": "Zabalit aplikaci",
 
-"EXTRACT_REPO.en": "Extract repository",
-"EXTRACT_REPO.cs": "Rozbalit repozitář",
+"REINSTALL_APP.en": "Re/Install App",
+"REINSTALL_APP.cs": "Pře/Instalovat aplikaci",
+
+"VACUUM_DBS.en": "Vacuum all databases", 
+"VACUUM_DBS.cs": "Vakuuovat všechny databáze",
 
 "REPO.en": "Repository",
 "REPO.cs": "Repozitář",
 
 "PACKAGE.en": "Package",
 "PACKAGE.cs": "Balíček",
+
+"SIZE.en": "Size",
+"SIZE.cs": "Velikost",
 
 "LOGS.en": "Logs",
 "LOGS.cs": "Logy"
