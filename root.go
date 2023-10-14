@@ -170,6 +170,10 @@ func (root *Root) Destroy() {
 	root.ui.Destroy() //also save ini.json
 }
 
+func (root *Root) ResetTick() {
+	root.last_ticks = 0
+}
+
 func (root *Root) ReopenApps() error {
 
 	root.styles = DivStyles_getDefaults(root)
@@ -183,7 +187,7 @@ func (root *Root) ReopenApps() error {
 		it.ReopenApps()
 	}
 
-	root.last_ticks = 0
+	root.ResetTick()
 	return nil
 }
 
@@ -385,10 +389,11 @@ func (root *Root) Render() {
 func (root *Root) Tick() (bool, error) {
 
 	if time.Now().UnixMilli() > root.last_ticks+2000 {
+		root.last_ticks = time.Now().UnixMilli() //before, because root.ResetTick() can be called inside
+
 		for _, db := range root.dbs {
 			db.Tick()
 		}
-		root.last_ticks = time.Now().UnixMilli()
 
 		root.updateDbsList()
 

@@ -250,6 +250,8 @@ func (db *Db) Commit() error {
 	db.cache = nil
 
 	db.updateBytes()
+
+	db.root.ResetTick()
 	return err
 }
 func (db *Db) Rollback() error {
@@ -263,6 +265,7 @@ func (db *Db) Rollback() error {
 	//reset queries
 	db.cache = nil
 
+	db.root.ResetTick()
 	return err
 }
 
