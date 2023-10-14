@@ -210,6 +210,11 @@ func (root *Root) AddDb(path string) (*Db, error) {
 		return db, nil
 	}
 
+	//check if file exist
+	if !OsFileExists(path) {
+		return nil, fmt.Errorf("db(%s) file not exist", path)
+	}
+
 	//adds
 	var err error
 	db, err = NewDb(root, path)
