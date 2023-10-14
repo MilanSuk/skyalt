@@ -63,6 +63,7 @@ type FontLetter struct {
 	texture *sdl.Texture
 	x       int
 	y       int
+	h       int
 	len     int
 }
 
@@ -101,6 +102,7 @@ func NewFontLetter(ch rune, font *ttf.Font, style ttf.Style, render *sdl.Rendere
 	}
 	self.x = mt.MinX
 	self.y = mt.MinY // -FontLetter_size(self).y
+	self.h = mt.MaxY
 	self.len = mt.Advance
 
 	if tab {
@@ -357,7 +359,6 @@ func (font *Font) GetDownY(text string, w int, h int, enableFormating bool, rend
 }
 
 func (font *Font) Start(text string, w int, h int, coord OsV4, align OsV2, enableFormating bool, render *sdl.Renderer) (OsV2, error) {
-
 	word_space := 0
 	len := 0
 	//down_y := 0
@@ -383,8 +384,8 @@ func (font *Font) Start(text string, w int, h int, coord OsV4, align OsV2, enabl
 		//	down_y = -l.y
 		//}
 
-		sz, _ := l.Size()
-		max_tex_h = OsMax(max_tex_h, sz.Y)
+		//sz, _ := l.Size()
+		max_tex_h = OsMax(max_tex_h, h) //sz.y
 
 	}
 
