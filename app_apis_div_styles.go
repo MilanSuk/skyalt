@@ -108,7 +108,6 @@ func _paintBorder(out OsV4, top, bottom, left, right float64, radius float64, cd
 
 		q = OsV4{Start: OsV2{in.Start.X + in.Size.X, out.Start.Y}, Size: OsV2{app.getCellWidth(right), out.Size.Y}}
 		if q.Is() {
-
 			stt.buff.AddRect(q, cd, 0)
 		}
 	}
@@ -572,7 +571,6 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.ButtonAlpha.DisableAuto()
 		//stls.ButtonAlpha.Disable.Content_color = OsCd{}
 		//stls.ButtonAlpha.Disable.Color = OsCd_Aprox(root.themeCd(), themeWhite(), 0.7)
-
 	}
 
 	{
@@ -731,7 +729,6 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.ProgressStatus.FontAlignV(1)
 		stls.ProgressStatus.DisableAuto()
 		//stls.ProgressStatus.Disable.Content_color = OsCd_Aprox(stls.ProgressStatus.Main.Content_color, themeWhite(), 0.5)
-
 	}
 
 	{
@@ -763,7 +760,6 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 
 		stls.CheckboxLabel = stls.Text
 		stls.CheckboxLabel.Cursor("hand")
-
 	}
 
 	return stls
