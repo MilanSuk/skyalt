@@ -187,6 +187,8 @@ func NewDb(root *Root, path string) (*Db, error) {
 		return nil, fmt.Errorf("Open(%s) failed: %w", path, err)
 	}
 
+	fmt.Println("DbOpen: ", path)
+
 	//db.Exec("ATTACH 'path/to/file.db' AS attached") ...
 
 	db.updateBytes()
@@ -199,6 +201,10 @@ func (db *Db) Destroy() {
 		app.Destroy()
 	}
 
+	db.Commit()
+	//db.db.Exec("PRAGMA wal_checkpoint(full);")
+
+	fmt.Println("DbClose: ", db.path)
 	err := db.db.Close()
 	if err != nil {
 		fmt.Printf("db(%s).Destroy() failed: %v\n", db.path, err)

@@ -341,14 +341,15 @@ func (root *Root) ExtractApp(name string) error {
 	}
 	defer db.Destroy()
 
-	q, err := db.db.Query("SELECT path, file FROM __skyalt__")
+	rows, err := db.db.Query("SELECT path, file FROM __skyalt__")
 	if err != nil {
 		return fmt.Errorf("Query(SELECT ...) failed: %w", err)
 	}
-	for q.Next() {
+	defer rows.Close()
+	for rows.Next() {
 		var path string
 		var data []byte
-		err = q.Scan(&path, &data)
+		err = rows.Scan(&path, &data)
 		if err != nil {
 			return fmt.Errorf("Scan() failed: %w", err)
 		}
@@ -367,10 +368,6 @@ func (root *Root) ExtractApp(name string) error {
 		if err != nil {
 			return fmt.Errorf("WriteFile(%s) failed: %w", path, err)
 		}
-	}
-	err = q.Close()
-	if err != nil {
-		return fmt.Errorf("Close() failed: %w", err)
 	}
 
 	return nil

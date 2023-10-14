@@ -142,12 +142,12 @@ func (ip *MediaPath) GetBlob() ([]byte, *Db, error) {
 			return nil, nil, fmt.Errorf("AddDb() failed: %w", err)
 		}
 
-		res := db.db.QueryRow("SELECT "+ip.column+" FROM "+ip.table+" WHERE _rowid_ = ?;", ip.row)
-		if res == nil {
+		row := db.db.QueryRow("SELECT "+ip.column+" FROM "+ip.table+" WHERE _rowid_ = ?;", ip.row)
+		if row == nil {
 			return nil, nil, fmt.Errorf("QueryRow() failed")
 		}
 
-		err = res.Scan(&data)
+		err = row.Scan(&data)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Scan() failed: %w", err)
 		}

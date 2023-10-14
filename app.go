@@ -139,6 +139,7 @@ func (db *Db) AddFirstRowId(appName string) error {
 	if err != nil {
 		return fmt.Errorf("SELECT() failed: %w", err)
 	}
+	defer rows.Close()
 	if rows.Next() {
 		return nil //ok
 	}
@@ -192,10 +193,10 @@ func (app *App) GetLog(remove bool) string {
 
 func (app *App) GetStorage() ([]byte, error) {
 
-	rows := app.db.db.QueryRow("SELECT storage FROM __skyalt__ WHERE rowid=?", app.app_rowid)
+	row := app.db.db.QueryRow("SELECT storage FROM __skyalt__ WHERE rowid=?", app.app_rowid)
 
 	var js []byte
-	err := rows.Scan(&js)
+	err := row.Scan(&js)
 	if err != nil {
 		return nil, fmt.Errorf("Scan() failed: %w", err)
 	}
@@ -215,10 +216,10 @@ func (app *App) SetStorage(js []byte) error {
 
 func (app *App) GetGui() ([]byte, error) {
 
-	rows := app.db.db.QueryRow("SELECT gui FROM __skyalt__ WHERE rowid=?", app.app_rowid)
+	row := app.db.db.QueryRow("SELECT gui FROM __skyalt__ WHERE rowid=?", app.app_rowid)
 
 	var js []byte
-	err := rows.Scan(&js)
+	err := row.Scan(&js)
 	if err != nil {
 		return nil, fmt.Errorf("Scan() failed: %w", err)
 	}
@@ -345,6 +346,8 @@ func (app *App) CallOpen() {
 			fmt.Printf("Query() failed: %v\n", err)
 			return
 		}
+		defer rows.Close()
+
 		num_tables := 0
 		for rows.Next() {
 			var nm string
