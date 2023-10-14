@@ -56,6 +56,9 @@ func NewApp(db *Db, app_rowid int) (*App, error) {
 		}
 
 		app.name, _, err = app.GetAppName()
+		if err != nil {
+			return nil, fmt.Errorf("GetAppName() failed: %w", err)
+		}
 	}
 
 	//extract
