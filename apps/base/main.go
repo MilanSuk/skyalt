@@ -340,7 +340,7 @@ func DevCreateRepo() {
 	SA_Combo(&store.Repo_lang, "Go").ShowDescription(0, 2, 1, 1, trns.LANGUAGE, 3, nil) //"Go/C/Rust"
 
 	if SA_Button(trns.CREATE_APP).Enable(len(store.repo_name) > 0).Show(0, 4, 1, 1).click {
-		SA_InfoSet("new_app", store.repo_name+"/"+langs[store.Repo_lang], "", "")
+		SA_InfoSet("new_app", store.repo_name, langs[store.Repo_lang], "")
 		store.repo_name = "" //reset
 		SA_DialogClose()
 	}
