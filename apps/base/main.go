@@ -901,6 +901,7 @@ func Files() {
 						store.SelectedApp = -1
 					}
 					SA_InfoSet("remove_file", file.Name, "", "")
+					file.Expand = false //disable so there is no SA_SqlRead() for apps info
 				}
 				SA_DialogEnd()
 			}
@@ -1268,7 +1269,8 @@ func Open() {
 
 	//styles
 	g_ButtonAddApp = styles.ButtonBorder
-	g_ButtonAddApp.Margin(0.17)
+	g_ButtonAddApp.BorderColor(SA_ThemeCd().Aprox(SA_ThemeWhite(), 0.5))
+	g_ButtonAddApp.Margin(0.14)
 }
 
 func SetupDB() {
