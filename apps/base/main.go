@@ -181,7 +181,7 @@ var trns Translations
 // https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
 const g_langs = "English|Chinese(中文)|Hindi(हिंदी)|Spanish(Español)|Russian(Руштина)|Czech(Česky)"
 
-var g_lang_codes = []string{"", "en", "zh", "hi", "es", "ru", "cs"}
+var g_lang_codes = []string{"en", "zh", "hi", "es", "ru", "cs"}
 
 func FindLangCode(lng string) int {
 	for ii, cd := range g_lang_codes {
@@ -262,7 +262,7 @@ func Settings() {
 
 		SA_DivStart(1, y, 1, 1)
 		if SA_ButtonLight("+").Show(0, 0, 1, 1).click {
-			SA_InfoSet("languages", SA_InfoGet("languages", "", "")+"/", "", "")
+			SA_InfoSet("languages", SA_InfoGet("languages", "", "")+"/en", "", "")
 		}
 		y++
 		SA_DivEnd()
