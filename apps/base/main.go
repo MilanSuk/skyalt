@@ -559,6 +559,10 @@ func GetFileNumApps(file *File) int {
 	return num
 }
 
+func SaveApp(file *File, app_rowid int) {
+	SA_InfoSet("save_app", file.Name, strconv.Itoa(app_rowid), "")
+}
+
 func WriteApp(file *File, query string, commit bool) int {
 	insRow := SA_SqlWrite("dbs:"+file.Name, query)
 
@@ -597,11 +601,11 @@ func RefreshSort(file *File) {
 	SA_SqlCommit("dbs:" + file.Name)
 }
 
-func MoveApp(src_file *File, dst_file *File, src int, dst int, pos SA_Drop_POS) {
+func MoveApp(src_file *File, dst_file *File, src_rowid int, dst_rowid int, pos SA_Drop_POS) {
 
 	dst_sort := 1000.0
 	if pos != SA_Drop_INSIDE {
-		q := SA_SqlRead("dbs:"+dst_file.Name, fmt.Sprintf("SELECT sort FROM __skyalt__ WHERE rowid=%d", dst))
+		q := SA_SqlRead("dbs:"+dst_file.Name, fmt.Sprintf("SELECT sort FROM __skyalt__ WHERE rowid=%d", dst_rowid))
 		q.Next(&dst_sort)
 		if pos == SA_Drop_V_LEFT || pos == SA_Drop_H_LEFT {
 			dst_sort -= 0.5
@@ -612,21 +616,23 @@ func MoveApp(src_file *File, dst_file *File, src int, dst int, pos SA_Drop_POS) 
 
 	if src_file == dst_file {
 		//update
-		WriteApp(src_file, fmt.Sprintf("UPDATE __skyalt__ SET sort=%f WHERE rowid=%d", dst_sort, src), true)
+		WriteApp(src_file, fmt.Sprintf("UPDATE __skyalt__ SET sort=%f WHERE rowid=%d", dst_sort, src_rowid), true)
 
 		//refresh
 		RefreshSort(src_file)
 	} else {
 
+		SaveApp(src_file, src_rowid)
+
 		//backup
-		q := SA_SqlRead("dbs:"+src_file.Name, fmt.Sprintf("SELECT label, app, storage FROM __skyalt__ WHERE rowid=%d;", src))
+		q := SA_SqlRead("dbs:"+src_file.Name, fmt.Sprintf("SELECT label, app, storage FROM __skyalt__ WHERE rowid=%d;", src_rowid))
 		var app_label string
 		var app_name string
 		var app_storage []byte
 		q.Next(&app_label, &app_name, &app_storage)
 
 		//remove
-		WriteApp(src_file, fmt.Sprintf("DELETE FROM __skyalt__ WHERE rowid=%d;", src), true)
+		WriteApp(src_file, fmt.Sprintf("DELETE FROM __skyalt__ WHERE rowid=%d;", src_rowid), true)
 
 		//add
 		WriteApp(dst_file, fmt.Sprintf("INSERT INTO __skyalt__(label, app, sort, storage) VALUES('%s','%s', %f, '%s');", app_label, app_name, dst_sort, string(app_storage)), true)
@@ -837,11 +843,7 @@ func Files() {
 					SA_DialogClose()
 					SA_DialogOpen("DuplicateFile_"+file.Name, 1)
 
-					if strings.HasSuffix(file.Name, ".sqlite") {
-						store.duplicateName = file.Name[:len(file.Name)-7] + "_2.sqlite"
-					} else {
-						store.duplicateName += "_2"
-					}
+					store.duplicateName = file.Name[:len(file.Name)-7] + "_2" //cut ".sqlite"
 				}
 
 				if SA_ButtonMenu(trns.VACUUM).Show(0, 2, 1, 1).click {
@@ -878,9 +880,14 @@ func Files() {
 
 				SA_Editbox(&store.duplicateName).Error(nil).Show(0, 0, 1, 1)
 				if SA_Button(trns.DUPLICATE).Enable(len(store.duplicateName) > 0).Show(0, 1, 1, 1).click { //check if file name exist ...
-					if SA_InfoSet("duplicate_file", file.Name, store.duplicateName, "") {
-						file.Name = store.duplicateName
+
+					if !strings.HasSuffix(store.duplicateName, ".sqlite") {
+						store.duplicateName += ".sqlite"
 					}
+
+					SA_InfoSet("duplicate_file", file.Name, store.duplicateName, "")
+
+					store.duplicateName = ""
 					SA_DialogClose()
 				}
 
@@ -1062,6 +1069,8 @@ func Files() {
 						if SA_Button(trns.DUPLICATE).Enable(len(store.duplicateName) > 0).Show(0, 1, 1, 1).click { //check if file name exist ...
 
 							if len(store.duplicateName) > 0 {
+								SaveApp(file, app_rowid)
+
 								q := SA_SqlRead("dbs:"+file.Name, fmt.Sprintf("SELECT storage FROM __skyalt__ WHERE rowid=%d;", app_rowid))
 								var app_storage []byte
 								q.Next(&app_storage)
@@ -1089,6 +1098,7 @@ func Files() {
 						}
 						list, _ = strings.CutSuffix(list, "|")
 						if SA_Combo(&store.app_id, list).ShowDescription(0, 0, 1, 1, trns.PACKAGE, 3, nil) {
+							SaveApp(file, app_rowid)
 							WriteApp(file, fmt.Sprintf("UPDATE __skyalt__ SET app='%s' WHERE rowid=%d", store.appList[ids[store.app_id]].Name, app_rowid), false)
 							SA_DialogClose()
 						}
