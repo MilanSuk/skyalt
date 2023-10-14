@@ -1658,6 +1658,15 @@ func (b *_SA_Style) ContentColor(v SACd) *_SA_Style {
 	return b
 }
 
+func (b *_SA_Style) BorderColor(v SACd) *_SA_Style {
+	b.Main.Border_color = v
+	b.Hover.Border_color = v
+	b.Touch_hover.Border_color = v
+	b.Touch_out.Border_color = v
+	b.Disable.Border_color = v
+	return b
+}
+
 //more ...
 
 type SA_Styles struct {
