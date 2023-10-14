@@ -70,7 +70,7 @@ There are few implementations of local-first platforms and most of them use Webk
 - **Experimental**
 - go-lang SDK only
 - Linux / Windows / Mac(untested)
-- ~15K LOC
+- ~16K LOC
 
 *SkyAlt is ~3 months old. Right now, highest priority is providing best developer experience through high range of use-cases so we iterate and change apis() a lot => apps need to be edited and recompiled to wasm!*
 
@@ -80,6 +80,8 @@ There are few implementations of local-first platforms and most of them use Webk
 - v0.0(Aug 5, 2023): 1st line written.
 - v0.1(Sep 11, 2023): Basic demo. Calendar, Map, 7Gui apps.
 - v0.2(Sep 25, 2023): Styles(for buttons, texts, etc.). Better debugging. Performance improvements. Bugs fixed.
+- v0.3(Oct 14, 2023): Way better developer experience. Bugs fixed.
+- *v0.4(in progress): E2EE hosting. Charts and Gallery apps.*
 
 Downloads: [GitHub's Releases](https://github.com/MilanSuk/skyalt/releases)
 
