@@ -179,7 +179,7 @@ type Translations struct {
 var trns Translations
 
 // https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
-const g_langs = "|English|Chinese(中文)|Hindi(हिंदी)|Spanish(Español)|Russian(Руштина)|Czech(Česky)"
+const g_langs = "English|Chinese(中文)|Hindi(हिंदी)|Spanish(Español)|Russian(Руштина)|Czech(Česky)"
 
 var g_lang_codes = []string{"", "en", "zh", "hi", "es", "ru", "cs"}
 

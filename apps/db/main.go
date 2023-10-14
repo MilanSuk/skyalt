@@ -115,7 +115,7 @@ func (f *FilterItem) GetOpString() string {
 	return ""
 }
 func Filter_getOptions() string {
-	return "=|<>|<=|>=|<|>|"
+	return "=|<>|<=|>=|<|>"
 }
 
 type Filter struct {
@@ -728,9 +728,7 @@ func ColumnsCombo(table *Table, selectedColumn *string, enable bool) {
 			pos = i
 		}
 	}
-	if len(opts) > 0 {
-		opts = opts[:len(opts)-1] //cut last '|'
-	}
+	opts, _ = strings.CutSuffix(opts, "|")
 
 	var err error
 	if pos < 0 {
