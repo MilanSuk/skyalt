@@ -110,32 +110,31 @@ go build
 
 ## Create, debug and compile an app
 #### Create
-- open the main Menu(SkyAlt logo) and under "Developers" click "Create app".
-- set the name of the app and the programming language. Click the "Create App" button.
+1) open the main Menu(SkyAlt logo) and under "Developers" click "Create app".
+2) set the name of the app and the programming language. Click the "Create App" button.
 
 *The new app is created inside `/apps` folder.*
 
 #### Debug
-- in SkyAlt, add your new app under some database(SkyAlt will complain that 'main.wasm' is missing, ignore it).
-- open VSCode. From the top menu select "File" -> "Open Folder" and select your app folder. Run the app with the F5 key.
-- in SkyAlt, the app will show up with a blue border(that means it's in debug mode).
+1) in SkyAlt, add your new app under some database(SkyAlt will complain that 'main.wasm' is missing, ignore it).
+2) open VSCode. From the top menu select "File" -> "Open Folder" and select your app folder. Run the app with the F5 key.
+3) in SkyAlt, the app will show up with a blue border(that means it's in debug mode).
 
 *You can stop the debugger and run it again as many times as you want. No need to close SkyAlt.*<br/>
 *When you debug, SkyAlt replaces WASI(WASM interface) with TCP connection. No WASM included.*
 
 #### Compile WASM
-- install tinygo compiler with `sudo apt-get install tinygo`.
-- run `sh build_wasm` from your app folder.
-- `main.wasm` is created in the same folder.
+1) install tinygo compiler with `sudo apt-get install tinygo`.
+2) run `sh build_wasm` from your app folder.
+3) `main.wasm` is created in the same folder.
 
 *After this, SkyAlt will stop complaining that 'main.wasm' is missing.*
 
 #### Package
-- open the main Menu(SkyAlt logo) and under "Developers" click "Package app".
-- select the app. Click the 'Package app' button.
+1) open the main Menu(SkyAlt logo) and under "Developers" click "Package app".
+2) select the app. Click the 'Package app' button.
 
 *All app's files are copied into a single `<app_name>.sqlite` file, which you can find in `/apps` folder.*
-
 
 
 
