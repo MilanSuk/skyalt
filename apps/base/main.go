@@ -398,7 +398,7 @@ func About() {
 
 	SA_Image("app:resources/logo.png").Show(0, 1, 1, 1)
 
-	SA_TextCenter("v0.3").Show(0, 2, 1, 1)
+	SA_TextCenter("v0.4").Show(0, 2, 1, 1)
 
 	SA_ButtonAlpha("www.skyalt.com").Url("https://www.skyalt.com").Show(0, 3, 1, 1)
 	SA_ButtonAlpha("github.com/milansuk/skyalt/").Url("https://github.com/milansuk/skyalt/").Show(0, 4, 1, 1)
