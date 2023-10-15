@@ -556,15 +556,14 @@ func Side() {
 
 		SA_DivStart(0, 6, 1, 1)
 		{
-			SA_ColMax(0, 100)
-			if SA_Button("<<").Show(1, 0, 1, 1).click {
+			if SA_Button(">>").Show(0, 0, 2, 1).click {
 				store.ShowSide = false
 			}
 		}
 		SA_DivEnd()
 	} else {
 		SA_RowMax(0, 100)
-		if SA_Button(">>").Show(0, 1, 1, 1).click {
+		if SA_Button("<<").Show(0, 1, 1, 1).click {
 			store.ShowSide = true
 		}
 	}
@@ -701,7 +700,7 @@ func ModeMonth() {
 						//fmt.Print(dtt)
 						t := dtt.Unix()
 						t -= t % (24 * 3600)
-						query := SA_SqlRead("", fmt.Sprintf("SELECT rowid, start, title FROM events WHERE start >= %d AND start < %d ORDER BY start", t, t+(24*3600)))
+						query := SA_SqlRead("", fmt.Sprintf("SELECT rowid, start, end, title FROM events WHERE start >= %d AND start < %d ORDER BY start", t, t+(24*3600)))
 
 						SA_DivSetInfo("scrollVnarrow", 1)
 						//paintRect(borderWidth:0.03, margin: 0.1, color: themeGrey())
@@ -711,11 +710,11 @@ func ModeMonth() {
 						}
 
 						y := 0
-						var rowid, start int64
+						var rowid, start, end int64
 						var title string
-						for query.Next(&rowid, &start, &title) {
+						for query.Next(&rowid, &start, &end, &title) {
 
-							if SA_ButtonStyle(title, &g_ButtonEvent).Tooltip(GetTextTime(start)).Show(0, y, 1, 1).click {
+							if SA_ButtonStyle(title, &g_ButtonEvent).Tooltip(title+": "+GetTextTime(start)+" - "+GetTextTime(end)).Show(0, y, 1, 1).click {
 								SA_DialogOpen(fmt.Sprintf("eventDetail_%d", rowid), 1)
 							}
 
@@ -961,7 +960,7 @@ func DayEvent(t int64) {
 			}
 
 			for i, it := range cols[c] {
-				if SA_Button(it.title).Tooltip(GetTextTime(it.start)+"-"+GetTextTime(it.end)).Show(0, i*2+1, 1, 1).click {
+				if SA_Button(it.title).Tooltip(it.title+": "+GetTextTime(it.start)+" - "+GetTextTime(it.end)).Show(0, i*2+1, 1, 1).click {
 					SA_DialogOpen(fmt.Sprintf("eventDetail_%d", it.rowid), 1)
 				}
 
@@ -1144,18 +1143,19 @@ func ModePanel() {
 func Render() {
 
 	if store.ShowSide {
-		SA_Col(0, 6.3)
+		SA_Col(1, 6.3)
 	}
-	SA_ColMax(1, 100)
+	SA_ColMax(0, 100)
 	SA_RowMax(0, 100)
 
 	SA_DivStart(0, 0, 1, 1)
-	Side()
+	ModePanel()
 	SA_DivEnd()
 
 	SA_DivStart(1, 0, 1, 1)
-	ModePanel()
+	Side()
 	SA_DivEnd()
+
 }
 
 var styles SA_Styles
