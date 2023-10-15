@@ -81,8 +81,15 @@ func NewRoot(debugPORT int, folderApps string, folderDatabases string, ctx conte
 	root.folderApps = folderApps
 	root.folderDatabases = folderDatabases
 
-	os.Mkdir(folderApps, 0700)
-	os.Mkdir(folderDatabases, 0700)
+	err = OsFolderCreate(folderApps)
+	if err != nil {
+		return nil, fmt.Errorf("OsFolderCreate() failed: %w", err)
+	}
+
+	err = OsFolderCreate(folderDatabases)
+	if err != nil {
+		return nil, fmt.Errorf("OsFolderCreate() failed: %w", err)
+	}
 
 	if !OsFolderExists(folderApps) {
 		return nil, fmt.Errorf("Folder(%s) not exist", folderApps)

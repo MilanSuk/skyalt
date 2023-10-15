@@ -535,6 +535,10 @@ func OsFolderExists(fileName string) bool {
 	return info.IsDir()
 }
 
+func OsFolderCreate(path string) error {
+	return os.MkdirAll(path, os.ModePerm)
+}
+
 func OsFolderRemove(path string) error {
 	return os.RemoveAll(path)
 }
@@ -616,8 +620,10 @@ func OsUlit_GetUID() (string, error) {
 	return fmt.Sprintf("%x", h.h), nil
 }
 
+const OsHash_SIZE = 32
+
 type OsHash struct {
-	h [32]byte
+	h [OsHash_SIZE]byte
 }
 
 func InitOsHash(src []byte) (OsHash, error) {
@@ -632,11 +638,28 @@ func InitOsHash(src []byte) (OsHash, error) {
 		return OsHash{}, err
 	}
 
-	return OsHash{h: [32]byte(h.Sum(nil))}, nil
+	return OsHash{h: [OsHash_SIZE]byte(h.Sum(nil))}, nil
+}
+
+func InitOsHashCopy(src_hash []byte) OsHash {
+	var h OsHash
+	if len(src_hash) == OsHash_SIZE {
+		copy(h.h[:], src_hash[:])
+	}
+	//else empty
+	return h
 }
 
 func (a *OsHash) Cmp(b *OsHash) bool {
 	return bytes.Equal(a.h[:], b.h[:])
+}
+
+func (a OsHash) CmpBytes(b []byte) bool {
+	if len(b) == OsHash_SIZE {
+		return bytes.Equal(a.h[:], b)
+	}
+
+	return a.Cmp(&OsHash{}) //is empty
 }
 
 func (h *OsHash) GetInt64() int64 {

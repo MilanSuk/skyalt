@@ -26,9 +26,9 @@ import (
 func (root *Root) _createGoApp(appFolder string) error {
 
 	vsCodeFolder := appFolder + "/.vscode"
-	err := os.Mkdir(vsCodeFolder, 0700)
+	err := OsFolderCreate(vsCodeFolder)
 	if err != nil {
-		return fmt.Errorf("Mkdir(%s) failed: %w", vsCodeFolder, err)
+		return fmt.Errorf("OsFolderCreate(%s) failed: %w", vsCodeFolder, err)
 	}
 
 	{
@@ -210,9 +210,9 @@ func (root *Root) CreateApp(name string, lang string) error {
 	}
 
 	appFolder := root.folderApps + "/" + name
-	err := os.Mkdir(appFolder, 0700)
+	err := OsFolderCreate(appFolder)
 	if err != nil {
-		return fmt.Errorf("Mkdir(%s) failed: %w", appFolder, err)
+		return fmt.Errorf("OsFolderCreate(%s) failed: %w", appFolder, err)
 	}
 
 	if strings.ToLower(lang) == "go" {
@@ -358,9 +358,9 @@ func (root *Root) ExtractApp(name string) error {
 
 		//create folders
 		dir := filepath.Dir(path)
-		err = os.MkdirAll(dir, 0700)
+		err = OsFolderCreate(dir)
 		if err != nil {
-			return fmt.Errorf("MkdirAll(%s) failed: %w", dir, err)
+			return fmt.Errorf("OsFolderCreate(%s) failed: %w", dir, err)
 		}
 
 		//write file
