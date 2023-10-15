@@ -815,12 +815,14 @@ func ModeWeek() {
 		//grid
 		for y := 0; y < 25; y++ {
 			SA_DivStart(1, y*2, 7, 2)
+			SA_DivSetInfo("touch_enable", 0)
 			SAPaint_Line(0, 0.5, 1, 0.5, SA_ThemeGrey(0.75), 0.03)
 			SA_DivEnd()
 		}
 
 		for x := 1; x < 7; x++ {
 			SA_DivStart(1+x, 0, 1, 24*2+1)
+			SA_DivSetInfo("touch_enable", 0)
 			SAPaint_Line(0, 0, 0, 1, SA_ThemeGrey(0.75), 0.03)
 			SA_DivEnd()
 		}
@@ -979,6 +981,7 @@ func ModeDay() {
 		//grid
 		for y := 0; y < 25; y++ {
 			SA_DivStart(1, y*2, 1, 2)
+			SA_DivSetInfo("touch_enable", 0)
 			SAPaint_Line(0, 0.5, 1, 0.5, SA_ThemeGrey(0.75), 0.03)
 			SA_DivEnd()
 		}
