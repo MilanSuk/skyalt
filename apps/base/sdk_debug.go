@@ -397,31 +397,48 @@ func _sa_div_start(x, y, w, h uint64, nameMem SAMem) int64 {
 	return ret
 }
 
-func _sa_div_end() {
+func _sa_div_startEx(x, y, w, h uint64, rx, ry, rw, rh float64, nameMem SAMem) int64 {
 	WriteUint64(27)
+	WriteUint64(x)
+	WriteUint64(y)
+	WriteUint64(w)
+	WriteUint64(h)
+	WriteFloat64(rx)
+	WriteFloat64(ry)
+	WriteFloat64(rw)
+	WriteFloat64(rh)
+	WriteMem(nameMem)
+
+	ret := int64(ReadUint64())
 	_checkRead(27)
+	return ret
+}
+
+func _sa_div_end() {
+	WriteUint64(28)
+	_checkRead(28)
 }
 
 func _sa_div_get_info(idMem SAMem, x int64, y int64) float64 {
-	WriteUint64(28)
+	WriteUint64(29)
 	WriteMem(idMem)
 	WriteUint64(uint64(x))
 	WriteUint64(uint64(y))
 
 	ret := ReadFloat64()
-	_checkRead(28)
+	_checkRead(29)
 	return ret
 }
 
 func _sa_div_set_info(idMem SAMem, val float64, x int64, y int64) float64 {
-	WriteUint64(29)
+	WriteUint64(30)
 	WriteMem(idMem)
 	WriteFloat64(val)
 	WriteUint64(uint64(x))
 	WriteUint64(uint64(y))
 
 	ret := ReadFloat64()
-	_checkRead(29)
+	_checkRead(30)
 	return ret
 }
 

@@ -280,7 +280,7 @@ func (app *App) Call(fnName string) (int64, error) {
 func (app *App) Render(startIt bool) {
 
 	if startIt {
-		app.renderStart()
+		app.renderStart(0, 0, 1, 1)
 	}
 	if app.IsReadyToFire() {
 		_, err := app.Call("_sa_render")

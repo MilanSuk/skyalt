@@ -256,7 +256,7 @@ func (div *LayoutDiv) UpdateGrid(ui *Ui) {
 	}
 }
 
-func (div *LayoutDiv) UpdateCoord(ui *Ui) {
+func (div *LayoutDiv) UpdateCoord(rx, ry, rw, rh float64, ui *Ui) {
 
 	parent := div.parent
 	//backup := laypack.canvas
@@ -264,6 +264,11 @@ func (div *LayoutDiv) UpdateCoord(ui *Ui) {
 	if parent != nil {
 		div.canvas = parent.data.Convert(ui.Cell(), div.grid)
 		div.canvas.Start = parent.canvas.Start.Add(div.canvas.Start)
+
+		div.canvas.Start.X += int(float64(div.canvas.Size.X) * rx)
+		div.canvas.Start.Y += int(float64(div.canvas.Size.Y) * ry)
+		div.canvas.Size.X = int(float64(div.canvas.Size.X) * rw)
+		div.canvas.Size.Y = int(float64(div.canvas.Size.Y) * rh)
 
 		// move start by scroll
 		div.canvas.Start.Y -= parent.data.scrollV.GetWheel()

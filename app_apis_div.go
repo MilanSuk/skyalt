@@ -75,13 +75,13 @@ func (app *App) _VmBasic_RenderScroll(packLayout *LayoutDiv, showBackground bool
 	}
 }
 
-func (app *App) renderStart() {
+func (app *App) renderStart(rx, ry, rw, rh float64) {
 
 	root := app.db.root
 	st := root.levels.GetStack()
 
 	st.stack.data.Reset() //here because after *dialog* needs to know old size
-	st.stack.UpdateCoord(root.ui)
+	st.stack.UpdateCoord(rx, ry, rw, rh, root.ui)
 
 	enableInput := st.stack.data.touch_enabled
 	if st.stack.parent == nil {
@@ -184,7 +184,7 @@ func (app *App) renderEnd(baseDiv bool) {
 	}
 }
 
-func (app *App) div_start(x, y, w, h uint64, name string) int64 {
+func (app *App) div_startEx(x, y, w, h uint64, rx, ry, rw, rh float64, name string) int64 {
 
 	root := app.db.root
 	st := root.levels.GetStack()
@@ -200,9 +200,13 @@ func (app *App) div_start(x, y, w, h uint64, name string) int64 {
 	grid := InitOsQuad(int(x), int(y), int(w), int(h))
 	st.stack = st.stack.FindOrCreate(name, grid, app)
 
-	app.renderStart()
+	app.renderStart(rx, ry, rw, rh)
 
 	return int64(OsTrn(!st.stack.crop.IsZero(), 1, 0))
+}
+
+func (app *App) div_start(x, y, w, h uint64, name string) int64 {
+	return app.div_startEx(x, y, w, h, 0, 0, 1, 1, name)
 }
 
 func (app *App) _sa_div_start(x, y, w, h uint64, nameMem uint64) int64 {
@@ -228,6 +232,14 @@ func (app *App) _sa_div_end() {
 	}
 
 	app.renderEnd(false)
+}
+
+func (app *App) _sa_div_startEx(x, y, w, h uint64, rx, ry, rw, rh float64, nameMem uint64) int64 {
+	name, err := app.ptrToString(nameMem)
+	if app.AddLogErr(err) {
+		return -1
+	}
+	return app.div_startEx(x, y, w, h, rx, ry, rw, rh, name)
 }
 
 func (app *App) checkGridLock() bool {
@@ -476,7 +488,7 @@ func (app *App) div_dialogStart(name string) int64 {
 		app.AddLogErr(err)
 	}
 
-	app.renderStart()
+	app.renderStart(0, 0, 1, 1)
 
 	return 1 //active/open
 }

@@ -304,6 +304,11 @@ func SA_DivStartName(x, y, w, h int, name string) bool {
 func SA_DivStart(x, y, w, h int) bool {
 	return SA_DivStartName(x, y, w, h, "")
 }
+func SA_DivStartEx(x, y, w, h int, rx, ry, rw, rh float64, name string) bool {
+	ret := _sa_div_startEx(uint64(x), uint64(y), uint64(w), uint64(h), rx, ry, rw, rh, _SA_stringToPtr(name)) != 0
+	_SA_DebugLine()
+	return ret
+}
 
 func SA_DivEnd() {
 	_sa_div_end()

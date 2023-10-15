@@ -128,6 +128,10 @@ func _sa_div_row(pos uint64, val float64) float64
 //go:wasmimport env _sa_div_start
 func _sa_div_start(x, y, w, h uint64, nameMem SAMem) int64
 
+//export _sa_div_startEx
+//go:wasmimport env _sa_div_startEx
+func _sa_div_startEx(x, y, w, h uint64, rx, ry, rw, rh float64, nameMem SAMem) int64
+
 //export _sa_div_end
 //go:wasmimport env _sa_div_end
 func _sa_div_end()

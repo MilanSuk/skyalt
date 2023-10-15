@@ -322,10 +322,24 @@ func (ad *AppDebug) Call(fnName string, app *App) (int64, error) {
 			ad._checkRead(fnTp)
 
 		case 27:
-			app._sa_div_end()
+			x := ad.ReadUint64()
+			y := ad.ReadUint64()
+			w := ad.ReadUint64()
+			h := ad.ReadUint64()
+			rx := ad.ReadFloat64()
+			ry := ad.ReadFloat64()
+			rw := ad.ReadFloat64()
+			rh := ad.ReadFloat64()
+			name := string(ad.ReadBytes())
+			ret := app.div_startEx(x, y, w, h, rx, ry, rw, rh, name)
+			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
 		case 28:
+			app._sa_div_end()
+			ad._checkRead(fnTp)
+
+		case 29:
 			name := string(ad.ReadBytes())
 			x := int64(ad.ReadUint64())
 			y := int64(ad.ReadUint64())
@@ -333,7 +347,7 @@ func (ad *AppDebug) Call(fnName string, app *App) (int64, error) {
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
-		case 29:
+		case 30:
 			name := string(ad.ReadBytes())
 			val := ad.ReadFloat64()
 			x := int64(ad.ReadUint64())
