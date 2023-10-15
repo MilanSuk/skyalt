@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -29,14 +30,16 @@ type DebugServer struct {
 	apps   []*AppDebug
 }
 
-func NewDebugServer(PORT int) (*DebugServer, error) {
+func NewDebugServer(port int) (*DebugServer, error) {
 	var server DebugServer
 
 	var err error
-	server.listen, err = net.Listen("tcp", "localhost:"+strconv.Itoa(PORT))
+	server.listen, err = net.Listen("tcp", "localhost:"+strconv.Itoa(port))
 	if err != nil {
 		return nil, fmt.Errorf("Listen() failed: %w", err)
 	}
+
+	fmt.Printf("Running DebugServer on port: %d\n", port)
 
 	go func() {
 		for {
@@ -46,7 +49,11 @@ func NewDebugServer(PORT int) (*DebugServer, error) {
 				server.apps = append(server.apps, NewAppDebug(conn))
 				server.mu.Unlock()
 			}
+			if errors.Is(err, net.ErrClosed) {
+				break
+			}
 		}
+		fmt.Printf("Closing DebugServer on port: %d\n", port)
 	}()
 
 	return &server, nil
