@@ -29,7 +29,7 @@ type Log struct {
 	time int64
 	text string
 }
-type AppLog struct {
+type App struct {
 	logs     []Log
 	showtime float64
 }
@@ -40,7 +40,7 @@ type File struct {
 	initAppTable bool
 	id           int
 
-	apps map[int]*AppLog
+	apps map[int]*App
 }
 
 func FindInArray(arr []string, name string) int {
@@ -961,17 +961,21 @@ func Files() {
 							log := SA_InfoGet("log", file.Name, strconv.Itoa(app_rowid))
 
 							if file.apps == nil {
-								file.apps = make(map[int]*AppLog)
+								file.apps = make(map[int]*App)
 							}
 							appL, found := file.apps[app_rowid]
 							if !found {
-								appL = &AppLog{}
+								appL = &App{}
 								file.apps[app_rowid] = appL
 							}
 
 							if len(log) > 0 {
 								appL.logs = append(appL.logs, Log{text: log, time: int64(SA_Time())})
 								appL.showtime = SA_Time()
+
+								if len(appL.logs) > 100 {
+									appL.logs = appL.logs[len(appL.logs)-100:] //keep only last 100
+								}
 							}
 							log_name := fmt.Sprintf("log_%s/%d", file.Name, app_rowid)
 							if appL.showtime+5 > SA_Time() {
