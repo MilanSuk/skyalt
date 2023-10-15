@@ -761,18 +761,16 @@ func ModeWeek() {
 
 	format := SA_InfoGetFloat("date", "", "")
 
-	SA_ColMax(0, 100)
-	SA_RowMax(1, 100)
+	SA_Col(0, 1) //time
+	for i := 1; i < 8; i++ {
+		SA_ColMax(i, 100) //days
+	}
+	SA_Row(24*2+1, 0.1) //bottom
+
+	dtt := GetStartWeekDay(store.Small_date, format)
 
 	//header
-	dtt := GetStartWeekDay(store.Small_date, format)
-	SA_DivStart(0, 0, 1, 1)
 	{
-		SA_Col(0, 1.5) //time
-		for i := 1; i < 8; i++ {
-			SA_ColMax(i, 100)
-		}
-
 		changeDay := -1
 		if format == 1 {
 			//"us"
@@ -806,28 +804,17 @@ func ModeWeek() {
 		}
 
 	}
-	SA_DivEnd()
 
 	//days
-	SA_DivStart(0, 1, 1, 1)
 	{
-		SA_Col(0, 1.5) //time
-		for i := 1; i < 8; i++ {
-			SA_ColMax(i, 100)
-		}
-		for i := 0; i < 25; i++ {
-			SA_Row(i*2, 0.3)
-			SA_Row(i*2+1, 1.5)
-		}
-
 		//time
 		for y := 0; y < 25; y++ {
-			SA_Text("###"+strconv.Itoa(y)+":00").Show(0, y*2, 1, 1) //AlignV(0)
+			SA_TextCenter("###"+strconv.Itoa(y)+":00").Show(0, y*2, 1, 2)
 		}
 
 		//grid
 		for y := 0; y < 25; y++ {
-			SA_DivStart(1, y*2, 7, 1)
+			SA_DivStart(1, y*2, 7, 2)
 			SAPaint_Line(0, 0.5, 1, 0.5, SA_ThemeGrey(0.75), 0.03)
 			SA_DivEnd()
 		}
@@ -841,7 +828,7 @@ func ModeWeek() {
 		//events
 		dtt = GetStartWeekDay(store.Small_date, format)
 		for x := 0; x < 7; x++ {
-			SA_DivStart(1+x, 0, 1, 24*2+1)
+			SA_DivStart(1+x, 1, 1, 24*2)
 			DayEvent(dtt.Unix())
 			SA_DivEnd()
 
@@ -858,7 +845,7 @@ func ModeWeek() {
 			h := (float64(hour) + (float64(minute) / 60)) / 24
 			week := GetWeekDay(now, format)
 
-			SA_DivStart(1, 0, 7, 24*2+1)
+			SA_DivStart(1, 1, 7, 24*2)
 			{
 				SA_DivSetInfo("touch_enable", 0)
 				SAPaint_Line(0, h, 1, h, SA_ThemeEdit(), 0.03)
@@ -866,25 +853,24 @@ func ModeWeek() {
 			}
 			SA_DivEnd()
 		}
-
 	}
-	SA_DivEnd()
 }
 
 type EventItem struct {
-	rowid, start, end, endVisual int64
-	title                        string
+	rowid, start, end int64
+	endVisual         int64 //(end-start) can be too short, so endVisial is at least 15min different
+	title             string
 }
 
 func (a EventItem) HasCover(b EventItem) bool {
 
 	//b is before
-	if b.start < a.start && b.endVisual < a.start {
+	if b.start < a.start && b.endVisual <= a.start {
 		return false
 	}
 
 	//b is after
-	if b.start > a.endVisual && b.endVisual > a.endVisual {
+	if b.start >= a.endVisual && b.endVisual > a.endVisual {
 		return false
 	}
 
@@ -902,7 +888,7 @@ func DayEvent(t int64) {
 
 		item.endVisual = item.end
 		if (item.end - item.start) < 3600/4 {
-			item.endVisual = item.start + 3600/4
+			item.endVisual = item.start + 3600/4 //too short time => 15min(3600/4) at least
 		}
 
 		//find column
@@ -933,7 +919,7 @@ func DayEvent(t int64) {
 		SA_ColMax(c, 100)
 	}
 
-	height := SA_DivInfo("layoutHeight") - 0.15
+	height := SA_DivInfo("layoutHeight") //- 0.15
 	for c := 0; c < len(cols); c++ {
 		SA_DivStart(c, 0, 1, 1)
 
@@ -951,11 +937,11 @@ func DayEvent(t int64) {
 
 				start *= height
 				end *= height
-				start += 0.15
-				end += 0.15
+				//start += 0.15
+				//end += 0.15
 
-				SA_Row(i*2+0, float64(start-last_end))
-				SA_Row(i*2+1, float64(end-start))
+				SA_Row(i*2+0, float64(start-last_end)) //empty space to last
+				SA_Row(i*2+1, float64(end-start))      //this event
 				last_end = end
 			}
 
@@ -973,56 +959,42 @@ func DayEvent(t int64) {
 }
 
 func ModeDay() {
-	SA_ColMax(0, 100)
-	SA_RowMax(1, 100)
+	SA_Col(0, 1) //time
+	SA_ColMax(1, 100)
+	SA_Row(24*2+1, 0.1) //bottom
 
 	//header
-	SA_DivStart(0, 0, 1, 1)
 	{
-		SA_Col(0, 1.5) //time
-		SA_ColMax(1, 100)
-
 		dtt := time.Unix(store.Small_date, 0)
-		SA_Text("##"+strconv.Itoa(dtt.Day())+". "+DayTextFull(GetWeekDayPure(store.Small_date))).Show(1, 0, 1, 1)
+		SA_TextCenter("##"+strconv.Itoa(dtt.Day())+". "+DayTextFull(GetWeekDayPure(store.Small_date))).Show(1, 0, 1, 1)
 	}
-	SA_DivEnd()
 
 	//days
-	SA_DivStart(0, 1, 1, 1)
 	{
-		SA_Col(0, 1.5) //time
-		SA_ColMax(1, 100)
-
-		for y := 0; y < 25; y++ {
-			SA_Row(y*2, 0.3)
-			SA_Row(y*2+1, 1.5)
-		}
-
 		//time
 		for y := 0; y < 25; y++ {
-			SA_TextCenter("###"+strconv.Itoa(y)+":00").Show(0, y*2, 1, 1) //.AlignV(0)
+			SA_TextCenter("###"+strconv.Itoa(y)+":00").Show(0, y*2, 1, 2)
 		}
 
 		//grid
 		for y := 0; y < 25; y++ {
-			SA_DivStart(1, y*2, 1, 1)
+			SA_DivStart(1, y*2, 1, 2)
 			SAPaint_Line(0, 0.5, 1, 0.5, SA_ThemeGrey(0.75), 0.03)
 			SA_DivEnd()
 		}
 
 		//events
-		SA_DivStart(1, 0, 1, 24*2+1)
+		SA_DivStart(1, 1, 1, 24*2)
 		dtt := time.Unix(store.Small_date, 0)
 		DayEvent(dtt.Unix())
 		SA_DivEnd()
 
 		//time-line
 		if CmpDates(int64(SA_Time()), store.Small_date) { //today == day
-
 			now := int64(SA_Time())
 			hour, minute := GetHM(now)
 			h := (float64(hour) + (float64(minute) / 60)) / 24
-			SA_DivStart(1, 0, 1, 24*2+1)
+			SA_DivStart(1, 1, 1, 24*2)
 			{
 				SA_DivSetInfo("touch_enable", 0)
 				SAPaint_Line(0, h, 1, h, SA_ThemeEdit(), 0.03)
@@ -1032,7 +1004,6 @@ func ModeDay() {
 		}
 
 	}
-	SA_DivEnd()
 }
 
 func ModePanel() {
