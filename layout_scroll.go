@@ -28,6 +28,8 @@ type LayerScroll struct {
 
 	show   bool
 	narrow bool
+
+	attach *LayerScroll
 }
 
 func (scroll *LayerScroll) Init() {
@@ -62,6 +64,10 @@ func (scroll *LayerScroll) SetWheel(wheelPixel int) bool {
 
 	if oldWheel != scroll.wheel {
 		scroll.timeWheel = OsTicks()
+
+		if scroll.attach != nil {
+			scroll.attach.wheel = scroll.wheel
+		}
 	}
 
 	return oldWheel != scroll.wheel
@@ -291,6 +297,8 @@ func (scroll *LayerScroll) TouchV(packLayout *LayoutDiv, root *Root) {
 	if isTouched {
 		root.touch.Set(nil, packLayout, nil, nil)
 	}
+
+	scroll.attach = nil //reset
 }
 
 func (scroll *LayerScroll) TouchH(needShiftWheel bool, packLayout *LayoutDiv, root *Root) {
