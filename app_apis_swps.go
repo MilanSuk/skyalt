@@ -411,7 +411,7 @@ func (app *App) comp_drawCombo(style *CompStyle, styleMenu *CompStyle, value uin
 	app.paint_textGrid(&stArrow, val, "", false, false, enable)
 
 	//dialog
-	nmd := "combo_" + strconv.Itoa(int(div.Hash()))
+	nmd := "combo_" + strconv.Itoa(int(div.data.hash))
 	if div.data.touch_end && enable {
 		app.div_dialogOpen(nmd, 1)
 	}
