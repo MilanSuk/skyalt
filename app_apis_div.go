@@ -125,6 +125,8 @@ func (app *App) renderStart(rx, ry, rw, rh float64) {
 	if root.ui.io.ini.Grid {
 		app.DrawGrid()
 	}
+
+	st.stack.data.touch_enabled = true //reset for next tick
 }
 
 func (app *App) DrawGrid() {
