@@ -37,9 +37,23 @@ type LayoutArray struct {
 func (dst *LayoutArray) CopySub(src *LayoutArray, src_start int, src_end int, cell int) {
 	dst.Clear()
 
+	rs := float32(LayoutArray_resizerSize(cell)) / 2 / float32(cell)
+
+	last_resize := false
 	src_end = OsMin(src_end, len(src.outputs))
 	for i := src_start; i < src_end; i++ {
+
 		dst.findOrAdd(i).min = float32(src.outputs[i]) / float32(cell)
+
+		isResize := (src.inputs[i].resize != nil)
+		if isResize && !last_resize {
+			dst.findOrAdd(i).min -= rs
+		}
+		if !isResize && last_resize {
+			dst.findOrAdd(i).min += rs
+		}
+
+		last_resize = isResize
 	}
 }
 
@@ -205,9 +219,7 @@ func (arr *LayoutArray) Update(cell int, window int) {
 	arr.outputs = make([]int32, arr.NumInputs())
 
 	//project in -> out
-	//for _, it := range arr.items {
 	for i := 0; i < len(arr.inputs); i++ {
-
 		//min
 		minV := float64(arr.inputs[i].min)
 		minV = OsClampFloat(minV, 0.001, 100000000)
