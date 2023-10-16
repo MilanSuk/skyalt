@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
-
 #prints number of lines
-cloc --by-file --unix --include-ext=go .
+
+echo " --- --- main --- ---"
+cloc --by-file --unix --include-ext=go --exclude-dir=apps,sdk .
+
+echo " --- --- apps --- ---"
+cloc --by-file --unix --include-ext=go apps
+
