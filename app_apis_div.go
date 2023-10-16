@@ -20,6 +20,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -217,6 +218,14 @@ func (app *App) _sa_div_start(x, y, w, h uint64, nameMem uint64) int64 {
 	return app.div_start(x, y, w, h, name)
 }
 
+func (app *App) _sa_div_startEx(x, y, w, h uint64, rx, ry, rw, rh float64, nameMem uint64) int64 {
+	name, err := app.ptrToString(nameMem)
+	if app.AddLogErr(err) {
+		return -1
+	}
+	return app.div_startEx(x, y, w, h, rx, ry, rw, rh, name)
+}
+
 func (app *App) _sa_div_end() {
 
 	root := app.db.root
@@ -232,14 +241,6 @@ func (app *App) _sa_div_end() {
 	}
 
 	app.renderEnd(false)
-}
-
-func (app *App) _sa_div_startEx(x, y, w, h uint64, rx, ry, rw, rh float64, nameMem uint64) int64 {
-	name, err := app.ptrToString(nameMem)
-	if app.AddLogErr(err) {
-		return -1
-	}
-	return app.div_startEx(x, y, w, h, rx, ry, rw, rh, name)
 }
 
 func (app *App) checkGridLock() bool {
@@ -503,7 +504,7 @@ func (app *App) _sa_div_dialogStart(nameMem uint64) int64 {
 	return app.div_dialogStart(name)
 }
 
-func (app *App) div_get_info(id string, x int64, y int64) float64 {
+func (app *App) div_get_info(cmd string, x int64, y int64) float64 {
 
 	root := app.db.root
 	st := root.levels.GetStack()
@@ -516,7 +517,11 @@ func (app *App) div_get_info(id string, x int64, y int64) float64 {
 		return -1
 	}
 
-	switch id {
+	switch cmd {
+
+	case "uid":
+		return math.Float64frombits(div.data.hash)
+
 	case "cell":
 		return float64(root.ui.Cell())
 
@@ -624,7 +629,16 @@ func (app *App) div_get_info(id string, x int64, y int64) float64 {
 	return -1
 }
 
-func (app *App) div_set_info(id string, val float64, x int64, y int64) float64 {
+func (app *App) findLayoutHash(div *LayoutDiv, uid float64) *LayoutDiv {
+
+	if uid == 0 {
+		return div
+	}
+	base := div.FindBaseApp()
+	return base.FindHash(math.Float64bits(uid))
+}
+
+func (app *App) div_set_info(cmd string, val float64, x int64, y int64) float64 {
 
 	root := app.db.root
 	st := root.levels.GetStack()
@@ -637,8 +651,7 @@ func (app *App) div_set_info(id string, val float64, x int64, y int64) float64 {
 		return -1
 	}
 
-	switch id {
-
+	switch cmd {
 	case "touch_enable":
 		bck := div.data.touch_enabled
 		div.data.touch_enabled = OsTrnBool(val > 0, true, false)
@@ -679,29 +692,63 @@ func (app *App) div_set_info(id string, val float64, x int64, y int64) float64 {
 		div.data.scrollOnScreen = OsTrnBool(val > 0, true, false)
 		return OsTrnFloat(bck, 1, 0)
 
+	case "copyCols":
+		src := app.findLayoutHash(div, val)
+		if src != nil {
+			div.data.cols.CopySub(&src.data.cols, 0, len(src.data.cols.outputs), app.db.root.ui.Cell())
+			return 1
+		}
+		return -1
+
+	case "copyRows":
+		src := app.findLayoutHash(div, val)
+		if src != nil {
+			div.data.rows.CopySub(&src.data.rows, 0, len(src.data.rows.outputs), app.db.root.ui.Cell())
+			return 1
+		}
+		return -1
+
+	case "attachScrollH":
+		src := app.findLayoutHash(div, val)
+		if src != nil {
+			div.data.scrollH.attach = &src.data.scrollH
+			src.data.scrollH.attach = &div.data.scrollH
+			return 1
+		}
+		return -1
+
+	case "attachScrollV":
+		src := app.findLayoutHash(div, val)
+		if src != nil {
+			div.data.scrollV.attach = &src.data.scrollV
+			src.data.scrollV.attach = &div.data.scrollV
+			return 1
+		}
+		return -1
+
 	}
 
 	return -1
 }
 
-func (app *App) _sa_div_get_info(idMem uint64, x int64, y int64) float64 {
+func (app *App) _sa_div_get_info(cmdMem uint64, x int64, y int64) float64 {
 
-	id, err := app.ptrToString(idMem)
+	cmd, err := app.ptrToString(cmdMem)
 	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return app.div_get_info(id, x, y)
+	return app.div_get_info(cmd, x, y)
 }
 
-func (app *App) _sa_div_set_info(idMem uint64, val float64, x int64, y int64) float64 {
+func (app *App) _sa_div_set_info(cmdMem uint64, val float64, x int64, y int64) float64 {
 
-	id, err := app.ptrToString(idMem)
+	cmd, err := app.ptrToString(cmdMem)
 	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return app.div_set_info(id, val, x, y)
+	return app.div_set_info(cmd, val, x, y)
 }
 
 func (app *App) div_drag(groupName string, id uint64) int64 {
