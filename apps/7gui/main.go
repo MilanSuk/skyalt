@@ -390,56 +390,79 @@ func CircleDrawer() {
 }
 
 func Cells() {
-
 	n_cols := int(('Z' - 'A') + 1)
 	n_rows := 100
 
-	for c := 0; c <= n_cols; c++ {
-		SA_ColResize(1+c, 2)
-	}
+	SA_ColMax(1, 100)
+	SA_RowMax(1, 100)
 
-	for r := 0; r <= n_rows; r++ {
-		SA_RowResize(r+1, 1)
-	}
+	var columnsHeaderUID, rowsHeaderUID float64
 
 	//columns header
-	for c := 0; c < n_cols; c++ {
-		SA_TextStyle(string(rune('A'+c)), &g_TextCellHeader).Show(1+c, 0, 1, 1)
-	}
+	if SA_DivStart(1, 0, 1, 1) {
+		columnsHeaderUID = SA_DivInfo("uid")
+		SA_DivSetInfo("scrollHshow", 0)
 
-	//rows header
-	stRow := int(SA_DivInfo("startRow"))
-	enRow := int(SA_DivInfo("endRow"))
-	if enRow > n_rows {
-		enRow = n_rows
-	}
-	for r := stRow; r <= enRow; r++ {
-		if r > 0 {
-			SA_TextStyle(strconv.Itoa(r-1), &g_TextCellHeader).Show(0, r, 1, 1)
+		for c := 0; c < n_cols; c++ {
+			SA_ColResize(c, 2)
+		}
+		for c := 0; c < n_cols; c++ {
+			SA_TextStyle(string(rune('A'+c)), &g_TextCellHeader).Show(c, 0, 1, 1)
 		}
 	}
+	SA_DivEnd()
+
+	//rows header
+	if SA_DivStart(0, 1, 1, 1) {
+		rowsHeaderUID = SA_DivInfo("uid")
+		SA_DivSetInfo("scrollVshow", 0)
+
+		for r := 0; r <= n_rows; r++ {
+			SA_RowResize(r, 1)
+		}
+
+		stRow := int(SA_DivInfo("startRow"))
+		enRow := int(SA_DivInfo("endRow"))
+		if enRow > n_rows {
+			enRow = n_rows
+		}
+		for r := stRow; r <= enRow; r++ {
+			SA_TextStyle(strconv.Itoa(r), &g_TextCellHeader).Show(0, r, 1, 1)
+		}
+	}
+	SA_DivEnd()
 
 	//content
-	for r := stRow; r <= enRow; r++ {
-		if r > 0 {
-			for c := 0; c <= n_cols; c++ {
-				if c > 0 {
-					id := fmt.Sprintf("%d %d", c-1, r-1)
-					v := store.Cells[id]
-					if SA_EditboxStyle(&v, &g_EditboxNoBorder).Show(c, r, 1, 1).finished {
-						if len(v) > 0 {
-							store.Cells[id] = v
-						} else {
-							delete(store.Cells, id)
-						}
+	if SA_DivStart(1, 1, 1, 1) {
+		SA_DivSetInfo("attachScrollH", columnsHeaderUID)
+		SA_DivSetInfo("attachScrollV", rowsHeaderUID)
+
+		SA_DivSetInfo("copyCols", columnsHeaderUID)
+		SA_DivSetInfo("copyRows", rowsHeaderUID)
+
+		stRow := int(SA_DivInfo("startRow"))
+		enRow := int(SA_DivInfo("endRow"))
+
+		stCol := int(SA_DivInfo("startCol"))
+		enCol := int(SA_DivInfo("endCol"))
+
+		for r := stRow; r <= enRow; r++ {
+			for c := stCol; c <= enCol; c++ {
+				id := fmt.Sprintf("%d %d", c-1, r-1)
+				v := store.Cells[id]
+				if SA_EditboxStyle(&v, &g_EditboxNoBorder).Show(c, r, 1, 1).finished {
+					if len(v) > 0 {
+						store.Cells[id] = v
+					} else {
+						delete(store.Cells, id)
 					}
 				}
 			}
 		}
 	}
+	SA_DivEnd()
 
-	//bug: header scroll ouside of screen ...
-	//bug: resizer should be only in header(not content) ...
+	//bug: when scrollV/H at the end, layout is off by(scroll width) ...
 	//todo: formulas ...
 }
 
@@ -528,7 +551,9 @@ func Open() {
 	g_TextCellHeader.ContentColor(SA_ThemeGrey(0.9))
 
 	g_EditboxNoBorder = styles.Editbox
-	g_EditboxNoBorder.Border(0)
+	g_EditboxNoBorder.Margin(0.03)
+	g_EditboxNoBorder.Border(0.03)
+	g_EditboxNoBorder.BorderColor(SA_ThemeGrey(0.8))
 
 	//storage
 	if len(store.People) == 0 {
