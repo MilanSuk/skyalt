@@ -24,7 +24,7 @@ type Layout struct {
 	scrollH        LayerScroll
 	scrollOnScreen bool //show scroll all the time
 
-	//maybe have them one time in Root like a 'over* Layout', 'overScroll* Layout', etc. ...
+	//maybe have them one time in Root like a 'over* Layout', 'overScroll* Layout', etc. ... in LayerTouch ....
 	over          bool
 	overScroll    bool
 	touch_inside  bool
