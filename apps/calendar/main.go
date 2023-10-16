@@ -987,7 +987,7 @@ func ModeDay() {
 		}
 
 		//events
-		SA_DivStart(1, 1, 1, 24*2)
+		SA_DivStartName(1, 1, 1, 24*2, "events")
 		dtt := time.Unix(store.Small_date, 0)
 		DayEvent(dtt.Unix())
 		SA_DivEnd()
@@ -997,7 +997,7 @@ func ModeDay() {
 			now := int64(SA_Time())
 			hour, minute := GetHM(now)
 			h := (float64(hour) + (float64(minute) / 60)) / 24
-			SA_DivStart(1, 1, 1, 24*2)
+			SA_DivStartName(1, 1, 1, 24*2, "timeline") //same grid coord as Events div
 			{
 				SA_DivInfoSet("touch_enable", 0)
 				SAPaint_Line(0, h, 1, h, SA_ThemeEdit(), 0.03)
