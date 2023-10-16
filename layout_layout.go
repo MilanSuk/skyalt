@@ -32,11 +32,13 @@ type Layout struct {
 	touch_end     bool
 	touch_enabled bool
 
-	app *App
+	app  *App
+	hash uint64
 }
 
 func (lay *Layout) Init(hash uint64, app *App) {
 
+	lay.hash = hash
 	lay.app = app
 	lay.touch_enabled = true
 
@@ -67,14 +69,14 @@ func (lay *Layout) Init(hash uint64, app *App) {
 	}
 }
 
-func (lay *Layout) Save(hash uint64) {
+func (lay *Layout) Save() {
 
 	hasColResize := lay.cols.HasResize()
 	hasRowResize := lay.rows.HasResize()
 
 	// save scroll into Rec
 	if lay.scrollV.wheel != 0 || lay.scrollH.wheel != 0 || hasColResize || hasRowResize {
-		it := lay.app.AddGlobalScrollHash(hash)
+		it := lay.app.AddGlobalScrollHash(lay.hash)
 
 		it.ScrollVpos = 0
 		it.ScrollHpos = 0
@@ -101,15 +103,15 @@ func (lay *Layout) Save(hash uint64) {
 		}
 
 	} else {
-		sc := lay.app.FindGlobalScrollHash(hash)
+		sc := lay.app.FindGlobalScrollHash(lay.hash)
 		if sc != nil {
 			*sc = LayoutSaveItem{}
 		}
 	}
 }
 
-func (lay *Layout) Close(hash uint64) {
-	lay.Save(hash)
+func (lay *Layout) Close() {
+	lay.Save()
 }
 
 func (lay *Layout) Reset() {

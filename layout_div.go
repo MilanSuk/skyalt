@@ -87,7 +87,7 @@ func (div *LayoutDiv) GetParent(deep int) *LayoutDiv {
 	return act
 }
 
-func (div *LayoutDiv) Hash() uint64 {
+func (div *LayoutDiv) ComputeHash() uint64 {
 	var tmp [8]byte
 
 	h := sha256.New()
@@ -117,7 +117,7 @@ func NewLayoutPack(parent *LayoutDiv, name string, grid OsV4, app *App) *LayoutD
 	div.parent = parent
 	div.grid = grid
 
-	div.data.Init(div.Hash(), app)
+	div.data.Init(div.ComputeHash(), app)
 
 	div.Use()
 
@@ -135,7 +135,7 @@ func (div *LayoutDiv) ClearChilds() {
 func (div *LayoutDiv) Destroy() {
 
 	div.ClearChilds()
-	div.data.Close(div.Hash())
+	div.data.Close()
 }
 
 func (div *LayoutDiv) FindOrCreate(name string, grid OsV4, app *App) *LayoutDiv {
@@ -418,8 +418,7 @@ func (div *LayoutDiv) RenderResizeSpliter(root *Root, buff *PaintBuff) {
 }
 
 func (div *LayoutDiv) Save() {
-
-	div.data.Save(div.Hash())
+	div.data.Save()
 
 	for _, it := range div.childs {
 		it.Save()
@@ -456,4 +455,30 @@ func (div *LayoutDiv) GetRelativePos(abs_pos OsV2) OsV2 {
 	rpos.Y += div.data.scrollV.GetWheel()
 	rpos.X += div.data.scrollH.GetWheel()
 	return rpos
+}
+
+func (div *LayoutDiv) FindBaseApp() *LayoutDiv {
+
+	app := div.data.app
+	ret := div
+	for div != nil && div.data.app == app {
+		ret = div //previous
+		div = div.parent
+	}
+	return ret
+}
+
+func (div *LayoutDiv) FindHash(hash uint64) *LayoutDiv {
+
+	if div.data.hash == hash {
+		return div
+	}
+
+	for _, it := range div.childs {
+		ret := it.FindHash(hash)
+		if ret != nil {
+			return ret
+		}
+	}
+	return nil
 }
