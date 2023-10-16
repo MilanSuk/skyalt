@@ -34,6 +34,15 @@ type LayoutArray struct {
 	outputs []int32
 }
 
+func (dst *LayoutArray) CopySub(src *LayoutArray, src_start int, src_end int, cell int) {
+	dst.Clear()
+
+	src_end = OsMin(src_end, len(src.outputs))
+	for i := src_start; i < src_end; i++ {
+		dst.findOrAdd(i).min = float32(src.outputs[i]) / float32(cell)
+	}
+}
+
 func (arr *LayoutArray) Clear() {
 	arr.inputs = arr.inputs[:0]
 }
