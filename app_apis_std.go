@@ -43,7 +43,7 @@ func (app *App) _info_get_prepare(cmd string, prm1 string, prm2 string, onlyLen 
 	case "timezone":
 		return strconv.Itoa(app.db.root.ui.io.ini.TimeZone), 1
 
-	case "time_utc":
+	case "time_utc0":
 		return strconv.FormatFloat(float64(time.Now().UnixMicro())/1000000, 'f', -1, 64), 1 //seconds
 
 	case "time":
