@@ -331,32 +331,34 @@ func SA_DialogStart(name string) bool {
 	return _sa_div_dialogStart(_SA_stringToPtr(name)) > 0
 }
 
-func SA_DivInfoPos(id string, x, y int) float64 {
-	return _sa_div_get_info(_SA_stringToPtr(id), int64(x), int64(y))
+func SA_DivInfoGet(cmd string) float64 {
+	return _sa_div_info_get(_SA_stringToPtr(cmd), 0)
 }
-func SA_DivInfo(id string) float64 {
-	return SA_DivInfoPos(id, -1, -1)
+func SA_DivInfoSet(cmd string, val float64) float64 {
+	return _sa_div_info_set(_SA_stringToPtr(cmd), val, 0)
+}
+func SA_DivInfoGetEx(cmd string, divUID float64) float64 {
+	return _sa_div_info_get(_SA_stringToPtr(cmd), divUID)
+}
+func SA_DivInfoSetEx(cmd string, val float64, divUID float64) float64 {
+	return _sa_div_info_set(_SA_stringToPtr(cmd), val, divUID)
 }
 
-func SA_DivSetInfoPos(id string, val float64, x, y int) float64 {
-	return _sa_div_set_info(_SA_stringToPtr(id), val, int64(x), int64(y))
-}
-func SA_DivSetInfo(id string, val float64) float64 {
-	return SA_DivSetInfoPos(id, val, -1, -1)
-}
-
-func SA_DivRangeHor(itemSize float64, x, y int) (int, int) {
-	wheel := SA_DivInfoPos("layoutStartX", -1, -1)
-	screen := SA_DivInfoPos("screenWidth", -1, -1)
+func SA_DivRangeHor(itemSize float64) (int, int) {
+	wheel := SA_DivInfoGet("layoutStartX")
+	screen := SA_DivInfoGet("screenWidth")
 
 	s := wheel / itemSize
 	e := (wheel + screen) / itemSize
 
+	if e > float64(int(e)) {
+		e++
+	}
 	return int(s), int(e)
 }
-func SA_DivRangeVer(itemSize float64, x, y int) (int, int) {
-	wheel := SA_DivInfoPos("layoutStartY", -1, -1)
-	screen := SA_DivInfoPos("screenHeight", -1, -1)
+func SA_DivRangeVer(itemSize float64) (int, int) {
+	wheel := SA_DivInfoGet("layoutStartY")
+	screen := SA_DivInfoGet("screenHeight")
 
 	s := wheel / itemSize
 	e := (wheel + screen) / itemSize
@@ -440,6 +442,7 @@ type _SA_Button struct {
 type _SA_ButtonOut struct {
 	click  bool
 	rclick bool
+	clicks int
 }
 
 func SA_ButtonStyle(value string, style *_SA_Style) *_SA_Button {
@@ -558,6 +561,7 @@ func (b *_SA_Button) Show(x, y, w, h int) _SA_ButtonOut {
 
 			ret.click = binary.LittleEndian.Uint64(out[0:]) != 0
 			ret.rclick = binary.LittleEndian.Uint64(out[8:]) != 0
+			ret.clicks = int(binary.LittleEndian.Uint64(out[0:]) + binary.LittleEndian.Uint64(out[8:]))
 		}
 	}
 	defer SA_DivEnd()
@@ -1455,11 +1459,11 @@ func SA_Rating(value int, max_value int, cdActive SACd, cdDeactive SACd, icon st
 
 	changed := false
 
-	SA_DivSetInfo("scrollHnarrow", 1)
-	SA_DivSetInfo("scrollVshow", 0)
+	SA_DivInfoSet("scrollHnarrow", 1)
+	SA_DivInfoSet("scrollVshow", 0)
 
-	w := SA_DivInfo("layoutWidth") / float64(max_value)
-	h := SA_DivInfo("layoutHeight")
+	w := SA_DivInfoGet("layoutWidth") / float64(max_value)
+	h := SA_DivInfoGet("layoutHeight")
 
 	if w < 0.7 {
 		w = 0.7
@@ -1478,10 +1482,10 @@ func SA_Rating(value int, max_value int, cdActive SACd, cdDeactive SACd, icon st
 				cd = cdDeactive
 			}
 
-			active := SA_DivInfo("touchActive") > 0
-			inside := SA_DivInfo("touchInside") > 0
-			end := SA_DivInfo("touchEnd") > 0
-			touch_x := SA_DivInfo("touchX")
+			active := SA_DivInfoGet("touchActive") > 0
+			inside := SA_DivInfoGet("touchInside") > 0
+			end := SA_DivInfoGet("touchEnd") > 0
+			touch_x := SA_DivInfoGet("touchX")
 
 			if active || inside {
 				cd = cd.Aprox(cdActive, 0.4)

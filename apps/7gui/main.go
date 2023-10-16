@@ -300,12 +300,12 @@ func CircleDrawerAddSnapShot() {
 
 func CircleDrawerCanvas() {
 
-	touch_x := SA_DivInfo("touchX")
-	touch_y := SA_DivInfo("touchY")
-	width := SA_DivInfo("layoutWidth")
-	height := SA_DivInfo("layoutHeight")
+	touch_x := SA_DivInfoGet("touchX")
+	touch_y := SA_DivInfoGet("touchY")
+	width := SA_DivInfoGet("layoutWidth")
+	height := SA_DivInfoGet("layoutHeight")
 
-	touch_clicked := SA_DivInfo("touchInside") > 0 && SA_DivInfo("touchEnd") > 0
+	touch_clicked := SA_DivInfoGet("touchInside") > 0 && SA_DivInfoGet("touchEnd") > 0
 
 	//find circle inside radius
 	closest_i := -1
@@ -400,8 +400,8 @@ func Cells() {
 
 	//columns header
 	if SA_DivStart(1, 0, 1, 1) {
-		columnsHeaderUID = SA_DivInfo("uid")
-		SA_DivSetInfo("scrollHshow", 0)
+		columnsHeaderUID = SA_DivInfoGet("uid")
+		SA_DivInfoSet("scrollHshow", 0)
 
 		for c := 0; c < n_cols; c++ {
 			SA_ColResize(c, 2)
@@ -414,15 +414,15 @@ func Cells() {
 
 	//rows header
 	if SA_DivStart(0, 1, 1, 1) {
-		rowsHeaderUID = SA_DivInfo("uid")
-		SA_DivSetInfo("scrollVshow", 0)
+		rowsHeaderUID = SA_DivInfoGet("uid")
+		SA_DivInfoSet("scrollVshow", 0)
 
 		for r := 0; r <= n_rows; r++ {
 			SA_RowResize(r, 1)
 		}
 
-		stRow := int(SA_DivInfo("startRow"))
-		enRow := int(SA_DivInfo("endRow"))
+		stRow := int(SA_DivInfoGet("startRow"))
+		enRow := int(SA_DivInfoGet("endRow"))
 		if enRow > n_rows {
 			enRow = n_rows
 		}
@@ -434,17 +434,17 @@ func Cells() {
 
 	//content
 	if SA_DivStart(1, 1, 1, 1) {
-		SA_DivSetInfo("attachScrollH", columnsHeaderUID)
-		SA_DivSetInfo("attachScrollV", rowsHeaderUID)
+		SA_DivInfoSet("attachScrollH", columnsHeaderUID)
+		SA_DivInfoSet("attachScrollV", rowsHeaderUID)
 
-		SA_DivSetInfo("copyCols", columnsHeaderUID)
-		SA_DivSetInfo("copyRows", rowsHeaderUID)
+		SA_DivInfoSet("copyCols", columnsHeaderUID)
+		SA_DivInfoSet("copyRows", rowsHeaderUID)
 
-		stRow := int(SA_DivInfo("startRow"))
-		enRow := int(SA_DivInfo("endRow"))
+		stRow := int(SA_DivInfoGet("startRow"))
+		enRow := int(SA_DivInfoGet("endRow"))
 
-		stCol := int(SA_DivInfo("startCol"))
-		enCol := int(SA_DivInfo("endCol"))
+		stCol := int(SA_DivInfoGet("startCol"))
+		enCol := int(SA_DivInfoGet("endCol"))
 
 		for r := stRow; r <= enRow; r++ {
 			for c := stCol; c <= enCol; c++ {

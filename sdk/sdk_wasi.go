@@ -152,13 +152,13 @@ func _sa_div_dialogStart(nameMem SAMem) int64
 //go:wasmimport env _sa_div_dialogEnd
 func _sa_div_dialogEnd()
 
-//export _sa_div_get_info
-//go:wasmimport env _sa_div_get_info
-func _sa_div_get_info(idMem SAMem, x int64, y int64) float64
+//export _sa_div_info_get
+//go:wasmimport env _sa_div_info_get
+func _sa_div_info_get(cmdMem SAMem, uid float64) float64
 
-//export _sa_div_set_info
-//go:wasmimport env _sa_div_set_info
-func _sa_div_set_info(idMem SAMem, val float64, x int64, y int64) float64
+//export _sa_div_info_set
+//go:wasmimport env _sa_div_info_set
+func _sa_div_info_set(cmdMem SAMem, val float64, uid float64) float64
 
 //export _sa_paint_rect
 //go:wasmimport env _sa_paint_rect

@@ -504,21 +504,26 @@ func (app *App) _sa_div_dialogStart(nameMem uint64) int64 {
 	return app.div_dialogStart(name)
 }
 
-func (app *App) div_get_info(cmd string, x int64, y int64) float64 {
+func App_findLayoutHash(div *LayoutDiv, uid float64) *LayoutDiv {
+
+	if uid == 0 {
+		return div
+	}
+	base := div.FindBaseApp()
+	return base.FindHash(math.Float64bits(uid))
+}
+
+func (app *App) div_info_get(cmd string, uid float64) float64 {
 
 	root := app.db.root
 	st := root.levels.GetStack()
 
-	div := st.stack
-	if div != nil && (x >= 0 || y >= 0) {
-		div = div.FindInside(OsV2{int(x), int(y)})
-	}
+	div := App_findLayoutHash(st.stack, uid)
 	if div == nil {
 		return -1
 	}
 
 	switch cmd {
-
 	case "uid":
 		return math.Float64frombits(div.data.hash)
 
@@ -629,24 +634,12 @@ func (app *App) div_get_info(cmd string, x int64, y int64) float64 {
 	return -1
 }
 
-func (app *App) findLayoutHash(div *LayoutDiv, uid float64) *LayoutDiv {
-
-	if uid == 0 {
-		return div
-	}
-	base := div.FindBaseApp()
-	return base.FindHash(math.Float64bits(uid))
-}
-
-func (app *App) div_set_info(cmd string, val float64, x int64, y int64) float64 {
+func (app *App) div_info_set(cmd string, val float64, uid float64) float64 {
 
 	root := app.db.root
 	st := root.levels.GetStack()
 
-	div := st.stack
-	if div != nil && (x >= 0 || y >= 0) {
-		div = div.FindInside(OsV2{int(x), int(y)})
-	}
+	div := App_findLayoutHash(st.stack, uid)
 	if div == nil {
 		return -1
 	}
@@ -693,7 +686,7 @@ func (app *App) div_set_info(cmd string, val float64, x int64, y int64) float64 
 		return OsTrnFloat(bck, 1, 0)
 
 	case "copyCols":
-		src := app.findLayoutHash(div, val)
+		src := App_findLayoutHash(div, val)
 		if src != nil {
 			div.data.cols.CopySub(&src.data.cols, 0, len(src.data.cols.outputs), app.db.root.ui.Cell())
 			return 1
@@ -701,7 +694,7 @@ func (app *App) div_set_info(cmd string, val float64, x int64, y int64) float64 
 		return -1
 
 	case "copyRows":
-		src := app.findLayoutHash(div, val)
+		src := App_findLayoutHash(div, val)
 		if src != nil {
 			div.data.rows.CopySub(&src.data.rows, 0, len(src.data.rows.outputs), app.db.root.ui.Cell())
 			return 1
@@ -709,7 +702,7 @@ func (app *App) div_set_info(cmd string, val float64, x int64, y int64) float64 
 		return -1
 
 	case "attachScrollH":
-		src := app.findLayoutHash(div, val)
+		src := App_findLayoutHash(div, val)
 		if src != nil {
 			div.data.scrollH.attach = &src.data.scrollH
 			src.data.scrollH.attach = &div.data.scrollH
@@ -718,7 +711,7 @@ func (app *App) div_set_info(cmd string, val float64, x int64, y int64) float64 
 		return -1
 
 	case "attachScrollV":
-		src := app.findLayoutHash(div, val)
+		src := App_findLayoutHash(div, val)
 		if src != nil {
 			div.data.scrollV.attach = &src.data.scrollV
 			src.data.scrollV.attach = &div.data.scrollV
@@ -731,24 +724,24 @@ func (app *App) div_set_info(cmd string, val float64, x int64, y int64) float64 
 	return -1
 }
 
-func (app *App) _sa_div_get_info(cmdMem uint64, x int64, y int64) float64 {
+func (app *App) _sa_div_info_get(cmdMem uint64, uid float64) float64 {
 
 	cmd, err := app.ptrToString(cmdMem)
 	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return app.div_get_info(cmd, x, y)
+	return app.div_info_get(cmd, uid)
 }
 
-func (app *App) _sa_div_set_info(cmdMem uint64, val float64, x int64, y int64) float64 {
+func (app *App) _sa_div_info_set(cmdMem uint64, val float64, uid float64) float64 {
 
 	cmd, err := app.ptrToString(cmdMem)
 	if app.AddLogErr(err) {
 		return -1
 	}
 
-	return app.div_set_info(cmd, val, x, y)
+	return app.div_info_set(cmd, val, uid)
 }
 
 func (app *App) div_drag(groupName string, id uint64) int64 {

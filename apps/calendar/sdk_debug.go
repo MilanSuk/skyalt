@@ -419,23 +419,21 @@ func _sa_div_end() {
 	_checkRead(28)
 }
 
-func _sa_div_get_info(idMem SAMem, x int64, y int64) float64 {
+func _sa_div_info_get(cmdMem SAMem, uid float64) float64 {
 	WriteUint64(29)
-	WriteMem(idMem)
-	WriteUint64(uint64(x))
-	WriteUint64(uint64(y))
+	WriteMem(cmdMem)
+	WriteFloat64(uid)
 
 	ret := ReadFloat64()
 	_checkRead(29)
 	return ret
 }
 
-func _sa_div_set_info(idMem SAMem, val float64, x int64, y int64) float64 {
+func _sa_div_info_set(cmdMem SAMem, val float64, uid float64) float64 {
 	WriteUint64(30)
-	WriteMem(idMem)
+	WriteMem(cmdMem)
 	WriteFloat64(val)
-	WriteUint64(uint64(x))
-	WriteUint64(uint64(y))
+	WriteFloat64(uid)
 
 	ret := ReadFloat64()
 	_checkRead(30)

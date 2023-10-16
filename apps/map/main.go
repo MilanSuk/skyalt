@@ -141,7 +141,7 @@ func Measure(cam Cam) {
 
 	metersPerPixels := MetersPerPixel(cam.Lat, cam.Zoom)
 
-	metersPerWidth := metersPerPixels * SA_DivInfo("screenWidth") * SA_DivInfo("cell")
+	metersPerWidth := metersPerPixels * SA_DivInfoGet("screenWidth") * SA_DivInfoGet("cell")
 	metersPerStrip := metersPerWidth / 5
 	meters := math.Round(metersPerStrip)
 
@@ -220,18 +220,18 @@ func Map(cam *Cam) {
 		SA_InfoSet("nosleep", "", "", "")
 	}
 
-	cell := SA_DivInfo("cell")
-	width := SA_DivInfo("screenWidth")
-	height := SA_DivInfo("screenHeight")
+	cell := SA_DivInfoGet("cell")
+	width := SA_DivInfoGet("screenWidth")
+	height := SA_DivInfoGet("screenHeight")
 
-	touch_x := SA_DivInfo("touchX")
-	touch_y := SA_DivInfo("touchY")
-	inside := SA_DivInfo("touchInside") > 0
-	active := SA_DivInfo("touchActive") > 0
-	end := SA_DivInfo("touchEnd") > 0
-	start := SA_DivInfo("touchStart") > 0
-	wheel := SA_DivInfo("touchWheel")
-	clicks := SA_DivInfo("touchClicks")
+	touch_x := SA_DivInfoGet("touchX")
+	touch_y := SA_DivInfoGet("touchY")
+	inside := SA_DivInfoGet("touchInside") > 0
+	active := SA_DivInfoGet("touchActive") > 0
+	end := SA_DivInfoGet("touchEnd") > 0
+	start := SA_DivInfoGet("touchStart") > 0
+	wheel := SA_DivInfoGet("touchWheel")
+	clicks := SA_DivInfoGet("touchClicks")
 
 	coord := V2{width, height}
 

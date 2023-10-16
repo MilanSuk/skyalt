@@ -42,8 +42,8 @@ func (app *App) paint_textGrid(style *CompStyle,
 	st.stack.data.scrollH.narrow = true
 	st.stack.data.scrollV.show = false
 
-	app._sa_div_col(0, OsMaxFloat(app.div_get_info("layoutWidth", -1, -1), app.paint_textWidth(style, value, -1))) //+marginX*4+margin*2
-	app._sa_div_row(0, app.div_get_info("layoutHeight", -1, -1))
+	app._sa_div_col(0, OsMaxFloat(app.div_info_get("layoutWidth", 0), app.paint_textWidth(style, value, -1))) //+marginX*4+margin*2
+	app._sa_div_row(0, app.div_info_get("layoutHeight", 0))
 	app.div_start(0, 0, 1, 1, "")
 	style.Paint(st.stack.canvas, value, valueOrigEdit, selection, edit, "", 0, enable, app)
 	app._sa_div_end()
@@ -74,8 +74,8 @@ func (app *App) paint_text(x, y, w, h float64,
 	st.stack.data.scrollH.narrow = true
 	st.stack.data.scrollV.show = false
 
-	//app._sa_div_col(0, OsMaxFloat(app.div_get_info("layoutWidth", -1, -1), app.paint_textWidth(value, sdiv.Font_path, sdiv.Font_height, -1))) //+marginX*4+margin*2
-	//app._sa_div_row(0, app.div_get_info("layoutHeight", -1, -1))
+	//app._sa_div_col(0, OsMaxFloat(app.div_info_get("layoutWidth", -1, -1), app.paint_textWidth(value, sdiv.Font_path, sdiv.Font_height, -1))) //+marginX*4+margin*2
+	//app._sa_div_row(0, app.div_info_get("layoutHeight", -1, -1))
 	//app.div_start(0, 0, 1, 1, "")
 	style.Paint(app.getCoord(x, y, w, h, 0, 0, 0), value, valueOrigEdit, selection, edit, "", 0, enable, app)
 	//app._sa_div_end()

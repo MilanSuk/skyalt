@@ -340,19 +340,17 @@ func (ad *AppDebug) Call(fnName string, app *App) (int64, error) {
 			ad._checkRead(fnTp)
 
 		case 29:
-			name := string(ad.ReadBytes())
-			x := int64(ad.ReadUint64())
-			y := int64(ad.ReadUint64())
-			ret := app.div_get_info(name, x, y)
+			cmd := string(ad.ReadBytes())
+			uid := ad.ReadFloat64()
+			ret := app.div_info_get(cmd, uid)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
 		case 30:
-			name := string(ad.ReadBytes())
+			cmd := string(ad.ReadBytes())
 			val := ad.ReadFloat64()
-			x := int64(ad.ReadUint64())
-			y := int64(ad.ReadUint64())
-			ret := app.div_set_info(name, val, x, y)
+			uid := ad.ReadFloat64()
+			ret := app.div_info_set(cmd, val, uid)
 			ad.WriteFloat64(ret)
 			ad._checkRead(fnTp)
 
@@ -506,11 +504,11 @@ func (ad *AppDebug) Call(fnName string, app *App) (int64, error) {
 			enable := ad.ReadUint64() > 0
 
 			style := app.styles.Get(styleId)
-			click, rclick, ret := app.comp_drawButton(style, value, icon, icon_margin, url, tooltip, enable)
+			lclicks, rclicks, ret := app.comp_drawButton(style, value, icon, icon_margin, url, tooltip, enable)
 
 			var dst [2 * 8]byte
-			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(click, 1, 0)))
-			binary.LittleEndian.PutUint64(dst[8:], uint64(OsTrn(rclick, 1, 0)))
+			binary.LittleEndian.PutUint64(dst[0:], uint64(lclicks))
+			binary.LittleEndian.PutUint64(dst[8:], uint64(rclicks))
 			ad.WriteBytes(dst[:])
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)

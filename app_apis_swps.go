@@ -58,7 +58,7 @@ func (root *Root) themeCd() OsCd {
 	return cd
 }
 
-func (app *App) comp_drawButton(style *CompStyle, value string, icon string, icon_margin float64, url string, tooltip string, enable bool) (bool, bool, int64) {
+func (app *App) comp_drawButton(style *CompStyle, value string, icon string, icon_margin float64, url string, tooltip string, enable bool) (int, int, int64) {
 
 	root := app.db.root
 	st := root.levels.GetStack()
@@ -68,7 +68,7 @@ func (app *App) comp_drawButton(style *CompStyle, value string, icon string, ico
 	}
 
 	click, rclick, _ := style.IsClicked(enable, app)
-	if click && len(url) > 0 {
+	if click > 0 && len(url) > 0 {
 		//SA_DialogStart() warning which open dialog ...
 		OsUlit_OpenBrowser(url)
 	}
@@ -104,14 +104,14 @@ func (app *App) _sa_comp_drawButton(styleId uint32, valueMem uint64, iconMem uin
 
 	style := app.styles.Get(styleId)
 
-	click, rclick, ret := app.comp_drawButton(style, value, icon, icon_margin, url, tooltip, enable > 0)
+	lclicks, rclicks, ret := app.comp_drawButton(style, value, icon, icon_margin, url, tooltip, enable > 0)
 
 	out, err := app.ptrToBytesDirect(outMem)
 	if app.AddLogErr(err) {
 		return -1
 	}
-	binary.LittleEndian.PutUint64(out[0:], uint64(OsTrn(click, 1, 0)))  //click
-	binary.LittleEndian.PutUint64(out[8:], uint64(OsTrn(rclick, 1, 0))) //r-click
+	binary.LittleEndian.PutUint64(out[0:], uint64(lclicks)) //click
+	binary.LittleEndian.PutUint64(out[8:], uint64(rclicks)) //r-click
 	return ret
 }
 
@@ -436,8 +436,8 @@ func (app *App) comp_drawCombo(style *CompStyle, styleMenu *CompStyle, value uin
 				menuSt.Main.Content_color = styleMenu.Main.Content_color //default
 			}
 
-			click, _, ret := app.comp_drawButton(&menuSt, opt, "", 0, "", "", true)
-			if ret > 0 && click {
+			lclicks, _, ret := app.comp_drawButton(&menuSt, opt, "", 0, "", "", true)
+			if ret > 0 && lclicks > 0 {
 				value = uint64(i)
 				app._sa_div_dialogClose()
 				break

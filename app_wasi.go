@@ -107,8 +107,8 @@ func (aw *AppWasm) InstantiateEnv() error {
 	env.NewFunctionBuilder().WithFunc(aw.app._sa_div_dialogStart).Export("_sa_div_dialogStart")
 	env.NewFunctionBuilder().WithFunc(aw.app._sa_div_dialogEnd).Export("_sa_div_dialogEnd")
 
-	env.NewFunctionBuilder().WithFunc(aw.app._sa_div_get_info).Export("_sa_div_get_info")
-	env.NewFunctionBuilder().WithFunc(aw.app._sa_div_set_info).Export("_sa_div_set_info")
+	env.NewFunctionBuilder().WithFunc(aw.app._sa_div_info_get).Export("_sa_div_info_get")
+	env.NewFunctionBuilder().WithFunc(aw.app._sa_div_info_set).Export("_sa_div_info_set")
 
 	env.NewFunctionBuilder().WithFunc(aw.app._sa_div_drag).Export("_sa_div_drag")
 	env.NewFunctionBuilder().WithFunc(aw.app._sa_div_drop).Export("_sa_div_drop")

@@ -571,7 +571,7 @@ func Side() {
 
 func ModeYear() {
 
-	w := int(SA_DivInfo("screenWidth") / 7) //7cells is needed for one calendar
+	w := int(SA_DivInfoGet("screenWidth") / 7) //7cells is needed for one calendar
 	if w == 0 {
 		return
 	}
@@ -702,7 +702,7 @@ func ModeMonth() {
 						t -= t % (24 * 3600)
 						query := SA_SqlRead("", fmt.Sprintf("SELECT rowid, start, end, title FROM events WHERE start >= %d AND start < %d ORDER BY start", t, t+(24*3600)))
 
-						SA_DivSetInfo("scrollVnarrow", 1)
+						SA_DivInfoSet("scrollVnarrow", 1)
 						//paintRect(borderWidth:0.03, margin: 0.1, color: themeGrey())
 						SA_ColMax(0, 100)
 						for i := int64(0); i < query.row_count; i++ {
@@ -815,14 +815,14 @@ func ModeWeek() {
 		//grid
 		for y := 0; y < 25; y++ {
 			SA_DivStart(1, y*2, 7, 2)
-			SA_DivSetInfo("touch_enable", 0)
+			SA_DivInfoSet("touch_enable", 0)
 			SAPaint_Line(0, 0.5, 1, 0.5, SA_ThemeGrey(0.75), 0.03)
 			SA_DivEnd()
 		}
 
 		for x := 1; x < 7; x++ {
 			SA_DivStart(1+x, 0, 1, 24*2+1)
-			SA_DivSetInfo("touch_enable", 0)
+			SA_DivInfoSet("touch_enable", 0)
 			SAPaint_Line(0, 0, 0, 1, SA_ThemeGrey(0.75), 0.03)
 			SA_DivEnd()
 		}
@@ -849,7 +849,7 @@ func ModeWeek() {
 
 			SA_DivStart(1, 1, 7, 24*2)
 			{
-				SA_DivSetInfo("touch_enable", 0)
+				SA_DivInfoSet("touch_enable", 0)
 				SAPaint_Line(0, h, 1, h, SA_ThemeEdit(), 0.03)
 				SAPaint_Circle(float64(week)/7, h, 0.1, SA_ThemeEdit(), 0)
 			}
@@ -921,7 +921,7 @@ func DayEvent(t int64) {
 		SA_ColMax(c, 100)
 	}
 
-	height := SA_DivInfo("layoutHeight") //- 0.15
+	height := SA_DivInfoGet("layoutHeight") //- 0.15
 	for c := 0; c < len(cols); c++ {
 		SA_DivStart(c, 0, 1, 1)
 
@@ -981,7 +981,7 @@ func ModeDay() {
 		//grid
 		for y := 0; y < 25; y++ {
 			SA_DivStart(1, y*2, 1, 2)
-			SA_DivSetInfo("touch_enable", 0)
+			SA_DivInfoSet("touch_enable", 0)
 			SAPaint_Line(0, 0.5, 1, 0.5, SA_ThemeGrey(0.75), 0.03)
 			SA_DivEnd()
 		}
@@ -999,7 +999,7 @@ func ModeDay() {
 			h := (float64(hour) + (float64(minute) / 60)) / 24
 			SA_DivStart(1, 1, 1, 24*2)
 			{
-				SA_DivSetInfo("touch_enable", 0)
+				SA_DivInfoSet("touch_enable", 0)
 				SAPaint_Line(0, h, 1, h, SA_ThemeEdit(), 0.03)
 				SAPaint_Circle(0, h, 0.1, SA_ThemeEdit(), 0)
 			}

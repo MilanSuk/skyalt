@@ -447,8 +447,9 @@ func (style *CompStyle) GetDiv(enable bool, app *App) *DivStyle {
 	return stylee
 }
 
-func (style *CompStyle) IsClicked(enable bool, app *App) (bool, bool, bool) {
-	var click, rclick, inside bool
+func (style *CompStyle) IsClicked(enable bool, app *App) (int, int, bool) {
+	var click, rclick int
+	var inside bool
 	if enable {
 		st := app.db.root.levels.GetStack()
 		inside = st.stack.data.touch_inside
@@ -456,9 +457,16 @@ func (style *CompStyle) IsClicked(enable bool, app *App) (bool, bool, bool) {
 		force := app.db.root.ui.io.touch.rm
 
 		if inside && end {
-			click = true
-			rclick = force
+			click = 1
+			rclick = OsTrn(force, 1, 0)
 		}
+	}
+
+	if click > 0 {
+		click = int(app.db.root.ui.io.touch.numClicks)
+	}
+	if rclick > 0 {
+		rclick = int(app.db.root.ui.io.touch.numClicks)
 	}
 
 	return click, rclick, inside

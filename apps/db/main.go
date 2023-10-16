@@ -352,8 +352,8 @@ func DragAndDropColumn(dst int, table *Table) {
 }
 
 func TablesList() {
-	SA_DivSetInfo("scrollHnarrow", 1)
-	SA_DivSetInfo("scrollVshow", 0)
+	SA_DivInfoSet("scrollHnarrow", 1)
+	SA_DivInfoSet("scrollVshow", 0)
 
 	for x := range store.Tables {
 		SA_Col(x, 3)
@@ -1257,9 +1257,9 @@ func TableRows(table *Table) {
 		q.Next(&count)
 	}
 
-	SA_DivSetInfo("scrollOnScreen", 1)
+	SA_DivInfoSet("scrollOnScreen", 1)
 	if table.scrollDown {
-		SA_DivSetInfo("scrollVpos", 100000000)
+		SA_DivInfoSet("scrollVpos", 100000000)
 		table.scrollDown = false
 	}
 
@@ -1271,7 +1271,7 @@ func TableRows(table *Table) {
 	{
 		SA_ColMax(0, 100)
 
-		st, en := SA_DivRangeVer(float64(rowSize), -1, -1)
+		st, en := SA_DivRangeVer(float64(rowSize))
 
 		query, ncols := GetQueryBasic(table)
 		var stat *SA_Sql
@@ -1345,8 +1345,8 @@ func TableRows(table *Table) {
 								SAPaint_File(0, 0, 1, 1, res, "", 0.03, 0, 0, SA_ThemeWhite(), 1, 1, false)
 								SAPaint_Rect(0, 0, 1, 1, 0, SA_ThemeGrey(0.3), 0.03)
 
-								inside := SA_DivInfo("touchInside") > 0
-								end := SA_DivInfo("touchEnd") > 0
+								inside := SA_DivInfoGet("touchInside") > 0
+								end := SA_DivInfoGet("touchEnd") > 0
 								if r > 0 && inside {
 									SAPaint_Cursor("hand")
 								}
@@ -1358,7 +1358,7 @@ func TableRows(table *Table) {
 									SA_ColMax(0, 15)
 									SA_RowMax(0, 15)
 									SAPaint_File(0, 0, 1, 1, res, "", 0.03, 0, 0, SA_ThemeWhite(), 1, 1, false)
-									if SA_DivInfo("touchInside") > 0 && SA_DivInfo("touchEnd") > 0 {
+									if SA_DivInfoGet("touchInside") > 0 && SA_DivInfoGet("touchEnd") > 0 {
 										SA_DialogClose()
 									}
 									SA_DialogEnd()

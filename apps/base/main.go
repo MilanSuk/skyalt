@@ -800,11 +800,12 @@ func Files() {
 				}
 
 				SA_ColMax(0, 100)
-				if SA_ButtonMenu(nm).Pressed(isSelected).Tooltip(fmt.Sprintf("%s: %.3fMB", trns.SIZE, SA_InfoGetFloat("file_size", file.Name, "")/1024/1024)).Show(0, 0, 1, 1).click {
+				b := SA_ButtonMenu(nm).Pressed(isSelected).Tooltip(fmt.Sprintf("%s: %.3fMB", trns.SIZE, SA_InfoGetFloat("file_size", file.Name, "")/1024/1024)).Show(0, 0, 1, 1)
+				if b.click {
 					store.SelectedFile = file_i
 					store.SelectedApp = -1
 
-					if SA_DivInfoPos("touchClicks", 0, 0) > 1 { //double click
+					if b.clicks > 1 { //double click
 						SA_DialogOpen("RenameFile_"+file.Name, 1)
 					}
 				}
@@ -938,12 +939,14 @@ func Files() {
 					{
 						SA_ColMax(0, 100)
 
-						if SA_ButtonMenu(app_label).Pressed(isSelected).Tooltip("app: "+app_name).Show(0, 0, 1, 1).click {
+						b := SA_ButtonMenu(app_label).Pressed(isSelected).Tooltip("app: "+app_name).Show(0, 0, 1, 1)
+						if b.click {
 							store.SelectedFile = file_i
 							store.SelectedApp = app_rowid
 
-							if SA_DivInfoPos("touchClicks", 0, 0) > 1 { //double click
+							if b.clicks > 1 { //double click
 								SA_DialogOpen("RenameApp_"+file.Name+"_"+strconv.Itoa(app_rowid), 1)
+								store.duplicateName = app_label
 							}
 						}
 
