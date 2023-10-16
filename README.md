@@ -125,8 +125,7 @@ go build
 
 #### Compile WASM
 1) install tinygo compiler with `sudo apt-get install tinygo`.
-2) run `sh build_wasm` from your app folder.
-3) `main.wasm` is created in the same folder.
+2) run `sh build_wasm` from your app folder. This creates `main.wasm` in the same folder.
 
 *After this, SkyAlt will stop complaining that 'main.wasm' is missing.*
 
