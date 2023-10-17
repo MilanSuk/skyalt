@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type Log struct {
@@ -270,9 +269,9 @@ func Settings() {
 		y++ //space
 	}
 
-	timezone := int(SA_InfoGetFloat("timezone", "", ""))
+	timezone := int(SA_InfoGetFloat("time_zone", "", "")) / 3600
 	if SA_Editbox(&timezone).ShowDescription(1, y, 1, 2, trns.TIME_ZONE, 4, nil).finished {
-		SA_InfoSet("timezone", strconv.Itoa(timezone), "", "")
+		SA_InfoSet("time_zone", strconv.Itoa(timezone*3600), "", "")
 	}
 	y += 2
 
@@ -995,8 +994,9 @@ func Files() {
 								{
 									SA_ColMax(0, 4)
 									SA_ColMax(1, 100)
+									tz := SA_Timezone()
 									for i, l := range appL.logs {
-										dt := time.Unix(l.time, 0)
+										dt := SA_InitTimeInt(l.time, tz) //dt := time.Unix(l.time, 0)
 										SA_Text(dt.Format("2006-01-02 15:04:05")).Show(0, i, 1, 1)
 										SA_Text(l.text).Show(1, i, 1, 1)
 									}
