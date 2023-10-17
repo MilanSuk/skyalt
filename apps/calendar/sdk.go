@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"time"
 )
 
 /* -------------------- App information -------------------- */
@@ -56,7 +57,17 @@ func SA_InfoGetFloat(cmd string, prm1 string, prm2 string) float64 {
 /* -------------------- Time/Date -------------------- */
 
 func SA_Time() float64 {
-	return SA_InfoGetFloat("time", "", "")
+	return SA_InfoGetFloat("time_utc0", "", "")
+}
+func SA_Timezone() int {
+	return int(SA_InfoGetFloat("time_zone", "", ""))
+}
+
+func SA_InitTimeInt(unix_utc0_sec int64, timezone_sec int) time.Time {
+	return time.Unix(unix_utc0_sec, 0).In(time.FixedZone("", timezone_sec))
+}
+func SA_InitTimeFloat(unix_utc0_sec float64, timezone_sec int) time.Time {
+	return time.Unix(0, int64(unix_utc0_sec*1000000000)).In(time.FixedZone("", timezone_sec))
 }
 
 /* -------------------- File Access -------------------- */
