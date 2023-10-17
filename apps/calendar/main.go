@@ -31,15 +31,9 @@ type Storage struct {
 	Small_date int64
 	Small_page int64
 
-	event_page       int64
-	event_start_date int64
-	event_start_hour int
-	event_start_min  int
-
-	event_end_date int64
-	event_end_hour int
-	event_end_min  int
-
+	event_page        int64
+	event_start_date  int64
+	event_end_date    int64
 	event_title       string
 	event_description string
 	event_file        string
@@ -180,7 +174,7 @@ func GetTimeSt(unix_sec int64) time.Time {
 }
 
 func GetWeekDayPure(unix_sec int64) int {
-	date := GetTimeSt(unix_sec) //date := time.Unix(unix_sec, 0)
+	date := GetTimeSt(unix_sec)
 
 	week := int(date.Weekday()) //sun=0, mon=1, etc.
 	if week == 0 {
@@ -190,7 +184,7 @@ func GetWeekDayPure(unix_sec int64) int {
 }
 
 func GetWeekDay(unix_sec int64, format float64) int {
-	date := GetTimeSt(unix_sec) //date := time.Unix(unix_sec, 0)
+	date := GetTimeSt(unix_sec)
 
 	week := int(date.Weekday()) //sun=0, mon=1, etc.
 	if format != 1 {
@@ -274,7 +268,9 @@ func GetTextDate(unix_sec int64) string {
 	return ""
 }
 
-func Calendar(value *int64, page *int64) {
+func Calendar(value *int64, page *int64) bool {
+
+	old_value := *value
 	format := SA_InfoGetFloat("date", "", "")
 
 	for x := 0; x < 7; x++ {
@@ -288,7 +284,7 @@ func Calendar(value *int64, page *int64) {
 
 	//fix page(need to start with day 1)
 	{
-		dtt := GetTimeSt(*page) //dtt := time.Unix(*page, 0)
+		dtt := GetTimeSt(*page)
 		*page = dtt.AddDate(0, 0, -(dtt.Day() - 1)).Unix()
 	}
 
@@ -307,14 +303,10 @@ func Calendar(value *int64, page *int64) {
 
 	//--Week days--
 	now := int64(SA_Time())
-	orig_month := GetTimeSt(*page).Month() //	//orig_month := time.Unix(*page, 0).Month()
+	orig_month := GetTimeSt(*page).Month()
 	dtt := GetStartWeekDay(*page, format)
 	for y := 0; y < 6; y++ {
 		for x := 0; x < 7; x++ {
-			//alpha := float64(1)
-			//backCd := SA_ThemeCd()
-			//frontCd := SA_ThemeBlack()
-
 			isDayToday := CmpDates(dtt.Unix(), now)
 			isDaySelected := CmpDates(dtt.Unix(), *value)
 			isDayInMonth := dtt.Month() == orig_month
@@ -323,13 +315,9 @@ func Calendar(value *int64, page *int64) {
 
 			if isDayToday {
 				style = &g_ButtonToday
-				//frontCd = SA_ThemeCd()
 			}
 
 			if isDaySelected && isDayInMonth { //selected day
-				//alpha = 0 //show back
-				//frontCd = SA_ThemeWhite()
-				//backCd = SA_ThemeGrey(0.4)
 				style = &g_ButtonSelect
 
 				if isDayToday {
@@ -338,7 +326,6 @@ func Calendar(value *int64, page *int64) {
 			}
 
 			if !isDayInMonth { //is day in current month
-				//frontCd = SA_ThemeGrey(0.7)
 				if isDaySelected {
 					style = &g_ButtonOutsideMonthCenterSelected
 				} else {
@@ -354,57 +341,68 @@ func Calendar(value *int64, page *int64) {
 			dtt = dtt.AddDate(0, 0, 1) //add day
 		}
 	}
+	return old_value != *value
 }
 
-func DateTimePicker(name string, date *int64, hour *int, minute *int) bool {
+func DateTimePicker(name string, date int64) int64 {
 
 	SA_ColMax(0, 3)
 	SA_ColMax(1, 15)
 
 	SA_Text(name).Show(0, 0, 1, 1)
 
+	over_date := date % (24 * 3600)
+
 	//date
-	if SA_Button(GetTextDate(*date)).Show(1, 0, 1, 1).click {
+	if SA_Button(GetTextDate(date)).Show(1, 0, 1, 1).click {
 		SA_DialogOpen("DateTimePicker_"+name, 1)
 		store.event_page = int64(SA_Time())
 	}
 
 	if SA_DialogStart("DateTimePicker_" + name) {
-		Calendar(date, &store.event_page)
+		if Calendar(&date, &store.event_page) {
+			//keep old hour/minute
+			date -= date % (24 * 3600)
+			date += over_date
+		}
 		SA_DialogEnd()
 	}
 
 	//time
-	var err1 error
-	var err2 error
+	tm := GetTimeSt(date)
+	hour := tm.Hour()
+	minute := tm.Minute()
 
-	if *hour < 0 || *hour > 23 {
-		err1 = errors.New(trns.BETWEEN + " 0 - 23")
-	}
-	if SA_Editbox(hour).TempToValue(true).Error(err1).Show(3, 0, 1, 1).finished {
-		if *hour < 0 {
-			*hour = 0
+	editChanged := false
+	if SA_Editbox(&hour).TempToValue(true).Show(3, 0, 1, 1).finished {
+		if hour < 0 {
+			hour = 0
 		}
-		if *hour > 23 {
-			*hour = 23
+		if hour > 23 {
+			hour = 23
 		}
+		editChanged = true
 	}
 
 	SA_TextCenter(":").Show(4, 0, 1, 1)
 
-	if *minute < 0 || *minute > 59 {
-		err2 = errors.New(trns.BETWEEN + " 0 - 59")
-	}
-	if SA_Editbox(minute).TempToValue(true).Error(err2).Show(5, 0, 1, 1).finished {
-		if *minute < 0 {
-			*minute = 0
+	if SA_Editbox(&minute).TempToValue(true).Show(5, 0, 1, 1).finished {
+		if minute < 0 {
+			minute = 0
 		}
-		if *minute > 59 {
-			*minute = 59
+		if minute > 59 {
+			minute = 59
 		}
+		editChanged = true
 	}
 
-	return err1 == nil && err2 == nil
+	//modify minute
+	if editChanged {
+		tm = GetTimeSt(date)
+		date = time.Date(tm.Year(), tm.Month(), tm.Day(), hour, minute, 0, 0, tm.Location()).Unix()
+	}
+
+	return date
 }
 
 func EditEvent(rowid int64) {
@@ -412,12 +410,12 @@ func EditEvent(rowid int64) {
 
 	//start date
 	SA_DivStart(0, 0, 1, 1)
-	startOk := DateTimePicker(trns.BEGIN, &store.event_start_date, &store.event_start_hour, &store.event_start_min)
+	store.event_start_date = DateTimePicker(trns.BEGIN, store.event_start_date)
 	SA_DivEnd()
 
 	//end date
 	SA_DivStart(0, 1, 1, 1)
-	endOk := DateTimePicker(trns.FINISH, &store.event_end_date, &store.event_end_hour, &store.event_end_min)
+	store.event_end_date = DateTimePicker(trns.FINISH, store.event_end_date)
 	SA_DivEnd()
 
 	var errTitle error
@@ -428,6 +426,12 @@ func EditEvent(rowid int64) {
 	SA_Editbox(&store.event_description).ShowDescription(0, 3, 1, 1, trns.DESCRIPTION, 3, nil)
 	//SA_Editbox(&store.new_event_file).ShowDescription(0, 4, 1, 1, trns.FILE, 3, 0) //drag & drop ...
 
+	var errOrder error
+	if store.event_start_date > store.event_end_date {
+		errOrder = errors.New(trns.FINISH + " > " + trns.BEGIN)
+		SA_Text(errOrder.Error()).Show(0, 4, 1, 1)
+	}
+
 	SA_DivStart(0, 5, 1, 1)
 	{
 		SA_ColMax(0, 100)
@@ -437,12 +441,9 @@ func EditEvent(rowid int64) {
 		if rowid >= 0 {
 			bNm = trns.EDIT
 		}
-		if SA_Button(bNm).Enable(startOk && endOk && errTitle == nil).Show(0, 0, 1, 1).click {
-			store.event_start_date -= store.event_start_date % (24 * 3600) //round to begin of day
-			store.event_end_date -= store.event_end_date % (24 * 3600)     //round to begin of day
-
-			start := store.event_start_date + (int64(store.event_start_hour) * 3600) + (int64(store.event_start_min) * 60)
-			end := store.event_end_date + (int64(store.event_end_hour) * 3600) + (int64(store.event_end_min) * 60)
+		if SA_Button(bNm).Enable(errTitle == nil && errOrder == nil).Show(0, 0, 1, 1).click {
+			start := store.event_start_date
+			end := store.event_end_date
 
 			//send file into db - maybe hex()? ...
 			if rowid >= 0 {
@@ -488,11 +489,6 @@ func ShowEvent(rowid int64) {
 				SA_DialogOpen(fmt.Sprintf("eventEdit_%d", rowid), 1)
 				store.event_start_date = start
 				store.event_end_date = end
-				store.event_start_hour = int(start%(24*3600)) / 3600
-				store.event_start_min = int(start%3600) / 60
-				store.event_end_hour = int(end%(24*3600)) / 3600
-				store.event_end_min = int(end%3600) / 60
-
 				store.event_title = title
 				store.event_description = description
 			}
@@ -525,10 +521,7 @@ func Side() {
 
 			//init
 			store.event_start_date = int64(SA_Time())
-			store.event_end_date = int64(SA_Time())
-			store.event_start_hour, store.event_start_min = GetHM(int64(SA_Time()))
-			store.event_end_hour = store.event_start_hour
-			store.event_end_min = store.event_start_min
+			store.event_end_date = int64(SA_Time() + 3600/2) //+30minutes
 		}
 
 		if SA_DialogStart("NewEvent") {
@@ -544,11 +537,11 @@ func Side() {
 			SA_Text("##"+GetMonthYear(store.Small_page)).Show(0, 0, 1, 1)
 
 			if SA_ButtonLight("<").Show(1, 0, 1, 1).click {
-				tm := GetTimeSt(store.Small_page) //tm := time.Unix(store.Small_page, 0)
+				tm := GetTimeSt(store.Small_page)
 				store.Small_page = tm.AddDate(0, -1, 0).Unix()
 			}
 			if SA_ButtonLight(">").Show(2, 0, 1, 1).click {
-				tm := GetTimeSt(store.Small_page) //tm := time.Unix(store.Small_page, 0)
+				tm := GetTimeSt(store.Small_page)
 				store.Small_page = tm.AddDate(0, 1, 0).Unix()
 			}
 		}
@@ -597,7 +590,6 @@ func ModeYear() {
 		SA_Row(y+1, 0.2)
 	}
 
-	//year := time.Unix(store.Small_date, 0).Year()
 	year := GetTimeSt(store.Small_page).Year()
 	i := 0
 	for y := 0; y < h; y++ {
@@ -613,7 +605,7 @@ func ModeYear() {
 					if SA_ButtonMenu("##"+MonthText(1+i)).Show(0, 0, 1, 1).click {
 
 						//change month = i+1
-						t := GetTimeSt(store.Small_date) //t := time.Unix(store.Small_date, 0)
+						t := GetTimeSt(store.Small_date)
 						store.Small_date = time.Date(t.Year(), time.Month(i+1), t.Day(), 0, 0, 0, 0, t.Location()).Unix()
 						store.Mode = "month"
 					}
@@ -671,11 +663,10 @@ func ModeMonth() {
 	}
 
 	{
-		//orig_month := time.Unix(store.Small_date, 0).Month()
 		orig_month := GetTimeSt(store.Small_date).Month()
 
 		//fix page(need to start with day 1)
-		dtt := GetTimeSt(store.Small_date) //dtt := time.Unix(store.Small_date, 0)
+		dtt := GetTimeSt(store.Small_date)
 		page := dtt.AddDate(0, 0, -(dtt.Day() - 1)).Unix()
 		dtt = GetStartWeekDay(page, format)
 
@@ -695,7 +686,7 @@ func ModeMonth() {
 					style := &styles.ButtonMenu
 					mm := dtt.Month()
 					if mm != orig_month { //is day in current month
-						style = &g_ButtonOutsideMonth //&styles.ButtonMenuSelected
+						style = &g_ButtonOutsideMonth
 					}
 					if SA_ButtonStyle("##"+strconv.Itoa(dtt.Day())+".", style).Show(0, 0, 1, 1).click {
 						store.Small_date = dtt.Unix()
@@ -805,7 +796,7 @@ func ModeWeek() {
 
 		if changeDay >= 0 {
 			//change day = changeDay
-			t := GetTimeSt(store.Small_date) //t := time.Unix(store.Small_date, 0)
+			t := GetTimeSt(store.Small_date)
 			store.Small_date = time.Date(t.Year(), t.Month(), changeDay, 0, 0, 0, 0, t.Location()).Unix()
 
 			store.Mode = "day"
@@ -978,7 +969,7 @@ func ModeDay() {
 
 	//header
 	{
-		dtt := GetTimeSt(store.Small_date) //dtt := time.Unix(store.Small_date, 0)
+		dtt := GetTimeSt(store.Small_date)
 		SA_TextCenter("##"+strconv.Itoa(dtt.Day())+". "+DayTextFull(GetWeekDayPure(store.Small_date))).Show(1, 0, 1, 1)
 	}
 
@@ -999,7 +990,7 @@ func ModeDay() {
 
 		//events
 		SA_DivStartName(1, 1, 1, 24*2, "events")
-		dtt := GetTimeSt(store.Small_date) //dtt := time.Unix(store.Small_date, 0)
+		dtt := GetTimeSt(store.Small_date)
 		DayEvent(dtt.Unix())
 		SA_DivEnd()
 
@@ -1061,7 +1052,7 @@ func ModePanel() {
 
 		//arrows
 		if SA_ButtonLight("<").Show(1, 0, 1, 1).click {
-			tm := GetTimeSt(store.Small_date) //tm := time.Unix(store.Small_date, 0)
+			tm := GetTimeSt(store.Small_date)
 			if store.Mode == "year" {
 				store.Small_date = tm.AddDate(-1, 0, 0).Unix()
 			} else if store.Mode == "month" {
@@ -1073,7 +1064,7 @@ func ModePanel() {
 			}
 		}
 		if SA_ButtonLight(">").Show(2, 0, 1, 1).click {
-			tm := GetTimeSt(store.Small_date) //tm := time.Unix(store.Small_date, 0)
+			tm := GetTimeSt(store.Small_date)
 			if store.Mode == "year" {
 				store.Small_date = tm.AddDate(1, 0, 0).Unix()
 			} else if store.Mode == "month" {
