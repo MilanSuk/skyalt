@@ -1,0 +1,20 @@
+{
+"RED.en": "Red", 
+"RED.cs": "Čeřvená",
+
+"GREEN.en": "Green", 
+"GREEN.cs": "Zelená",
+
+"BLUE.en": "Blue", 
+"BLUE.cs": "Modrá",
+
+"HUE.en": "Hue", 
+"HUE.cs": "Odstín",
+
+"SATURATION.en": "Saturation", 
+"SATURATION.cs": "Sytost",
+
+"LIGHTNESS.en": "Lightness", 
+"LIGHTNESS.cs": "Světlost"
+
+}

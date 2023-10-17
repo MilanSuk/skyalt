@@ -37,6 +37,7 @@ type Storage struct {
 	event_title       string
 	event_description string
 	event_file        string
+	event_cd          SACd
 
 	timezone int64
 }
@@ -93,6 +94,8 @@ type Translations struct {
 	EMPTY  string
 	EDIT   string
 	DELETE string
+
+	COLOR string
 }
 
 var trns Translations
@@ -396,7 +399,7 @@ func DateTimePicker(name string, date int64) int64 {
 		editChanged = true
 	}
 
-	//modify minute
+	//modify hour/minute
 	if editChanged {
 		tm = GetTimeSt(date)
 		date = time.Date(tm.Year(), tm.Month(), tm.Day(), hour, minute, 0, 0, tm.Location()).Unix()
@@ -426,13 +429,17 @@ func EditEvent(rowid int64) {
 	SA_Editbox(&store.event_description).ShowDescription(0, 3, 1, 1, trns.DESCRIPTION, 3, nil)
 	//SA_Editbox(&store.new_event_file).ShowDescription(0, 4, 1, 1, trns.FILE, 3, 0) //drag & drop ...
 
+	SA_DivStart(0, 4, 1, 1)
+	ButtonColorPicker(&store.event_cd, trns.COLOR, 3, "event_cd")
+	SA_DivEnd()
+
 	var errOrder error
 	if store.event_start_date > store.event_end_date {
 		errOrder = errors.New(trns.FINISH + " > " + trns.BEGIN)
-		SA_Text(errOrder.Error()).Show(0, 4, 1, 1)
+		SA_Text(errOrder.Error()).Show(0, 5, 1, 1)
 	}
 
-	SA_DivStart(0, 5, 1, 1)
+	SA_DivStart(0, 6, 1, 1)
 	{
 		SA_ColMax(0, 100)
 		SA_ColMax(1, 100)
@@ -446,10 +453,11 @@ func EditEvent(rowid int64) {
 			end := store.event_end_date
 
 			//send file into db - maybe hex()? ...
+			cdHex := store.event_cd.RGBtoHEX()
 			if rowid >= 0 {
-				SA_SqlWrite("", fmt.Sprintf("UPDATE events SET start=%d, end=%d, title='%s', description='%s' WHERE rowid=%d;", start, end, store.event_title, store.event_description, rowid))
+				SA_SqlWrite("", fmt.Sprintf("UPDATE events SET start=%d, end=%d, title='%s', description='%s', cd='%s' WHERE rowid=%d;", start, end, store.event_title, store.event_description, cdHex, rowid))
 			} else {
-				SA_SqlWrite("", fmt.Sprintf("INSERT INTO events(start, end, title, description) VALUES(%d, %d, '%s', '%s');", start, end, store.event_title, store.event_description))
+				SA_SqlWrite("", fmt.Sprintf("INSERT INTO events(start, end, title, description, cd) VALUES(%d, %d, '%s', '%s', '%s');", start, end, store.event_title, store.event_description, cdHex))
 			}
 			SA_DialogClose()
 		}
@@ -467,10 +475,10 @@ func EditEvent(rowid int64) {
 
 func ShowEvent(rowid int64) {
 
-	query := SA_SqlRead("", fmt.Sprintf("SELECT start, end, title, description FROM events WHERE rowid=%d", rowid))
+	query := SA_SqlRead("", fmt.Sprintf("SELECT start, end, title, description, cd FROM events WHERE rowid=%d", rowid))
 	var start, end int64
-	var title, description string
-	if query.Next(&start, &end, &title, &description) {
+	var title, description, cdHex string
+	if query.Next(&start, &end, &title, &description, &cdHex) {
 
 		SA_ColMax(0, 10)
 
@@ -479,11 +487,22 @@ func ShowEvent(rowid int64) {
 		SA_Text(title).ShowDescription(0, 2, 1, 1, trns.TITLE, 3, nil)
 		SA_Text(description).ShowDescription(0, 3, 1, 1, trns.DESCRIPTION, 3, nil)
 
+		event_cd := HEXtoRGBwithCheck(cdHex, SA_ThemeCd())
 		SA_DivStart(0, 4, 1, 1)
+		{
+			if ButtonColorPicker(&event_cd, trns.COLOR, 3, "event_cd") {
+				//called too often? ...
+				cdHex = event_cd.RGBtoHEX()
+				SA_SqlWrite("", fmt.Sprintf("UPDATE events SET cd='%s' WHERE rowid=%d;", cdHex, rowid))
+			}
+		}
+		SA_DivEnd()
+
+		SA_DivStart(0, 6, 1, 1)
 		{
 			SA_ColMax(0, 4)
 			SA_ColMax(1, 100)
-			SA_ColMax(2, 2)
+			SA_ColMax(2, 4)
 			if SA_Button(trns.EDIT).Show(0, 0, 1, 1).click {
 				SA_DialogClose()
 				SA_DialogOpen(fmt.Sprintf("eventEdit_%d", rowid), 1)
@@ -491,6 +510,7 @@ func ShowEvent(rowid int64) {
 				store.event_end_date = end
 				store.event_title = title
 				store.event_description = description
+				store.event_cd = event_cd
 			}
 			if SA_Button(trns.DELETE).Show(2, 0, 1, 1).click {
 				SA_DialogClose()
@@ -522,6 +542,7 @@ func Side() {
 			//init
 			store.event_start_date = int64(SA_Time())
 			store.event_end_date = int64(SA_Time() + 3600/2) //+30minutes
+			store.event_cd = SA_ThemeCd()
 		}
 
 		if SA_DialogStart("NewEvent") {
@@ -701,7 +722,7 @@ func ModeMonth() {
 
 						stT := t + store.timezone
 						enT := stT + (24 * 3600) + store.timezone
-						query := SA_SqlRead("", fmt.Sprintf("SELECT rowid, start, end, title FROM events WHERE start >= %d AND start < %d ORDER BY start", stT, enT))
+						query := SA_SqlRead("", fmt.Sprintf("SELECT rowid, start, end, title, cd FROM events WHERE start >= %d AND start < %d ORDER BY start", stT, enT))
 
 						SA_DivInfoSet("scrollVnarrow", 1)
 						//paintRect(borderWidth:0.03, margin: 0.1, color: themeGrey())
@@ -712,9 +733,11 @@ func ModeMonth() {
 
 						y := 0
 						var rowid, start, end int64
-						var title string
-						for query.Next(&rowid, &start, &end, &title) {
-							if SA_ButtonStyle(title, &g_ButtonEvent).Tooltip(title+": "+GetTextTime(start)+" - "+GetTextTime(end)).Show(0, y, 1, 1).click {
+						var title, cdHex string
+						for query.Next(&rowid, &start, &end, &title, &cdHex) {
+
+							toolTip := title + ": " + GetTextTime(start) + " - " + GetTextTime(end)
+							if ButtonColor(0, y, 1, 1, title, toolTip, HEXtoRGBwithCheck(cdHex, SA_ThemeCd()), 0.7) {
 								SA_DialogOpen(fmt.Sprintf("eventDetail_%d", rowid), 1)
 							}
 
@@ -861,6 +884,7 @@ type EventItem struct {
 	rowid, start, end int64
 	endVisual         int64 //(end-start) can be too short, so endVisial is at least 15min different
 	title             string
+	cd                SACd
 }
 
 func (a EventItem) HasCover(b EventItem) bool {
@@ -883,9 +907,12 @@ func DayEvent(t int64) {
 	enT := stT + (24 * 3600) + store.timezone
 
 	var cols [][]EventItem
-	query := SA_SqlRead("", fmt.Sprintf("SELECT rowid, start, end, title FROM events WHERE start >= %d AND start < %d ORDER BY start", stT, enT))
+	query := SA_SqlRead("", fmt.Sprintf("SELECT rowid, start, end, title, cd FROM events WHERE start >= %d AND start < %d ORDER BY start", stT, enT))
 	var item EventItem
-	for query.Next(&item.rowid, &item.start, &item.end, &item.title) {
+	var cdHex string
+	for query.Next(&item.rowid, &item.start, &item.end, &item.title, &cdHex) {
+
+		item.cd = HEXtoRGBwithCheck(cdHex, SA_ThemeCd())
 
 		item.start += store.timezone
 		item.end += store.timezone
@@ -950,9 +977,14 @@ func DayEvent(t int64) {
 			}
 
 			for i, it := range cols[c] {
-				if SA_Button(it.title).Tooltip(it.title+": "+GetTextTime(it.start-store.timezone)+" - "+GetTextTime(it.end-store.timezone)).Show(0, i*2+1, 1, 1).click {
+				tooltip := it.title + ": " + GetTextTime(it.start-store.timezone) + " - " + GetTextTime(it.end-store.timezone)
+
+				if ButtonColor(0, i*2+1, 1, 1, it.title, tooltip, it.cd, 0) {
 					SA_DialogOpen(fmt.Sprintf("eventDetail_%d", it.rowid), 1)
 				}
+				//if SA_Button(it.title).Tooltip(it.title+": "+GetTextTime(it.start-store.timezone)+" - "+GetTextTime(it.end-store.timezone)).Show(0, i*2+1, 1, 1).click {
+				//	SA_DialogOpen(fmt.Sprintf("eventDetail_%d", it.rowid), 1)
+				//}
 
 				eventDialogs(it.rowid)
 			}
@@ -1178,10 +1210,12 @@ func Open() {
 	g_ButtonEvent = styles.ButtonLight
 	g_ButtonEvent.FontAlignH(0)
 	g_ButtonEvent.Id = 0
+
+	OpenColors()
 }
 
 func SetupDB() {
-	SA_SqlWrite("", "CREATE TABLE IF NOT EXISTS events(title TEXT, description TEXT, start INTEGER, end INTEGER);")
+	SA_SqlWrite("", "CREATE TABLE IF NOT EXISTS events(title TEXT, description TEXT, start INTEGER, end INTEGER, cd TEXT);")
 }
 
 func Save() []byte {

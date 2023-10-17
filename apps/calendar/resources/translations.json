@@ -109,7 +109,9 @@
 "EDIT.cs": "Upravit",
 
 "DELETE.en": "Delete",
-"DELETE.cs": "Smazat"
+"DELETE.cs": "Smazat",
 
+"COLOR.en": "Color",
+"COLOR.cs": "Barva"
 
 }
