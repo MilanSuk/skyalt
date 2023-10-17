@@ -40,15 +40,11 @@ func (app *App) _info_get_prepare(cmd string, prm1 string, prm2 string, onlyLen 
 	case "date":
 		return strconv.Itoa(app.db.root.ui.io.ini.Date), 1
 
-	case "timezone":
+	case "time_zone":
 		return strconv.Itoa(app.db.root.ui.io.ini.TimeZone), 1
 
 	case "time_utc0":
 		return strconv.FormatFloat(float64(time.Now().UnixMicro())/1000000, 'f', -1, 64), 1 //seconds
-
-	case "time":
-		tm := time.Now()
-		return strconv.FormatFloat(float64(tm.UnixMicro())/1000000+float64(app.db.root.ui.io.ini.TimeZone*3600), 'f', -1, 64), 1 //seconds
 	}
 
 	if !app.hasRootPriviliges(cmd) {
@@ -137,7 +133,7 @@ func (app *App) info_set(cmd string, prm1 string, prm2 string, prm3 string) int6
 			return 1
 		}
 		fmt.Printf("Atoi() failed: %v\n", err)
-	case "timezone":
+	case "time_zone":
 		v, err := strconv.Atoi(prm1)
 		if err == nil {
 			app.db.root.ui.io.ini.TimeZone = v
