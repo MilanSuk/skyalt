@@ -132,7 +132,7 @@ func DayTextShort(day int) string {
 
 func Format(unix_sec int64) string {
 
-	tm := time.Unix(unix_sec, 0)
+	tm := SA_InitTimeInt(unix_sec, SA_Timezone())
 
 	d := strconv.Itoa(tm.Day())
 	m := strconv.Itoa(int(tm.Month()))
@@ -202,13 +202,13 @@ func Calendar(value int64, page int64) (int64, int64) {
 
 	//fix page(need to start with day 1)
 	{
-		dtt := time.Unix(page, 0)
+		dtt := SA_InitTimeInt(page, SA_Timezone()) //dtt := time.Unix(page, 0)
 		page = dtt.AddDate(0, 0, -(dtt.Day() - 1)).Unix()
 	}
 
 	//--Week header navigation--
 	{
-		tm := time.Unix(page, 0)
+		tm := SA_InitTimeInt(page, SA_Timezone()) //tm := time.Unix(page, 0)
 
 		if SA_ButtonLight("<<").Show(0, 1, 1, 1).click {
 			page = tm.AddDate(-1, 0, 0).Unix()
@@ -242,7 +242,7 @@ func Calendar(value int64, page int64) (int64, int64) {
 
 	//--Week days--
 	now := int64(SA_Time())
-	orig_dtt := time.Unix(page, 0)
+	orig_dtt := SA_InitTimeInt(page, SA_Timezone()) //orig_dtt := time.Unix(page, 0)
 	dtt := GetStartWeekDay(orig_dtt, format)
 	for y := 0; y < 6; y++ {
 		for x := 0; x < 7; x++ {
