@@ -383,24 +383,24 @@ func SA_DivRangeVer(itemSize float64) (int, int) {
 /* -------------------- Paint -------------------- */
 
 func SAPaint_Rect(x, y, w, h float64, margin float64, cd SACd, borderWidth float64) bool {
-	return _sa_paint_rect(x, y, w, h, margin, uint32(cd.R), uint32(cd.G), uint32(cd.G), uint32(cd.A), borderWidth) > 0
+	return _sa_paint_rect(x, y, w, h, margin, uint32(cd.R), uint32(cd.G), uint32(cd.B), uint32(cd.A), borderWidth) > 0
 }
 func SAPaint_Line(sx, sy, ex, ey float64, cd SACd, width float64) bool {
-	return _sa_paint_line(0, 0, 1, 1, 0, sx, sy, ex, ey, uint32(cd.R), uint32(cd.G), uint32(cd.G), uint32(cd.A), width) > 0
+	return _sa_paint_line(0, 0, 1, 1, 0, sx, sy, ex, ey, uint32(cd.R), uint32(cd.G), uint32(cd.B), uint32(cd.A), width) > 0
 }
 func SAPaint_LineEx(x, y, w, h float64, margin float64, sx, sy, ex, ey float64, cd SACd, width float64) bool {
-	return _sa_paint_line(x, y, w, h, margin, sx, sy, ex, ey, uint32(cd.R), uint32(cd.G), uint32(cd.G), uint32(cd.A), width) > 0
+	return _sa_paint_line(x, y, w, h, margin, sx, sy, ex, ey, uint32(cd.R), uint32(cd.G), uint32(cd.B), uint32(cd.A), width) > 0
 }
 
 func SAPaint_Circle(sx, sy, rad float64, cd SACd, borderWidth float64) bool {
-	return _sa_paint_circle(0, 0, 1, 1, 0, sx, sy, rad, uint32(cd.R), uint32(cd.G), uint32(cd.G), uint32(cd.A), borderWidth) > 0
+	return _sa_paint_circle(0, 0, 1, 1, 0, sx, sy, rad, uint32(cd.R), uint32(cd.G), uint32(cd.B), uint32(cd.A), borderWidth) > 0
 }
 func SAPaint_CircleEx(x, y, w, h float64, margin float64, sx, sy, rad float64, cd SACd, borderWidth float64) bool {
-	return _sa_paint_circle(x, y, w, h, margin, sx, sy, rad, uint32(cd.R), uint32(cd.G), uint32(cd.G), uint32(cd.A), borderWidth) > 0
+	return _sa_paint_circle(x, y, w, h, margin, sx, sy, rad, uint32(cd.R), uint32(cd.G), uint32(cd.B), uint32(cd.A), borderWidth) > 0
 }
 
 func SAPaint_File(x, y, w, h float64, file string, tooltip string, margin, marginX, marginY float64, cd SACd, alignV, alignH uint32, fill bool) bool {
-	return _sa_paint_file(x, y, w, h, _SA_stringToPtr(file), _SA_stringToPtr(tooltip), margin, marginX, marginY, uint32(cd.R), uint32(cd.G), uint32(cd.G), uint32(cd.A), alignV, alignH, _SA_boolToUint32(fill)) > 0
+	return _sa_paint_file(x, y, w, h, _SA_stringToPtr(file), _SA_stringToPtr(tooltip), margin, marginX, marginY, uint32(cd.R), uint32(cd.G), uint32(cd.B), uint32(cd.A), alignV, alignH, _SA_boolToUint32(fill)) > 0
 }
 
 func SAPaint_Text(x, y, w, h float64, style *_SA_Style, value string, selection, edit, enable bool) bool {
