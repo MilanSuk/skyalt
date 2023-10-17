@@ -702,6 +702,33 @@ func (b *_SA_Slider) Show(x, y, w, h int) _SA_SliderOut {
 	return ret
 }
 
+func (b *_SA_Slider) ShowDescription(x, y, w, h int, description string, width float64, descStyle *_SA_Style) _SA_SliderOut {
+
+	var ret _SA_SliderOut
+
+	if descStyle == nil {
+		descStyle = &styles.Text
+	}
+
+	if SA_DivStart(x, y, w, h) {
+		if width > 0 {
+			//1 row
+			SA_Col(0, width)
+			SA_ColMax(1, 100)
+			SA_TextStyle(description, descStyle).Show(0, 0, 1, 1)
+			ret = b.Show(1, 0, 1, 1)
+		} else {
+			//2 rows
+			SA_ColMax(0, 100)
+			SA_TextStyle(description, descStyle).Show(0, 0, 1, 1)
+			ret = b.Show(0, 1, 1, 1)
+		}
+	}
+	SA_DivEnd()
+
+	return ret
+}
+
 type _SA_Text struct {
 	style   *_SA_Style
 	value   string
@@ -774,7 +801,6 @@ func (b *_SA_Text) ShowDescription(x, y, w, h int, description string, width flo
 		}
 	}
 	SA_DivEnd()
-
 }
 
 func (b *_SA_Text) Show(x, y, w, h int) {
@@ -1186,6 +1212,9 @@ type SACd struct {
 
 func SA_InitCd(r uint32, g uint32, b uint32, a uint32) SACd {
 	return SACd{byte(r), byte(g), byte(b), byte(a)}
+}
+func (a SACd) Cmp(b SACd) bool {
+	return a.R == b.R && a.G == b.G && a.B == b.B && a.A == b.A
 }
 func (s SACd) Aprox(e SACd, t float32) SACd {
 	var ret SACd
