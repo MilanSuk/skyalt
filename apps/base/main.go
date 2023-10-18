@@ -423,7 +423,7 @@ func Menu() {
 
 	y := 0
 	//save
-	if SA_ButtonMenu(trns.SAVE).Show(0, y, 1, 1).click {
+	if SA_ButtonMenu(trns.SAVE).Icon("app:resources/save.png", 0.11).Show(0, y, 1, 1).click {
 		SA_InfoSet("save", "", "", "")
 		SA_DialogClose()
 	}
@@ -432,7 +432,7 @@ func Menu() {
 	y++
 
 	//settings
-	if SA_ButtonMenu(trns.SETTINGS).Show(0, y, 1, 1).click {
+	if SA_ButtonMenu(trns.SETTINGS).Icon("app:resources/settings.png", 0.11).Show(0, y, 1, 1).click {
 		SA_DialogClose()
 		SA_DialogOpen("Settings", 0)
 	}
@@ -446,7 +446,7 @@ func Menu() {
 		SA_ColMax(0, 100)
 		SA_ColMax(2, 2)
 
-		SA_Text(trns.ZOOM).Show(0, 0, 1, 1)
+		SA_Text(trns.ZOOM).Icon("app:resources/zoom.png", 0.11).Show(0, 0, 1, 1)
 
 		dpi := SA_InfoGetFloat("dpi", "", "")
 		dpi_default := SA_InfoGetFloat("dpi_default", "", "")
@@ -468,10 +468,12 @@ func Menu() {
 	{
 		isFullscreen := int(SA_InfoGetFloat("fullscreen", "", ""))
 		ff := trns.WINDOW_MODE
+		icon := "app:resources/window_mode.png"
 		if isFullscreen == 0 {
 			ff = trns.FULLSCREEN_MODE
+			icon = "app:resources/fullscreen_mode.png"
 		}
-		if SA_ButtonMenu(ff).Show(0, y, 1, 1).click {
+		if SA_ButtonMenu(ff).Icon(icon, 0.1).Show(0, y, 1, 1).click {
 			if isFullscreen > 0 {
 				isFullscreen = 0
 			} else {
@@ -499,22 +501,22 @@ func Menu() {
 			SA_DivStart(0, y, 1, dev_h)
 			{
 				SA_ColMax(1, 100)
-				if SA_ButtonMenu(trns.CREATE_APP).Show(1, 0, 1, 1).click {
+				if SA_ButtonMenu(trns.CREATE_APP).Icon("app:resources/dev_create.png", 0.11).Show(1, 0, 1, 1).click {
 					SA_DialogClose()
 					SA_DialogOpen("dev_create_app", 0)
 					UpdateAppList()
 				}
-				if SA_ButtonMenu(trns.PACKAGE_APP).Show(1, 1, 1, 1).click {
+				if SA_ButtonMenu(trns.PACKAGE_APP).Icon("app:resources/dev_package.png", 0.11).Show(1, 1, 1, 1).click {
 					SA_DialogClose()
 					SA_DialogOpen("dev_package_app", 0)
 					UpdateAppList()
 				}
-				if SA_ButtonMenu(trns.REINSTALL_APP).Show(1, 2, 1, 1).click {
+				if SA_ButtonMenu(trns.REINSTALL_APP).Icon("app:resources/dev_install.png", 0.11).Show(1, 2, 1, 1).click {
 					SA_DialogClose()
 					SA_DialogOpen("dev_reinstall", 0)
 					UpdateAppList()
 				}
-				if SA_ButtonMenu(trns.VACUUM_DBS).Show(1, 3, 1, 1).click {
+				if SA_ButtonMenu(trns.VACUUM_DBS).Icon("app:resources/dev_vacuum.png", 0.11).Show(1, 3, 1, 1).click {
 					SA_InfoSet("vacuum", "", "", "")
 					SA_DialogClose()
 				}
@@ -526,7 +528,7 @@ func Menu() {
 	SA_RowSpacer(0, y, 1, 1)
 	y++
 
-	if SA_ButtonMenu(trns.ABOUT).Show(0, y, 1, 1).click {
+	if SA_ButtonMenu(trns.ABOUT).Icon("app:resources/about.png", 0.11).Show(0, y, 1, 1).click {
 		SA_DialogClose()
 		SA_DialogOpen("About", 0)
 	}
@@ -534,7 +536,7 @@ func Menu() {
 	SA_RowSpacer(0, y, 1, 1)
 	y++
 
-	if SA_ButtonMenu(trns.QUIT).Show(0, y, 1, 1).click {
+	if SA_ButtonMenu(trns.QUIT).Icon("app:resources/quit.png", 0.11).Show(0, y, 1, 1).click {
 		SA_InfoSet("exit", "", "", "")
 		SA_DialogClose()
 	}
@@ -649,7 +651,7 @@ func UpdateAppList() {
 	appsJs := SA_InfoGet("apps", "", "")
 	json.Unmarshal([]byte(appsJs), &store.appList)
 
-	//remove "base"
+	//remove
 	for i, app := range store.appList {
 		if app.Name == "base" {
 			store.appList = append(store.appList[:i], store.appList[i+1:]...) //remove
