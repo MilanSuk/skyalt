@@ -41,11 +41,12 @@ type Storage struct {
 var store Storage
 
 type Translations struct {
-	NO_TABLES    string
-	CREATE_TABLE string
-	RENAME       string
-	REMOVE       string
-	DUPLICATE    string
+	NO_TABLES     string
+	CREATE_TABLE  string
+	CREATE_COLUMN string
+	RENAME        string
+	REMOVE        string
+	DUPLICATE     string
 
 	ALREADY_EXISTS string
 	EMPTY_FIELD    string
@@ -1153,7 +1154,7 @@ func TableColumns(table *Table) {
 	}
 
 	//create column
-	if SA_ButtonLight("+").Show(x, 0, 1, 1).click {
+	if SA_ButtonLight("+").Tooltip(trns.CREATE_COLUMN).Show(x, 0, 1, 1).click {
 		SA_DialogOpen("createColumn", 1)
 	}
 
