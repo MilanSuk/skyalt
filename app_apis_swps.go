@@ -522,16 +522,15 @@ func (app *App) comp_drawCheckbox(styleCheck *CompStyle, styleLabel *CompStyle, 
 	} else {
 		//center
 		content = styleCheck.Paint(st.stack.canvas, "", "", false, false, "", 0, enable, app)
-
 	}
 
 	if value > 0 {
 		st.buff.AddRect(content, styleCheck.Main.Border_color, 0)
 
 		//draw check
-		//content = content.AddSpace(app.getCellWidth(0.1))
-		//st.buff.AddLine(content.GetPos(1.0/3, 0.9), content.GetPos(0.05, 2.0/3), themeWhite(), app.getCellWidth(0.05))
-		//st.buff.AddLine(content.GetPos(1.0/3, 0.9), content.GetPos(0.95, 1.0/4), themeWhite(), app.getCellWidth(0.05))
+		content = content.AddSpace(app.getCellWidth(0.1))
+		st.buff.AddLine(content.GetPos(1.0/3, 0.9), content.GetPos(0.05, 2.0/3), themeWhite(), app.getCellWidth(0.05))
+		st.buff.AddLine(content.GetPos(1.0/3, 0.9), content.GetPos(0.95, 1.0/4), themeWhite(), app.getCellWidth(0.05))
 	}
 
 	if len(tooltip) > 0 {

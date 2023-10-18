@@ -756,21 +756,17 @@ func _Ui_line(render *sdl.Renderer, start OsV2, end OsV2, thick int, cd OsCd) {
 
 	v := end.Sub(start)
 	if !v.IsZero() {
-
-		hThick := thick / 2
-
 		if thick == 1 {
 			gfx.AALineRGBA(render, int32(start.X), int32(start.Y), int32(end.X), int32(end.Y), cd.R, cd.G, cd.B, cd.A)
 		} else {
+			gfx.ThickLineRGBA(render, int32(start.X), int32(start.Y), int32(end.X), int32(end.Y), int32(thick), cd.R, cd.G, cd.B, cd.A)
+			/*hThick := thick / 2
 			l := v.Len()
-
-			x := int(float32(v.Y)/l) * hThick
-			y := int(float32(-v.X)/l) * hThick
-
+			x := int(float32(v.Y) / l * float32(hThick))
+			y := int(float32(-v.X) / l * float32(hThick))
 			vx := []int16{int16(start.X + x), int16(end.X + x), int16(end.X - x), int16(start.X - x)}
 			vy := []int16{int16(start.Y + y), int16(end.Y + y), int16(end.Y - y), int16(start.Y - y)}
-
-			gfx.FilledPolygonRGBA(render, vx, vy, cd.R, cd.G, cd.B, cd.A)
+			gfx.FilledPolygonRGBA(render, vx, vy, cd.R, cd.G, cd.B, cd.A)*/
 		}
 
 	}

@@ -761,7 +761,7 @@ func DivStyles_getDefaults(root *Root) DivDefaultStyles {
 		stls.CheckboxCheck.MaxHeightAlign(1)
 		stls.CheckboxCheck.Border(0.03)
 		stls.CheckboxCheck.BorderCd(themeBlack())
-		stls.CheckboxCheck.Padding(0.03)
+		//stls.CheckboxCheck.Padding(0.03)
 		stls.CheckboxCheck.HoverAuto()
 		stls.CheckboxCheck.DisableAuto()
 
