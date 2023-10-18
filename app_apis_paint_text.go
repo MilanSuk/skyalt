@@ -24,6 +24,7 @@ import (
 
 func (app *App) paint_textGrid(style *CompStyle,
 	value string, valueOrigEdit string,
+	icon string, icon_margin float64,
 	selection, edit, enable bool) int64 {
 
 	root := app.db.root
@@ -45,7 +46,7 @@ func (app *App) paint_textGrid(style *CompStyle,
 	app._sa_div_col(0, OsMaxFloat(app.div_info_get("layoutWidth", 0), app.paint_textWidth(style, value, -1))) //+marginX*4+margin*2
 	app._sa_div_row(0, app.div_info_get("layoutHeight", 0))
 	app.div_start(0, 0, 1, 1, "")
-	style.Paint(st.stack.canvas, value, valueOrigEdit, selection, edit, "", 0, enable, app)
+	style.Paint(st.stack.canvas, value, valueOrigEdit, selection, edit, icon, icon_margin, enable, app)
 	app._sa_div_end()
 
 	return 1

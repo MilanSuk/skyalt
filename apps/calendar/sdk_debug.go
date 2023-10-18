@@ -659,10 +659,12 @@ func _sa_comp_drawProgress(styleFrameId uint32, styleStatusId uint32, value floa
 	return ret
 }
 
-func _sa_comp_drawText(styleId uint32, valueMem SAMem, tooltipMem SAMem, enable uint32, selection uint32) int64 {
+func _sa_comp_drawText(styleId uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, tooltipMem SAMem, enable uint32, selection uint32) int64 {
 	WriteUint64(83)
 	WriteUint64(uint64(styleId))
 	WriteMem(valueMem)
+	WriteMem(iconMem)
+	WriteFloat64(icon_margin)
 	WriteMem(tooltipMem)
 	WriteUint64(uint64(enable))
 	WriteUint64(uint64(selection))
@@ -681,11 +683,13 @@ func _sa_comp_getEditValue(outMem SAMem) int64 {
 	return ret
 }
 
-func _sa_comp_drawEdit(styleId uint32, valueMem SAMem, valueOrigMem SAMem, tooltipMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64 {
+func _sa_comp_drawEdit(styleId uint32, valueMem SAMem, valueOrigMem SAMem, tooltipMem SAMem, iconMem SAMem, icon_margin float64, ghostMem SAMem, enable uint32, outMem SAMem) int64 {
 	WriteUint64(85)
 	WriteUint64(uint64(styleId))
 	WriteMem(valueMem)
 	WriteMem(valueOrigMem)
+	WriteMem(iconMem)
+	WriteFloat64(icon_margin)
 	WriteMem(tooltipMem)
 	WriteMem(ghostMem)
 	WriteUint64(uint64(enable))

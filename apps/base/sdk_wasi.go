@@ -202,7 +202,7 @@ func _sa_print_float(val float64)
 
 //export _sa_comp_drawButton
 //go:wasmimport env _sa_comp_drawButton
-func _sa_comp_drawButton(style uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, tooltipMem SAMem, enable uint32, outMem SAMem) int64
+func _sa_comp_drawButton(styleId uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, urlMem SAMem, tooltipMem SAMem, enable uint32, outMem SAMem) int64
 
 //export _sa_comp_drawSlider
 //go:wasmimport env _sa_comp_drawSlider
@@ -214,7 +214,7 @@ func _sa_comp_drawProgress(styleFrameId uint32, styleStatusId uint32, value floa
 
 //export _sa_comp_drawText
 //go:wasmimport env _sa_comp_drawText
-func _sa_comp_drawText(style uint32, valueMem SAMem, tooltipMem SAMem, enable uint32, selection uint32) int64
+func _sa_comp_drawText(styleId uint32, valueMem SAMem, iconMem SAMem, icon_margin float64, tooltipMem SAMem, enable uint32, selection uint32) int64
 
 //export _sa_comp_getEditValue
 //go:wasmimport env _sa_comp_getEditValue
@@ -222,7 +222,7 @@ func _sa_comp_getEditValue(outMem SAMem) int64
 
 //export _sa_comp_drawEdit
 //go:wasmimport env _sa_comp_drawEdit
-func _sa_comp_drawEdit(style uint32, valueMem SAMem, valueOrigMem SAMem, tooltipMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64
+func _sa_comp_drawEdit(styleId uint32, valueMem SAMem, valueOrigMem SAMem, iconMem SAMem, icon_margin float64, tooltipMem SAMem, ghostMem SAMem, enable uint32, outMem SAMem) int64
 
 //export _sa_comp_drawCombo
 //go:wasmimport env _sa_comp_drawCombo

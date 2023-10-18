@@ -115,14 +115,14 @@ func (app *App) _sa_comp_drawButton(styleId uint32, valueMem uint64, iconMem uin
 	return ret
 }
 
-func (app *App) comp_drawText(style *CompStyle, value string, tooltip string, enable bool, selection bool) int64 {
+func (app *App) comp_drawText(style *CompStyle, value string, icon string, icon_margin float64, tooltip string, enable bool, selection bool) int64 {
 
 	root := app.db.root
 	if style == nil {
 		style = &root.styles.Text
 	}
 
-	app.paint_textGrid(style, value, "", selection, false, enable)
+	app.paint_textGrid(style, value, "", icon, icon_margin, selection, false, enable)
 	if len(tooltip) > 0 {
 		app.paint_tooltip(0, 0, 1, 1, tooltip)
 	}
@@ -130,9 +130,14 @@ func (app *App) comp_drawText(style *CompStyle, value string, tooltip string, en
 	return 1
 }
 
-func (app *App) _sa_comp_drawText(styleId uint32, valueMem uint64, tooltipMem uint64, enable uint32, selection uint32) int64 {
+func (app *App) _sa_comp_drawText(styleId uint32, valueMem uint64, iconMem uint64, icon_margin float64, tooltipMem uint64, enable uint32, selection uint32) int64 {
 
 	value, err := app.ptrToString(valueMem)
+	if app.AddLogErr(err) {
+		return -1
+	}
+
+	icon, err := app.ptrToString(iconMem)
 	if app.AddLogErr(err) {
 		return -1
 	}
@@ -144,7 +149,7 @@ func (app *App) _sa_comp_drawText(styleId uint32, valueMem uint64, tooltipMem ui
 
 	style := app.styles.Get(styleId)
 
-	return app.comp_drawText(style, value, tooltip, enable > 0, selection > 0)
+	return app.comp_drawText(style, value, icon, icon_margin, tooltip, enable > 0, selection > 0)
 }
 
 func (app *App) comp_getEditValue() string {
@@ -159,7 +164,7 @@ func (app *App) _sa_comp_getEditValue(outMem uint64) int64 {
 	return 1
 }
 
-func (app *App) comp_drawEdit(style *CompStyle, valueIn string, valueInOrig string, tooltip string, ghost string, enable bool) (string, bool, bool, bool) {
+func (app *App) comp_drawEdit(style *CompStyle, valueIn string, valueInOrig string, icon string, icon_margin float64, tooltip string, ghost string, enable bool) (string, bool, bool, bool) {
 
 	root := app.db.root
 	st := root.levels.GetStack()
@@ -186,7 +191,7 @@ func (app *App) comp_drawEdit(style *CompStyle, valueIn string, valueInOrig stri
 	}
 	inDiv.data.touch_enabled = enable
 
-	app.paint_textGrid(style, value, valueInOrig, true, true, enable)
+	app.paint_textGrid(style, value, valueInOrig, icon, icon_margin, true, true, enable)
 
 	//ghost
 	if len(edit.last_edit) == 0 && len(ghost) > 0 {
@@ -204,13 +209,18 @@ func (app *App) comp_drawEdit(style *CompStyle, valueIn string, valueInOrig stri
 	return edit.last_edit, active, (active && value != edit.last_edit), (active && this_uid != edit.uid)
 }
 
-func (app *App) _sa_comp_drawEdit(styleId uint32, valueMem uint64, valueInOrig uint64, tooltipMem uint64, ghostMem uint64, enable uint32, outMem uint64) int64 {
+func (app *App) _sa_comp_drawEdit(styleId uint32, valueMem uint64, valueInOrig uint64, iconMem uint64, icon_margin float64, tooltipMem uint64, ghostMem uint64, enable uint32, outMem uint64) int64 {
 
 	value, err := app.ptrToString(valueMem)
 	if app.AddLogErr(err) {
 		return -1
 	}
 	valueOrig, err := app.ptrToString(valueInOrig)
+	if app.AddLogErr(err) {
+		return -1
+	}
+
+	icon, err := app.ptrToString(iconMem)
 	if app.AddLogErr(err) {
 		return -1
 	}
@@ -226,7 +236,7 @@ func (app *App) _sa_comp_drawEdit(styleId uint32, valueMem uint64, valueInOrig u
 	}
 
 	style := app.styles.Get(styleId)
-	last_edit, active, changed, finished := app.comp_drawEdit(style, value, valueOrig, tooltip, ghost, enable > 0)
+	last_edit, active, changed, finished := app.comp_drawEdit(style, value, valueOrig, icon, icon_margin, tooltip, ghost, enable > 0)
 
 	out, err := app.ptrToBytesDirect(outMem)
 	if app.AddLogErr(err) {
@@ -408,7 +418,7 @@ func (app *App) comp_drawCombo(style *CompStyle, styleMenu *CompStyle, value uin
 	div.FindOrCreate("", InitOsQuad(0, 0, 1, 1), app).data.touch_enabled = false //click through
 	stArrow := *style
 	stArrow.ContentCd(OsCd{})
-	app.paint_textGrid(&stArrow, val, "", false, false, enable)
+	app.paint_textGrid(&stArrow, val, "", "", 0, false, false, enable)
 
 	//dialog
 	nmd := "combo_" + strconv.Itoa(int(div.data.hash))

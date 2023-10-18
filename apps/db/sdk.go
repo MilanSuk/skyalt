@@ -736,6 +736,9 @@ type _SA_Text struct {
 
 	enable    bool
 	selection bool
+
+	icon        string
+	icon_margin float64
 }
 
 func SA_TextStyle(value string, style *_SA_Style) *_SA_Text {
@@ -768,6 +771,12 @@ func (b *_SA_Text) ValueInt(v int) *_SA_Text {
 
 func (b *_SA_Text) ValueFloat(v float64, precision int) *_SA_Text {
 	b.value = b.value + strconv.FormatFloat(v, 'f', precision, 64)
+	return b
+}
+
+func (b *_SA_Text) Icon(path string, margin float64) *_SA_Text {
+	b.icon = path
+	b.icon_margin = margin
 	return b
 }
 
@@ -808,7 +817,7 @@ func (b *_SA_Text) Show(x, y, w, h int) {
 
 		err := b.style.Register()
 		if err == nil {
-			_sa_comp_drawText(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.tooltip), _SA_boolToUint32(b.enable), _SA_boolToUint32(b.selection))
+			_sa_comp_drawText(b.style.Id, _SA_stringToPtr(b.value), _SA_stringToPtr(b.icon), b.icon_margin, _SA_stringToPtr(b.tooltip), _SA_boolToUint32(b.enable), _SA_boolToUint32(b.selection))
 		}
 	}
 	SA_DivEnd()
@@ -829,6 +838,9 @@ type _SA_Editbox struct {
 
 	ghost     string
 	precision int
+
+	icon        string
+	icon_margin float64
 
 	err error
 }
@@ -896,6 +908,12 @@ func (b *_SA_Editbox) Error(v error) *_SA_Editbox {
 	return b
 }
 
+func (b *_SA_Editbox) Icon(path string, margin float64) *_SA_Editbox {
+	b.icon = path
+	b.icon_margin = margin
+	return b
+}
+
 func (b *_SA_Editbox) ShowDescription(x, y, w, h int, description string, width float64, descStyle *_SA_Style) _SA_EditboxOut {
 
 	if descStyle == nil {
@@ -960,7 +978,7 @@ func (b *_SA_Editbox) Show(x, y, w, h int) _SA_EditboxOut {
 
 		err := b.style.Register()
 		if err == nil {
-			_sa_comp_drawEdit(b.style.Id, _SA_stringToPtr(value), _SA_stringToPtr(valueOrig), _SA_stringToPtr(tooltip), _SA_stringToPtr(b.ghost), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
+			_sa_comp_drawEdit(b.style.Id, _SA_stringToPtr(value), _SA_stringToPtr(valueOrig), _SA_stringToPtr(b.icon), b.icon_margin, _SA_stringToPtr(tooltip), _SA_stringToPtr(b.ghost), _SA_boolToUint32(b.enable), _SA_bytesToPtr(out[:]))
 		}
 
 		ret.active = binary.LittleEndian.Uint64(out[0:]) != 0

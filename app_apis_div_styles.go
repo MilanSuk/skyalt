@@ -178,7 +178,6 @@ func (st *DivStyle) Paint(coord OsV4, text string, textOrig string, textSelect b
 	isText := (len(text) > 0 || textEdit)
 
 	if isImg && isText {
-
 		w := float64(app.db.root.ui.Cell()) / float64(stt.stack.canvas.Size.X)
 
 		switch st.Image_alignH {

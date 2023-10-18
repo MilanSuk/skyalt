@@ -552,12 +552,14 @@ func (ad *AppDebug) Call(fnName string, app *App) (int64, error) {
 		case 83:
 			styleId := uint32(ad.ReadUint64())
 			value := string(ad.ReadBytes())
+			icon := string(ad.ReadBytes())
+			icon_margin := ad.ReadFloat64()
 			tooltip := string(ad.ReadBytes())
 			enable := uint32(ad.ReadUint64()) > 0
 			selection := uint32(ad.ReadUint64()) > 0
 
 			style := app.styles.Get(styleId)
-			ret := app.comp_drawText(style, value, tooltip, enable, selection)
+			ret := app.comp_drawText(style, value, icon, icon_margin, tooltip, enable, selection)
 			ad.WriteUint64(uint64(ret))
 			ad._checkRead(fnTp)
 
@@ -571,12 +573,14 @@ func (ad *AppDebug) Call(fnName string, app *App) (int64, error) {
 			styleId := uint32(ad.ReadUint64())
 			value := string(ad.ReadBytes())
 			valueOrig := string(ad.ReadBytes())
+			icon := string(ad.ReadBytes())
+			icon_margin := ad.ReadFloat64()
 			tooltip := string(ad.ReadBytes())
 			ghost := string(ad.ReadBytes())
 			enable := uint32(ad.ReadUint64()) > 0
 
 			style := app.styles.Get(styleId)
-			last_edit, active, changed, finished := app.comp_drawEdit(style, value, valueOrig, tooltip, ghost, enable)
+			last_edit, active, changed, finished := app.comp_drawEdit(style, value, valueOrig, icon, icon_margin, tooltip, ghost, enable)
 
 			var dst [4 * 8]byte
 			binary.LittleEndian.PutUint64(dst[0:], uint64(OsTrn(active, 1, 0)))    //active
