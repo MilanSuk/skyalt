@@ -21,12 +21,10 @@ import "sync"
 type Root struct {
 	layout *Layout
 	lock   sync.Mutex
-
-	Id int
 }
 
 func (layout *Layout) AddRoot(x, y, w, h int, props *Root) *Root {
-	props.layout = layout._createDiv(x, y, w, h, "Root", props.Build, props.Draw)
+	props.layout = layout._createDiv(x, y, w, h, "Root", props.Build, nil, nil)
 	return props
 }
 

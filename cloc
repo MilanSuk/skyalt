@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#prints number of lines
+
+echo " --- --- main --- ---"
+cloc --by-file --unix --include-ext=go --exclude-dir=fonts,temp,sdk,services .
+
+echo " --- --- sdk --- ---"
+cloc --by-file --unix --include-ext=go sdk
+

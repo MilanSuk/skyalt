@@ -17,22 +17,92 @@ limitations under the License.
 package main
 
 import (
-	"log"
+	"fmt"
+	"image/color"
 	"time"
 )
 
 func main() {
-	win, err := NewWindow()
+
+	InitImageGlobal()
+
+	//SDL
+	err := InitSDLGlobal()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("InitSDLGlobal() failed: %v\n", err)
+		return
+	}
+	defer DestroySDLGlobal()
+
+	//Window(GL)
+	win, err := NewWin()
+	if err != nil {
+		fmt.Printf("NewWin() failed: %v\n", err)
+		return
 	}
 	defer win.Destroy()
 
-	win.RunSDK()
-
-	st := time.Now()
-	for time.Since(st).Seconds() < 100 { //...
-		win.Tick()
+	clients, err := NewUiClients(win, 10000)
+	if err != nil {
+		fmt.Printf("NewUIs() failed: %v\n", err)
+		return
 	}
+	defer clients.Destroy()
 
+	clients.RunSDK()
+
+	//Main loop
+	pl := clients.GetPalette()
+	particles_cd := Color2_Aprox(pl.P, pl.B, 0.5)
+	num_sleeps := 0
+	run := true
+
+	for run {
+		//window
+		var win_redraw bool
+		var err error
+		run, win_redraw, err = win.UpdateIO()
+		if err != nil {
+			fmt.Printf("UpdateIO() failed: %v\n", err)
+			return
+		}
+
+		if win.RenderProgressWelcome() {
+			win.StartRender(color.RGBA{220, 220, 220, 255})
+			win.RenderProgress(particles_cd, 0)
+			win.EndRender(true, clients.GetEnv().Stats)
+
+		} else {
+			clients.UpdateIO()
+
+			if !clients.ui.winRect.Cmp(win.GetScreenCoord()) {
+				clients.ui.SetRefresh()
+				clients.ui.winRect = win.GetScreenCoord() //update
+			}
+
+			//tooltip delay
+			if !win_redraw && clients.NeedRedraw() {
+				win_redraw = true
+			}
+
+			clients.Tick()
+
+			if win_redraw {
+				win.StartRender(color.RGBA{220, 220, 220, 255})
+				clients.Draw()
+				win.EndRender(true, clients.GetEnv().Stats)
+
+				num_sleeps = 0 //reset
+			} else {
+				if num_sleeps > 60 {
+					time.Sleep((1000 / 5) * time.Millisecond) //deep sleep
+				} else {
+					time.Sleep((1000 / 60) * time.Millisecond) //light sleep
+				}
+
+				num_sleeps++
+			}
+		}
+		win.Finish()
+	}
 }

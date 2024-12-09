@@ -20,13 +20,12 @@ func (st *Root) Build() {
 	st.lock.Lock()
 	defer st.lock.Unlock()
 
-	for i := range 5 {
-		st.layout.AddNodeA(0, i, 1, 1, i)
-	}
-}
+	st.layout.SetColumn(0, 1, 100)
+	//st.layout.SetColumn(1, 1, 15)
+	//st.layout.SetColumn(2, 1, 15)
+	st.layout.SetRow(0, 1, 100)
 
-func (st *Root) Draw() {
-	st.lock.Lock()
-	defer st.lock.Unlock()
-
+	st.layout.AddEnv(0, 0, 1, 1, NewFile_Env())
+	//st.layout.AddCounter(1, 0, 1, 1, NewFile_Counter())
+	//st.layout.AddLogs(2, 0, 1, 1, NewFile_Logs())
 }
