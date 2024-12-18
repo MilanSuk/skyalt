@@ -25,8 +25,7 @@ type WinPaintBuff struct {
 	win  *Win
 	crop OsV4
 
-	level_depth int
-	depth       int
+	depth int
 }
 
 func NewWinPaintBuff(win *Win) *WinPaintBuff {
@@ -39,8 +38,6 @@ func (b *WinPaintBuff) Destroy() {
 }
 
 func (b *WinPaintBuff) StartLevel(crop OsV4, backCd color.RGBA, greyBack OsV4) {
-	b.level_depth = b.depth
-
 	//grey back - maybe do it as large shadow ...
 	if greyBack.Is() {
 		b.depth++

@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 )
 
 type Ui struct {
@@ -29,7 +30,7 @@ type Ui struct {
 
 	dom *Layout3
 
-	levels UiLevels
+	settings UiSettings
 
 	tooltip UiTooltip
 
@@ -40,13 +41,9 @@ type Ui struct {
 
 	ShowGrid bool
 
-	relayout     bool
-	redrawBuffer bool
-
-	hasBuildStarted  bool
-	hasBuildFinished bool
-
-	hasTouchesActive bool
+	refresh_next_time float64
+	relayout          bool
+	redrawBuffer      bool
 
 	maintenance_tick int64
 }
@@ -55,7 +52,7 @@ func NewUi(parent *UiClients) *Ui {
 	ui := &Ui{parent: parent}
 
 	ui.dom = NewUiLayoutDOM_root(ui)
-	ui.levels = InitUiLevels(ui)
+	ui.settings.Layouts.Init()
 
 	ui.tooltip.dom = ui.dom
 
@@ -65,29 +62,47 @@ func NewUi(parent *UiClients) *Ui {
 }
 
 func (ui *Ui) Destroy() {
-	ui.levels.Destroy()
 	ui.dom.Destroy()
+}
+
+func (ui *Ui) GetSettingsPath() string {
+	return "layouts/Root.json"
 }
 
 func (ui *Ui) Open() bool {
 	//settings
-	err := ui.levels.Open()
-	if err != nil {
-		fmt.Printf("Open() failed: %v\n", err)
-		return false
-	}
+	{
+		jsRead, err := os.ReadFile(ui.GetSettingsPath())
+		if err != nil {
+			fmt.Printf("Open() failed: %v\n", err)
+			return false
+		}
 
+		if len(jsRead) > 0 {
+			err := json.Unmarshal(jsRead, &ui.settings)
+			if err != nil {
+				fmt.Printf("Open() failed: %v\n", err)
+				return false
+			}
+		}
+	}
 	return true
 }
 
 func (ui *Ui) Save() bool {
 	//settings
-	err := ui.levels.Save()
-	if err != nil {
-		fmt.Printf("Save() failed: %v\n", err)
-		return false
+	{
+		js, err := json.MarshalIndent(ui.settings, "", "\t")
+		if err != nil {
+			fmt.Printf("Save() failed: %v\n", err)
+			return false
+		}
+		err = os.WriteFile(ui.GetSettingsPath(), js, 0644)
+		if err != nil {
+			fmt.Printf("Save() failed: %v\n", err)
+			return false
+		}
 	}
-
 	return true
 }
 
@@ -151,7 +166,6 @@ func (ui *Ui) GetTextStartLine(ln string, prop WinFontProps, coord OsV4, align O
 }
 
 func (ui *Ui) GetTextStart(ln string, prop WinFontProps, coord OsV4, align_h, align_v int, numLines int) OsV2 {
-
 	//lineH
 	lnSize := ui.GetTextSize(-1, ln, prop)
 	size := OsV2{lnSize.X, numLines * prop.lineH}
@@ -176,13 +190,12 @@ func (ui *Ui) Maintenance() {
 	ui.maintenance_tick = OsTicks()
 }
 
-func (ui *Ui) IsLevelBase(dom *Layout3) bool {
-	return ui.dom == dom
+func (ui *Ui) SetRefreshTime(next_time float64) {
+	ui.refresh_next_time = next_time
 }
 
 func (ui *Ui) SetRefresh() {
-	ui.hasBuildStarted = false
-	ui.hasBuildFinished = false
+	ui.SetRefreshTime(1) //as soon as possible
 }
 func (ui *Ui) SetRelayout() {
 	ui.relayout = true
@@ -191,127 +204,132 @@ func (ui *Ui) SetRedraw() {
 	ui.redrawBuffer = true
 }
 
-func (ui *Ui) _touch() {
+func (dom *Layout3) _refreshLayout() {
+	err := dom.ui.parent.client.WriteInt(dom.props.Hash)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	if ui.hasTouchesActive {
+	found, err := dom.ui.parent.client.ReadInt()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if found == 0 {
+		return
+	}
 
-		err := ui.parent.client.WriteInt(NMSG_INPUT_UPDATE)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		{
-			var cmds []LayoutCmd
-			data, err := ui.parent.client.ReadArray()
-			if err != nil {
-				log.Fatal(err)
-			}
-			OsUnmarshal(data, &cmds)
-			ui._executeCmds(cmds)
-		}
-
-		done, err := ui.parent.client.ReadInt()
-		if err != nil {
-			log.Fatal(err)
-		}
-		if done > 0 {
-			ui.hasTouchesActive = false
-			ui.SetRefresh()
-
-			ui.parent.CallGetEnv()
+	parent_hash, err := dom.ui.parent.client.ReadInt()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if parent_hash > 0 {
+		layParent := dom.ui.dom.FindHash(parent_hash)
+		if layParent != nil {
+			dom.parent = layParent
+			layParent.dialog = dom
 		}
 	}
+
+	var layout Layout
+	data, err := dom.ui.parent.client.ReadArray()
+	if err != nil {
+		log.Fatal(err)
+	}
+	OsUnmarshal(data, &layout)
+
+	//project
+	dom.project(&layout)
+
+	//relayout
+	dom.Relayout(true)
+
+	//send rects
+	{
+		rects := make(map[uint64]Rect)
+		dom.extractRects(rects)
+		err := dom.ui.parent.client.WriteArray(OsMarshal(rects))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	//recv paint buffers
+	{
+		buffs := make(map[uint64][]LayoutDrawPrim)
+		data, err := dom.ui.parent.client.ReadArray()
+		if err != nil {
+			log.Fatal(err)
+		}
+		OsUnmarshal(data, &buffs)
+
+		if len(buffs) > 0 {
+			//fmt.Println("buff back", len(buffs))
+
+			//set buffs
+			for hash, buff := range buffs {
+				it := dom.FindHash(hash)
+				if it != nil {
+					it.buffer = buff
+					//fmt.Println("-Buffer", it.props.Name, it.canvas.Size.Y)
+					dom.ui.SetRedraw()
+				} else {
+					fmt.Println("never should happen: buffs")
+				}
+			}
+		}
+	}
+
+	//return parent_hash
 }
 
 func (ui *Ui) _refresh() {
 
-	//build
+	st := OsTime()
+
+	if ui.refresh_next_time == 0 || ui.refresh_next_time > st {
+		return
+	}
+
+	ui.refresh_next_time = 0
+
+	ui.parent.client.WriteInt(NMSG_REFRESH)
+
+	// get root
+	ui.dom._refreshLayout()
+	// get dialogs
+	for _, dia := range ui.settings.Dialogs {
+		newLay := NewUiLayoutDOM(Layout{Hash: dia.Hash}, nil, ui)
+		newLay._refreshLayout()
+	}
+	ui.parent.client.WriteInt(0) //end
+
+	//recv cmds
 	{
-		if !ui.hasBuildStarted {
-			ui.parent.client.WriteInt(NMSG_REFRESH_START)
+		var cmds []LayoutCmd
+		data, err := ui.parent.client.ReadArray()
+		if err != nil {
+			log.Fatal(err)
+		}
+		OsUnmarshal(data, &cmds)
+		ui._executeCmds(cmds)
+	}
 
-			ui.hasBuildStarted = true
-		} else if !ui.hasBuildFinished {
-
-			ui.parent.client.WriteInt(NMSG_REFRESH_UPDATE)
-
-			//send list of rects
-			rects := make(map[uint64]Rect)
-			ui.dom.extractRects(rects)
-			err := ui.parent.client.WriteArray(OsMarshal(rects))
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			//relayout
-			{
-				var layout Layout
-				data, err := ui.parent.client.ReadArray()
-				if err != nil {
-					log.Fatal(err)
-				}
-				OsUnmarshal(data, &layout)
-
-				//project
-				ui.dom.project(&layout)
-
-				//recompute layout
-				ui.SetRelayout()
-			}
-
-			//recv paint buffers
-			{
-				buffs := make(map[uint64][]LayoutDrawPrim)
-				data, err := ui.parent.client.ReadArray()
-				if err != nil {
-					log.Fatal(err)
-				}
-				OsUnmarshal(data, &buffs)
-
-				if len(buffs) > 0 {
-					fmt.Println("buff back", len(buffs))
-
-					//set buffs
-					for hash, buff := range buffs {
-						it := ui.dom.FindHash(hash)
-						if it != nil {
-							it.buffer = buff
-							//fmt.Println("-Buffer", it.props.Name, it.canvas.Size.Y)
-							ui.SetRedraw()
-						} else {
-							fmt.Println("never should happen: buffs")
-						}
-					}
-				}
-			}
-
-			//recv cmds
-			{
-				var cmds []LayoutCmd
-				data, err := ui.parent.client.ReadArray()
-				if err != nil {
-					log.Fatal(err)
-				}
-				OsUnmarshal(data, &cmds)
-				ui._executeCmds(cmds)
-			}
-
-			{
-				done, err := ui.parent.client.ReadInt()
-				if err != nil {
-					log.Fatal(err)
-				}
-				if done > 0 {
-					ui.hasBuildFinished = true
-					ui.SetRedraw()
-					fmt.Println("finished")
-
-					ui.parent.CallGetEnv()
-				}
-			}
+	//recv num_jobs
+	{
+		num_jobs, err := ui.parent.client.ReadInt()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if num_jobs > 0 {
+			ui.SetRefreshTime(OsTime() + 0.5)
 		}
 	}
 
+	ui.parent.CallGetEnv()
+
+	ui.dom.SetTouchAll()
+
+	fmt.Printf("Refreshed: %.4fsec\n", OsTime()-st)
 }
 
 func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
@@ -320,61 +338,54 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 
 	for _, cmd := range cmds {
 
-		var layout *Layout3
-		if cmd.Hash != 0 {
-			layout = ui.dom.FindHash(cmd.Hash)
-			if layout == nil {
-				fmt.Printf("warning: hash %d not found\n", cmd.Hash)
-			}
-		}
-
 		switch cmd.Cmd {
 		case "VScrollToTheTop":
+			layout := ui.dom.FindHash(cmd.Hash)
 			if layout != nil {
 				layout.ScrollIntoTop_vertical()
+			} else {
+				fmt.Printf("warning: hash %d not found\n", cmd.Hash)
 			}
+
 		case "VScrollToTheBottom":
+			layout := ui.dom.FindHash(cmd.Hash)
 			if layout != nil {
 				layout.ScrollIntoBottom_vertical()
+			} else {
+				fmt.Printf("warning: hash %d not found\n", cmd.Hash)
 			}
+
 		case "HScrollToTheTop":
+			layout := ui.dom.FindHash(cmd.Hash)
 			if layout != nil {
 				layout.ScrollIntoTop_horizontal()
+			} else {
+				fmt.Printf("warning: hash %d not found\n", cmd.Hash)
 			}
+
 		case "HScrollToTheBottom":
+			layout := ui.dom.FindHash(cmd.Hash)
 			if layout != nil {
 				layout.ScrollIntoBottom_horizontal()
+			} else {
+				fmt.Printf("warning: hash %d not found\n", cmd.Hash)
 			}
 
 		case "OpenDialogCentered":
-			if layout != nil {
-				layout.OpenDialogCentered()
-			}
+			ui.settings.OpenDialog(cmd.Hash, 0, OsV2{})
 
 		case "OpenDialogRelative":
-			if layout != nil {
-				var parent_hash uint64
-				err := json.Unmarshal([]byte(cmd.Param1), &parent_hash)
-				if err != nil {
-					continue
-				}
-				parent_layout := ui.dom.FindHash(parent_hash)
-				if parent_layout == nil {
-					fmt.Printf("warning: parent_hash %d not found\n", parent_hash)
-					continue
-				}
-
-				layout.OpenDialogRelative(parent_layout)
-			}
+			var parent_hash uint64
+			OsUnmarshal([]byte(cmd.Param1), &parent_hash)
+			ui.settings.OpenDialog(cmd.Hash, parent_hash, OsV2{})
 
 		case "OpenDialogOnTouch":
-			if layout != nil {
-				layout.OpenDialogOnTouch()
-			}
+			ui.settings.OpenDialog(cmd.Hash, 0, ui.GetWin().io.Touch.Pos)
 
 		case "CloseDialog":
-			if layout != nil {
-				layout.CloseDialog()
+			dia := ui.settings.FindDialog(cmd.Hash)
+			if dia != nil {
+				ui.settings.CloseDialog(dia)
 			}
 
 		case "SetClipboardText":
@@ -388,17 +399,22 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 
 		case "CopyText":
 			edit.KeyCopy = true
+
 		case "SelectAllText":
 			edit.KeySelectAll = true
+
 		case "CutText":
 			edit.KeyCut = true
+
 		case "PasteText":
 			edit.KeyPaste = true
+
 		}
 	}
 }
 
 func (ui *Ui) Tick() {
+	win := ui.GetWin()
 
 	ui.redrawBuffer = false
 
@@ -408,58 +424,45 @@ func (ui *Ui) Tick() {
 		ui.parent.backup_cell = ui.Cell()
 	}
 
+	//shortcut
+	keys := &win.io.Keys
+	if !ui.parent.edit.IsActive() && keys.Ctrl && keys.HasChanged {
+		var sh byte
+		if keys.Text != "" {
+			sh = keys.Text[0]
+		}
+		if keys.Tab {
+			sh = '\t'
+		}
+
+		if sh != 0 {
+			in := LayoutInput{Shortcut_key: sh}
+			ui.parent.CallInput(&ui.dom.props, &in)
+		}
+	}
+
 	if ui.relayout {
-		ui.levels.Relayout()
+		ui.dom.Relayout(true)
 		ui.relayout = false
 	}
 
 	ui._refresh()
 
-	ui._touch()
-
-	win := ui.GetWin()
-
 	// close all levels
 	if win.io.Keys.Shift && win.io.Keys.Esc {
 		ui.parent.ResetIO()
-		ui.levels.CloseAllDialogs()
+		ui.settings.CloseAllDialogs()
 		win.io.Keys.Esc = false
 	}
 
 	// touch
-	ui.levels.CloseTouchDialogs()
-
-	if ui.hasBuildFinished {
-		ui.levels.TryCloseDialogs()
+	if ui.settings.CloseTouchDialogs(ui) {
+		ui.dom.SetTouchAll()
 	}
 
-	{
-		topLevel := ui.levels.GetTopLevel()
-		topLevel.domPtr.updateShortcut()
-		topLevel.domPtr.updateTouch()
-
-		touchHash := ui.parent.touch.canvas
-		editHash := ui.parent.edit.hash
-
-		var act *Layout3
-		var actE *Layout3
-		if editHash != 0 {
-			actE = ui.dom.FindHash(editHash)
-		}
-
-		if touchHash != 0 {
-			act = ui.dom.FindHash(touchHash)
-		} else {
-			act = topLevel.domPtr.findTouch()
-		}
-
-		if actE != nil {
-			actE.touchComp()
-		}
-		if act != nil && act != actE {
-			act.touchComp()
-		}
-	}
+	editHash := ui.parent.edit.hash
+	touchHash := ui.parent.touch.canvas
+	ui.dom.TouchDialogs(editHash, touchHash, true)
 
 	ui.dom.textComp()
 
@@ -468,13 +471,9 @@ func (ui *Ui) Tick() {
 		ui.SelectGrid_active = false
 		ui.SelectComp_active = false
 	}
-
-	//ui.levels.TryCloseDialogs()
-
 }
 
 func (ui *Ui) Draw() {
-
 	if ui.tooltip.touch() {
 		ui.SetRedraw()
 	}
@@ -482,7 +481,7 @@ func (ui *Ui) Draw() {
 	win := ui.GetWin()
 	win.buff.StartLevel(ui.dom.canvas, ui.GetPalette().B, OsV4{})
 
-	ui.levels.drawBuffer()
+	ui.dom.Draw()
 	ui.tooltip.draw()
 	ui.GetWin().buff.FinalDraw()
 

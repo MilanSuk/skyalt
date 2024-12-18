@@ -95,7 +95,7 @@ type UiClients struct {
 	win *Win
 
 	edit_history UiPaintTextHistoryArray2
-	touch        UiLayoutTouch
+	touch        UiLayoutInput
 	edit         UiLayoutEdit
 	drag         UiLayoutDrag
 	backup_cell  int
@@ -159,7 +159,7 @@ func (rs *UiClients) NeedRedraw() bool {
 }
 
 func (rs *UiClients) CallInput(props *Layout, in *LayoutInput) error {
-	err := rs.client.WriteInt(NMSG_INPUT_START)
+	err := rs.client.WriteInt(NMSG_INPUT)
 	if err != nil {
 		return err
 	}
@@ -172,14 +172,25 @@ func (rs *UiClients) CallInput(props *Layout, in *LayoutInput) error {
 		return err
 	}
 
-	rs.ui.hasTouchesActive = true
+	//recv cmds
+	{
+		var cmds []LayoutCmd
+		data, err := rs.client.ReadArray()
+		if err != nil {
+			log.Fatal(err)
+		}
+		OsUnmarshal(data, &cmds)
+		rs.ui._executeCmds(cmds)
+	}
+
+	rs.ui.parent.CallGetEnv()
+	rs.ui.SetRefresh()
 
 	return nil
 }
 
 func (rs *UiClients) CallPick(pick LayoutPick) error {
-
-	//......
+	//...
 
 	return nil
 }

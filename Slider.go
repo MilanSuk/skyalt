@@ -5,46 +5,34 @@ import (
 	"strconv"
 )
 
-func (st *Slider) _getCoords(rect Rect) (float64, Rect, Rect, Rect) {
+type Slider struct {
+	Value *float64
+	Min   float64
+	Max   float64
+	Step  float64
 
-	rad := 0.2
+	Legend bool
 
-	coord := rect
-	coord = coord.CutLeft(rad)
-	coord = coord.CutRight(rad)
+	DrawSteps bool
 
-	t := 0.0
-	if st.Max != st.Min {
-		t = (*st.Value - st.Min) / (st.Max - st.Min)
-	}
-	cqA := coord
-	cqB := coord
-	cqA.W = cqA.W * t
-	cqB.X += cqA.W
-	cqB.W -= cqA.W
-
-	h_rad := rad / 2
-	cqA.Y = cqA.H/2 - h_rad/2
-	cqB.Y = cqB.H/2 - h_rad/2
-	cqA.H = h_rad
-	cqB.H = h_rad
-
-	return rad, coord, cqA, cqB
+	changed func()
 }
 
-func (st *Slider) Draw(rect Rect) {
-	st.lock.Lock()
-	defer st.lock.Unlock()
+func (layout *Layout) AddSlider(x, y, w, h int, value *float64, min, max, step float64) *Slider {
+	props := &Slider{Value: value, Min: min, Max: max, Step: step}
+	layout._createDiv(x, y, w, h, "Slider", nil, props.Draw, props.Input)
+	return props
+}
 
-	layout := st.layout
+func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
-	layout.Paint_cursor("hand", rect)
+	paint.Cursor("hand", rect)
 
 	//colors
-	S := layout.GetPalette().S
-	onS := layout.GetPalette().OnS
-	cd := layout.GetPalette().P
-	cd2 := Color_Aprox(cd, layout.GetPalette().B, 0.6) //cd.SetAlpha(100)
+	S := Paint_GetPalette().S
+	onS := Paint_GetPalette().OnS
+	cd := Paint_GetPalette().P
+	cd2 := Color_Aprox(cd, Paint_GetPalette().B, 0.6) //cd.SetAlpha(100)
 
 	cdThumb := cd
 	cdThumb_over := cd
@@ -70,13 +58,13 @@ func (st *Slider) Draw(rect Rect) {
 				cdd = cd2
 			}
 
-			layout.Paint_circle(rc, cdd, cdd, cdd, 0)
+			paint.Circle(rc, cdd, cdd, cdd, 0)
 		}
 	}
 
 	//track(2x lines)
-	layout.Paint_rect(cqA, cd, cd, cd, 0)
-	layout.Paint_rect(cqB, cd2, cd2, cd2, 0)
+	paint.Rect(cqA, cd, cd, cd, 0)
+	paint.Rect(cqB, cd2, cd2, cd2, 0)
 
 	//thumb(sphere)
 	{
@@ -85,20 +73,20 @@ func (st *Slider) Draw(rect Rect) {
 		cqT.Y = coord.Y + coord.H/2 - rad
 		cqT.W = rad * 2
 		cqT.H = rad * 2
-		layout.Paint_circle(cqT, cdThumb, cdThumb_over, cdThumb_down, 0)
+		paint.Circle(cqT, cdThumb, cdThumb_over, cdThumb_down, 0)
 	}
 
 	//legend
 	if st.Legend {
-		frontCd := layout.GetPalette().GetGrey(0.2)
+		frontCd := Paint_GetPalette().GetGrey(0.2)
 
 		rc := rect
 		rc = rc.CutLeft(0.2)
 		rc = rc.CutRight(0.2)
 		rc.Y += 0.5
-		layout.Paint_text(rc, "<small>"+strconv.FormatFloat(st.Min, 'f', -1, 64), "", frontCd, frontCd, frontCd, false, false, 0, 0, true, false, false, 0)
+		paint.Text(rc, "<small>"+strconv.FormatFloat(st.Min, 'f', -1, 64), "", frontCd, frontCd, frontCd, false, false, 0, 0, true, false, false, 0)
 
-		layout.Paint_text(rc, "<small>"+strconv.FormatFloat(st.Max, 'f', -1, 64), "", frontCd, frontCd, frontCd, false, false, 2, 0, true, false, false, 0)
+		paint.Text(rc, "<small>"+strconv.FormatFloat(st.Max, 'f', -1, 64), "", frontCd, frontCd, frontCd, false, false, 2, 0, true, false, false, 0)
 
 	}
 
@@ -110,14 +98,12 @@ func (st *Slider) Draw(rect Rect) {
 		cqB.H = rad * 2
 
 		str := strconv.FormatFloat(Value, 'f', 2, 64)
-		layout.Paint_tooltipEx(cqB, str, true)
+		paint.TooltipEx(cqB, str, true)
 	}
+	return
 }
 
-func (st *Slider) Input(in LayoutInput) {
-	st.lock.Lock()
-	defer st.lock.Unlock()
-
+func (st *Slider) Input(in LayoutInput, layout *Layout) {
 	if st.Value == nil {
 		return
 	}
@@ -172,4 +158,31 @@ func (st *Slider) Input(in LayoutInput) {
 			st.changed()
 		}
 	}
+}
+
+func (st *Slider) _getCoords(rect Rect) (float64, Rect, Rect, Rect) {
+
+	rad := 0.2
+
+	coord := rect
+	coord = coord.CutLeft(rad)
+	coord = coord.CutRight(rad)
+
+	t := 0.0
+	if st.Max != st.Min {
+		t = (*st.Value - st.Min) / (st.Max - st.Min)
+	}
+	cqA := coord
+	cqB := coord
+	cqA.W = cqA.W * t
+	cqB.X += cqA.W
+	cqB.W -= cqA.W
+
+	h_rad := rad / 2
+	cqA.Y = cqA.H/2 - h_rad/2
+	cqB.Y = cqB.H/2 - h_rad/2
+	cqA.H = h_rad
+	cqB.H = h_rad
+
+	return rad, coord, cqA, cqB
 }

@@ -50,11 +50,39 @@ func OsFormatBytes(bytes int) string {
 	}
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
+func OsFormatBytes2(bytesA, bytesB int) string {
+	units := []string{"B", "KB", "MB", "GB", "TB", "PB", "EB"}
+	const unit = 1024
+
+	getUnit := func(bytes int) int {
+		exp := 0
+		for bytes >= unit && exp < len(units)-1 {
+			bytes /= unit
+			exp++
+		}
+		return exp
+	}
+
+	unitA, unitB := getUnit(bytesA), getUnit(bytesB)
+	lowerUnit := unitA
+	if unitB < unitA {
+		lowerUnit = unitB
+	}
+
+	divider := math.Pow(float64(unit), float64(lowerUnit))
+	valueA := float64(bytesA) / divider
+	valueB := float64(bytesB) / divider
+
+	if lowerUnit == 0 {
+		return fmt.Sprintf("%.0f/%.0f %s", valueA, valueB, units[lowerUnit])
+	}
+	return fmt.Sprintf("%.1f/%.1f %s", valueA, valueB, units[lowerUnit])
+}
 
 func OsMarshal(v interface{}) []byte {
 	data, err := json.Marshal(v)
 	if err != nil {
-		log.Fatal("NewEncoder failed:", err.Error())
+		log.Fatal("OsMarshal failed:", err.Error())
 	}
 	return data
 
@@ -71,7 +99,10 @@ func OsUnmarshal(data []byte, v interface{}) {
 	//b := bytes.NewBuffer(data)
 	//err := gob.NewDecoder(b).Decode(v)
 	if err != nil {
-		log.Fatal("NewDecoder failed:", err.Error())
+		fmt.Println(string(data))
+		//str := err.Error()
+		//fmt.Println(str[err.offset:1])
+		log.Fatal("OsUnmarshal failed:", err.Error())
 	}
 }
 

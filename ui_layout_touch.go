@@ -16,35 +16,35 @@ limitations under the License.
 
 package main
 
-type UiLayoutTouch struct {
+type UiLayoutInput struct {
 	canvas  uint64
 	scrollV uint64
 	scrollH uint64
 	resize  uint64
 }
 
-func (layTouch *UiLayoutTouch) Set(canvas uint64, scrollV uint64, scrollH uint64, resize uint64) {
+func (layTouch *UiLayoutInput) Set(canvas uint64, scrollV uint64, scrollH uint64, resize uint64) {
 	layTouch.canvas = canvas
 	layTouch.scrollV = scrollV
 	layTouch.scrollH = scrollH
 	layTouch.resize = resize
 }
 
-func (layTouch *UiLayoutTouch) Reset() {
-	*layTouch = UiLayoutTouch{}
+func (layTouch *UiLayoutInput) Reset() {
+	*layTouch = UiLayoutInput{}
 }
 
-func (layTouch *UiLayoutTouch) IsAnyActive() bool {
+func (layTouch *UiLayoutInput) IsAnyActive() bool {
 	return layTouch.canvas != 0 || layTouch.scrollV != 0 || layTouch.scrollH != 0 || layTouch.resize != 0
 }
 
-func (layTouch *UiLayoutTouch) IsResizeActive() bool {
+func (layTouch *UiLayoutInput) IsResizeActive() bool {
 	return layTouch.resize != 0
 }
-func (layTouch *UiLayoutTouch) IsScrollOrResizeActive() bool {
+func (layTouch *UiLayoutInput) IsScrollOrResizeActive() bool {
 	return layTouch.scrollV != 0 || layTouch.scrollH != 0 || layTouch.resize != 0
 }
 
-func (layTouch *UiLayoutTouch) IsFnMove(canvas uint64, scrollV uint64, scrollH uint64, resize uint64) bool {
+func (layTouch *UiLayoutInput) IsFnMove(canvas uint64, scrollV uint64, scrollH uint64, resize uint64) bool {
 	return ((canvas != 0 && layTouch.canvas == canvas) || (scrollV != 0 && layTouch.scrollV == scrollV) || (scrollH != 0 && layTouch.scrollH == scrollH) || (resize != 0 && layTouch.resize == resize))
 }

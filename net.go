@@ -137,10 +137,15 @@ func (client *NerServerClient) ReadArray() ([]byte, error) {
 
 	//recv data
 	data := make([]byte, size)
-	_, err = client.conn.Read(data)
-	if err != nil {
-		return nil, err
+	p := 0
+	for p < int(size) {
+		n, err := client.conn.Read(data[p:])
+		if err != nil {
+			return nil, err
+		}
+		p += n
 	}
+
 	client.info.AddReadBytes(int(size))
 
 	return data, nil
@@ -215,9 +220,13 @@ func (client *NetClient) ReadArray() ([]byte, error) {
 
 	//recv data
 	data := make([]byte, size)
-	_, err = client.conn.Read(data)
-	if err != nil {
-		return nil, err
+	p := 0
+	for p < int(size) {
+		n, err := client.conn.Read(data[p:])
+		if err != nil {
+			return nil, err
+		}
+		p += n
 	}
 
 	return data, nil

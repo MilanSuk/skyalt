@@ -150,8 +150,6 @@ func (scroll *UiLayoutScroll) _GetSlideCd(ui *Ui) color.RGBA {
 }
 
 func (scroll *UiLayoutScroll) DrawV(view OsV4, showBackground bool, ui *Ui) {
-	//buff := app.root.buff
-
 	slider := scroll._UpdateV(view, ui)
 
 	slider = slider.AddSpace(OsMax(1, slider.Size.X/5))
@@ -173,7 +171,6 @@ func (scroll *UiLayoutScroll) DrawV(view OsV4, showBackground bool, ui *Ui) {
 }
 
 func (scroll *UiLayoutScroll) DrawH(view OsV4, showBackground bool, ui *Ui) {
-
 	slider := scroll._UpdateH(view.Start, ui)
 
 	slider = slider.AddSpace(OsMax(1, slider.Size.Y/5))
@@ -205,7 +202,7 @@ func (scroll *UiLayoutScroll) IsMove(dom *Layout3, wheel_add int, deep int, ver 
 	inside := dom.CropWithScroll().Inside(dom.ui.GetWin().io.Touch.Pos)
 	if inside {
 		//test childs
-		for _, div := range dom.Childs {
+		for _, div := range dom.childs {
 			if div.IsShown() {
 				if ver && div.scrollV.IsMove(div, wheel_add, deep+1, ver) {
 					return deep > 0 //bottom layer must return false(can't scroll, because upper layer can scroll)

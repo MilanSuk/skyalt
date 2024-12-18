@@ -2,92 +2,134 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gen2brain/malgo"
 	"github.com/go-audio/audio"
 )
 
-func (st *Microphone_recorder) Build() {
-	st.lock.Lock()
-	defer st.lock.Unlock()
+type Microphone_recorder struct {
+	UID string
 
-	st.layout.SetColumn(0, 1, 100)
-	st.layout.SetRow(0, 1, 100)
+	Label        string
+	Tooltip      string
+	Shortcut_key byte
+	Background   float64
 
-	st.layout.Enable = NewFile_Microphone().Enable
+	cancel bool
+	start  func()
+	Out    audio.IntBuffer
+	done   func()
+}
+
+func (layout *Layout) AddMicrophone_recorder(x, y, w, h int, props *Microphone_recorder) *Microphone_recorder {
+	layout._createDiv(x, y, w, h, "Microphone_recorder", props.Build, nil, nil)
+	return props
+}
+
+var g_global_Microphone_recorder = make(map[string]*Microphone_recorder)
+
+func NewGlobal_Microphone_recorder(uid string) *Microphone_recorder {
+	uid = fmt.Sprintf("Microphone_recorder:%s", uid)
+
+	st, found := g_global_Microphone_recorder[uid]
+	if !found {
+		st = &Microphone_recorder{UID: uid}
+		g_global_Microphone_recorder[uid] = st
+	}
+	return st
+}
+func (st *Microphone_recorder) Build(layout *Layout) {
+
+	layout.SetColumn(0, 1, 100)
+	layout.SetRow(0, 1, 100)
+
+	layout.Enable = NewFile_Microphone().Enable
 
 	var bt *Button
+	var btL *Layout
 	if st.Label == "" {
-		bt = st.layout.AddButton(0, 0, 1, 1, NewButtonIcon("resources/mic.png", 0.15, st.Tooltip))
+		bt, btL = layout.AddButton2(0, 0, 1, 1, NewButtonIcon("resources/mic.png", 0.15, st.Tooltip))
 	} else {
-		bt = st.layout.AddButton(0, 0, 1, 1, NewButtonMenu(st.Label, "resources/mic.png", 0.15))
+		bt, btL = layout.AddButton2(0, 0, 1, 1, NewButtonMenu(st.Label, "resources/mic.png", 0.15))
 	}
 
-	isRecording := st.IsRecording()
-	if isRecording {
+	job := FindJob(st.UID)
+	if job != nil {
 		bt.Background = 1 //active
-		bt.Cd = st.layout.GetPalette().E
+		bt.Cd = Paint_GetPalette().E
 	} else {
 		bt.Background = st.Background //no recording
 	}
-	bt.layout.Shortcut_key = st.Shortcut_key
+	btL.Shortcut_key = st.Shortcut_key
 
 	bt.clicked = func() {
-		if !isRecording {
-			//start
-			st.StartRecording()
+		if job == nil {
+			st.Start()
 		} else {
-			//finish
-			st.FinishRecording()
+			job.Stop()
 		}
 	}
 }
 
-func (st *Microphone_recorder) IsRecording() bool {
-	return g_microphone_malgo.Find(st.layout.Hash)
+func (st *Microphone_recorder) Start() *Job {
+	st.cancel = false
+	return StartJob(st.UID, "Recording from microphone", st.Run)
 }
-func (st *Microphone_recorder) StartRecording() {
-	err := g_microphone_malgo.Start(st.layout.Hash, NewFile_Microphone())
-	if err != nil {
-		st.layout.WriteError(err)
-		return
-	}
-	if st.start != nil {
-		st.start()
+func (st *Microphone_recorder) Cancel() {
+	job := FindJob(st.UID)
+	if job != nil {
+		st.cancel = true
+		job.Stop()
 	}
 }
-func (st *Microphone_recorder) FinishRecording() {
-	buff, err := g_microphone_malgo.Stop(st.layout.Hash, NewFile_Microphone())
+func (st *Microphone_recorder) IsRunning() bool {
+	return FindJob(st.UID) != nil
+}
+
+var g__mic_lock sync.Mutex
+var g__mic_device *malgo.Device
+
+func (st *Microphone_recorder) Run(job *Job) {
+
+	err := g_microphone_malgo.Start(st.UID)
 	if err != nil {
-		st.layout.WriteError(err)
+		job.AddError(err)
 		return
 	}
 
-	if st.done != nil {
-		st.done(buff) //...
+	if st.start != nil {
+		st.start()
 	}
-}
-func (st *Microphone_recorder) CancelRecording() {
-	_, err := g_microphone_malgo.Stop(st.layout.Hash, NewFile_Microphone())
+
+	for job.IsRunning() {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	st.Out, err = g_microphone_malgo.Stop(st.UID)
 	if err != nil {
-		st.layout.WriteError(err)
+		job.AddError(err)
 		return
+	}
+	if !st.cancel && st.done != nil {
+		st.done()
 	}
 }
 
 type MicMalgo struct {
 	lock   sync.Mutex
 	device *malgo.Device
-	mics   map[uint64][]byte //int=hash
+	mics   map[string][]byte //int=hash
 }
 
 var g_microphone_malgo MicMalgo
 
-func (mlg *MicMalgo) _checkDevice(mic *Microphone) error {
+func (mlg *MicMalgo) _checkDevice() error {
 
 	if mlg.mics == nil {
-		mlg.mics = make(map[uint64][]byte)
+		mlg.mics = make(map[string][]byte)
 	}
 
 	if g_microphone_malgo.device != nil {
@@ -98,6 +140,8 @@ func (mlg *MicMalgo) _checkDevice(mic *Microphone) error {
 	if err != nil {
 		return err
 	}
+
+	mic := NewFile_Microphone()
 
 	deviceConfig := malgo.DefaultDeviceConfig(malgo.Duplex)
 	deviceConfig.Capture.Format = malgo.FormatS16
@@ -121,31 +165,31 @@ func (mlg *MicMalgo) _checkDevice(mic *Microphone) error {
 	return nil
 }
 
-func (mlg *MicMalgo) Find(hash uint64) bool {
+func (mlg *MicMalgo) Find(uid string) bool {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
 	if mlg.mics == nil {
-		mlg.mics = make(map[uint64][]byte)
+		mlg.mics = make(map[string][]byte)
 	}
 
-	_, found := mlg.mics[hash]
+	_, found := mlg.mics[uid]
 	return found
 }
 
-func (mlg *MicMalgo) Start(hash uint64, mic *Microphone) error {
+func (mlg *MicMalgo) Start(uid string) error {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
-	err := mlg._checkDevice(mic)
+	err := mlg._checkDevice()
 	if err != nil {
 		return err
 	}
 
 	//add
-	_, found := mlg.mics[hash]
+	_, found := mlg.mics[uid]
 	if !found {
-		mlg.mics[hash] = nil
+		mlg.mics[uid] = nil
 	}
 
 	if !mlg.device.IsStarted() {
@@ -159,18 +203,18 @@ func (mlg *MicMalgo) Start(hash uint64, mic *Microphone) error {
 	return nil
 }
 
-func (mlg *MicMalgo) Stop(hash uint64, mic *Microphone) (audio.IntBuffer, error) {
+func (mlg *MicMalgo) Stop(uid string) (audio.IntBuffer, error) {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
-	err := mlg._checkDevice(mic)
+	err := mlg._checkDevice()
 	if err != nil {
 		return audio.IntBuffer{}, err
 	}
 
 	//remove
-	audioData := mlg.mics[hash]
-	delete(mlg.mics, hash)
+	audioData := mlg.mics[uid]
+	delete(mlg.mics, uid)
 
 	SampleRate := int(mlg.device.SampleRate())
 	NumChannels := int(mlg.device.CaptureChannels())

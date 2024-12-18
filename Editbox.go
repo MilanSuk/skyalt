@@ -1,18 +1,91 @@
 package main
 
-import "strconv"
+import (
+	"image/color"
+	"strconv"
+)
 
-func (st *Editbox) Build() {
-	st.lock.Lock()
-	defer st.lock.Unlock()
+type Editbox struct {
+	Cd color.RGBA
 
-	st.buildContextDialog()
+	Value      *string
+	ValueFloat *float64
+	ValueInt   *int
+	FloatPrec  int //for 'ValueFloat'
+
+	Ghost   string
+	Tooltip string
+
+	Align_h int
+	Align_v int
+
+	Icon        string
+	Icon_margin float64
+
+	Formating    bool
+	Multiline    bool
+	Linewrapping bool
+
+	DrawBackWhenNonEmpty bool
+	ResetButton          bool
+
+	RefreshDelaySec float64 //? ...
+
+	changed func()
+	enter   func()
+}
+
+func (layout *Layout) AddEditbox(x, y, w, h int, value *string) *Editbox {
+	props := &Editbox{Value: value, Align_v: 1, Formating: true}
+	layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
+	return props
+}
+
+func (layout *Layout) AddEditboxInt2(x, y, w, h int, value *int) (*Editbox, *Layout) {
+	props := &Editbox{ValueInt: value, Align_v: 1, Formating: true}
+	return props, layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
+}
+func (layout *Layout) AddEditboxInt(x, y, w, h int, value *int) *Editbox {
+	props, _ := layout.AddEditboxInt2(x, y, w, h, value)
+	return props
+}
+
+func (layout *Layout) AddEditboxFloat(x, y, w, h int, value *float64, prec int) *Editbox {
+	props := &Editbox{ValueFloat: value, FloatPrec: prec, Align_v: 1, Formating: true}
+	layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
+	return props
+}
+
+func (layout *Layout) AddEditboxMultiline(x, y, w, h int, value *string) (*Editbox, *Layout) {
+	props := &Editbox{Value: value, Align_v: 1, Formating: true, Multiline: true, Linewrapping: true}
+	return props, layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
+}
+
+func (layout *Layout) AddEditboxSearch(x, y, w, h int, value *string, refreshDelaySec float64) *Editbox {
+	if refreshDelaySec < 0 {
+		refreshDelaySec = 0.5
+	}
+	props := &Editbox{Value: value, RefreshDelaySec: refreshDelaySec,
+		Ghost: "Search", Icon: "resources/search.png", Icon_margin: 0.2,
+		DrawBackWhenNonEmpty: true, ResetButton: true}
+
+	layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
+	return props
+}
+
+func (st *Editbox) Build(layout *Layout) {
+
+	st.buildContextDialog(layout)
 
 	if !st.Multiline {
-		st.layout.ScrollH.Narrow = true
+		layout.ScrollH.Narrow = true
 	}
 
-	st.layout.fnSetEditbox = func(value string) {
+	layout.dropFile = func(path string) {
+		*st.Value += path
+	}
+
+	layout.fnSetEditbox = func(value string, enter bool) {
 		if st.Value != nil {
 			*st.Value = value
 		}
@@ -22,25 +95,62 @@ func (st *Editbox) Build() {
 		if st.ValueInt != nil {
 			*st.ValueInt, _ = strconv.Atoi(value)
 		}
+
+		if st.changed != nil {
+			st.changed()
+		}
+		if enter && st.enter != nil {
+			st.enter()
+		}
 	}
 }
 
-func (st *Editbox) Draw(rect Rect) {
-	st.lock.Lock()
-	defer st.lock.Unlock()
-
-	layout := st.layout
+func (st *Editbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
+	rectOrig := rect
+	rectOrig = rectOrig.Cut(0.03)
 
 	rectLabel := rect
 
-	layout.Paint_cursor("ibeam", rect)
-	layout.Paint_tooltipEx(rectLabel, st.Tooltip, false)
-
 	//color
-	cd := layout.GetPalette().OnB
+	cd := Paint_GetPalette().OnB
 	if st.Cd.A > 0 {
 		cd = st.Cd
 	}
+
+	//back
+	if st.DrawBackWhenNonEmpty && *st.Value != "" {
+		backCd := Color_Aprox(Paint_GetPalette().P, Paint_GetPalette().B, 0.5)
+		paint.Rect(rectOrig, backCd, backCd, backCd, 0)
+	}
+
+	//icon
+	if st.Icon != "" {
+		rectIcon := rectLabel
+		rectIcon.W = 1
+		rectIcon = rectIcon.Cut(st.Icon_margin)
+
+		rectLabel = rectLabel.CutLeft(1)
+
+		paint.File(rectIcon, false, st.Icon, cd, cd, cd, 1, 1)
+	}
+
+	//reset
+	if st.ResetButton {
+		rectReset := rectLabel
+		rectReset = rectReset.CutRight(1)
+		rectReset.X += rectReset.W
+		rectReset.W = 1
+
+		paint.Text(rectReset, "⌫", "", cd, cd, cd, false, false, 1, 1, false, false, false, 0)
+
+		paint.CursorEx(rectReset, "hand")
+		paint.TooltipEx(rectReset, "Clear", false)
+
+		rectLabel = rectLabel.CutRight(1)
+	}
+
+	paint.CursorEx(rectLabel, "ibeam")
+	paint.TooltipEx(rectLabel, st.Tooltip, false)
 
 	var value string
 	if st.Value != nil {
@@ -63,62 +173,61 @@ func (st *Editbox) Draw(rect Rect) {
 
 		rectLabel = rectLabel.CutLeft(1)
 
-		layout.Paint_file(rectIcon, false, st.Icon, cd, cd, cd, 1, 1)
+		paint.File(rectIcon, false, st.Icon, cd, cd, cd, 1, 1)
 	}
 
 	//draw text
-	layout.Paint_text(rectLabel, value, st.Ghost, cd, cd, cd, true, true, uint8(st.Align_h), uint8(st.Align_v), st.Formating, st.Multiline, st.Linewrapping, 0.06)
+	paint.Text(rectLabel, value, st.Ghost, cd, cd, cd, true, true, uint8(st.Align_h), uint8(st.Align_v), st.Formating, st.Multiline, st.Linewrapping, 0.06)
+	return
 }
 
-func (st *Editbox) Input(in LayoutInput) {
-	st.lock.Lock()
-	defer st.lock.Unlock()
+func (st *Editbox) Input(in LayoutInput, layout *Layout) {
 
 	//open context menu
 	active := in.IsActive
 	inside := in.IsInside && (active || !in.IsUse)
 	if in.IsUp && active && inside && in.AltClick {
-		dia := st.layout.FindDialog("context")
+		dia := layout.FindDialog("context")
 		if dia != nil {
-			dia.OpenDialogOnTouch()
+			dia.OpenOnTouch()
 		}
 	}
 }
 
-func (st *Editbox) buildContextDialog() {
+func (st *Editbox) buildContextDialog(layout *Layout) {
 
-	dia := st.layout.AddDialog("context")
-	dia.SetColumn(0, 1, 5)
+	dia := layout.AddDialog("context")
+	dia.Layout.SetColumn(0, 1, 5)
 
-	SelectAll := dia.AddButton(0, 0, 1, 1, NewButton("Select All"))
+	SelectAll := dia.Layout.AddButton(0, 0, 1, 1, NewButton("Select All"))
 	SelectAll.Align = 0
 	SelectAll.Background = 0.25
 	SelectAll.clicked = func() {
-		st.layout.SelectAllText()
-		dia.CloseDialog()
+		layout.SelectAllText()
+		dia.Close()
 	}
 
-	Copy := dia.AddButton(0, 1, 1, 1, NewButton("Copy"))
+	Copy := dia.Layout.AddButton(0, 1, 1, 1, NewButton("Copy"))
 	Copy.Align = 0
 	Copy.Background = 0.25
 	Copy.clicked = func() {
-		st.layout.CopyText()
-		dia.CloseDialog()
+		layout.CopyText()
+		dia.Close()
 	}
 
-	Cut := dia.AddButton(0, 2, 1, 1, NewButton("Cut"))
+	Cut := dia.Layout.AddButton(0, 2, 1, 1, NewButton("Cut"))
 	Cut.Align = 0
 	Cut.Background = 0.25
 	Cut.clicked = func() {
-		st.layout.CutText()
-		dia.CloseDialog()
+		layout.CutText()
+		dia.Close()
 	}
 
-	Paste := dia.AddButton(0, 3, 1, 1, NewButton("Paste"))
+	Paste := dia.Layout.AddButton(0, 3, 1, 1, NewButton("Paste"))
 	Paste.Align = 0
 	Paste.Background = 0.25
 	Paste.clicked = func() {
-		st.layout.PasteText()
-		dia.CloseDialog()
+		layout.PasteText()
+		dia.Close()
 	}
 }

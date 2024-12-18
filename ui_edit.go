@@ -47,7 +47,7 @@ func (edit *UiLayoutEdit) Set(dom *Layout3, editable bool, orig_value, value str
 		diff := (orig_value != value)
 
 		if diff {
-			in := LayoutInput{SetEdit: true, EditValue: edit.temp}
+			in := LayoutInput{SetEdit: true, EditValue: edit.temp, EditEnter: enter_key}
 			dom.ui.parent.CallInput(&dom.props, &in)
 		}
 	}

@@ -2,40 +2,85 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"os/exec"
 	"runtime"
 )
 
-func (st *Button) Draw(rect Rect) {
-	st.lock.Lock()
-	defer st.lock.Unlock()
+type Button struct {
+	Value string //label
 
-	layout := st.layout
+	Tooltip string
+	Align   int
 
+	Background float64
+	Border     bool
+
+	Icon        string
+	Icon_align  int
+	Icon_margin float64
+
+	BrowserUrl string
+
+	Cd      color.RGBA
+	Cd_fade bool
+
+	//Shortcut_key byte
+
+	clicked   func()
+	clickedEx func(numClicks int, altClick bool)
+}
+
+func NewButton(label string) *Button {
+	return &Button{Value: label, Align: 1, Background: 1}
+}
+
+func NewButtonDanger(label string) *Button {
+	bt := NewButton(label)
+	bt.Cd = Paint_GetPalette().E // background has error(red) color
+
+	return bt
+}
+func NewButtonIcon(icon_path string, icon_margin float64, Tooltip string) *Button {
+	return &Button{Icon: icon_path, Icon_align: 1, Icon_margin: icon_margin, Tooltip: Tooltip, Background: 1}
+}
+func NewButtonMenu(label string, icon_path string, icon_margin float64) *Button {
+	return &Button{Value: label, Icon: icon_path, Icon_margin: icon_margin, Align: 0, Background: 0.25}
+}
+
+func (layout *Layout) AddButton2(x, y, w, h int, props *Button) (*Button, *Layout) {
+	return props, layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+}
+func (layout *Layout) AddButton(x, y, w, h int, props *Button) *Button {
+	layout.AddButton2(x, y, w, h, props)
+	return props
+}
+
+func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	rc := rect
 	rc = rc.Cut(0.03)
 	rectLabel := rc
 
-	layout.Paint_cursor("hand", rect)
+	paint.Cursor("hand", rect)
 	tip := st.Tooltip
-	if st.layout.Shortcut_key != 0 {
-		sh := string(st.layout.Shortcut_key)
-		if st.layout.Shortcut_key == '\t' {
+	if layout.Shortcut_key != 0 {
+		sh := string(layout.Shortcut_key)
+		if layout.Shortcut_key == '\t' {
 			sh = "Tab"
 		}
 		tip += fmt.Sprintf("(Ctrl+%s)", sh)
 	}
-	layout.Paint_tooltip(tip, rect)
+	paint.Tooltip(tip, rect)
 
 	if st.BrowserUrl != "" {
-		layout.Paint_tooltip(st.BrowserUrl, rect)
+		paint.Tooltip(st.BrowserUrl, rect)
 	}
 
 	//colors
-	B := layout.GetPalette().B
-	onB := layout.GetPalette().OnB
-	cdBack := layout.GetPalette().P
-	cdText := layout.GetPalette().OnP
+	B := Paint_GetPalette().B
+	onB := Paint_GetPalette().OnB
+	cdBack := Paint_GetPalette().P
+	cdText := Paint_GetPalette().OnP
 
 	if st.Background == 0 {
 		//no back
@@ -51,7 +96,7 @@ func (st *Button) Draw(rect Rect) {
 	}
 
 	if st.BrowserUrl != "" {
-		cdText = layout.GetPalette().P
+		cdText = Paint_GetPalette().P
 	}
 
 	if st.Cd.A > 0 {
@@ -94,12 +139,12 @@ func (st *Button) Draw(rect Rect) {
 			cd.A = 0 //no back
 		}
 
-		layout.Paint_rect(rectLabel, cd, cdBack_over, cdBack_down, 0)
+		paint.Rect(rectLabel, cd, cdBack_over, cdBack_down, 0)
 	}
 
 	//draw border
 	if st.Border {
-		layout.Paint_rect(rc, cdBack, cdBack_over, cdBack_down, 0.03)
+		paint.Rect(rc, cdBack, cdBack_over, cdBack_down, 0.03)
 	}
 
 	//draw icon
@@ -127,26 +172,29 @@ func (st *Button) Draw(rect Rect) {
 
 		rectIcon = rectIcon.Cut(st.Icon_margin)
 
-		layout.Paint_file(rectIcon, false, st.Icon, cdText, cdText_over, cdText_down, 1, 1)
+		paint.File(rectIcon, false, st.Icon, cdText, cdText_over, cdText_down, 1, 1)
 	}
 
 	//draw label
 	if st.Value != "" {
-		layout.Paint_text(rectLabel, st.Value, "",
+		paint.Text(rectLabel, st.Value, "",
 			//cdBack, cdBack_over, cdBack_down,
 			cdText, cdText_over, cdText_down,
 			false, false, uint8(st.Align), 1, true, false, false, 0.1)
 	}
+
+	return
 }
 
-func (st *Button) Input(in LayoutInput) {
-	st.lock.Lock()
-	defer st.lock.Unlock()
-
+func (st *Button) Input(in LayoutInput, layout *Layout) {
 	clicked := false
 	active := in.IsActive
 	inside := in.IsInside && (active || !in.IsUse)
 	clicked = in.IsUp && active && inside
+
+	if layout.Shortcut_key != 0 && layout.Shortcut_key == in.Shortcut_key {
+		clicked = true
+	}
 
 	if clicked {
 		if st.clicked != nil {

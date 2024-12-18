@@ -219,6 +219,16 @@ func (ui *Ui) _Text_update(dom *Layout3,
 			ui._UiPaint_TextSelectKeys(dom, value, lines, prop, multi_line)
 
 			if editable {
+
+				drop_path := ui.GetWin().io.Touch.Drop_path
+				if drop_path != "" && dom.IsTouchPosInside() {
+					firstCur := OsTrn(edit.start < edit.end, edit.start, edit.end)
+					lastCur := OsTrn(edit.start > edit.end, edit.start, edit.end)
+					edit.temp = edit.temp[:firstCur] + drop_path + edit.temp[lastCur:]
+					edit.start = firstCur
+					edit.end = firstCur + len(drop_path)
+				}
+
 				//old_value := value
 				var tryMoveScroll bool
 				value, tryMoveScroll = ui._UiPaint_TextEditKeys(dom, edit.temp, lines, tabIsChar, prop, multi_line, multi_line_enter_finish) //rewrite 'str' with temp value
@@ -231,9 +241,9 @@ func (ui *Ui) _Text_update(dom *Layout3,
 				lines = ui.GetTextLines(value, max_line_px, prop) //refresh
 
 				if num_old_lines != len(lines) {
-					if dom.parentLevel.needRebuild(dom) {
-						dom.ui.SetRelayout()
-					}
+					//if dom.parent.needRebuild(dom) {
+					dom.ui.SetRelayout()
+					//}
 				}
 
 				if tryMoveScroll {

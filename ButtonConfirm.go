@@ -1,33 +1,64 @@
 package main
 
-func (st *ButtonConfirm) Build() {
-	st.layout.SetColumn(0, 1, 100)
-	st.layout.SetRow(0, 1, 100)
+type ButtonConfirm struct {
+	Value string //label
 
-	dia := st.layout.AddDialog("confirm")
+	Tooltip string
+	Align   int
+
+	Draw_back   float64
+	Draw_border bool
+
+	Icon        string
+	Icon_align  int
+	Icon_margin float64
+
+	Question string
+
+	confirmed func()
+}
+
+func (layout *Layout) AddButtonConfirm(x, y, w, h int, label string, question string) *ButtonConfirm {
+	props := &ButtonConfirm{Value: label, Align: 1, Draw_back: 1, Question: question}
+	layout._createDiv(x, y, w, h, "ButtonConfirm", props.Build, nil, nil)
+	return props
+}
+
+func (layout *Layout) AddButtonConfirmMenu(x, y, w, h int, label string, icon_path string, icon_margin float64, question string) *ButtonConfirm {
+	props := &ButtonConfirm{Value: label, Icon: icon_path, Icon_margin: icon_margin, Align: 0, Draw_back: 0.25, Question: question}
+	layout._createDiv(x, y, w, h, "ButtonConfirm", props.Build, nil, nil)
+	return props
+}
+
+func (st *ButtonConfirm) Build(layout *Layout) {
+
+	layout.SetColumn(0, 1, 100)
+	layout.SetRow(0, 1, 100)
+
+	dia := layout.AddDialog("confirm")
 	{
-		dia.SetColumn(0, 3, 3)
-		dia.SetColumn(1, 0.5, 0.5)
-		dia.SetColumn(2, 2, 3)
+		dia.Layout.SetColumn(0, 3, 3)
+		dia.Layout.SetColumn(1, 0.5, 0.5)
+		dia.Layout.SetColumn(2, 2, 3)
 
-		tx := dia.AddText(0, 0, 3, 1, st.Question)
+		tx := dia.Layout.AddText(0, 0, 3, 1, st.Question)
 		tx.Align_h = 1
 
-		yes := dia.AddButton(0, 1, 1, 1, NewButtonDanger("Yes", st.layout.GetPalette()))
+		yes := dia.Layout.AddButton(0, 1, 1, 1, NewButtonDanger("Yes"))
 		yes.clicked = func() {
-			if st.Confirmed != nil {
-				st.Confirmed()
+			if st.confirmed != nil {
+				st.confirmed()
 			}
-			dia.CloseDialog()
+			dia.Close()
 		}
 
-		no := dia.AddButton(2, 1, 1, 1, NewButton("No"))
+		no := dia.Layout.AddButton(2, 1, 1, 1, NewButton("No"))
 		no.clicked = func() {
-			dia.CloseDialog()
+			dia.Close()
 		}
 	}
 
-	bt := st.layout.AddButton(0, 0, 1, 1, NewButton(st.Value))
+	bt, btL := layout.AddButton2(0, 0, 1, 1, NewButton(st.Value))
 	bt.Tooltip = st.Tooltip
 	bt.Align = st.Align
 	bt.Background = st.Draw_back
@@ -37,6 +68,6 @@ func (st *ButtonConfirm) Build() {
 	bt.Icon_margin = st.Icon_margin
 
 	bt.clicked = func() {
-		dia.OpenDialogRelative(bt.layout)
+		dia.OpenRelative(btL)
 	}
 }

@@ -17,14 +17,98 @@ limitations under the License.
 package main
 
 type UiSettings struct {
-	Dialogs []UiDialog
+	Dialogs []*UiDialog
 	Layouts UiRootSettings
 }
 
+func (s *UiSettings) CloseAllDialogs() {
+	s.Dialogs = nil
+}
+
+func (s *UiSettings) OpenDialog(hash uint64, relativeHash uint64, parentTouch OsV2) *UiDialog {
+	dia := &UiDialog{Hash: hash, RelativeHash: relativeHash, TouchPos: parentTouch}
+	s.Dialogs = append(s.Dialogs, dia)
+	return dia
+}
+
+func (s *UiSettings) FindDialog(hash uint64) *UiDialog {
+	for _, dia := range s.Dialogs {
+		if dia.Hash == hash {
+			return dia
+		}
+	}
+	return nil
+}
+
+func (s *UiSettings) CloseDialog(dia *UiDialog) {
+	for i := len(s.Dialogs) - 1; i >= 0; i-- {
+		if s.Dialogs[i] == dia {
+			s.Dialogs = append(s.Dialogs[:i], s.Dialogs[i+1:]...) //remove
+		}
+	}
+}
+
+func (s *UiSettings) CloseTouchDialogs(ui *Ui) bool {
+	changed := false
+
+	win := ui.GetWin()
+
+	for i := len(s.Dialogs) - 1; i >= 0; i-- {
+		dia := s.Dialogs[i]
+
+		layDia := ui.dom.FindHash(dia.Hash)
+		if layDia != nil && layDia.touch { //touch==true!
+			layApp := layDia.GetApp()
+			if layApp != nil {
+				app_crop := layApp.crop
+				outside := app_crop.Inside(win.io.Touch.Pos) && !layDia.CropWithScroll().Inside(win.io.Touch.Pos)
+				if (win.io.Touch.Start && outside) || win.io.Keys.Esc {
+
+					s.CloseDialog(dia)
+
+					ui.parent.ResetIO()
+					win.io.Keys.Esc = false
+					win.io.Touch.Start = false
+
+					changed = true
+				}
+			}
+		}
+	}
+
+	return changed
+}
+
 type UiDialog struct {
-	Path        string
-	ParentPath  string
-	ParentTouch OsV2
+	Hash         uint64
+	RelativeHash uint64
+	TouchPos     OsV2
+}
+
+func (dia *UiDialog) GetDialogCoord(q OsV4, ui *Ui) OsV4 {
+
+	winRect := ui.winRect
+
+	var relLayout *Layout3
+	if dia.RelativeHash != 0 {
+		relLayout = ui.dom.FindHash(dia.RelativeHash)
+	}
+
+	if relLayout != nil {
+		// relative
+		q = OsV4_relativeSurround(relLayout.crop, q, winRect, false)
+	} else {
+
+		if dia.TouchPos.IsZero() {
+			// center
+			q = OsV4_center(winRect, q.Size)
+		} else {
+			// touch
+			q = OsV4_relativeSurround(OsV4{dia.TouchPos, OsV2{1, 1}}, q, winRect, false)
+		}
+
+	}
+	return q
 }
 
 type UiRootScroll struct {

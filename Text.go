@@ -1,31 +1,55 @@
 package main
 
-func (st *Text) Build() {
-	st.lock.Lock()
-	defer st.lock.Unlock()
+import (
+	"image/color"
+)
 
-	st.buildContextDialog()
+type Text struct {
+	Cd color.RGBA
 
+	Value   string
+	Tooltip string
+
+	Align_h int
+	Align_v int
+
+	Icon        string
+	Icon_margin float64
+
+	Selection    bool
+	Formating    bool
+	Multiline    bool
+	Linewrapping bool
+}
+
+func (layout *Layout) AddText(x, y, w, h int, value string) *Text {
+	props := &Text{Value: value, Align_v: 1, Selection: true, Formating: true}
+	layout._createDiv(x, y, w, h, "Text", props.Build, props.Draw, props.Input)
+	return props
+}
+
+func (layout *Layout) AddTextMultiline(x, y, w, h int, value string) (*Text, *Layout) {
+	props := &Text{Value: value, Selection: true, Formating: true, Multiline: true, Linewrapping: true}
+	return props, layout._createDiv(x, y, w, h, "Text", props.Build, props.Draw, props.Input)
+}
+
+func (st *Text) Build(layout *Layout) {
+	st.buildContextDialog(layout)
 	if !st.Multiline {
-		st.layout.ScrollH.Narrow = true
+		layout.ScrollH.Narrow = true
 	}
 }
 
-func (st *Text) Draw(rect Rect) {
-	st.lock.Lock()
-	defer st.lock.Unlock()
-
-	layout := st.layout
-
+func (st *Text) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	rectLabel := rect
 
 	if st.Selection {
-		layout.Paint_cursor("ibeam", rect)
-		layout.Paint_tooltipEx(rectLabel, st.Tooltip, false)
+		paint.Cursor("ibeam", rect)
+		paint.TooltipEx(rectLabel, st.Tooltip, false)
 	}
 
 	//color
-	cd := layout.GetPalette().OnB
+	cd := Paint_GetPalette().OnB
 	if st.Cd.A > 0 {
 		cd = st.Cd
 	}
@@ -40,48 +64,46 @@ func (st *Text) Draw(rect Rect) {
 
 		rectLabel = rectLabel.CutLeft(1)
 
-		layout.Paint_file(rectIcon, false, st.Icon, cd, cd, cd, 1, 1)
+		paint.File(rectIcon, false, st.Icon, cd, cd, cd, 1, 1)
 	}
 
 	//draw text
 	if st.Value != "" {
-		layout.Paint_text(rectLabel, st.Value, "", cd, cd, cd, st.Selection, false, uint8(st.Align_h), uint8(st.Align_v), st.Formating, st.Multiline, st.Linewrapping, 0.06)
+		paint.Text(rectLabel, st.Value, "", cd, cd, cd, st.Selection, false, uint8(st.Align_h), uint8(st.Align_v), st.Formating, st.Multiline, st.Linewrapping, 0.06)
 	}
+
+	return
 }
 
-func (st *Text) Input(in LayoutInput) {
-	st.lock.Lock()
-	defer st.lock.Unlock()
-
+func (st *Text) Input(in LayoutInput, layout *Layout) {
 	//open context menu
 	active := in.IsActive
 	inside := in.IsInside && (active || !in.IsUse)
 	if in.IsUp && active && inside && in.AltClick {
-		dia := st.layout.FindDialog("context")
+		dia := layout.FindDialog("context")
 		if dia != nil {
-			dia.OpenDialogOnTouch()
+			dia.OpenOnTouch()
 		}
 	}
 }
 
-func (st *Text) buildContextDialog() {
+func (st *Text) buildContextDialog(layout *Layout) {
+	dia := layout.AddDialog("context")
+	dia.Layout.SetColumn(0, 1, 5)
 
-	dia := st.layout.AddDialog("context")
-	dia.SetColumn(0, 1, 5)
-
-	SelectAll := dia.AddButton(0, 0, 1, 1, NewButton("Select All"))
+	SelectAll := dia.Layout.AddButton(0, 0, 1, 1, NewButton("Select All"))
 	SelectAll.Align = 0
 	SelectAll.Background = 0.25
 	SelectAll.clicked = func() {
-		st.layout.SelectAllText()
-		dia.CloseDialog()
+		layout.SelectAllText()
+		dia.Close()
 	}
 
-	Copy := dia.AddButton(0, 1, 1, 1, NewButton("Copy"))
+	Copy := dia.Layout.AddButton(0, 1, 1, 1, NewButton("Copy"))
 	Copy.Align = 0
 	Copy.Background = 0.25
 	Copy.clicked = func() {
-		st.layout.CopyText()
-		dia.CloseDialog()
+		layout.CopyText()
+		dia.Close()
 	}
 }

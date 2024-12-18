@@ -1,24 +1,38 @@
 package main
 
-import "image/color"
+import (
+	"image/color"
+)
 
-func (st *Switch) Draw(rect Rect) {
-	layout := st.layout
+type Switch struct {
+	Label   string
+	Tooltip string
+	Value   *bool
 
-	layout.Paint_cursor("hand", rect)
-	layout.Paint_tooltip(st.Tooltip, rect)
+	changed func()
+}
+
+func (layout *Layout) AddSwitch(x, y, w, h int, label string, value *bool) *Switch {
+	props := &Switch{Label: label, Value: value}
+	layout._createDiv(x, y, w, h, "Switch", nil, props.Draw, props.Input)
+	return props
+}
+
+func (st *Switch) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
+	paint.Cursor("hand", rect)
+	paint.Tooltip(st.Tooltip, rect)
 
 	//colors
-	P := layout.GetPalette().P
-	B := layout.GetPalette().B
-	onB := layout.GetPalette().OnB
+	P := Paint_GetPalette().P
+	B := Paint_GetPalette().B
+	onB := Paint_GetPalette().OnB
 
 	var cd, cd2 color.RGBA
 	if *st.Value {
 		cd = P
 		cd2 = B
 	} else {
-		cd = layout.GetPalette().GetGrey(0.3)
+		cd = Paint_GetPalette().GetGrey(0.3)
 		cd2 = B
 	}
 
@@ -64,35 +78,37 @@ func (st *Switch) Draw(rect Rect) {
 	}
 
 	//draw switch
-	layout.Paint_rect(rc, cd, cd_over, cd_down, 0)
+	paint.Rect(rc, cd, cd_over, cd_down, 0)
 
 	rc = rc.Cut(0.1)
 	rc.W /= 2
 	if !*st.Value {
-		layout.Paint_rect(rc, cd2, cd2_over, cd2_down, 0)
+		paint.Rect(rc, cd2, cd2_over, cd2_down, 0)
 
 		//0
 		rc = rc.Cut(0.1)
-		layout.Paint_line(rc, 0, 0, 1, 1, cd, 0.05)
-		layout.Paint_line(rc, 0, 1, 1, 0, cd, 0.05)
+		paint.Line(rc, 0, 0, 1, 1, cd, 0.05)
+		paint.Line(rc, 0, 1, 1, 0, cd, 0.05)
 
 	} else {
 		rc.X += rc.W
-		layout.Paint_rect(rc, cd2, cd2_over, cd2_down, 0)
+		paint.Rect(rc, cd2, cd2_over, cd2_down, 0)
 
 		//I
 		rc = rc.Cut(0.1)
-		layout.Paint_line(rc, 1.0/3, 0.9, 0.05, 2.0/3, cd, 0.05)
-		layout.Paint_line(rc, 1.0/3, 0.9, 0.95, 1.0/4, cd, 0.05)
+		paint.Line(rc, 1.0/3, 0.9, 0.05, 2.0/3, cd, 0.05)
+		paint.Line(rc, 1.0/3, 0.9, 0.95, 1.0/4, cd, 0.05)
 	}
 
 	//draw label
 	if st.Label != "" {
-		layout.Paint_text(rectLabel, st.Label, "", cd_text, cd_text_over, cd_text_down, true, false, 0, 1, true, false, false, 0.1)
+		paint.Text(rectLabel, st.Label, "", cd_text, cd_text_over, cd_text_down, true, false, 0, 1, true, false, false, 0.1)
 	}
+
+	return
 }
 
-func (st *Switch) Input(in LayoutInput) {
+func (st *Switch) Input(in LayoutInput, layout *Layout) {
 	clicked := false
 
 	active := in.IsActive
