@@ -78,7 +78,7 @@ func (st *Root) Build(layout *Layout) {
 
 		//prompt
 		//...ChatDia := ast.CreateDialog(layout)
-		//...ast.Prompt = Assistant_recomputeColors(ast.Prompt, ast.Picks)
+		ast.Prompt = Assistant_recomputeColors(ast.Prompt, ast.Picks)
 		ed, edLay := HeaderDiv.AddEditboxMultiline(3, 0, 1, 1, &ast.Prompt)
 		ed.Ghost = "What can I do for you?"
 		ed.Tooltip = "Use Ctrl + L/R click to select widgets."
@@ -157,6 +157,9 @@ func (st *Root) Build(layout *Layout) {
 		PanelBt.clicked = func() {
 			ast.Show = !ast.Show
 		}
+
+		//udpate skyalt dom paints
+		layout.CmdSetPicks(ast.Picks)
 	}
 
 	{

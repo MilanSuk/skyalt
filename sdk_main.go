@@ -242,10 +242,18 @@ func main_sdk(port int) {
 					inLayout.dropFile(in.Drop_path)
 				}
 
+			} else if in.SetDropMove {
+				if inLayout.dropMove != nil {
+					inLayout.dropMove(in.DropSrc, in.DropDst)
+				}
+
 			} else if in.SetEdit {
 				if inLayout.fnSetEditbox != nil {
 					inLayout.fnSetEditbox(in.EditValue, in.EditEnter)
 				}
+
+			} else if in.Pick.File != "" {
+				NewFile_Assistant().findPickOrAdd(in.Pick)
 
 			} else if inLayout.fnInput != nil {
 				inLayout.fnInput(in, inLayout)

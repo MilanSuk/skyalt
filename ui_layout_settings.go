@@ -57,7 +57,7 @@ func (s *UiSettings) CloseTouchDialogs(ui *Ui) bool {
 		dia := s.Dialogs[i]
 
 		layDia := ui.dom.FindHash(dia.Hash)
-		if layDia != nil && layDia.touch { //touch==true!
+		if layDia != nil && layDia.touchDia { //touchDia == true
 			layApp := layDia.GetApp()
 			if layApp != nil {
 				app_crop := layApp.crop

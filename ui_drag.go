@@ -17,20 +17,25 @@ limitations under the License.
 package main
 
 type UiLayoutDrag struct {
-	dom   *Layout3
+	srcHash uint64
+	dstHash uint64
+
 	group string
+
+	pos SA_Drop_POS
 }
 
 func (drag *UiLayoutDrag) Reset() {
-	drag.dom = nil
+	drag.srcHash = 0
+	drag.dstHash = 0
 	drag.group = ""
 }
 func (drag *UiLayoutDrag) Set(dom *Layout3) {
-	drag.dom = dom
+	drag.srcHash = dom.props.Hash
 	drag.group = dom.props.Drag_group
 }
 func (drag *UiLayoutDrag) IsDraged(dom *Layout3) bool {
-	return drag.dom == dom
+	return drag.srcHash == dom.props.Hash
 }
 func (drag *UiLayoutDrag) IsOverDrop(dom *Layout3) bool {
 	return drag.group != "" && drag.group == dom.props.Drop_group

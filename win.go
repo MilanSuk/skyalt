@@ -913,7 +913,7 @@ func (win *Win) DrawRectRound(coord OsV4, rad int, depth int, cd color.RGBA, thi
 	if rad > 0 {
 		rad += thick //inside GetCircle(), radius is smaller by thick
 
-		coord = coord.AddSpace(-thick) //make it larger, because 'rad += thick'
+		coord = coord.Crop(-thick) //make it larger, because 'rad += thick'
 		s := coord.Start
 		e := coord.End()
 
@@ -958,6 +958,34 @@ func (win *Win) DrawLine(start OsV2, end OsV2, depth int, thick int, cd color.RG
 			gl.Vertex3f(float32(start.X), float32(start.Y), float32(depth))
 			gl.Vertex3f(float32(end.X), float32(end.Y), float32(depth))
 			gl.End()
+		}
+	}
+}
+
+func (win *Win) DrawLines(points []OsV2, depth int, thick int, cd color.RGBA, renderEndings bool) {
+	if len(points) == 0 {
+		return
+	}
+
+	//cd
+	gl.Color4ub(cd.R, cd.G, cd.B, cd.A)
+
+	//lines
+	gl.LineWidth(float32(thick))
+	gl.Begin(gl.LINE_STRIP)
+	for _, pt := range points {
+		gl.Vertex3f(float32(pt.X), float32(pt.Y), float32(depth))
+	}
+	gl.End()
+
+	if renderEndings {
+		thick = int(float64(thick) * 0.9)
+		circle := win.gph.GetCircle(OsV2{thick, thick}, 0, OsV2f{})
+		if circle == nil {
+			return
+		}
+		for _, pt := range points {
+			circle.item.DrawCut(InitOsV4Mid(pt, circle.size), depth, cd)
 		}
 	}
 }

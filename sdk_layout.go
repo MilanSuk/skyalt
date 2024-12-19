@@ -168,9 +168,14 @@ type LayoutInput struct {
 	EditValue string
 	EditEnter bool
 
+	SetDropMove      bool
+	DropSrc, DropDst int
+
 	Drop_path string
 
 	Shortcut_key byte
+
+	Pick LayoutPick
 }
 
 type LayoutDialog struct {
@@ -218,6 +223,8 @@ type Layout struct {
 	Drag_index              int
 	Drop_h, Drop_v, Drop_in bool
 
+	dropMove func(src, dst int)
+
 	dropFile func(path string)
 
 	UserCols []LayoutCR
@@ -233,10 +240,6 @@ type Layout struct {
 	fnDraw       func(Rect, *Layout) LayoutPaint
 	fnInput      func(LayoutInput, *Layout)
 	fnSetEditbox func(string, bool)
-
-	Prompt_label   string
-	Prompt_comp_cd color.RGBA //highlight with rect
-	Prompt_grids   []LayoutPickGrid
 }
 
 func (layout *Layout) _getName() string {
@@ -530,9 +533,9 @@ func (layout *Layout) SetClipboardText(text string) {
 	_addCmd(LayoutCmd{Hash: 0, Cmd: "SetClipboardText", Param1: text})
 }
 
-func (layout *Layout) Refresh() {
+/*func (layout *Layout) Refresh() {
 	_addCmd(LayoutCmd{Hash: 0, Cmd: "Refresh"})
-}
+}*/
 
 func (layout *Layout) CopyText() {
 	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "CopyText"})
@@ -545,6 +548,9 @@ func (layout *Layout) CutText() {
 }
 func (layout *Layout) PasteText() {
 	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "PasteText"})
+}
+func (layout *Layout) CmdSetPicks(picks []LayoutPick) {
+	_addCmd(LayoutCmd{Hash: 0, Cmd: "Picks", Param1: string(OsMarshal(picks))})
 }
 
 var g_theme_light = LayoutPalette{

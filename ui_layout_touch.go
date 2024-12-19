@@ -34,8 +34,11 @@ func (layTouch *UiLayoutInput) Reset() {
 	*layTouch = UiLayoutInput{}
 }
 
-func (layTouch *UiLayoutInput) IsAnyActive() bool {
+func (layTouch *UiLayoutInput) IsActive() bool {
 	return layTouch.canvas != 0 || layTouch.scrollV != 0 || layTouch.scrollH != 0 || layTouch.resize != 0
+}
+func (layTouch *UiLayoutInput) IsCanvasActive() bool {
+	return layTouch.canvas != 0
 }
 
 func (layTouch *UiLayoutInput) IsResizeActive() bool {

@@ -17,13 +17,9 @@ limitations under the License.
 package main
 
 import (
-	"go/ast"
-	"go/parser"
-	"go/token"
+	"fmt"
 	"image/color"
 	"math"
-	"os"
-	"strings"
 )
 
 type LayoutPick struct {
@@ -44,6 +40,25 @@ func InitLayoutPick(file string, line int, grid OsV4, tip string) LayoutPick {
 		Time_sec: OsTime(),
 	}
 }
+func (a *LayoutPick) Cmp(b *LayoutPick) bool {
+	return a.File == b.File &&
+		a.Line == b.Line &&
+		a.Grid_x == b.Grid_x &&
+		a.Grid_y == b.Grid_y &&
+		a.Grid_w == b.Grid_w &&
+		a.Grid_h == b.Grid_h
+}
+
+func (pick *LayoutPick) GetGrid() OsV4 {
+	return InitOsV4(pick.Grid_x, pick.Grid_y, pick.Grid_w, pick.Grid_h)
+}
+func LayoutPick_getMark(i int) string {
+	if i < 25 { //25 = 'Z'-'A'
+		return fmt.Sprintf("{%c}", 'A'+i)
+	} else {
+		return fmt.Sprintf("{%c}", '0'+(i-25))
+	}
+}
 
 type Layout3 struct {
 	ui     *Ui
@@ -51,7 +66,8 @@ type Layout3 struct {
 
 	props Layout
 
-	touch bool
+	touch    bool
+	touchDia bool
 
 	dialog *Layout3 //open
 	childs []*Layout3
@@ -73,6 +89,10 @@ type Layout3 struct {
 	touchResizeIsActive     bool
 
 	buffer []LayoutDrawPrim
+
+	prompt_label   string
+	prompt_comp_cd color.RGBA //highlight with rect
+	prompt_grids   []LayoutPickGrid
 }
 
 func NewUiLayoutDOM(props Layout, parent *Layout3, ui *Ui) *Layout3 {
@@ -97,6 +117,33 @@ func (dom *Layout3) extractRects(rects map[uint64]Rect) {
 
 	for _, it := range dom.childs {
 		it.extractRects(rects)
+	}
+}
+
+func (dom *Layout3) projectPicks(picks []LayoutPick) {
+	dom.ResetPicks()
+	for pk_i, pk := range picks {
+
+		if pk.Cd.A == 0 {
+			continue //invisible
+		}
+
+		var marks []*Layout3
+		dom.FindAppLine(pk.File, pk.Line, &marks)
+		for _, mark := range marks {
+
+			label := LayoutPick_getMark(pk_i)
+			if pk.GetGrid().Size.IsZero() {
+				mark.prompt_label = label
+				mark.prompt_comp_cd = pk.Cd
+			} else {
+				grid := pk.GetGrid()
+				mark.prompt_grids = append(mark.prompt_grids, LayoutPickGrid{
+					Cd:     pk.Cd,
+					Grid_x: grid.Start.X, Grid_y: grid.Start.Y, Grid_w: grid.Size.X, Grid_h: grid.Size.Y,
+					Label: label})
+			}
+		}
 	}
 }
 
@@ -155,6 +202,7 @@ func (dom *Layout3) hasDialog() bool {
 
 func (dom *Layout3) setTouchEnable(touch bool) {
 	dom.touch = touch && dom.props.Enable
+	dom.touchDia = true
 
 	for _, it := range dom.childs {
 		it.setTouchEnable(dom.touch)
@@ -164,19 +212,18 @@ func (dom *Layout3) setTouchEnable(touch bool) {
 	}
 }
 
-func (dom *Layout3) setTouchDisable(subDialogs bool) {
-	dom.touch = false
+func (dom *Layout3) setTouchDialogDisable(subDialogs bool) {
+	dom.touchDia = false
 	for _, it := range dom.childs {
-
 		if it.props.App {
-			it.setTouchDisable(true) //disable dialogs inside
+			it.setTouchDialogDisable(true) //disable dialogs inside
 		} else {
-			it.setTouchDisable(subDialogs)
+			it.setTouchDialogDisable(subDialogs)
 		}
 	}
 
 	if dom.dialog != nil && subDialogs {
-		dom.dialog.setTouchDisable(true)
+		dom.dialog.setTouchDialogDisable(true)
 	}
 }
 
@@ -206,15 +253,15 @@ func (dom *Layout3) SetTouchAll() {
 			layApp := layDia.parent.GetApp()
 			if layApp != nil {
 				//dia.appHash = layApp.props.Hash
-				layApp.setTouchDisable(false)
+				layApp.setTouchDialogDisable(false)
 			}
 		}
 	}
 }
 
 func (dom *Layout3) ResetPicks() {
-	dom.props.Prompt_comp_cd = color.RGBA{}
-	dom.props.Prompt_grids = nil
+	dom.prompt_comp_cd = color.RGBA{}
+	dom.prompt_grids = nil
 
 	if dom.dialog != nil {
 		dom.dialog.ResetPicks()
@@ -283,25 +330,19 @@ func (dom *Layout3) FindHash(hash uint64) *Layout3 {
 	return nil
 }
 
-func (dom *Layout3) FindAppLine(file string, line int) *Layout3 {
-	if /*dom.caller_app &&*/ dom.props.Caller_file == file && dom.props.Caller_line == line {
-		return dom
+// It can 'out' multiple(addButton in for loop)!
+func (dom *Layout3) FindAppLine(file string, line int, out *[]*Layout3) {
+	if dom.props.Caller_file == file && dom.props.Caller_line == line {
+		*out = append(*out, dom)
 	}
 
 	if dom.dialog != nil {
-		d := dom.dialog.FindAppLine(file, line)
-		if d != nil {
-			return d
-		}
+		dom.dialog.FindAppLine(file, line, out)
 	}
 
 	for _, it := range dom.childs {
-		d := it.FindAppLine(file, line)
-		if d != nil {
-			return d
-		}
+		it.FindAppLine(file, line, out)
 	}
-	return nil
 }
 
 func (dom *Layout3) Col(pos int, val float64) {
@@ -361,7 +402,7 @@ func (dom *Layout3) IsShown() bool {
 
 func (dom *Layout3) TouchDialogs(editHash, touchHash uint64, check bool) {
 
-	if dom.touch && check {
+	if dom.CanTouch() && check {
 		//dom.updateShortcut()
 		dom.updateTouch()
 
@@ -593,7 +634,7 @@ func (dom *Layout3) renderBuffer(buffer []LayoutDrawPrim) {
 				force = false
 			}
 
-			if dom.CanTouch() && (force || !dom.GetUis().touch.IsAnyActive()) {
+			if dom.CanTouch() && (force || !dom.GetUis().touch.IsActive()) {
 				coord := coord.GetIntersect(buff.crop)
 
 				if force {
@@ -688,7 +729,7 @@ func (dom *Layout3) IsMouseButtonUse() bool {
 	if !dom.CanTouch() {
 		return false
 	}
-	return dom.IsTouchAnyActive() && !dom.IsCtrlPressed()
+	return dom.ui.parent.touch.IsCanvasActive() && !dom.IsCtrlPressed()
 }
 
 func (layout *Layout3) updateTouch() {
@@ -736,21 +777,24 @@ func (layout *Layout3) findBufferText() int {
 
 func (layout *Layout3) textComp() {
 
-	if !layout.CanTouch() {
-		return
+	if layout.CanTouch() {
+
+		ti := layout.findBufferText()
+		if ti >= 0 {
+			it := layout.buffer[ti]
+
+			prop := InitWinFontPropsDef(layout.Cell())
+			prop.formating = it.Text_formating
+
+			coord := layout.getCanvasPx(it.Rect)
+			align := OsV2{int(it.Align_h), int(it.Align_v)}
+
+			layout.ui._Text_update(layout, coord, it.Text, prop, align, it.Text_selection, it.Text_editable, true, it.Text_multiline, true, it.Text_linewrapping)
+		}
 	}
 
-	ti := layout.findBufferText()
-	if ti >= 0 {
-		it := layout.buffer[ti]
-
-		prop := InitWinFontPropsDef(layout.Cell())
-		prop.formating = it.Text_formating
-
-		coord := layout.getCanvasPx(it.Rect)
-		align := OsV2{int(it.Align_h), int(it.Align_v)}
-
-		layout.ui._Text_update(layout, coord, it.Text, prop, align, it.Text_selection, it.Text_editable, true, it.Text_multiline, true, it.Text_linewrapping)
+	if layout.dialog != nil {
+		layout.dialog.textComp()
 	}
 
 	for _, it := range layout.childs {
@@ -761,41 +805,31 @@ func (layout *Layout3) textComp() {
 }
 
 func (layout *Layout3) touchComp() {
-	//dom.drop_path = ""
-	/*if layout.DropFile != nil && layout.CanTouch() {
-		drop_path := layout.GetUis().win.io.Touch.Drop_path
-		if layout.IsMouseInside() && drop_path != "" {
-			layout.DropFile(drop_path)
-			layout.ui.UpdateCode()
-		}
-	}*/
-
 	if layout.CanTouch() {
-
 		var in LayoutInput
-		{
-			in.Rect = layout._getRect()
-			in.X = layout.GetMouseX()
-			in.Y = layout.GetMouseY()
 
-			in.IsStart = layout.IsMouseButtonDownStart()
-			in.IsActive = layout.IsMouseButtonPressed()
-			in.IsEnd = layout.IsTouchEnd()
+		in.Rect = layout._getRect()
+		in.X = layout.GetMouseX()
+		in.Y = layout.GetMouseY()
 
-			in.IsUse = layout.IsMouseButtonUse()
-			in.IsUp = layout.GetMouseButtonUp()
+		in.IsStart = layout.IsMouseButtonDownStart()
+		in.IsActive = layout.IsMouseButtonPressed()
+		in.IsEnd = layout.IsTouchEnd()
 
-			in.IsInside = layout.IsMouseInside()
-			in.Wheel = layout.GetMouseWheel()
-			in.NumClicks = layout.ui.GetWin().io.Touch.NumClicks
-			in.AltClick = layout.ui.GetWin().io.Touch.Rm
-		}
+		in.IsUse = layout.IsMouseButtonUse()
+		in.IsUp = layout.GetMouseButtonUp()
 
-		if in.IsStart || in.IsActive || (in.Wheel != 0) || in.NumClicks > 0 || in.IsUse || in.IsUp {
+		in.IsInside = layout.IsMouseInside()
+		in.Wheel = layout.GetMouseWheel()
+		in.NumClicks = layout.ui.GetWin().io.Touch.NumClicks
+		in.AltClick = layout.ui.GetWin().io.Touch.Rm
+
+		if in.IsStart || in.IsActive || in.Wheel != 0 || in.IsUse || in.IsUp {
 			layout.ui.parent.CallInput(&layout.props, &in) //err ...
 		}
 	}
 
+	//drop file
 	if layout.CanTouch() {
 		drop_path := layout.GetUis().win.io.Touch.Drop_path
 		if layout.IsMouseInside() && drop_path != "" {
@@ -805,119 +839,23 @@ func (layout *Layout3) touchComp() {
 		}
 	}
 
-	//select component
-	if layout.IsTouchCtrlComp_start() { // && layout.caller_app {
-		layout.ui.SelectComp_active = true
-		layout.ui.Selected_hash = layout.props.Hash //GetParentLevelDepth(dom.ui.SelectionDepth).hash
-	}
+	//drag & drop layouts
+	if layout.CanTouch() {
+		if layout.GetUis().drag.IsOverDrop(layout) {
+			if layout.ui.GetWin().io.Touch.End {
+				srcDom := layout.ui.dom.FindHash(layout.GetUis().drag.srcHash)
+				dstDom := layout.ui.dom.FindHash(layout.GetUis().drag.dstHash)
+				if dstDom != nil {
+					src_i := srcDom.props.Drag_index
+					dst_i := dstDom.props.Drag_index
+					dst_i = OsMoveElementIndex(src_i, dst_i, layout.GetUis().drag.pos)
 
-	if layout.ui.SelectComp_active && layout.ui.Selected_hash == layout.props.Hash && layout.IsTouchCtrlComp_end() {
-
-		layout.ui.parent.CallPick(InitLayoutPick(layout.props.Caller_file, layout.props.Caller_line, OsV4{}, layout.props.LLMTip))
-		layout.ui.SetRefresh()
-
-		layout.ui.Selected_hash = 0
-		layout.ui.SelectComp_active = false
-	}
-
-	{
-		if layout.IsTouchCtrlGrid_start() /*&& layout.IsDiv()*/ { //&& layout.caller_app {
-			layout.ui.SelectGrid_active = true
-			layout.ui.Selected_hash = layout.props.Hash //GetParentLevelDepth(dom.ui.SelectionDepth).hash
-		}
-
-		if layout.ui.SelectGrid_active && layout.ui.Selected_hash == layout.props.Hash {
-
-			touch_rel := layout.ui.GetWin().io.Touch.Pos.Sub(layout.canvas.Start)
-			c := layout.cols.GetCloseCell(touch_rel.X)
-			r := layout.rows.GetCloseCell(touch_rel.Y)
-
-			if layout.IsTouchCtrlGrid_start() {
-				layout.props.Prompt_grids = append(layout.props.Prompt_grids, LayoutPickGrid{Cd: color.RGBA{0, 0, 0, 255}})
-				layout.ui.Selected_start = OsV2{c, r}
-			}
-
-			coord := InitOsV4ab(layout.ui.Selected_start, OsV2{c, r})
-			coord.Size.X++
-			coord.Size.Y++
-
-			if len(layout.props.Prompt_grids) > 0 {
-				pg := &layout.props.Prompt_grids[len(layout.props.Prompt_grids)-1]
-				//if !InitOsV4(pg.Grid_x, pg.Grid_y, pg.Grid_w, pg.Grid_h).Cmp(coord) {
-				//layout.GetUis().RedrawComp()
-				//layout.drawComp(0)
-				//}
-				//update
-				pg.Grid_x = coord.Start.X
-				pg.Grid_y = coord.Start.Y
-				pg.Grid_w = coord.Size.X
-				pg.Grid_h = coord.Size.Y
-			}
-
-			if layout.IsTouchCtrlGrid_end() {
-
-				//right not, Caller position of Add<widget>(). For grid we need position of Build()
-				path := "sdk/" + layout.props.Name + ".go"
-				fileCode, err := os.ReadFile(path)
-				if err == nil {
-
-					build_pos, _, _, _, err := UiClients_findBuildFunction(path, string(fileCode), layout.props.Name)
-					if err == nil && build_pos >= 0 {
-						//rewrite Caller
-						layout.props.Caller_file = layout.props.Name + ".go"
-						layout.props.Caller_line = strings.Count(string(fileCode[:build_pos]), "\n") + 1
-
-						layout.ui.parent.CallPick(InitLayoutPick(layout.props.Caller_file, layout.props.Caller_line, coord, layout.props.LLMTip))
-						layout.ui.SetRefresh()
-
-						layout.ui.Selected_hash = 0
-						layout.ui.SelectGrid_active = false
-					}
+					in := LayoutInput{SetDropMove: true, DropSrc: src_i, DropDst: dst_i}
+					layout.ui.parent.CallInput(&dstDom.props, &in) //err ...
 				}
 			}
 		}
 	}
-}
-
-func UiClients_findBuildFunction(ghostPath string, code string, stName string) (int, int, int, int, error) {
-	node, err := parser.ParseFile(token.NewFileSet(), ghostPath, code, parser.ParseComments)
-	if err != nil {
-		return -1, -1, -1, -1, err
-	}
-
-	build_pos := -1
-	touch_pos := -1
-	draw_pos := -1
-	shortcut_pos := -1
-	ast.Inspect(node, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.FuncDecl:
-
-			tp := ""
-			if x.Recv != nil && len(x.Recv.List) > 0 {
-				tp = string(code[x.Recv.List[0].Type.Pos()-1 : x.Recv.List[0].Type.End()-1])
-			}
-
-			//function
-			if tp == "*"+stName {
-				if x.Name.Name == "Build" {
-					build_pos = int(x.Pos())
-				}
-				if x.Name.Name == "Touch" {
-					touch_pos = int(x.Pos())
-				}
-				if x.Name.Name == "Draw" {
-					draw_pos = int(x.Pos())
-				}
-				if x.Name.Name == "Shortcut" {
-					shortcut_pos = int(x.Pos())
-				}
-			}
-		}
-		return true
-	})
-
-	return build_pos, touch_pos, draw_pos, shortcut_pos, nil
 }
 
 func (dom *Layout3) Draw() {
@@ -942,6 +880,12 @@ func (dom *Layout3) Draw() {
 			layDia.drawBuffers() //add renderToTexture optimalization ...
 		}
 	}
+
+	//selection
+	if dom.ui.selection.IsActive() {
+		buff.AddCrop(dom.CropWithScroll())
+		dom.ui.selection.Draw(buff, dom.ui)
+	}
 }
 
 func (dom *Layout3) drawBuffers() {
@@ -953,12 +897,12 @@ func (dom *Layout3) drawBuffers() {
 	buff.AddCrop(dom.crop)
 
 	if dom.props.Back_cd.A > 0 {
-		r := dom.crop.AddSpace(dom.ui.CellWidth(dom.props.Back_margin))
+		r := dom.crop.Crop(dom.ui.CellWidth(dom.props.Back_margin))
 		buff.AddRect(r, dom.props.Back_cd, 0) //background
 	}
 
 	if dom.props.Border_cd.A > 0 {
-		r := dom.crop.AddSpace(dom.ui.CellWidth(dom.props.Back_margin))
+		r := dom.crop.Crop(dom.ui.CellWidth(dom.props.Back_margin))
 		buff.AddRect(r, dom.props.Border_cd, dom.ui.CellWidth(0.03)) //background
 	}
 
@@ -974,6 +918,7 @@ func (dom *Layout3) drawBuffers() {
 	}
 
 	dom.draw_grid()
+	dom.draw_prompts()
 	dom.draw_drag_and_drop()
 }
 
@@ -981,7 +926,7 @@ func (dom *Layout3) draw_grid() {
 	buff := dom.ui.GetWin().buff
 
 	//show grid
-	if dom.ui.ShowGrid || dom.GetUis().win.io.Keys.Ctrl /*&& !dom.ui.IsRootApp() && dom.IsDiv()*/ {
+	if dom.ui.selection.ShowGrid || dom.GetUis().win.io.Keys.Ctrl {
 		canvas := dom.canvas.Size
 		cd := dom.GetPalette().OnB
 		cd.A = 30
@@ -1021,60 +966,73 @@ func (dom *Layout3) draw_grid() {
 			buff.AddLine(start, end, cd, dom.ui.CellWidth(0.03))
 		}
 	}
+}
 
-	//if dom.ui.EditMode
-	{
-		buff.AddCrop(dom.crop)
+func (dom *Layout3) draw_prompts() {
+	buff := dom.ui.GetWin().buff
 
-		//prompt - component
-		if dom.props.Prompt_comp_cd.A > 0 {
-			//component
-			rc := dom._getRect()
-			rc = rc.Cut(0.1)
-			cd := dom.props.Prompt_comp_cd
+	buff.AddCrop(dom.crop)
 
-			buff.AddRect(dom.getCanvasPx(rc), cd, dom.ui.CellWidth(0.06))
-			buff.AddText("<h2>"+dom.props.Prompt_label, InitWinFontPropsDef(dom.Cell()), cd, dom.getCanvasPx(rc.Cut(0.1)), OsV2{0, 0}, 0, 1)
-		}
+	//prompt - component
+	if dom.prompt_comp_cd.A > 0 {
+		//component
+		rc := dom._getRect()
+		rc = rc.Cut(0.1)
+		cd := dom.prompt_comp_cd
 
-		//prompt - grids
-		for _, it := range dom.props.Prompt_grids {
-			//grid
-			cell := float64(dom.Cell())
+		buff.AddRect(dom.getCanvasPx(rc), cd, dom.ui.CellWidth(0.06))
+		buff.AddText("<h2>"+dom.prompt_label, InitWinFontPropsDef(dom.Cell()), cd, dom.getCanvasPx(rc.Cut(0.1)), OsV2{0, 0}, 0, 1)
+	}
 
-			start := OsV2{it.Grid_x, it.Grid_y}
-			end := OsV2{it.Grid_x + it.Grid_w, it.Grid_y + it.Grid_h}
-			sx := dom.cols.GetSumOutput(start.X)
-			ex := dom.cols.GetSumOutput(end.X)
-			sy := dom.rows.GetSumOutput(start.Y)
-			ey := dom.rows.GetSumOutput(end.Y)
+	//prompt - grids
+	for _, it := range dom.prompt_grids {
+		//grid
+		cell := float64(dom.Cell())
 
-			rc := dom._getRect()
-			rc.X += float64(sx) / cell
-			rc.Y += float64(sy) / cell
-			rc.W = float64(ex-sx) / cell
-			rc.H = float64(ey-sy) / cell
+		start := OsV2{it.Grid_x, it.Grid_y}
+		end := OsV2{it.Grid_x + it.Grid_w, it.Grid_y + it.Grid_h}
+		sx := dom.cols.GetSumOutput(start.X)
+		ex := dom.cols.GetSumOutput(end.X)
+		sy := dom.rows.GetSumOutput(start.Y)
+		ey := dom.rows.GetSumOutput(end.Y)
 
-			rc = rc.Cut(0.1)
-			cd := it.Cd
-			cd.A = 30
+		rc := dom._getRect()
+		rc.X += float64(sx) / cell
+		rc.Y += float64(sy) / cell
+		rc.W = float64(ex-sx) / cell
+		rc.H = float64(ey-sy) / cell
 
-			buff.AddRect(dom.getCanvasPx(rc), cd, 0)
-			buff.AddText("<h2>"+it.Label, InitWinFontPropsDef(dom.Cell()), it.Cd, dom.getCanvasPx(rc.Cut(0.1)), OsV2{0, 0}, 0, 1)
-		}
+		rc = rc.Cut(0.1)
+		cd := it.Cd
+		cd.A = 30
+
+		cq := dom.getCanvasPx(rc)
+		buff.AddRect(cq, cd, 0)
+
+		st := cq.Start
+		en := cq.End()
+		buff.AddLine(st, en, cd, dom.ui.CellWidth(0.06))
+		buff.AddLine(OsV2{en.X, st.Y}, OsV2{st.X, en.Y}, cd, dom.ui.CellWidth(0.06))
+
+		buff.AddText("<h2>"+it.Label, InitWinFontPropsDef(dom.Cell()), it.Cd, dom.getCanvasPx(rc.Cut(0.1)), OsV2{1, 1}, 0, 1)
 	}
 }
 
 func (dom *Layout3) draw_drag_and_drop() {
+	if !dom.CanTouch() {
+		return
+	}
+
 	buff := dom.ui.GetWin().buff
 
-	//drag & drop
+	drag := &dom.GetUis().drag
+
 	//activate
 	if dom.props.Drag_group != "" && dom.IsTouchActiveSubs() {
-		dom.GetUis().drag.Set(dom)
+		drag.Set(dom)
 	}
-	isDragged := dom.GetUis().drag.IsDraged(dom)
-	isDrop := dom.GetUis().drag.IsOverDrop(dom)
+	isDragged := drag.IsDraged(dom)
+	isDrop := drag.IsOverDrop(dom)
 	if isDragged || isDrop {
 		buff.AddCrop(dom.crop)
 
@@ -1084,7 +1042,7 @@ func (dom *Layout3) draw_drag_and_drop() {
 
 		//draw drag
 		if isDragged {
-			buff.AddRect(dom.crop.AddSpace(borderWidth), cd, 0)
+			buff.AddRect(dom.crop.Crop(borderWidth), cd, 0)
 		}
 
 		//draw drop
@@ -1124,21 +1082,9 @@ func (dom *Layout3) draw_drag_and_drop() {
 				}
 			}
 
-			/*q := dom.crop
-			if dom.Drop_v {
-				q = q.AddSpaceY(dom.crop.Size.Y / 3)
-			}
-			if dom.Drop_h {
-				q = q.AddSpaceX(dom.crop.Size.X / 3)
-			}*/
-
-			/*if !dom.Drop_v && !dom.Drop_h {
-				pos = 0
-			} else if q.Inside(touchPos) {
-				pos = 0
-			}*/
-
-			//...
+			//update
+			drag.pos = pos
+			drag.dstHash = dom.props.Hash
 
 			//paint
 			wx := float64(borderWidth) / float64(dom.canvas.Size.X)
@@ -1154,23 +1100,6 @@ func (dom *Layout3) draw_drag_and_drop() {
 				buff.AddRect(dom.crop.Cut(0, 0, wx, 1), cd, 0)
 			case SA_Drop_H_RIGHT:
 				buff.AddRect(dom.crop.Cut(1-wx, 0, wx, 1), cd, 0)
-			}
-
-			//move child item
-			if dom.CanTouch() && dom.ui.GetWin().io.Touch.End {
-				//srcDom
-				/*srcDom := dom.GetUis().drag.dom
-				src_i := srcDom.props.Drag_index
-				dst_i := dom.props.Drag_index
-
-				if dom.Moved != nil {
-					dst_i = OsMoveElementIndex(src_i, dst_i, pos)
-					dom.Moved(src_i, dst_i)
-				}*/
-
-				dom.ui.SetRefresh()
-				//maybe in update()? ...
-				//...
 			}
 		}
 	}
@@ -1279,14 +1208,10 @@ func (dom *Layout3) IsTouchActiveSubs() bool {
 	return false
 }
 
-func (dom *Layout3) IsTouchAnyActive() bool {
-	return dom.GetUis().touch.IsAnyActive()
-}
-
 func (dom *Layout3) IsTouchInside() bool {
 	inside := dom.IsOver()
 
-	if !dom.IsTouchActive() && dom.CanTouch() && dom.GetUis().touch.IsAnyActive() { // when click and move, other Buttons, etc. are disabled
+	if !dom.IsTouchActive() && dom.CanTouch() && dom.GetUis().touch.IsActive() { // when click and move, other Buttons, etc. are disabled
 		inside = false
 	}
 
@@ -1324,7 +1249,7 @@ func (dom *Layout3) IsClicked(enable bool) (int, int, bool, bool, bool) {
 }
 
 func (dom *Layout3) CanTouch() bool {
-	return dom.touch
+	return dom.touch && dom.touchDia
 }
 
 func (dom *Layout3) touchScroll() {

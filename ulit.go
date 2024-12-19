@@ -462,7 +462,7 @@ func (v OsV4) GetPos(x, y float64) OsV2 {
 	return OsV2{v.Start.X + int(float64(v.Size.X)*x), v.Start.Y + int(float64(v.Size.Y)*y)}
 }
 
-func (q OsV4) AddSpaceX(space int) OsV4 {
+func (q OsV4) CropX(space int) OsV4 {
 	space *= 2
 	if space > q.Size.X {
 		space = q.Size.X
@@ -470,7 +470,7 @@ func (q OsV4) AddSpaceX(space int) OsV4 {
 	return InitOsV4(q.Start.X+space/2, q.Start.Y, q.Size.X-space, q.Size.Y)
 }
 
-func (q OsV4) AddSpaceY(space int) OsV4 {
+func (q OsV4) CropY(space int) OsV4 {
 	space *= 2
 	if space > q.Size.Y {
 		space = q.Size.Y
@@ -478,9 +478,9 @@ func (q OsV4) AddSpaceY(space int) OsV4 {
 	return InitOsV4(q.Start.X, q.Start.Y+space/2, q.Size.X, q.Size.Y-space)
 }
 
-func (q OsV4) AddSpace(space int) OsV4 {
-	r := q.AddSpaceX(space)
-	return r.AddSpaceY(space)
+func (q OsV4) Crop(space int) OsV4 {
+	r := q.CropX(space)
+	return r.CropY(space)
 }
 
 func (q OsV4) Inner(top, bottom, left, right int) OsV4 {
@@ -635,10 +635,9 @@ func (v OsV4) Cut(x, y, w, h float64) OsV4 {
 }
 
 func (v OsV4) CutEx(x, y, w, h float64, space, spaceX, spaceY int) OsV4 {
-
-	v = v.AddSpaceX(spaceX)
-	v = v.AddSpaceY(spaceY)
-	v = v.AddSpace(space)
+	v = v.CropX(spaceX)
+	v = v.CropY(spaceY)
+	v = v.Crop(space)
 	v = v.Cut(x, y, w, h)
 	return v
 }

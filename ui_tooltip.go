@@ -83,7 +83,7 @@ func (p *UiTooltip) draw() {
 	ui.GetWin().buff.depth = 900
 	//background
 	{
-		rc := p.coord.AddSpace(-ui.CellWidth(0.1))
+		rc := p.coord.Crop(-ui.CellWidth(0.1))
 		ui.GetWin().buff.AddCrop(rc)
 		pl := ui.GetPalette()
 		ui.GetWin().buff.AddRect(rc, pl.B, 0)
@@ -125,7 +125,7 @@ func (p *UiTooltip) touch() bool {
 			var orig OsV4
 			orig.Start = ui.GetWin().io.Touch.Pos
 			orig.Size = OsV2{ui.Cell() / 2, ui.Cell() / 2}
-			orig = orig.AddSpace(-ui.Cell() / 5)
+			orig = orig.Crop(-ui.Cell() / 5)
 
 			p.coord = OsV4_relativeSurround(orig, final, ui.GetWin().GetScreenCoord(), p.contentShow.priorUp)
 		}

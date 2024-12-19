@@ -189,12 +189,6 @@ func (rs *UiClients) CallInput(props *Layout, in *LayoutInput) error {
 	return nil
 }
 
-func (rs *UiClients) CallPick(pick LayoutPick) error {
-	//...
-
-	return nil
-}
-
 func (rs *UiClients) CallGetEnv() error {
 	rs.client.WriteInt(NMSG_GET_ENV)
 

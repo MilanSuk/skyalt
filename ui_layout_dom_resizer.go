@@ -36,7 +36,7 @@ func (dom *Layout3) _renderResizeDraw(i int, cd color.RGBA, vertical bool) {
 		layoutScreen.Size.Y = rspace
 	}
 
-	dom.ui.GetWin().buff.AddRect(layoutScreen.AddSpace(4), cd, 0)
+	dom.ui.GetWin().buff.AddRect(layoutScreen.Crop(4), cd, 0)
 }
 
 func (dom *Layout3) _setResizer(i int, value float64, isCol bool) bool {
@@ -118,7 +118,7 @@ func (dom *Layout3) updateResizer() {
 			}
 		}
 
-		if dom.GetUis().touch.IsAnyActive() {
+		if dom.GetUis().touch.IsActive() {
 			dom.touchResizeHighlightCol = false
 			dom.touchResizeHighlightRow = false
 			//active = true

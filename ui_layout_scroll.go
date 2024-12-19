@@ -152,7 +152,7 @@ func (scroll *UiLayoutScroll) _GetSlideCd(ui *Ui) color.RGBA {
 func (scroll *UiLayoutScroll) DrawV(view OsV4, showBackground bool, ui *Ui) {
 	slider := scroll._UpdateV(view, ui)
 
-	slider = slider.AddSpace(OsMax(1, slider.Size.X/5))
+	slider = slider.Crop(OsMax(1, slider.Size.X/5))
 
 	// make scroll visible if there is a lot of records(items)
 	if slider.Size.Y == 0 {
@@ -173,7 +173,7 @@ func (scroll *UiLayoutScroll) DrawV(view OsV4, showBackground bool, ui *Ui) {
 func (scroll *UiLayoutScroll) DrawH(view OsV4, showBackground bool, ui *Ui) {
 	slider := scroll._UpdateH(view.Start, ui)
 
-	slider = slider.AddSpace(OsMax(1, slider.Size.Y/5))
+	slider = slider.Crop(OsMax(1, slider.Size.Y/5))
 
 	// make scroll visible if there is a lot of records(items)
 	if slider.Size.Y == 0 {
@@ -236,7 +236,7 @@ func (scroll *UiLayoutScroll) TouchV(dom *Layout3) bool {
 		}
 	}
 
-	if !dom.GetUis().edit.IsActive() && !dom.GetUis().touch.IsAnyActive() && !ui.GetWin().io.Keys.Shift {
+	if !dom.GetUis().edit.IsActive() && !dom.GetUis().touch.IsActive() && !ui.GetWin().io.Keys.Shift {
 		if ui.GetWin().io.Keys.ArrowU && canUp {
 			if scroll.SetWheel(scroll.GetWheel() - ui.Cell()) {
 				ui.GetWin().io.Keys.ArrowU = false
@@ -322,7 +322,7 @@ func (scroll *UiLayoutScroll) TouchH(needShiftWheel bool, dom *Layout3) bool {
 		}
 	}
 
-	if !dom.GetUis().edit.IsActive() && !dom.GetUis().touch.IsAnyActive() && (!needShiftWheel || ui.GetWin().io.Keys.Shift) {
+	if !dom.GetUis().edit.IsActive() && !dom.GetUis().touch.IsActive() && (!needShiftWheel || ui.GetWin().io.Keys.Shift) {
 		if ui.GetWin().io.Keys.ArrowL && canLeft {
 			if scroll.SetWheel(scroll.GetWheel() - ui.Cell()) {
 				ui.GetWin().io.Keys.ArrowL = false

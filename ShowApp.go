@@ -13,6 +13,7 @@ func (st *ShowApp) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
 	layout.SetRow(0, 1, 100)
 
-	layout.AddEnv(0, 0, 1, 1, NewFile_Env())
+	layout.AddCounter(0, 0, 1, 1, NewFile_Counter())
+	//layout.AddEnv(0, 0, 1, 1, NewFile_Env())
 	//layout.AddWhispercpp_downloader(0, 0, 1, 1)
 }

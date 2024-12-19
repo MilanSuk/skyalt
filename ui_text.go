@@ -32,7 +32,7 @@ func (ui *Ui) _Text_draw(dom *Layout3, coord OsV4,
 
 	borderCoord := coord
 	if editable {
-		coord = coord.AddSpace(ui.CellWidth(0.1))
+		coord = coord.Crop(ui.CellWidth(0.1))
 	}
 
 	edit := &ui.parent.edit

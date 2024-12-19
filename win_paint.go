@@ -92,6 +92,9 @@ func (b *WinPaintBuff) AddLine(start OsV2, end OsV2, cd color.RGBA, thick int) {
 		b.win.DrawLine(start, end, b.depth, thick, cd)
 	}
 }
+func (b *WinPaintBuff) AddLines(points []OsV2, cd color.RGBA, thick int, renderEndings bool) {
+	b.win.DrawLines(points, b.depth, thick, cd, renderEndings)
+}
 
 func (buf *WinPaintBuff) AddBezier(a OsV2, b OsV2, c OsV2, d OsV2, cd color.RGBA, thick int, dash_len float32, move float32) {
 	buf.win.DrawBezier(a, b, c, d, buf.depth, thick, cd, dash_len, move)

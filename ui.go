@@ -23,7 +23,7 @@ import (
 	"os"
 )
 
-type Ui struct {
+type Ui struct { //put into UiClients(and rename it) ........
 	parent *UiClients
 
 	winRect OsV4
@@ -34,12 +34,7 @@ type Ui struct {
 
 	tooltip UiTooltip
 
-	SelectComp_active bool
-	SelectGrid_active bool
-	Selected_start    OsV2
-	Selected_hash     uint64
-
-	ShowGrid bool
+	selection UiSelection
 
 	refresh_next_time float64
 	relayout          bool
@@ -391,8 +386,8 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 		case "SetClipboardText":
 			ui.parent.win.SetClipboardText(cmd.Param1)
 
-		case "Refresh":
-			ui.SetRefresh()
+		//case "Refresh":
+		//	ui.SetRefresh()
 
 		case "Compile":
 			//ui.lastRecompileTicks = 0 //reset, so next Maintenance() will recompile ...
@@ -409,6 +404,10 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 		case "PasteText":
 			edit.KeyPaste = true
 
+		case "Picks":
+			var picks []LayoutPick
+			OsUnmarshal([]byte(cmd.Param1), &picks)
+			ui.dom.projectPicks(picks)
 		}
 	}
 }
@@ -466,11 +465,7 @@ func (ui *Ui) Tick() {
 
 	ui.dom.textComp()
 
-	if ui.GetWin().io.Touch.End {
-		ui.Selected_hash = 0
-		ui.SelectGrid_active = false
-		ui.SelectComp_active = false
-	}
+	ui.selection.UpdateComp(ui)
 }
 
 func (ui *Ui) Draw() {

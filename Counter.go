@@ -6,6 +6,8 @@ import (
 
 type Counter struct {
 	Count int
+
+	Items []string
 }
 
 func (layout *Layout) AddCounter(x, y, w, h int, props *Counter) *Counter {
@@ -31,7 +33,7 @@ func (st *Counter) Build(layout *Layout) {
 
 	div := layout.AddLayout(0, 0, 1, 1)
 	//div.SetColumn(0, 1, 100)
-	div.SetColumnResizable(0, 1, 3, 2)
+	div.SetColumnResizable(0, 1, 15, 2)
 	div.SetColumn(1, 1, 100)
 	div.SetColumn(2, 1, 100)
 	div.SetRow(0, 1, 100)
@@ -64,6 +66,21 @@ func (st *Counter) Build(layout *Layout) {
 	sli := layout.AddSlider(0, 1, 1, 1, &sliVal, -10, 10, 1)
 	sli.changed = func() {
 		st.Count = int(sliVal)
+	}
+
+	if len(st.Items) == 0 {
+		st.Items = []string{"a", "b", "c", "d"}
+	}
+	for i, it := range st.Items {
+		_, layBt := layout.AddButton2(0, 2+i, 1, 1, NewButtonMenu(it, "", 0))
+
+		layBt.Drag_group = "item"
+		layBt.Drop_group = "item"
+		layBt.Drag_index = i
+		layBt.Drop_v = true
+		layBt.dropMove = func(src int, dst int) {
+			OsMoveElement(&st.Items, &st.Items, src, dst)
+		}
 	}
 }
 
