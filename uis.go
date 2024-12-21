@@ -112,6 +112,8 @@ type UiClients struct {
 
 	server *NetServer
 	client *NerServerClient
+
+	compile *Compile
 }
 
 func NewUiClients(win *Win, port int) (*UiClients, error) {
@@ -125,23 +127,32 @@ func NewUiClients(win *Win, port int) (*UiClients, error) {
 
 	rs.server = NewNetServer(port)
 
+	rs.compile = NewCompile(rs)
+
 	return rs, nil
 }
 func (rs *UiClients) Destroy() {
-	rs.Save()
+	rs.ExitWidgetsProcess()
+	rs.server.Destroy()
 
+	rs.compile.Destroy()
+
+	rs.ui.Destroy()
+}
+
+func (rs *UiClients) ExitWidgetsProcess() {
+	rs.Save()
 	if rs.client != nil {
 		rs.client.WriteInt(NMSG_EXIT)
 	}
-	rs.server.Destroy()
-
-	rs.ui.Destroy()
 }
 
 func (rs *UiClients) Save() {
 	rs.ui.Save() //layouts
 
-	rs.client.WriteInt(NMSG_SAVE) //widgets
+	if rs.client != nil {
+		rs.client.WriteInt(NMSG_SAVE) //widgets
+	}
 }
 
 func (rs *UiClients) NeedRedraw() bool {
@@ -198,6 +209,13 @@ func (rs *UiClients) CallGetEnv() error {
 	}
 	OsUnmarshal(data, &rs.env)
 
+	if !rs.env.Check() {
+		err = rs.CallSetEnv()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 func (rs *UiClients) CallSetEnv() error {
@@ -215,16 +233,10 @@ func (rs *UiClients) CallSetEnv() error {
 
 func (rs *UiClients) _check_env_init() error {
 	if !rs.env_initialized {
-		//check ini
-		err := rs.CallGetEnv()
+
+		err := rs.CallGetEnv() //check inside
 		if err != nil {
 			return err
-		}
-		if !rs.env.Check() {
-			err = rs.CallSetEnv()
-			if err != nil {
-				return err
-			}
 		}
 
 		rs.env_initialized = true
@@ -234,7 +246,18 @@ func (rs *UiClients) _check_env_init() error {
 
 func (rs *UiClients) Tick() {
 
-	err := rs._check_env_init()
+	err := rs.compile.Tick()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if !rs.compile.running.Load() {
+		//show it's not running ...
+		return
+	}
+
+	err = rs._check_env_init()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -331,19 +354,4 @@ func (rs *UiClients) maintenance() {
 func (rs *UiClients) ResetIO() {
 	rs.touch.Reset()
 	rs.drag.Reset()
-}
-
-func (rs *UiClients) RunSDK() {
-
-	go main_sdk(rs.server.port)
-
-	var err error
-	rs.client, err = rs.server.Accept()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if rs.client == nil {
-		log.Fatal(fmt.Errorf("client == nil"))
-	}
 }

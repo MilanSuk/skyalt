@@ -103,6 +103,7 @@ func (st *Whispercpp_stt) Run(job *Job) {
 	//convert stt.Input into buff(mp3)
 	var buff []byte
 	{
+		os.MkdirAll("temp", os.ModePerm)
 		path := "temp/mic.wav"
 
 		//encode & save

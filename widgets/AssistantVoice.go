@@ -1,8 +1,5 @@
 package main
 
-import (
-	"time"
-)
 
 type AssistantVoice struct {
 	Shortcut          byte
@@ -29,9 +26,6 @@ func (st *AssistantVoice) Build(layout *Layout) {
 	Mic.Shortcut_key = st.Shortcut
 	Mic.Tooltip = "Start/Stop AI Assistant audio recording"
 	Mic.Background = st.Button_background
-	Mic.start = func() {
-		st.VoiceStart_sec = float64(time.Now().UnixMilli()) / 1000
-	}
 	if Mic.IsRunning() {
 		layout.SetColumn(0, 1, 1)
 		layout.SetColumn(1, 2, 2)
@@ -58,7 +52,7 @@ func (st *AssistantVoice) Build(layout *Layout) {
 	stt.done = func() {
 		SttDia.Close()
 
-		NewFile_Assistant().SetVoice([]byte(stt.Out), st.VoiceStart_sec)
+		NewFile_Assistant().SetVoice([]byte(stt.Out), Mic.startUnixTime)
 		if st.AutoSend > 0 {
 			NewFile_Assistant().Send(ChatDia.Layout)
 		}

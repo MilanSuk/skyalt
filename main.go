@@ -49,8 +49,6 @@ func main() {
 	}
 	defer clients.Destroy()
 
-	clients.RunSDK()
-
 	//Main loop
 	pl := clients.GetPalette()
 	particles_cd := Color2_Aprox(pl.P, pl.B, 0.5)

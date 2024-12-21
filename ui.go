@@ -23,6 +23,18 @@ import (
 	"os"
 )
 
+const (
+	NMSG_EXIT = 0
+	NMSG_SAVE = 1
+
+	NMSG_GET_ENV = 10
+	NMSG_SET_ENV = 11
+
+	NMSG_REFRESH = 20
+
+	NMSG_INPUT = 30
+)
+
 type Ui struct { //put into UiClients(and rename it) ........
 	parent *UiClients
 
@@ -390,7 +402,7 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 		//	ui.SetRefresh()
 
 		case "Compile":
-			//ui.lastRecompileTicks = 0 //reset, so next Maintenance() will recompile ...
+			ui.parent.compile.recompile = true
 
 		case "CopyText":
 			edit.KeyCopy = true
@@ -435,8 +447,11 @@ func (ui *Ui) Tick() {
 		}
 
 		if sh != 0 {
-			in := LayoutInput{Shortcut_key: sh}
-			ui.parent.CallInput(&ui.dom.props, &in)
+			lay := ui.dom.FindShortcut(sh)
+			if lay != nil {
+				in := LayoutInput{Shortcut_key: sh}
+				ui.parent.CallInput(&lay.props, &in)
+			}
 		}
 	}
 

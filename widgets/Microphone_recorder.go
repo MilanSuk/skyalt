@@ -18,6 +18,8 @@ type Microphone_recorder struct {
 	Shortcut_key byte
 	Background   float64
 
+	startUnixTime float64
+
 	cancel bool
 	start  func()
 	Out    audio.IntBuffer
@@ -100,6 +102,7 @@ func (st *Microphone_recorder) Run(job *Job) {
 		return
 	}
 
+	st.startUnixTime = float64(time.Now().UnixMilli()) / 1000
 	if st.start != nil {
 		st.start()
 	}

@@ -79,7 +79,7 @@ func (st *Counter) Build(layout *Layout) {
 		layBt.Drag_index = i
 		layBt.Drop_v = true
 		layBt.dropMove = func(src int, dst int) {
-			OsMoveElement(&st.Items, &st.Items, src, dst)
+			Layout_MoveElement(&st.Items, &st.Items, src, dst)
 		}
 	}
 }

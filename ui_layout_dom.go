@@ -17,6 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
 	"image/color"
 	"math"
@@ -40,15 +42,6 @@ func InitLayoutPick(file string, line int, grid OsV4, tip string) LayoutPick {
 		Time_sec: OsTime(),
 	}
 }
-func (a *LayoutPick) Cmp(b *LayoutPick) bool {
-	return a.File == b.File &&
-		a.Line == b.Line &&
-		a.Grid_x == b.Grid_x &&
-		a.Grid_y == b.Grid_y &&
-		a.Grid_w == b.Grid_w &&
-		a.Grid_h == b.Grid_h
-}
-
 func (pick *LayoutPick) GetGrid() OsV4 {
 	return InitOsV4(pick.Grid_x, pick.Grid_y, pick.Grid_w, pick.Grid_h)
 }
@@ -58,6 +51,191 @@ func LayoutPick_getMark(i int) string {
 	} else {
 		return fmt.Sprintf("{%c}", '0'+(i-25))
 	}
+}
+
+type Layout3PickGrid struct {
+	Cd                             color.RGBA
+	Grid_x, Grid_y, Grid_w, Grid_h int
+	Label                          string
+}
+
+type Rect struct {
+	X, Y, W, H float64
+}
+
+func (r Rect) check() Rect {
+	if r.W < 0 {
+		r.W = 0
+	}
+	if r.H < 0 {
+		r.H = 0
+	}
+	return r
+}
+
+func (r Rect) Cut(v float64) Rect {
+	r.X += v
+	r.Y += v
+	r.W -= 2 * v
+	r.H -= 2 * v
+	return r.check()
+}
+
+type LayoutCmd struct {
+	Hash   uint64
+	Cmd    string
+	Param1 string
+	Param2 string
+}
+type LayoutInput struct {
+	Rect Rect
+
+	IsStart  bool
+	IsActive bool
+	IsEnd    bool
+
+	IsInside bool //rename IsOver ...
+	IsUse    bool //IsActive? ...
+	IsUp     bool //IsEnd? ...
+
+	X, Y      float64
+	Wheel     int
+	NumClicks int
+	AltClick  bool
+
+	SetEdit   bool
+	EditValue string
+	EditEnter bool
+
+	SetDropMove      bool
+	DropSrc, DropDst int
+
+	Drop_path string
+
+	Shortcut_key byte
+
+	Pick LayoutPick
+}
+type LayoutCR struct {
+	Pos int     `json:",omitempty"`
+	Min float64 `json:",omitempty"`
+	Max float64 `json:",omitempty"`
+
+	Resize_value float64 `json:",omitempty"`
+
+	SetFromChild bool `json:",omitempty"`
+
+	Caller_file string `json:",omitempty"`
+	Caller_line int    `json:",omitempty"`
+}
+type LayoutDialog struct {
+	Layout *Layout
+}
+type LayoutScroll struct {
+	Show   bool
+	Narrow bool
+}
+
+type LayoutDrawPrim struct {
+	Type uint8
+
+	Rect           Rect
+	Sx, Sy, Ex, Ey float64
+
+	Cd, Cd_over, Cd_down color.RGBA
+
+	Border float64
+
+	Text  string
+	Text2 string
+
+	Boolean bool
+
+	Align_h uint8
+	Align_v uint8
+
+	Text_formating    bool
+	Text_multiline    bool
+	Text_linewrapping bool
+	Text_selection    bool
+	Text_editable     bool
+}
+type LayoutPaint struct {
+	buffer []LayoutDrawPrim
+}
+
+type Layout struct {
+	X, Y, W, H int
+	Name       string
+
+	dialogs []*LayoutDialog
+	Childs  []*Layout
+	Hash    uint64
+
+	App bool //touch crop
+
+	Enable bool
+	LLMTip string
+
+	Shortcut_key byte
+
+	Back_cd     color.RGBA
+	Back_margin float64
+	Border_cd   color.RGBA
+
+	Drag_group              string
+	Drop_group              string
+	Drag_index              int
+	Drop_h, Drop_v, Drop_in bool
+
+	dropMove func(src, dst int)
+
+	dropFile func(path string)
+
+	UserCols []LayoutCR
+	UserRows []LayoutCR
+
+	ScrollV LayoutScroll
+	ScrollH LayoutScroll
+
+	Caller_file string `json:",omitempty"`
+	Caller_line int    `json:",omitempty"`
+
+	fnBuild      func(*Layout)
+	fnDraw       func(Rect, *Layout) LayoutPaint
+	fnInput      func(LayoutInput, *Layout)
+	fnSetEditbox func(string, bool)
+}
+
+func (layout *Layout) _getName() string {
+	return fmt.Sprintf("%s(%d,%d,%d,%d)", layout.Name, layout.X, layout.Y, layout.W, layout.H)
+}
+func (layout *Layout) _computeHash(parent *Layout) uint64 {
+	h := sha256.New()
+
+	//parent
+	if parent != nil {
+		var pt [8]byte
+		binary.LittleEndian.PutUint64(pt[:], parent.Hash)
+		h.Write(pt[:])
+	}
+
+	//this
+	h.Write([]byte(layout._getName()))
+
+	return binary.LittleEndian.Uint64(h.Sum(nil))
+}
+
+func _newLayout(x, y, w, h int, name string, parent *Layout) *Layout {
+	layout := &Layout{X: x, Y: y, W: w, H: h, Name: name, Enable: true}
+	layout.Hash = layout._computeHash(parent)
+	return layout
+}
+
+func _newLayoutRoot() *Layout {
+	root := _newLayout(0, 0, 0, 0, "Root", nil)
+	root.App = true
+	return root
 }
 
 type Layout3 struct {
@@ -92,7 +270,7 @@ type Layout3 struct {
 
 	prompt_label   string
 	prompt_comp_cd color.RGBA //highlight with rect
-	prompt_grids   []LayoutPickGrid
+	prompt_grids   []Layout3PickGrid
 }
 
 func NewUiLayoutDOM(props Layout, parent *Layout3, ui *Ui) *Layout3 {
@@ -138,7 +316,7 @@ func (dom *Layout3) projectPicks(picks []LayoutPick) {
 				mark.prompt_comp_cd = pk.Cd
 			} else {
 				grid := pk.GetGrid()
-				mark.prompt_grids = append(mark.prompt_grids, LayoutPickGrid{
+				mark.prompt_grids = append(mark.prompt_grids, Layout3PickGrid{
 					Cd:     pk.Cd,
 					Grid_x: grid.Start.X, Grid_y: grid.Start.Y, Grid_w: grid.Size.X, Grid_h: grid.Size.Y,
 					Label: label})
@@ -322,6 +500,28 @@ func (dom *Layout3) FindHash(hash uint64) *Layout3 {
 
 	for _, it := range dom.childs {
 		d := it.FindHash(hash)
+		if d != nil {
+			return d
+		}
+	}
+
+	return nil
+}
+
+func (dom *Layout3) FindShortcut(key byte) *Layout3 {
+	if dom.CanTouch() && dom.props.Shortcut_key == key {
+		return dom
+	}
+
+	if dom.dialog != nil {
+		d := dom.dialog.FindShortcut(key)
+		if d != nil {
+			return d
+		}
+	}
+
+	for _, it := range dom.childs {
+		d := it.FindShortcut(key)
 		if d != nil {
 			return d
 		}

@@ -109,6 +109,7 @@ func (st *OpenAI_stt) Run(job *Job) {
 	//convert stt.Input into buff(mp3)
 	var buff []byte
 	{
+		os.MkdirAll("temp", os.ModePerm)
 		path := "temp/mic.wav"
 		compress_path := "temp/mic.mp3"
 

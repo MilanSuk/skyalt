@@ -19,6 +19,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"sync"
 )
 
@@ -82,48 +84,16 @@ func _draw(layout *Layout, rects map[uint64]Rect, out_buffs map[uint64][]LayoutD
 	}
 }
 
-func _save() {
-	if g_Root != nil {
-		_write_file("Root-Root", g_Root)
-		g_Root = nil
+// func main_sdk(port int) {
+func main() {
+	if len(os.Args) < 2 {
+		log.Fatal("missing 'port' argument: ", os.Args)
 	}
-	if g_Env != nil {
-		_write_file("Env-Env", g_Env)
-		g_Env = nil
-	}
-	if g_Logs != nil {
-		_write_file("Logs-Logs", g_Logs)
-		g_Logs = nil
-	}
-	if g_Counter != nil {
-		_write_file("Counter-Counter", g_Counter)
-		g_Counter = nil
-	}
-	if g_Microphone != nil {
-		_write_file("Microphone-Microphone", g_Microphone)
-		g_Microphone = nil
-	}
-	if g_OpenAI != nil {
-		_write_file("OpenAI-OpenAI", g_OpenAI)
-		g_OpenAI = nil
-	}
-	if g_Xai != nil {
-		_write_file("Xai-Xai", g_Xai)
-		g_Xai = nil
-	}
-	if g_Whispercpp != nil {
-		_write_file("Whispercpp-Whispercpp", g_Whispercpp)
-		g_Whispercpp = nil
-	}
-	if g_Assistant != nil {
-		_write_file("Assistant-Assistant", g_Assistant)
-		g_Assistant = nil
+	port, err := strconv.Atoi(os.Args[1])
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	//...
-}
-
-func main_sdk(port int) {
 	client, client_err := NewNetClient("localhost", port)
 	if client_err != nil {
 		log.Fatal(client_err)
@@ -140,7 +110,8 @@ func main_sdk(port int) {
 		case NMSG_EXIT:
 			return
 		case NMSG_SAVE:
-			_save()
+			os.Mkdir("data", os.ModePerm)
+			_skyalt_save()
 
 		case NMSG_GET_ENV:
 			client.WriteArray(OsMarshal(*NewFile_Env()))
@@ -232,8 +203,7 @@ func main_sdk(port int) {
 			}
 
 			if in.Shortcut_key != 0 {
-				inLayout := layout._findShortcut(in.Shortcut_key)
-				if inLayout != nil {
+				if inLayout.fnInput != nil {
 					inLayout.fnInput(in, inLayout)
 				}
 

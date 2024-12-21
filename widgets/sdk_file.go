@@ -23,25 +23,34 @@ import (
 )
 
 func _read_file(name string, st any) {
-	js, err := os.ReadFile("data/" + name + ".json")
+	path := "data/" + name + ".json"
+
+	js, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Println("_read_file(): ", err)
+		fmt.Println("warning: ReadFile(): ", err)
 		return
-	}
-	err = json.Unmarshal(js, st)
-	if err != nil {
-		fmt.Println("_read_file(): ", err)
-		return
-	}
-}
-func _write_file(name string, st any) {
-	js, err := json.MarshalIndent(st, "", "")
-	if err != nil {
-		fmt.Println("_write_file(): ", err)
 	}
 
-	err = os.WriteFile("data/"+name+".json", js, 0644)
+	err = json.Unmarshal(js, st)
 	if err != nil {
-		fmt.Println("_write_file(): ", err)
+		fmt.Println("warning: Unmarshal(): ", err)
+		return
 	}
+
+	fmt.Println("File open:", path)
+}
+func _write_file(name string, st any) {
+	path := "data/" + name + ".json"
+
+	js, err := json.MarshalIndent(st, "", "")
+	if err != nil {
+		fmt.Println("warning: MarshalIndent(): ", err)
+	}
+
+	err = os.WriteFile(path, js, 0644)
+	if err != nil {
+		fmt.Println("warning: WriteFile(): ", err)
+	}
+
+	fmt.Println("File saved:", path)
 }

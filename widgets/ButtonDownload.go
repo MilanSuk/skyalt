@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"time"
@@ -45,7 +46,7 @@ func (st *ButtonDownload) Build(layout *Layout) {
 			job.Stop()
 		}
 
-	} else if ButtonDownload_FileExists(st.GetTempPath()) {
+	} else if _ButtonDownload_FileExists(st.GetTempPath()) {
 		//downloading paused - no net_service & <path>.temp exist
 		layout.SetColumn(0, 1, 100)
 		layout.SetColumn(1, 2, 2)
@@ -61,7 +62,7 @@ func (st *ButtonDownload) Build(layout *Layout) {
 		deleteBt.confirmed = func() {
 			os.Remove(st.GetTempPath())
 		}
-	} else if ButtonDownload_FileExists(st.Path) {
+	} else if _ButtonDownload_FileExists(st.Path) {
 		//delete - file fully downloaded
 		layout.SetColumn(0, 1, 100)
 		bt := layout.AddButtonConfirm(0, 0, 1, 1, "Delete", "Are you sure?")
@@ -97,14 +98,6 @@ func (st *ButtonDownload) Stop() {
 	}
 }
 
-func ButtonDownload_FileExists(fileName string) bool {
-	info, err := os.Stat(fileName)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
-
 var g_SAServiceNet_flagTimeout = flag.Duration("timeout", 30*time.Minute, "HTTP timeout")
 
 func (st *ButtonDownload) Run(job *Job) {
@@ -113,7 +106,7 @@ func (st *ButtonDownload) Run(job *Job) {
 
 	//prepare temp file
 	flag := os.O_CREATE | os.O_WRONLY
-	if OsFileExists(temp_path) {
+	if _ButtonDownload_FileExists(temp_path) {
 		flag = os.O_APPEND | os.O_WRONLY
 	}
 	var err error
@@ -212,7 +205,7 @@ func (st *ButtonDownload) Run(job *Job) {
 	}
 
 	if file != nil && recv_bytes == final_bytes {
-		OsFileRename(temp_path, st.Path) //<name>.temp -> <name>
+		os.Rename(temp_path, st.Path) //<name>.temp -> <name>
 	}
 
 	if recv_bytes != final_bytes {
@@ -248,11 +241,11 @@ func (st *ButtonDownload) _getProgressStr(recv_bytes, final_bytes int64) string 
 	predict := now.Add(time.Duration(remain_sec) * time.Second)
 	diff := predict.Sub(now)
 
-	return fmt.Sprintf("%.1f%%, %s, %s/s %v", st._getProgress(recv_bytes, final_bytes)*100, OsFormatBytes2(int(recv_bytes), int(final_bytes)), OsFormatBytes(int(speed)), diff)
+	return fmt.Sprintf("%.1f%%, %s, %s/s %v", st._getProgress(recv_bytes, final_bytes)*100, _ButtonDownload_FormatBytes2(int(recv_bytes), int(final_bytes)), _ButtonDownload_FormatBytes(int(speed)), diff)
 }
 
 func (st *ButtonDownload) _getAvgRecvBytesPerSec() float64 {
-	act_time := OsTime()
+	act_time := float64(time.Now().UnixMilli()) / 1000
 
 	old_time := st.stat_time
 	bytes := st.stat_recv
@@ -264,4 +257,55 @@ func (st *ButtonDownload) _getAvgRecvBytesPerSec() float64 {
 	}
 
 	return float64(bytes) / (act_time - old_time)
+}
+
+func _ButtonDownload_FileExists(fileName string) bool {
+	info, err := os.Stat(fileName)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
+func _ButtonDownload_FormatBytes(bytes int) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div := int64(unit)
+	exp := 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+func _ButtonDownload_FormatBytes2(bytesA, bytesB int) string {
+	units := []string{"B", "KB", "MB", "GB", "TB", "PB", "EB"}
+	const unit = 1024
+
+	getUnit := func(bytes int) int {
+		exp := 0
+		for bytes >= unit && exp < len(units)-1 {
+			bytes /= unit
+			exp++
+		}
+		return exp
+	}
+
+	unitA, unitB := getUnit(bytesA), getUnit(bytesB)
+	lowerUnit := unitA
+	if unitB < unitA {
+		lowerUnit = unitB
+	}
+
+	divider := math.Pow(float64(unit), float64(lowerUnit))
+	valueA := float64(bytesA) / divider
+	valueB := float64(bytesB) / divider
+
+	if lowerUnit == 0 {
+		return fmt.Sprintf("%.0f/%.0f %s", valueA, valueB, units[lowerUnit])
+	}
+	return fmt.Sprintf("%.1f/%.1f %s", valueA, valueB, units[lowerUnit])
 }

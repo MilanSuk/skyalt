@@ -4,6 +4,7 @@ import (
 	"image/color"
 )
 
+
 type ColorPicker struct {
 	Cd      *color.RGBA
 	changed func()

@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"image/color"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -77,7 +78,6 @@ func (st *Assistant) SetVoice(js []byte, voiceStart_sec float64) {
 		for _, w := range seg.Words {
 			for pick_i < len(st.Picks) && st.Picks[pick_i].Time_sec < (voiceStart_sec+w.Start) { //for(!)
 				prompt += LayoutPick_getMark(pick_i)
-				//st.chatVoice_items = st.chatVoice_items[1:]
 				pick_i++
 			}
 			prompt += w.Word
@@ -225,7 +225,7 @@ func _Assistant_GetGridBuildFuncPosition(layout *Layout) (string, int) {
 
 	//'best_layout' is Caller position of Add<name>(). But we need position of Build()!
 	if layout.Name != "_layout" {
-		path := layout.Name + ".go"
+		path := filepath.Join("widgets", layout.Name+".go")
 		fileCode, err := os.ReadFile(path)
 		if err == nil {
 			build_pos, _, _, _, err := _Assistant_findBuildFunction(path, string(fileCode), layout.Name)

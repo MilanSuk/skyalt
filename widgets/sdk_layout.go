@@ -142,10 +142,30 @@ type LayoutScroll struct {
 	Narrow bool
 }
 
-type LayoutPickGrid struct {
-	Cd                             color.RGBA
+type LayoutPick struct {
+	File                           string
+	Line                           int
 	Grid_x, Grid_y, Grid_w, Grid_h int
-	Label                          string
+	Tip                            string
+
+	Cd       color.RGBA
+	Time_sec float64
+}
+
+func (a *LayoutPick) Cmp(b *LayoutPick) bool {
+	return a.File == b.File &&
+		a.Line == b.Line &&
+		a.Grid_x == b.Grid_x &&
+		a.Grid_y == b.Grid_y &&
+		a.Grid_w == b.Grid_w &&
+		a.Grid_h == b.Grid_h
+}
+func LayoutPick_getMark(i int) string {
+	if i < 25 { //25 = 'Z'-'A'
+		return fmt.Sprintf("{%c}", 'A'+i)
+	} else {
+		return fmt.Sprintf("{%c}", '0'+(i-25))
+	}
 }
 
 type LayoutInput struct {
@@ -179,6 +199,7 @@ type LayoutInput struct {
 }
 
 type LayoutDialog struct {
+	Opened bool
 	Layout *Layout
 }
 
@@ -317,33 +338,8 @@ func (layout *Layout) _findParent(find *Layout) *Layout {
 	return nil
 }
 
-func (layout *Layout) _findShortcut(key byte) *Layout {
-	if layout.Shortcut_key == key {
-		return layout
-	}
-
-	for _, it := range layout.Childs {
-		d := it._findShortcut(key)
-		if d != nil {
-			return d
-		}
-	}
-
-	//dialogs? ...
-	/*for _, it := range layout.dialogs {
-		if it.Show {
-			d := it.Layout._findShortcut(key)
-			if d != nil {
-				return d
-			}
-		}
-	}*/
-
-	return nil
-}
-
 func _newLayout(x, y, w, h int, name string, parent *Layout) *Layout {
-	layout := &Layout{X: x, Y: y, W: w, H: h, Name: name, Enable: true} //, Canvas: Rect{0, 0, -1, -1}}
+	layout := &Layout{X: x, Y: y, W: w, H: h, Name: name, Enable: true}
 	layout.Hash = layout._computeHash(parent)
 	return layout
 }
@@ -532,10 +528,6 @@ func (layout *Layout) HScrollToTheBottom() {
 func (layout *Layout) SetClipboardText(text string) {
 	_addCmd(LayoutCmd{Hash: 0, Cmd: "SetClipboardText", Param1: text})
 }
-
-/*func (layout *Layout) Refresh() {
-	_addCmd(LayoutCmd{Hash: 0, Cmd: "Refresh"})
-}*/
 
 func (layout *Layout) CopyText() {
 	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "CopyText"})
@@ -902,4 +894,30 @@ func Search(str string, words []string) bool {
 		}
 	}
 	return true
+}
+
+func Layout_MoveElement[T any](array_src *[]T, array_dst *[]T, src int, dst int) {
+	//move(by swap one-by-one)
+	if array_src == array_dst {
+		for i := src; i < dst; i++ {
+			(*array_dst)[i], (*array_dst)[i+1] = (*array_dst)[i+1], (*array_dst)[i]
+		}
+		for i := src; i > dst; i-- {
+			(*array_dst)[i], (*array_dst)[i-1] = (*array_dst)[i-1], (*array_dst)[i]
+		}
+	} else {
+		backup := (*array_src)[src]
+
+		//remove
+		*array_src = append((*array_src)[:src], (*array_src)[src+1:]...)
+
+		//insert
+		if dst < len(*array_dst) {
+			*array_dst = append((*array_dst)[:dst+1], (*array_dst)[dst:]...)
+			(*array_dst)[dst] = backup
+		} else {
+			*array_dst = append(*array_dst, backup)
+			dst = len(*array_dst) - 1
+		}
+	}
 }

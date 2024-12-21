@@ -36,11 +36,11 @@ func (st *Color) Input(in LayoutInput, layout *Layout) {
 
 	active := in.IsActive
 	if active {
-		x := OsClampFloat(float64(in.X/in.Rect.W), 0, 1)
+		x := _Color_clampFloat(float64(in.X/in.Rect.W), 0, 1)
 
 		_, s, l := RGBtoHSL(*st.Cd)
-		s = OsClampFloat(s, 0.1, 0.9)
-		l = OsClampFloat(l, 0.1, 0.9)
+		s = _Color_clampFloat(s, 0.1, 0.9)
+		l = _Color_clampFloat(l, 0.1, 0.9)
 		NewCd = HSLtoRGB(360*x, s, l, st.Cd.A)
 	}
 
@@ -59,7 +59,7 @@ func (st *Color) _drawRainbow(paint *LayoutPaint, rect Rect) {
 		rc := rect
 		startX := rc.X
 		endX := rc.X + rc.W
-		rc.W = OsClampFloat(0.5*(1-st.Quality), 0.03, 0.5)
+		rc.W = _Color_clampFloat(0.5*(1-st.Quality), 0.03, 0.5)
 		for rc.X < endX {
 			p := (rc.X - startX) / (endX - startX) //<0, 1>
 
@@ -83,4 +83,14 @@ func (st *Color) _drawRainbow(paint *LayoutPaint, rect Rect) {
 	cq.X += cq.W*p - 0.25
 	cq.W = 0.5
 	paint.TooltipEx(cq, fmt.Sprintf("Hue: %d", int(H)), true)
+}
+
+func _Color_clampFloat(v, min, max float64) float64 {
+	if v < min {
+		v = min
+	}
+	if v > max {
+		v = max
+	}
+	return v
 }

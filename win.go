@@ -971,12 +971,41 @@ func (win *Win) DrawLines(points []OsV2, depth int, thick int, cd color.RGBA, re
 	gl.Color4ub(cd.R, cd.G, cd.B, cd.A)
 
 	//lines
-	gl.LineWidth(float32(thick))
+	/*gl.LineWidth(float32(thick))
 	gl.Begin(gl.LINE_STRIP)
 	for _, pt := range points {
 		gl.Vertex3f(float32(pt.X), float32(pt.Y), float32(depth))
 	}
+	gl.End()*/
+
+	//gl.Disable(gl.POLYGON_SMOOTH)
+	gl.Begin(gl.QUADS)
+	var last_pt OsV2f
+	for i, pt := range points {
+		if i == 0 {
+			last_pt = pt.toV2f()
+			continue
+		}
+		s := last_pt
+		e := pt.toV2f()
+		v := e.Sub(s)
+		v.X, v.Y = v.Y, -v.X
+		v = v.MulV(float32(thick/2) / v.Len())
+
+		a := s.Sub(v)
+		b := s.Add(v)
+		c := e.Add(v)
+		d := e.Sub(v)
+
+		gl.Vertex3f(a.X, a.Y, float32(depth))
+		gl.Vertex3f(b.X, b.Y, float32(depth))
+		gl.Vertex3f(c.X, c.Y, float32(depth))
+		gl.Vertex3f(d.X, d.Y, float32(depth))
+
+		last_pt = pt.toV2f()
+	}
 	gl.End()
+	//gl.Enable(gl.POLYGON_SMOOTH)
 
 	if renderEndings {
 		thick = int(float64(thick) * 0.9)

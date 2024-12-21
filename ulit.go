@@ -21,11 +21,9 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"os"
 	"path/filepath"
@@ -77,33 +75,6 @@ func OsFormatBytes2(bytesA, bytesB int) string {
 		return fmt.Sprintf("%.0f/%.0f %s", valueA, valueB, units[lowerUnit])
 	}
 	return fmt.Sprintf("%.1f/%.1f %s", valueA, valueB, units[lowerUnit])
-}
-
-func OsMarshal(v interface{}) []byte {
-	data, err := json.Marshal(v)
-	if err != nil {
-		log.Fatal("OsMarshal failed:", err.Error())
-	}
-	return data
-
-	//b := new(bytes.Buffer)
-	//err := gob.NewEncoder(b).Encode(v)
-	//if err != nil {
-	//	log.Fatal("NewEncoder failed:", err.Error())
-	//}
-	//return b.Bytes()
-}
-
-func OsUnmarshal(data []byte, v interface{}) {
-	err := json.Unmarshal(data, v)
-	//b := bytes.NewBuffer(data)
-	//err := gob.NewDecoder(b).Decode(v)
-	if err != nil {
-		fmt.Println(string(data))
-		//str := err.Error()
-		//fmt.Println(str[err.offset:1])
-		log.Fatal("OsUnmarshal failed:", err.Error())
-	}
 }
 
 func OsTicks() int64 {
