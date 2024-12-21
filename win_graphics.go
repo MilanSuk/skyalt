@@ -111,7 +111,7 @@ func NewWinFontFace(prop *WinFontProps) *WinFontFace {
 		return nil
 	}
 
-	path := "fonts/Inter/" + name + ".ttf"
+	path := "resources/Inter/" + name + ".ttf"
 
 	fl, err := os.ReadFile(path)
 	if err != nil {
