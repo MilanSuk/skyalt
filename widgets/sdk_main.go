@@ -32,8 +32,9 @@ const (
 	NMSG_SET_ENV = 11
 
 	NMSG_REFRESH = 20
+	NMSG_REDRAW  = 30
 
-	NMSG_INPUT = 30
+	NMSG_INPUT = 40
 )
 
 var g_cmds []LayoutCmd
@@ -46,6 +47,10 @@ func _addCmd(cmd LayoutCmd) {
 	g_cmds = append(g_cmds, cmd)
 }
 func _getCmds() []LayoutCmd {
+	if len(g__jobs.jobs) > 0 {
+		Layout_RefreshDelayed() //calls _addCmd() which has lock() inside
+	}
+
 	g_cmds_lock.Lock()
 	defer g_cmds_lock.Unlock()
 
@@ -99,8 +104,9 @@ func main() {
 		log.Fatal(client_err)
 	}
 
-	var layout *Layout
+	defer g__processes.Destroy()
 
+	var layout *Layout
 	for {
 		msg, msg_err := client.ReadInt()
 		if msg_err != nil {
@@ -179,9 +185,42 @@ func main() {
 			}
 
 			client.WriteArray(OsMarshal(_getCmds()))
-			client.WriteInt(uint64(len(g__jobs.jobs)))
+
+		case NMSG_REDRAW:
+			if layout == nil {
+				log.Fatal(fmt.Errorf("layout == nil"))
+			}
+
+			//recv
+			js, err := client.ReadArray()
+			if err != nil {
+				log.Fatal(err)
+			}
+			type Draw struct {
+				Hash   uint64
+				Rect   Rect
+				Buffer []LayoutDrawPrim
+			}
+			var redrawHashes []Draw
+			OsUnmarshal(js, &redrawHashes)
+
+			//redraw
+			for i, it := range redrawHashes {
+				lay := layout._findHash(it.Hash)
+				if lay != nil && lay.fnDraw != nil && it.Rect.Is() {
+					redrawHashes[i].Buffer = lay.fnDraw(it.Rect, lay).buffer
+				}
+			}
+
+			//send
+			client.WriteArray(OsMarshal(redrawHashes))
+			client.WriteArray(OsMarshal(_getCmds()))
 
 		case NMSG_INPUT:
+			if layout == nil {
+				log.Fatal(fmt.Errorf("layout == nil"))
+			}
+
 			hash, err := client.ReadInt()
 			if err != nil {
 				log.Fatal(err)
@@ -192,10 +231,6 @@ func main() {
 			}
 			var in LayoutInput
 			OsUnmarshal(param, &in)
-
-			if layout == nil {
-				log.Fatal(fmt.Errorf("layout == nil"))
-			}
 
 			inLayout := layout._findHash(hash)
 			if inLayout == nil {
@@ -208,7 +243,7 @@ func main() {
 				}
 
 			} else if in.Drop_path != "" {
-				if inLayout.fnSetEditbox != nil {
+				if inLayout.dropFile != nil {
 					inLayout.dropFile(in.Drop_path)
 				}
 
@@ -223,7 +258,7 @@ func main() {
 				}
 
 			} else if in.Pick.File != "" {
-				NewFile_Assistant().findPickOrAdd(in.Pick)
+				NewFile_AssistantChat().findPickOrAdd(in.Pick)
 
 			} else if inLayout.fnInput != nil {
 				inLayout.fnInput(in, inLayout)
@@ -233,5 +268,6 @@ func main() {
 		}
 
 		g__jobs.maintenance()
+		g__processes.maintenance()
 	}
 }

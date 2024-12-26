@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -56,6 +57,8 @@ func (errs *Logs) AddError(err error, layout_hash uint64) {
 	if err == nil {
 		return
 	}
+
+	fmt.Println("AddError():", err)
 
 	errs.Items = append(errs.Items, Error{Time_unix: time.Now().Unix(), Error: err.Error(), Layout_hash: layout_hash})
 }

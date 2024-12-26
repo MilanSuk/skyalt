@@ -23,7 +23,7 @@ var g_OpenAI *OpenAI
 
 func NewFile_OpenAI() *OpenAI {
 	if g_OpenAI == nil {
-		g_OpenAI = &OpenAI{}
+		g_OpenAI = &OpenAI{Enable: true}
 		_read_file("OpenAI-OpenAI", g_OpenAI)
 	}
 	return g_OpenAI
@@ -93,7 +93,7 @@ func (st *OpenAI) Build(layout *Layout) {
 	layout.AddCombo(1, y, 1, 1, &st.TTSModel, OpenAI_GetTTSModelList(), OpenAI_GetTTSModelList())
 	y++
 
-	layout.AddText(0, y, 1, 1, "TTS Model")
+	layout.AddText(0, y, 1, 1, "TTS Voice")
 	layout.AddCombo(1, y, 1, 1, &st.TTSVoice, OpenAI_GetTTVoiceList(), OpenAI_GetTTVoiceList())
 	y++
 }

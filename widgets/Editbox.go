@@ -86,17 +86,24 @@ func (st *Editbox) Build(layout *Layout) {
 	}
 
 	layout.fnSetEditbox = func(value string, enter bool) {
+		diff := false
 		if st.Value != nil {
-			*st.Value = value
+			v := value
+			diff = (*st.Value != v)
+			*st.Value = v
 		}
 		if st.ValueFloat != nil {
-			*st.ValueFloat, _ = strconv.ParseFloat(value, 64)
+			v, _ := strconv.ParseFloat(value, 64)
+			diff = (*st.ValueFloat != v)
+			*st.ValueFloat = v
 		}
 		if st.ValueInt != nil {
-			*st.ValueInt, _ = strconv.Atoi(value)
+			v, _ := strconv.Atoi(value)
+			diff = (*st.ValueInt != v)
+			*st.ValueInt = v
 		}
 
-		if st.changed != nil {
+		if diff && st.changed != nil {
 			st.changed()
 		}
 		if enter && st.enter != nil {

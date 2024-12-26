@@ -1,6 +1,5 @@
 package main
 
-
 type AssistantVoice struct {
 	Shortcut          byte
 	Button_background float64
@@ -37,31 +36,17 @@ func (st *AssistantVoice) Build(layout *Layout) {
 	}
 
 	//STT
-	SttDia := layout.AddDialog("Transcribe")
-	SttDia.Layout.SetColumn(0, 1, 20)
-	SttDia.Layout.SetRowFromSub(0)
 	whisp := NewGlobal_Whispercpp_stt("AssistantVoice")
-	stt := SttDia.Layout.AddWhispercpp_stt(0, 0, 1, 1, whisp)
-
-	//Chat
-	ChatDia := layout.AddDialog("prompt")
-	ChatDia.Layout.SetColumn(0, 1, 20)
-	ChatDia.Layout.SetRowFromSub(0)
-	ChatDia.Layout.AddAssistantPrompt(0, 0, 1, 1, &NewFile_Assistant().TempPrompt)
-
-	stt.done = func() {
-		SttDia.Close()
-
-		NewFile_Assistant().SetVoice([]byte(stt.Out), Mic.startUnixTime)
+	whisp.done = func() {
+		NewFile_AssistantChat().SetVoice([]byte(whisp.Out), Mic.startUnixTime)
 		if st.AutoSend > 0 {
-			NewFile_Assistant().Send(ChatDia.Layout)
+			NewFile_AssistantChat().Send()
 		}
 	}
 
 	Mic.done = func() {
-		stt.Input_Data = Mic.Out
-		SttDia.OpenCentered()
+		whisp.Input_Data = Mic.Out
+		//SttDia.OpenCentered()
 		whisp.Start()
 	}
-
 }

@@ -159,7 +159,7 @@ func (rs *UiClients) NeedRedraw() bool {
 	redraw := false
 
 	if rs.ui.tooltip.NeedRedraw() {
-		rs.ui.SetRedraw()
+		rs.ui.SetRedrawBuffer()
 	}
 
 	if rs.ui.redrawBuffer {

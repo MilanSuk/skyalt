@@ -1,9 +1,39 @@
 {
 "Items": [
 {
-"Time_unix": 1734086144,
+"Time_unix": 1735046517,
 "Layout_hash": 0,
-"Error": "test"
+"Error": "statusCode 400 != 200, response: "
+},
+{
+"Time_unix": 1735049315,
+"Layout_hash": 0,
+"Error": "statusCode 400 != 200, response: "
+},
+{
+"Time_unix": 1735049331,
+"Layout_hash": 0,
+"Error": "prompt is too short"
+},
+{
+"Time_unix": 1735082977,
+"Layout_hash": 0,
+"Error": "statusCode 400 != 200, response: "
+},
+{
+"Time_unix": 1735082998,
+"Layout_hash": 0,
+"Error": "statusCode 400 != 200, response: "
+},
+{
+"Time_unix": 1735083011,
+"Layout_hash": 0,
+"Error": "statusCode 400 != 200, response: "
+},
+{
+"Time_unix": 1735173880,
+"Layout_hash": 0,
+"Error": "Transcribe() failed: Do() failed: Post \"http://127.0.0.1:8091/inference\": EOF"
 }
 ]
 }

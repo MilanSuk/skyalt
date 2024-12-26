@@ -525,10 +525,18 @@ func (layout *Layout) HScrollToTheBottom() {
 	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "HScrollToTheBottom"})
 }
 
-func (layout *Layout) SetClipboardText(text string) {
+func (layout *Layout) Redraw() {
+	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "Redraw"})
+}
+func Layout_RefreshDelayed() {
+	_addCmd(LayoutCmd{Hash: 0, Cmd: "RefreshDelayed"})
+}
+func Layout_Recompile() {
+	_addCmd(LayoutCmd{Hash: 0, Cmd: "Compile"})
+}
+func Layout_SetClipboardText(text string) {
 	_addCmd(LayoutCmd{Hash: 0, Cmd: "SetClipboardText", Param1: text})
 }
-
 func (layout *Layout) CopyText() {
 	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "CopyText"})
 }
@@ -579,7 +587,7 @@ var g_theme_dark = LayoutPalette{
 	OnB: color.RGBA{230, 230, 230, 255},
 }
 
-func (layout *Layout) Cell() int { //number of pixels in one cell
+func Layout_Cell() int { //number of pixels in one cell
 	return int(float32(NewFile_Env().Dpi) / 2.5)
 }
 
@@ -609,11 +617,11 @@ func Paint_GetPalette() *LayoutPalette {
 	return &env.CustomPalette
 }
 
-func (layout *Layout) GetDateFormat() string {
+func Layout_GetDateFormat() string {
 	return NewFile_Env().DateFormat
 }
 
-func (layout *Layout) WriteError(err error) error {
+func Layout_WriteError(err error) error {
 	//who calls this function and write it ...
 	if err != nil {
 		NewFile_Logs().AddError(err, 0)
@@ -702,14 +710,7 @@ func (paint *LayoutPaint) Line(rect Rect, sx, sy, ex, ey float64, cd color.RGBA,
 	})
 }
 
-func (paint *LayoutPaint) Text(rect Rect, text string, ghost string,
-	frontCd, frontCd_over, frontCd_down color.RGBA,
-
-	selection, editable bool,
-	align_h uint8, align_v uint8,
-	formating bool, multiline bool, linewrapping bool,
-	margin float64) {
-
+func (paint *LayoutPaint) Text(rect Rect, text string, ghost string, frontCd, frontCd_over, frontCd_down color.RGBA, selection, editable bool, align_h uint8, align_v uint8, formating bool, multiline bool, linewrapping bool, margin float64) {
 	rect = rect.Cut(margin)
 
 	paint.buffer = append(paint.buffer, LayoutDrawPrim{Type: 5,

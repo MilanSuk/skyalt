@@ -88,7 +88,6 @@ func (comp *Compile) Tick() error {
 				}
 
 				//done
-				//comp.running.Add(-1)
 				comp.compiling.Store(false)
 				comp.compiled_sec = OsTime() - compile_st
 			}()
@@ -103,8 +102,6 @@ func (comp *Compile) Tick() error {
 		if err != nil {
 			return err
 		}
-		//app.Open()
-
 		comp.parent.ui.SetRefresh()
 	}
 
@@ -235,7 +232,7 @@ func Compile_widgets() error {
 	return nil
 }
 
-func Compile_generate_save(files []CompileFile) error {
+func Compile_generate_save(files []CompileWidgetFile) error {
 
 	var code string
 	code += "package main\n\n"
@@ -260,7 +257,7 @@ func Compile_generate_save(files []CompileFile) error {
 	return nil
 }
 
-type CompileFile struct {
+type CompileWidgetFile struct {
 	Name   string
 	IsFile bool
 
@@ -269,8 +266,8 @@ type CompileFile struct {
 	Draw  bool
 }
 
-func Compile_get_files_info() ([]CompileFile, error) {
-	var widgets []CompileFile
+func Compile_get_files_info() ([]CompileWidgetFile, error) {
+	var widgets []CompileWidgetFile
 
 	sdkDir, err := os.ReadDir("widgets")
 	if err != nil {
@@ -290,7 +287,7 @@ func Compile_get_files_info() ([]CompileFile, error) {
 				return nil, err
 			}
 			if build_pos >= 0 || input_pos >= 0 || draw_pos >= 0 { //is widget
-				widgets = append(widgets, CompileFile{Name: stName, IsFile: isFile, Build: build_pos >= 0, Input: input_pos >= 0, Draw: draw_pos >= 0})
+				widgets = append(widgets, CompileWidgetFile{Name: stName, IsFile: isFile, Build: build_pos >= 0, Input: input_pos >= 0, Draw: draw_pos >= 0})
 			}
 		}
 	}

@@ -116,7 +116,7 @@ func (st *Image) Input(in LayoutInput, layout *Layout) {
 				zoom = 0.9
 			}
 			if zoom != 1.0 {
-				cell := float64(layout.Cell())
+				cell := float64(Layout_Cell())
 
 				iw := (float64(st.orig_width) * st.Scale_x / cell) //image cells
 				ih := (float64(st.orig_height) * st.Scale_y / cell)

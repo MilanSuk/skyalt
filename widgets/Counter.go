@@ -8,6 +8,8 @@ type Counter struct {
 	Count int
 
 	Items []string
+
+	Cam OsmMapCam
 }
 
 func (layout *Layout) AddCounter(x, y, w, h int, props *Counter) *Counter {
@@ -29,6 +31,7 @@ func (st *Counter) Build(layout *Layout) {
 
 	// Set grid
 	layout.SetColumn(0, 1, 9)
+	layout.SetColumn(1, 1, 20)
 	layout.SetRow(0, 1, 3)
 
 	div := layout.AddLayout(0, 0, 1, 1)
@@ -82,6 +85,8 @@ func (st *Counter) Build(layout *Layout) {
 			Layout_MoveElement(&st.Items, &st.Items, src, dst)
 		}
 	}
+
+	layout.AddOsmMap(1, 0, 1, 10, &st.Cam)
 }
 
 func (st *Counter) Run(job *Job) {

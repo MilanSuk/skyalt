@@ -31,9 +31,16 @@ const (
 	NMSG_SET_ENV = 11
 
 	NMSG_REFRESH = 20
+	NMSG_REDRAW  = 30
 
-	NMSG_INPUT = 30
+	NMSG_INPUT = 40
 )
+
+type UiLayoutDraw struct {
+	Hash   uint64
+	Rect   Rect
+	Buffer []LayoutDrawPrim
+}
 
 type Ui struct { //put into UiClients(and rename it) ........
 	parent *UiClients
@@ -51,6 +58,8 @@ type Ui struct { //put into UiClients(and rename it) ........
 	refresh_next_time float64
 	relayout          bool
 	redrawBuffer      bool
+
+	redrawHashes []UiLayoutDraw
 
 	maintenance_tick int64
 }
@@ -207,7 +216,19 @@ func (ui *Ui) SetRefresh() {
 func (ui *Ui) SetRelayout() {
 	ui.relayout = true
 }
-func (ui *Ui) SetRedraw() {
+
+func (ui *Ui) SetRedrawLayout(hash uint64) {
+	//find
+	for _, it := range ui.redrawHashes {
+		if it.Hash == hash {
+			return //already in
+		}
+	}
+
+	ui.redrawHashes = append(ui.redrawHashes, UiLayoutDraw{Hash: hash})
+}
+
+func (ui *Ui) SetRedrawBuffer() {
 	ui.redrawBuffer = true
 }
 
@@ -278,7 +299,7 @@ func (dom *Layout3) _refreshLayout() {
 				if it != nil {
 					it.buffer = buff
 					//fmt.Println("-Buffer", it.props.Name, it.canvas.Size.Y)
-					dom.ui.SetRedraw()
+					dom.ui.SetRedrawBuffer()
 				} else {
 					fmt.Println("never should happen: buffs")
 				}
@@ -292,7 +313,6 @@ func (dom *Layout3) _refreshLayout() {
 func (ui *Ui) _refresh() {
 
 	st := OsTime()
-
 	if ui.refresh_next_time == 0 || ui.refresh_next_time > st {
 		return
 	}
@@ -322,21 +342,74 @@ func (ui *Ui) _refresh() {
 	}
 
 	//recv num_jobs
-	{
-		num_jobs, err := ui.parent.client.ReadInt()
+	/*{
+		refresh_delay, err := ui.parent.client.ReadInt()
 		if err != nil {
 			log.Fatal(err)
 		}
-		if num_jobs > 0 {
+		if refresh_delay > 0 {
 			ui.SetRefreshTime(OsTime() + 0.5)
 		}
-	}
+	}*/
 
 	ui.parent.CallGetEnv()
 
 	ui.dom.SetTouchAll()
 
 	fmt.Printf("Refreshed: %.4fsec\n", OsTime()-st)
+}
+
+func (ui *Ui) _redrawHashes() {
+	if len(ui.redrawHashes) == 0 {
+		return
+	}
+
+	st := OsTime()
+
+	//update rects
+	for i, it := range ui.redrawHashes {
+		lay := ui.dom.FindHash(it.Hash)
+		if lay != nil {
+			ui.redrawHashes[i].Rect = lay._getRect()
+		}
+	}
+
+	//send
+	ui.parent.client.WriteInt(NMSG_REDRAW)
+	ui.parent.client.WriteArray(OsMarshal(ui.redrawHashes))
+
+	//recv
+	js, err := ui.parent.client.ReadArray()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var backs []UiLayoutDraw
+	OsUnmarshal(js, &backs)
+
+	//project
+	for _, it := range backs {
+		lay := ui.dom.FindHash(it.Hash)
+		if lay != nil {
+			lay.buffer = it.Buffer
+		}
+	}
+
+	//reset
+	ui.redrawHashes = nil
+	ui.SetRedrawBuffer()
+
+	//recv cmds
+	{
+		var cmds []LayoutCmd
+		data, err := ui.parent.client.ReadArray()
+		if err != nil {
+			log.Fatal(err)
+		}
+		OsUnmarshal(data, &cmds)
+		ui._executeCmds(cmds)
+	}
+
+	fmt.Printf("RedrawHashes: %.4fsec\n", OsTime()-st)
 }
 
 func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
@@ -398,8 +471,11 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 		case "SetClipboardText":
 			ui.parent.win.SetClipboardText(cmd.Param1)
 
-		//case "Refresh":
-		//	ui.SetRefresh()
+		case "Redraw":
+			ui.SetRedrawLayout(cmd.Hash)
+
+		case "RefreshDelayed":
+			ui.SetRefreshTime(OsTime() + 0.5)
 
 		case "Compile":
 			ui.parent.compile.recompile = true
@@ -462,6 +538,8 @@ func (ui *Ui) Tick() {
 
 	ui._refresh()
 
+	ui._redrawHashes()
+
 	// close all levels
 	if win.io.Keys.Shift && win.io.Keys.Esc {
 		ui.parent.ResetIO()
@@ -485,7 +563,7 @@ func (ui *Ui) Tick() {
 
 func (ui *Ui) Draw() {
 	if ui.tooltip.touch() {
-		ui.SetRedraw()
+		ui.SetRedrawBuffer()
 	}
 
 	win := ui.GetWin()

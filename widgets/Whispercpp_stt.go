@@ -134,20 +134,14 @@ func (st *Whispercpp_stt) Run(job *Job) {
 		}
 	}
 
-	process, err := NewWhispercppProcess(wsp, st.Properties.Model)
-	if err != nil {
-		job.AddError(fmt.Errorf("NewWhispercppProcess() failed: %w", err))
-		return
-	}
-
 	//set model
-	err = process.SetModel(st.Properties.Model, wsp)
+	err := g__WhispercppProcess.SetModel(st.Properties.Model, wsp)
 	if err != nil {
 		job.AddError(fmt.Errorf("SetModel() failed: %w", err))
 		return
 	}
 
-	answer, err := process.Transcribe(buff, &st.Properties, wsp)
+	answer, err := g__WhispercppProcess.Transcribe(buff, &st.Properties, wsp)
 	if err != nil {
 		job.AddError(fmt.Errorf("Transcribe() failed: %w", err))
 		return
@@ -166,31 +160,27 @@ type WhispercppProcess struct {
 	lock           sync.Mutex
 }
 
-var g__WhispercppProcess *WhispercppProcess
-var g__WhispercppProcess_lock sync.Mutex
-var g__WhispercppProcess_last_use_sec int64
+var g__WhispercppProcess WhispercppProcess
 
 func WhispercppProcess_getModelPath(model_name string) string {
 	return filepath.Join("models/", model_name+".bin")
 }
 
-func NewWhispercppProcess(wsp *Whispercpp, init_model string) (*WhispercppProcess, error) {
-	g__WhispercppProcess_lock.Lock()
-	defer g__WhispercppProcess_lock.Unlock()
+func (prc *WhispercppProcess) _check(wsp *Whispercpp) error {
 
-	if g__WhispercppProcess == nil {
-		prc := &WhispercppProcess{}
+	if prc.cmd == nil {
 
 		//run process
 		if wsp.RunProcess {
-			prc.cmd = exec.Command("./server", "--port", strconv.Itoa(wsp.Port), "--convert", "-m", WhispercppProcess_getModelPath(init_model))
+			prc.cmd = exec.Command("./server", "--port", strconv.Itoa(wsp.Port), "--convert", "-m", WhispercppProcess_getModelPath(wsp.Model))
 			prc.cmd.Dir = wsp.Folder
 
 			prc.cmd.Stdout = os.Stdout
 			prc.cmd.Stderr = os.Stderr
 			err := prc.cmd.Start()
 			if err != nil {
-				return nil, fmt.Errorf("Command() failed: %w", err)
+				prc.cmd = nil
+				return fmt.Errorf("Command() failed: %w", err)
 			}
 		}
 
@@ -199,40 +189,33 @@ func NewWhispercppProcess(wsp *Whispercpp, init_model string) (*WhispercppProces
 			err := errors.New("err")
 			st := time.Now().Unix()
 			for err != nil && (time.Now().Unix()-st) < 10 { //max 10sec to start
-				err = prc.SetModel(init_model, wsp)
+				err = prc._setModel(wsp.Model, wsp)
 				time.Sleep(100 * time.Millisecond)
 			}
 			if err != nil {
-				return nil, err
+				fmt.Println(err)
+				prc.cmd.Process.Kill()
+				prc.cmd = nil
+				return err
 			}
 		}
-		g__WhispercppProcess = prc
-		go WhispercppProcess_Destroy()
 	}
 
-	g__WhispercppProcess_last_use_sec = time.Now().Unix()
-	return g__WhispercppProcess, nil
+	AddProcess("Whispercpp", 60, prc.Destroy)
+	return nil
 }
 
-func WhispercppProcess_Destroy() {
-	for g__WhispercppProcess_last_use_sec+60 < time.Now().Unix() { //1minute withou use
-		g__WhispercppProcess_lock.Lock()
-		{
-			err := g__WhispercppProcess.cmd.Process.Kill()
-			if err != nil {
-				//stt.service.AddError(err)
-			}
-			g__WhispercppProcess = nil
-		}
-		g__WhispercppProcess_lock.Unlock()
-		return
-	}
-}
-
-func (prc *WhispercppProcess) SetModel(model string, wsp *Whispercpp) error {
+func (prc *WhispercppProcess) Destroy() {
 	prc.lock.Lock()
 	defer prc.lock.Unlock()
 
+	err := prc.cmd.Process.Kill()
+	if err != nil {
+		//stt.service.AddError(err)
+	}
+}
+
+func (prc *WhispercppProcess) _setModel(model string, wsp *Whispercpp) error {
 	if model == prc.selected_model {
 		return nil //already set
 	}
@@ -268,9 +251,23 @@ func (prc *WhispercppProcess) SetModel(model string, wsp *Whispercpp) error {
 	return nil
 }
 
+func (prc *WhispercppProcess) SetModel(model string, wsp *Whispercpp) error {
+	prc.lock.Lock()
+	defer prc.lock.Unlock()
+	err := prc._check(wsp)
+	if err != nil {
+		return err
+	}
+	return prc._setModel(model, wsp)
+}
+
 func (prc *WhispercppProcess) Transcribe(intput []byte, props *Whispercpp_props, wsp *Whispercpp) ([]byte, error) {
 	prc.lock.Lock()
 	defer prc.lock.Unlock()
+	err := prc._check(wsp)
+	if err != nil {
+		return nil, err
+	}
 
 	//set parameters
 	body := &bytes.Buffer{}

@@ -54,14 +54,14 @@ func (st *Root) Build(layout *Layout) {
 		HeaderDiv.SetColumn(1, 1, 100)
 		HeaderDiv.SetColumnFromSub(2)  //mic
 		HeaderDiv.SetColumn(3, 1, 15)  //prompt
-		HeaderDiv.SetColumn(4, 1, 1)   //clear prompt
+		HeaderDiv.SetColumn(4, 1, 2)   //send
 		HeaderDiv.SetColumn(5, 1, 100) //empty/errors
-		HeaderDiv.SetColumn(6, 1, 1)   //jobs
-		HeaderDiv.SetColumn(7, 1, 1)   //settings panel
+		//HeaderDiv.SetColumn(6, 1, 1)   //jobs
+		//HeaderDiv.SetColumn(7, 1, 1)   //settings panel
 		HeaderDiv.SetRowFromSub(0)
 		HeaderDiv.Back_cd = Paint_GetPalette().GetGrey(0.9)
 
-		ast := NewFile_Assistant()
+		ast := NewFile_AssistantChat()
 
 		logoBt := HeaderDiv.AddButton(0, 0, 1, 1, NewButtonIcon("resources/logo_small.png", 0.1, "v0.1")) //v0.1 .......
 		if !st.ShowPromptList {
@@ -83,20 +83,15 @@ func (st *Root) Build(layout *Layout) {
 		ed.Ghost = "What can I do for you?"
 		ed.Tooltip = "Use Ctrl + L/R click to select widgets."
 		edLay.Back_cd = Paint_GetPalette().B
-		ed.enter = func() {
-			//...ast.Send(ChatDia)
-		}
 		if ast.Prompt == "" {
 			ast.Picks = nil //clean
 		}
 
 		//clear
-		clBt := HeaderDiv.AddButton(4, 0, 1, 1, NewButton("X"))
-		clBt.Tooltip = "Reset prompt"
-		clBt.Background = 0.2
-		clBt.clicked = func() {
-			ast.Prompt = ""
-			ast.Picks = nil
+		sendBt := HeaderDiv.AddButton(4, 0, 1, 1, NewButton("Send"))
+		//sendLay.Enable = len(ast.Prompt) > 0
+		sendBt.clicked = func() {
+			ast.Send()
 		}
 
 		//error info
@@ -140,8 +135,16 @@ func (st *Root) Build(layout *Layout) {
 			JobsDia.Layout.SetRow(0, 10, 10)
 			JobsDia.Layout.AddJobs(0, 0, 1, 1)
 
-			JobsBt, JobsL := HeaderDiv.AddButton2(6, 0, 1, 1, NewButtonIcon("resources/logo_Counter.png", 0.2, "List of jobs"))
-			JobsL.Enable = len(g__jobs.jobs) > 0
+			enable := len(g__jobs.jobs) > 0
+			sz := 0.2
+			if enable {
+				sz = 0.1 //bigger icon
+			}
+			JobsBt, JobsL := HeaderDiv.AddButton2(6, 0, 1, 1, NewButtonIcon("resources/logo_Counter.png", sz, "List of jobs"))
+			if enable {
+				JobsBt.Cd = Paint_GetPalette().P
+			}
+			JobsL.Enable = enable
 			JobsBt.Background = 0.25
 			JobsBt.clicked = func() {
 				JobsDia.OpenRelative(JobsL)
@@ -149,14 +152,14 @@ func (st *Root) Build(layout *Layout) {
 		}
 
 		//panel switch
-		PanelBt := HeaderDiv.AddButton(7, 0, 1, 1, NewButtonIcon("resources/settings.png", 0.2, "Open/Close AI Assistant"))
+		/*PanelBt := HeaderDiv.AddButton(7, 0, 1, 1, NewButtonIcon("resources/settings.png", 0.2, "Open/Close AI Assistant"))
 		PanelBt.Background = 0.25
 		if ast.Show {
 			PanelBt.Background = 1
 		}
 		PanelBt.clicked = func() {
 			ast.Show = !ast.Show
-		}
+		}*/
 
 		//udpate skyalt dom paints
 		layout.CmdSetPicks(ast.Picks)
@@ -176,9 +179,8 @@ func (st *Root) Build(layout *Layout) {
 	}
 
 	//Assistant panel
-	if NewFile_Assistant().Show {
+	/*if NewFile_Assistant().Show {
 		layout.SetColumnResizable(1, 5, 20, 6)
-
 		layout.AddAssistant(1, 0, 1, 2, NewFile_Assistant())
-	}
+	}*/
 }

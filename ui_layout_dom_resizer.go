@@ -78,7 +78,7 @@ func (dom *Layout3) _setResizer(i int, value float64, isCol bool) bool {
 			}
 
 			dom.ui.SetRelayout()
-			dom.ui.SetRedraw()
+			dom.ui.SetRedrawBuffer()
 		}
 	}
 

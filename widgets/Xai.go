@@ -20,7 +20,7 @@ var g_Xai *Xai
 
 func NewFile_Xai() *Xai {
 	if g_Xai == nil {
-		g_Xai = &Xai{}
+		g_Xai = &Xai{Enable: true}
 		_read_file("Xai-Xai", g_Xai)
 	}
 	return g_Xai

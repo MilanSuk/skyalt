@@ -86,7 +86,6 @@ func StartJob(uid string, title string, fnRun func(job *Job)) *Job {
 
 	job := &Job{title: title, uid: uid}
 	g__jobs.jobs = append(g__jobs.jobs, job)
-
 	go func() {
 		fnRun(job)
 		job.stop.Store(true) //done

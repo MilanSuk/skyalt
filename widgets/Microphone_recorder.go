@@ -91,9 +91,6 @@ func (st *Microphone_recorder) IsRunning() bool {
 	return FindJob(st.UID) != nil
 }
 
-var g__mic_lock sync.Mutex
-var g__mic_device *malgo.Device
-
 func (st *Microphone_recorder) Run(job *Job) {
 
 	err := g_microphone_malgo.Start(st.UID)

@@ -329,6 +329,11 @@ func (dom *Layout3) project(src *Layout) {
 	dom.props = *src
 
 	//scroll
+	dom.scrollV.Show = src.ScrollH.Show
+	dom.scrollH.Show = src.ScrollH.Show
+	dom.scrollV.Narrow = src.ScrollH.Narrow
+	dom.scrollH.Narrow = src.ScrollH.Narrow
+
 	dom.scrollV.wheel = dom.GetSettings().GetScrollV(dom.props.Hash)
 	dom.scrollH.wheel = dom.GetSettings().GetScrollH(dom.props.Hash)
 
@@ -843,7 +848,6 @@ func (dom *Layout3) renderBuffer(buffer []LayoutDrawPrim) {
 					dom.ui.tooltip.Set(coord, false, it.Text, dom.ui.GetPalette().OnB)
 				}
 			}
-
 		}
 	}
 }
@@ -1109,6 +1113,12 @@ func (dom *Layout3) drawBuffers() {
 	dom.renderBuffer(dom.buffer)
 
 	dom.drawResizer()
+
+	//draw alpha rect = disable
+	if !dom.touch && (dom.parent == nil || dom.parent.touch) {
+		buff.AddCrop(dom.crop)
+		buff.AddRect(dom.canvas, color.RGBA{255, 255, 255, 150}, 0)
+	}
 
 	//subs
 	for _, it := range dom.childs {

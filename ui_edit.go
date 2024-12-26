@@ -46,7 +46,7 @@ func (edit *UiLayoutEdit) Set(dom *Layout3, editable bool, orig_value, value str
 		//save old editbox
 		diff := (orig_value != value)
 
-		if diff {
+		if diff || enter_key {
 			in := LayoutInput{SetEdit: true, EditValue: edit.temp, EditEnter: enter_key}
 			dom.ui.parent.CallInput(&dom.props, &in)
 		}
@@ -71,7 +71,7 @@ func (edit *UiLayoutEdit) Set(dom *Layout3, editable bool, orig_value, value str
 	}
 
 	if !finish {
-		dom.ui.SetRedraw() //refresh border thickness
+		dom.ui.SetRedrawBuffer() //refresh border thickness
 	}
 }
 
