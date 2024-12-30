@@ -196,9 +196,10 @@ func Compile_widgets() error {
 	}
 
 	//fix files
-	fmt.Println("Fixing /widgets ... ")
 	{
-		cmd := exec.Command("goimports", "-l", "-w")
+		fmt.Printf("Fixing /widgets ... ")
+		st := OsTime()
+		cmd := exec.Command("goimports", "-l", "-w", ".")
 		cmd.Dir = "widgets"
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -206,11 +207,14 @@ func Compile_widgets() error {
 		if err != nil {
 			return fmt.Errorf("goimports failed: %w", err)
 		}
+
+		fmt.Printf("done in %.3fsec\n", OsTime()-st)
 	}
 
 	//compile
-	fmt.Println("Compiling /widgets ... ")
 	{
+		fmt.Printf("Compiling /widgets ... ")
+		st := OsTime()
 		cmd := exec.Command("go", "build", "-o", "app")
 		cmd.Dir = "widgets"
 		cmd.Stdout = os.Stdout
@@ -219,8 +223,8 @@ func Compile_widgets() error {
 		if err != nil {
 			return fmt.Errorf("go build failed: %w", err)
 		}
+		fmt.Printf("done in %.3fsec\n", OsTime()-st)
 	}
-	fmt.Println("done")
 
 	//compare & copy old app.go into history(mkdir) ...
 
@@ -261,9 +265,9 @@ type CompileWidgetFile struct {
 	Name   string
 	IsFile bool
 
-	Build bool
-	Input bool
-	Draw  bool
+	Build int
+	Input int
+	Draw  int
 }
 
 func Compile_get_files_info() ([]CompileWidgetFile, error) {
@@ -277,7 +281,13 @@ func Compile_get_files_info() ([]CompileWidgetFile, error) {
 		stName, found := strings.CutSuffix(file.Name(), ".go")
 		if !file.IsDir() && found && !strings.HasPrefix(file.Name(), "sdk_") {
 
-			fileCode, err := os.ReadFile(filepath.Join("widgets", file.Name()))
+			wf, err := Compile_getWidgetFile(stName)
+			if err != nil {
+				return nil, err
+			}
+			widgets = append(widgets, wf)
+
+			/*fileCode, err := os.ReadFile(filepath.Join("widgets", file.Name()))
 			if err != nil {
 				return nil, err
 			}
@@ -288,11 +298,43 @@ func Compile_get_files_info() ([]CompileWidgetFile, error) {
 			}
 			if build_pos >= 0 || input_pos >= 0 || draw_pos >= 0 { //is widget
 				widgets = append(widgets, CompileWidgetFile{Name: stName, IsFile: isFile, Build: build_pos >= 0, Input: input_pos >= 0, Draw: draw_pos >= 0})
-			}
+			}*/
 		}
 	}
 
 	return widgets, nil
+}
+
+func Compile_getWidgetFile(stName string) (CompileWidgetFile, error) {
+	path := stName + ".go"
+	fileCode, err := os.ReadFile(filepath.Join("widgets", path))
+	if err != nil {
+		return CompileWidgetFile{}, err
+	}
+
+	code := string(fileCode)
+
+	build_pos, input_pos, draw_pos, isFile, err := Compile_findFileProperties(path, code, stName)
+	if err != nil {
+		return CompileWidgetFile{}, err
+	}
+	if build_pos >= 0 || input_pos >= 0 || draw_pos >= 0 { //is widget
+		build_line := -1
+		input_line := -1
+		draw_line := -1
+		if build_pos >= 0 {
+			build_line = strings.Count(code[:build_pos], "\n") + 1
+		}
+		if input_pos >= 0 {
+			input_line = strings.Count(code[:input_pos], "\n") + 1
+		}
+		if draw_pos >= 0 {
+			draw_line = strings.Count(code[:draw_pos], "\n") + 1
+		}
+
+		return CompileWidgetFile{Name: stName, IsFile: isFile, Build: build_line, Input: input_line, Draw: draw_line}, nil
+	}
+	return CompileWidgetFile{}, nil
 }
 
 func Compile_findFileProperties(ghostPath string, code string, stName string) (int, int, int, bool, error) {

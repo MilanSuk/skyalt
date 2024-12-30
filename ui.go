@@ -323,6 +323,7 @@ func (ui *Ui) _refresh() {
 
 	// get root
 	ui.dom._refreshLayout()
+
 	// get dialogs
 	for _, dia := range ui.settings.Dialogs {
 		newLay := NewUiLayoutDOM(Layout{Hash: dia.Hash}, nil, ui)
@@ -340,17 +341,6 @@ func (ui *Ui) _refresh() {
 		OsUnmarshal(data, &cmds)
 		ui._executeCmds(cmds)
 	}
-
-	//recv num_jobs
-	/*{
-		refresh_delay, err := ui.parent.client.ReadInt()
-		if err != nil {
-			log.Fatal(err)
-		}
-		if refresh_delay > 0 {
-			ui.SetRefreshTime(OsTime() + 0.5)
-		}
-	}*/
 
 	ui.parent.CallGetEnv()
 
@@ -492,10 +482,8 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 		case "PasteText":
 			edit.KeyPaste = true
 
-		case "Picks":
-			var picks []LayoutPick
-			OsUnmarshal([]byte(cmd.Param1), &picks)
-			ui.dom.projectPicks(picks)
+		case "ResetBrushes":
+			ui.selection.Reset()
 		}
 	}
 }

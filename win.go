@@ -258,17 +258,17 @@ func (win *Win) GetScreenCoord() OsV4 {
 	return OsV4{Start: OsV2{}, Size: OsV2{w, h}}
 }
 
-func (win *Win) SaveScreenshot() error {
-	screen := win.GetScreenCoord()
+func (win *Win) GetScreenshot(coord OsV4) (*image.RGBA, error) {
 
-	surface, err := sdl.CreateRGBSurface(0, int32(screen.Size.X), int32(screen.Size.Y), 32, 0, 0, 0, 0)
+	surface, err := sdl.CreateRGBSurface(0, int32(coord.Size.X), int32(coord.Size.Y), 32, 0, 0, 0, 0)
 	if err != nil {
-		return fmt.Errorf("CreateRGBSurface() failed: %w", err)
+		return nil, fmt.Errorf("CreateRGBSurface() failed: %w", err)
 	}
 	defer surface.Free()
 
 	//copies pixels
-	gl.ReadPixels(0, 0, int32(screen.Size.X), int32(screen.Size.Y), gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&surface.Pixels()[0])) //int(surface.Pitch) ...
+	winH := win.GetScreenCoord().Size.Y
+	gl.ReadPixels(int32(coord.Start.X), int32(winH-(coord.Start.Y+coord.Size.Y)), int32(coord.Size.X), int32(coord.Size.Y), gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&surface.Pixels()[0])) //int(surface.Pitch) ...
 
 	img := image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{int(surface.W), int(surface.H)}})
 	for y := int32(0); y < surface.H; y++ {
@@ -278,6 +278,14 @@ func (win *Win) SaveScreenshot() error {
 			b := surface.Pixels()[y*surface.W*4+x*4+2]
 			img.SetRGBA(int(x), int(surface.H-1-y), color.RGBA{r, g, b, 255})
 		}
+	}
+	return img, nil
+}
+
+func (win *Win) SaveScreenshot() error {
+	img, err := win.GetScreenshot(win.GetScreenCoord())
+	if err != nil {
+		return err
 	}
 
 	// creates file
@@ -353,7 +361,7 @@ func (win *Win) Event() (bool, bool, error) {
 
 		switch val := event.(type) {
 		case *sdl.QuitEvent:
-			fmt.Println("Exiting ..")
+			fmt.Println("Exiting ...")
 			return false, false, nil
 
 		case *sdl.WindowEvent:

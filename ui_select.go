@@ -16,63 +16,145 @@ limitations under the License.
 
 package main
 
+import (
+	"fmt"
+	"image/color"
+)
+
+type UiSelection2Brush struct {
+	Points []OsV2
+	Cd     color.RGBA
+}
+
 type UiSelection struct {
-	activeComp bool
-	activeGrid bool
+	active bool
 
-	points []OsV2
-
-	draw_hash uint64
-	draw_grid OsV4
-
-	ShowGrid bool
+	brushes []UiSelection2Brush
 }
 
 func (s *UiSelection) IsActive() bool {
-	return s.activeComp || s.activeGrid
+	return s.active
+}
+
+func (s *UiSelection) Reset() {
+	s.brushes = nil
 }
 
 func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
-	if s.draw_hash == 0 {
-		return
+
+	if ui.parent.win.io.Keys.Ctrl {
+		n := 0
+		ui.dom.postDraw("Counter", 0, &n) //dialogs? ....
 	}
 
-	lay := ui.dom.FindHash(s.draw_hash)
-	if lay == nil {
-		return
-	}
+	buff.AddCrop(ui.dom.CropWithScroll())
 
-	cd := ui.GetPalette().S
 	thick := ui.CellWidth(0.3)
-
-	buff.AddLines(s.points, cd, thick, true)
-	buff.AddRect(lay.crop.Crop(thick/3), ui.GetPalette().T, thick/3)
-
-	if s.activeGrid {
-		//grid
-		cell := float64(ui.Cell())
-
-		sx := lay.cols.GetSumOutput(s.draw_grid.Start.X)
-		ex := lay.cols.GetSumOutput(s.draw_grid.End().X)
-		sy := lay.rows.GetSumOutput(s.draw_grid.Start.Y)
-		ey := lay.rows.GetSumOutput(s.draw_grid.End().Y)
-
-		rc := lay._getRect()
-		rc.X += float64(sx) / cell
-		rc.Y += float64(sy) / cell
-		rc.W = float64(ex-sx) / cell
-		rc.H = float64(ey-sy) / cell
-
-		rc = rc.Cut(0.2)
-		cd := cd
-		cd.A = 180
-
-		buff.AddRect(lay.getCanvasPx(rc), cd, 0)
+	for _, it := range s.brushes {
+		buff.AddLines(it.Points, it.Cd, thick, true)
 	}
 }
 
-func (dom *Layout3) findSelection(cq OsV4, cqArea float64, best_area *float64, best_layout **Layout3) {
-	if dom.touchDia {
+func (s *UiSelection) UpdateComp(ui *Ui) {
+
+	//start
+	if ui.GetWin().io.Keys.Ctrl {
+		if ui.GetWin().io.Touch.Start {
+			s.active = true
+			s.brushes = append(s.brushes, UiSelection2Brush{Cd: g_prompt_colors[len(s.brushes)].Cd})
+		}
+	}
+
+	if !s.IsActive() {
+		return
+	}
+
+	//add point
+	s.brushes[len(s.brushes)-1].Points = append(s.brushes[len(s.brushes)-1].Points, ui.GetWin().io.Touch.Pos)
+
+	//end
+	if ui.GetWin().io.Touch.End {
+		s.active = false
+
+		appName := "Counter"
+
+		appLay := ui.dom.FindFirstName(appName)
+		if appLay != nil {
+
+			cq := s.getRect()
+			cq = cq.Crop(ui.Cell() / 3)
+			cq.Size = cq.Size.Max(OsV2{1, 1})
+			cqArea := float64(cq.Area())
+			if cqArea > 0 {
+
+				best_layout := appLay
+				best_area := 0.0
+				appLay.findSelection(cq, cqArea, &best_area, &best_layout, appName)
+
+				st_rel := cq.Start.Sub(best_layout.canvas.Start)
+				en_rel := cq.End().Sub(best_layout.canvas.Start)
+				stCol := best_layout.cols.GetCloseCell(st_rel.X)
+				stRow := best_layout.rows.GetCloseCell(st_rel.Y)
+				enCol := best_layout.cols.GetCloseCell(en_rel.X)
+				enRow := best_layout.rows.GetCloseCell(en_rel.Y)
+
+				grid := InitOsV4ab(OsV2{stCol, stRow}, OsV2{enCol, enRow})
+				grid.Size.X++
+				grid.Size.Y++
+
+				var pick LayoutPick
+				pick.X = grid.Start.X
+				pick.Y = grid.Start.Y
+				pick.W = grid.Size.X
+				pick.H = grid.Size.Y
+				pick.Cd = s.brushes[len(s.brushes)-1].Cd
+
+				if best_layout == appLay {
+					//get Build() pos
+					wf, err := Compile_getWidgetFile(appName)
+					if err != nil {
+						fmt.Println("Error:", err)
+						return
+					}
+					if wf.Build < 0 {
+						fmt.Println("Error 1456")
+						return
+					}
+					pick.Line = wf.Build
+
+				} else {
+					pick.Line = best_layout.props.Caller_line
+				}
+
+				in := LayoutInput{Pick: pick}
+				ui.parent.CallInput(&ui.dom.props, &in)
+			}
+		}
+	}
+}
+
+func (s *UiSelection) getRect() OsV4 {
+
+	points := s.brushes[len(s.brushes)-1].Points
+
+	if len(points) == 0 {
+		return OsV4{}
+	}
+
+	min := points[0]
+	max := points[0]
+
+	for _, pt := range points {
+		min.X = OsMin(min.X, pt.X)
+		min.Y = OsMin(min.Y, pt.Y)
+		max.X = OsMax(max.X, pt.X)
+		max.Y = OsMax(max.Y, pt.Y)
+	}
+	return InitOsV4ab(min, max)
+}
+
+func (dom *Layout3) findSelection(cq OsV4, cqArea float64, best_area *float64, best_layout **Layout3, appName string) {
+	if dom.touchDia && /*dom.props.Caller_file == appName+".go" &&*/ (dom.props.Name == appName || dom.props.Name == "_layout") {
 		inArea := float64(dom.crop.GetIntersect(cq).Area()) / cqArea
 		if inArea >= *best_area {
 			*best_area = inArea
@@ -82,102 +164,55 @@ func (dom *Layout3) findSelection(cq OsV4, cqArea float64, best_area *float64, b
 
 	for _, it := range dom.childs {
 		if it.IsShown() {
-			it.findSelection(cq, cqArea, best_area, best_layout)
+			it.findSelection(cq, cqArea, best_area, best_layout, appName)
 		}
 	}
 
 	if dom.dialog != nil {
-		dom.dialog.findSelection(cq, cqArea, best_area, best_layout)
+		dom.dialog.findSelection(cq, cqArea, best_area, best_layout, appName)
 	}
 }
 
-func (s *UiSelection) getRect() OsV4 {
-	if len(s.points) == 0 {
-		return OsV4{}
-	}
-
-	min := s.points[0]
-	max := s.points[0]
-
-	for _, pt := range s.points {
-		min.X = OsMin(min.X, pt.X)
-		min.Y = OsMin(min.Y, pt.Y)
-		max.X = OsMax(max.X, pt.X)
-		max.Y = OsMax(max.Y, pt.Y)
-	}
-	return InitOsV4ab(min, max)
+type LayoutPromptColor struct {
+	Name string
+	Cd   color.RGBA
 }
 
-func (s *UiSelection) UpdateComp(ui *Ui) {
+var g_prompt_colors = []LayoutPromptColor{
+	{Name: "red", Cd: color.RGBA{255, 0, 0, 255}},
+	{Name: "green", Cd: color.RGBA{0, 255, 0, 255}},
+	{Name: "blue", Cd: color.RGBA{0, 0, 255, 255}},
 
-	//start
-	if ui.GetWin().io.Keys.Ctrl {
-		if ui.GetWin().io.Touch.Start {
-			if !ui.GetWin().io.Touch.Rm {
-				s.activeComp = true
-			} else {
-				s.activeGrid = true
-			}
-		}
+	{Name: "yellow", Cd: color.RGBA{255, 255, 0, 255}},
+	{Name: "aqua", Cd: color.RGBA{0, 255, 255, 255}},
+	{Name: "fuchsia", Cd: color.RGBA{255, 0, 255, 255}},
+
+	{Name: "olive", Cd: color.RGBA{128, 128, 0, 255}},
+	{Name: "teal", Cd: color.RGBA{0, 128, 128, 255}},
+	{Name: "purple", Cd: color.RGBA{128, 0, 128, 255}},
+
+	{Name: "navy", Cd: color.RGBA{0, 0, 128, 255}},
+	{Name: "marron", Cd: color.RGBA{128, 0, 0, 255}},
+}
+
+// note: colors should not collide with GUI palette colors => use default palette when rendering png!!!
+func (dom *Layout3) postDraw(name string, depth int, num_cds *int) {
+
+	if dom.props.Name == name || (dom.props.Caller_file == name+".go" && dom.props.Name == "_layout") {
+
+		cd := g_prompt_colors[len(dom.ui.selection.brushes)+*num_cds] //'g_prompt_colors' out of range ...........
+		cd.Cd.A = 200
+
+		dom.draw_grid2(cd.Cd, 0.03, depth)
+
+		(*num_cds)++
+		depth++
 	}
 
-	if !s.IsActive() {
-		return
-	}
-
-	//add point
-	s.points = append(s.points, ui.GetWin().io.Touch.Pos)
-
-	best_layout := ui.dom
-	{
-		//update
-		cq := s.getRect()
-		cq = cq.Crop(ui.Cell() / 3)
-		cq.Size = cq.Size.Max(OsV2{1, 1})
-		cqArea := float64(cq.Area())
-		if cqArea > 0 {
-
-			best_area := 0.0
-			ui.dom.findSelection(cq, cqArea, &best_area, &best_layout)
-
-			if s.activeGrid {
-				if best_layout.parent != nil && best_layout.props.Name != "_layout" && !best_layout.props.App && len(best_layout.childs) == 0 {
-					best_layout = best_layout.parent
-				}
-
-				st_rel := cq.Start.Sub(best_layout.canvas.Start)
-				en_rel := cq.End().Sub(best_layout.canvas.Start)
-				stCol := best_layout.cols.GetCloseCell(st_rel.X)
-				stRow := best_layout.rows.GetCloseCell(st_rel.Y)
-				enCol := best_layout.cols.GetCloseCell(en_rel.X)
-				enRow := best_layout.rows.GetCloseCell(en_rel.Y)
-
-				s.draw_grid = InitOsV4ab(OsV2{stCol, stRow}, OsV2{enCol, enRow})
-				s.draw_grid.Size.X++
-				s.draw_grid.Size.Y++
-			}
-
-			s.draw_hash = best_layout.props.Hash
+	//subs
+	for _, it := range dom.childs {
+		if it.IsShown() {
+			it.postDraw(name, depth, num_cds)
 		}
-	}
-
-	if ui.GetWin().io.Touch.End {
-		if s.activeComp {
-			in := LayoutInput{Pick: InitLayoutPick(best_layout.props.Caller_file, best_layout.props.Caller_line, OsV4{}, best_layout.props.LLMTip)}
-			ui.parent.CallInput(&ui.dom.props, &in)
-
-		} else {
-			Caller_file := best_layout.props.Caller_file
-			Caller_line := best_layout.props.Caller_line
-
-			in := LayoutInput{Pick: InitLayoutPick(Caller_file, Caller_line, s.draw_grid, best_layout.props.LLMTip)}
-			ui.parent.CallInput(&ui.dom.props, &in)
-		}
-
-		//reset
-		s.draw_hash = 0
-		s.activeGrid = false
-		s.activeComp = false
-		s.points = nil
 	}
 }

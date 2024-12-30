@@ -82,7 +82,7 @@ func (st *OsmMap) Build(layout *Layout) {
 	layout.SetColumn(3, 2, 6)
 	layout.SetRow(0, 1, 100)
 
-	layout.ScrollH.Show = false
+	layout.ScrollH.Hide = true
 
 	//lon,lat,zoom
 	{
@@ -93,7 +93,7 @@ func (st *OsmMap) Build(layout *Layout) {
 		Div.SetColumn(3, 1, 2)
 		Div.SetColumn(4, 1, 1.5)
 		Div.SetColumn(5, 1, 1)
-		Div.ScrollV.Show = false
+		Div.ScrollV.Hide = true
 		Div.ScrollH.Narrow = true
 
 		tx := Div.AddText(0, 0, 1, 1, "Lon")

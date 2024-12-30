@@ -6,3 +6,7 @@ widgets/app
 skyalt
 data/OpenAI-OpenAI.json
 ini.json
+data/Xai-Xai.json
+prompt_json2.json
+prompt_json1.json
+prompt_code.txt

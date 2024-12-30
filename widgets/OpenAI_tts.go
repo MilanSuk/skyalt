@@ -119,7 +119,7 @@ func (st *OpenAI_tts) Run(job *Job) {
 	}
 
 	if res.StatusCode != 200 {
-		job.AddError(fmt.Errorf("statusCode != 200, response: %s", answer))
+		job.AddError(fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, answer))
 		return
 	}
 

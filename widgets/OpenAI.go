@@ -23,7 +23,7 @@ var g_OpenAI *OpenAI
 
 func NewFile_OpenAI() *OpenAI {
 	if g_OpenAI == nil {
-		g_OpenAI = &OpenAI{Enable: true}
+		g_OpenAI = &OpenAI{Enable: true, ChatModel: "gpt-3.5-turbo", STTModel: "whisper-1", TTSModel: "tts-1", TTSVoice: "alloy"}
 		_read_file("OpenAI-OpenAI", g_OpenAI)
 	}
 	return g_OpenAI

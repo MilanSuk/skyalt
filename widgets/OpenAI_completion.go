@@ -8,36 +8,37 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
-type OpenAI_chat struct {
+type OpenAI_completion struct {
 	UID        string
-	Properties OpenAI_chat_props
+	Properties OpenAI_completion_props
 
 	Out  string
 	done func()
 }
 
-func (layout *Layout) AddOpenAI_chat(x, y, w, h int, props *OpenAI_chat) *OpenAI_chat {
-	layout._createDiv(x, y, w, h, "OpenAI_chat", props.Build, nil, nil)
+func (layout *Layout) AddOpenAI_completion(x, y, w, h int, props *OpenAI_completion) *OpenAI_completion {
+	layout._createDiv(x, y, w, h, "OpenAI_completion", props.Build, nil, nil)
 	return props
 }
 
-var g_global_OpenAI_chat = make(map[string]*OpenAI_chat)
+var g_global_OpenAI_completion = make(map[string]*OpenAI_completion)
 
-func NewGlobal_OpenAI_chat(uid string) *OpenAI_chat {
-	uid = fmt.Sprintf("OpenAI_chat:%s", uid)
+func NewGlobal_OpenAI_completion(uid string) *OpenAI_completion {
+	uid = fmt.Sprintf("OpenAI_completion:%s", uid)
 
-	st, found := g_global_OpenAI_chat[uid]
+	st, found := g_global_OpenAI_completion[uid]
 	if !found {
-		st = &OpenAI_chat{UID: uid}
+		st = &OpenAI_completion{UID: uid}
 		st.Properties.Reset()
-		g_global_OpenAI_chat[uid] = st
+		g_global_OpenAI_completion[uid] = st
 	}
 	return st
 }
 
-func (st *OpenAI_chat) Build(layout *Layout) {
+func (st *OpenAI_completion) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 1, 3)
@@ -58,20 +59,20 @@ func (st *OpenAI_chat) Build(layout *Layout) {
 	}
 }
 
-func (st *OpenAI_chat) Start() *Job {
+func (st *OpenAI_completion) Start() *Job {
 	return StartJob(st.UID, "OpenAI chat completion", st.Run)
 }
-func (st *OpenAI_chat) Stop() {
+func (st *OpenAI_completion) Stop() {
 	job := FindJob(st.UID)
 	if job != nil {
 		job.Stop()
 	}
 }
-func (st *OpenAI_chat) IsRunning() bool {
+func (st *OpenAI_completion) IsRunning() bool {
 	return FindJob(st.UID) != nil
 }
 
-func (st *OpenAI_chat) Run(job *Job) {
+func (st *OpenAI_completion) Run(job *Job) {
 
 	if !NewFile_OpenAI().Enable {
 		job.AddError(errors.New("OpenAI is disabled"))
@@ -85,25 +86,30 @@ func (st *OpenAI_chat) Run(job *Job) {
 		return
 	}
 
-	st.Properties.Stream = true
+	//st.Properties.Stream = true
 	jsProps, err := json.Marshal(&st.Properties)
 	if err != nil {
 		job.AddError(fmt.Errorf("Marshal() failed: %w", err))
 		return
 	}
 
-	st.Out, err = OpenAI_chat_Complete(jsProps, "https://api.openai.com/v1/chat/completions", NewFile_OpenAI().Api_key, job)
+	st.Out, err = OpenAI_completion_Run(jsProps, st.Properties.Stream, "https://api.openai.com/v1/chat/completions", NewFile_OpenAI().Api_key, job)
 	if err != nil {
+		fmt.Println("--OpenAI_completion_Run error", err)
 		job.AddError(err)
 		return
 	}
+
+	fmt.Println("--OpenAI_completion_Run done")
 
 	if st.done != nil {
 		st.done()
 	}
 }
 
-func OpenAI_chat_Complete(jsProps []byte, Completion_url string, Api_key string, job *Job) (string, error) {
+func OpenAI_completion_Run(jsProps []byte, stream bool, Completion_url string, Api_key string, job *Job) (string, error) {
+	//fmt.Println("jsProps", string(jsProps))
+	startTime := float64(time.Now().UnixMilli()) / 1000
 
 	body := bytes.NewReader(jsProps)
 
@@ -124,19 +130,62 @@ func OpenAI_chat_Complete(jsProps []byte, Completion_url string, Api_key string,
 	}
 	defer res.Body.Close()
 
-	answer, err := OpenAI_chat_parseStream(res, job)
-	if err != nil {
-		return "", err
+	var answer string
+	if stream {
+		answer, err = OpenAI_completion_parseStream(res, job)
+		if err != nil {
+			return "", err
+		}
+	} else {
+
+		js, err := io.ReadAll(res.Body) //job.close ...
+		if err != nil {
+			job.AddError(fmt.Errorf("ReadAll() failed: %E", err))
+			return "", err
+		}
+
+		type STMsg struct {
+			Content string
+		}
+		type STChoice struct {
+			Message STMsg
+			Delta   STMsg
+		}
+		type Usage struct {
+			Prompt_tokens     int
+			Completion_tokens int
+			Total_tokens      int
+			//prompt_tokens_details ...
+		}
+		type ST struct {
+			Choices []STChoice
+			Usage   Usage
+		}
+		var st ST
+		err = json.Unmarshal(js, &st)
+		if err != nil {
+			job.AddError(fmt.Errorf("Unmarshal() of %s failed: %w", js, err))
+			return "", err
+		}
+		if len(st.Choices) > 0 {
+			answer = st.Choices[0].Message.Content
+		} else {
+			job.AddError(fmt.Errorf("Missing answer in js: %s", string(js)))
+			return "", err
+		}
+
+		dt := (float64(time.Now().UnixMilli()) / 1000) - startTime
+		fmt.Printf("info: generated %dtoks which took %.1fsec = %.1f toks/sec\n", st.Usage.Completion_tokens, dt, float64(st.Usage.Completion_tokens)/dt)
 	}
 
 	if res.StatusCode != 200 {
 		return "", fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, answer)
 	}
 
-	return answer, nil
+	return string(answer), nil
 }
 
-func OpenAI_chat_parseStream(res *http.Response, job *Job) (string, error) {
+func OpenAI_completion_parseStream(res *http.Response, job *Job) (string, error) {
 	// https://platform.openai.com/docs/api-reference/assistants-streaming/events
 	type STMsg struct {
 		Content string
@@ -145,8 +194,15 @@ func OpenAI_chat_parseStream(res *http.Response, job *Job) (string, error) {
 		Message STMsg
 		Delta   STMsg
 	}
+	type Usage struct {
+		Prompt_tokens     int
+		Completion_tokens int
+		Total_tokens      int
+		//prompt_tokens_details ...
+	}
 	type ST struct {
 		Choices []STChoice
+		Usage   Usage
 	}
 
 	job.info = ""
@@ -160,6 +216,7 @@ func OpenAI_chat_parseStream(res *http.Response, job *Job) (string, error) {
 		}
 		if n > 0 {
 			buff = append(buff, tb[:n]...)
+			fmt.Println(string(tb[:n])) //bug somewhere around: sometime never return [done] .........
 		}
 
 		for {
@@ -178,9 +235,13 @@ func OpenAI_chat_parseStream(res *http.Response, job *Job) (string, error) {
 			if !found {
 				return "", fmt.Errorf("missing 'data:'")
 			}
-			js = strings.TrimSpace(js)
 
-			if js != "[DONE]" {
+			js = strings.TrimSpace(js)
+			if js == "[DONE]" {
+				fmt.Println("---done")
+				readErr = io.EOF
+				break
+			} else {
 				var st ST
 				err := json.Unmarshal([]byte(js), &st)
 				if err != nil {
@@ -189,7 +250,7 @@ func OpenAI_chat_parseStream(res *http.Response, job *Job) (string, error) {
 
 				if len(st.Choices) > 0 {
 					job.info = job.info + st.Choices[0].Delta.Content
-					fmt.Print(st.Choices[0].Delta.Content)
+					//fmt.Print(st.Choices[0].Delta.Content)
 				}
 			}
 		}

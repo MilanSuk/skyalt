@@ -238,13 +238,13 @@ func (prc *WhispercppProcess) _setModel(model string, wsp *Whispercpp) error {
 	}
 	defer res.Body.Close()
 
-	resBody, err := io.ReadAll(res.Body)
+	answer, err := io.ReadAll(res.Body)
 	if err != nil {
 		return fmt.Errorf("ReadAll() failed: %w", err)
 	}
 
 	if res.StatusCode != 200 {
-		return fmt.Errorf("statusCode != 200, response: %s", resBody)
+		return fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, answer)
 	}
 
 	prc.selected_model = model
@@ -300,7 +300,7 @@ func (prc *WhispercppProcess) Transcribe(intput []byte, props *Whispercpp_props,
 	}
 
 	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("statusCode != 200, response: %s", answer)
+		return nil, fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, answer)
 	}
 
 	return answer, nil

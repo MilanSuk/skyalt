@@ -24,7 +24,7 @@ func (st *Prompts) Build(layout *Layout) {
 	st.AddButton("Show Gallery app", &y, layout)
 
 	st.AddButton("Show Services app", &y, layout)
-	st.AddButton("Show Enviroments app", &y, layout)
+	st.AddButton("Show Settings app", &y, layout)
 	st.AddButton("Show Counter app", &y, layout)
 
 	st.AddButton("Show About app", &y, layout)

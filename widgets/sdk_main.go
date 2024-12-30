@@ -22,6 +22,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 const (
@@ -61,7 +62,6 @@ func _getCmds() []LayoutCmd {
 
 func _build(layout *Layout) {
 	if layout.fnBuild != nil {
-		//fmt.Println("fnBuild", layout.Name)
 		layout.fnBuild(layout)
 	}
 	for _, it := range layout.Childs {
@@ -120,14 +120,14 @@ func main() {
 			_skyalt_save()
 
 		case NMSG_GET_ENV:
-			client.WriteArray(OsMarshal(*NewFile_Env()))
+			client.WriteArray(OsMarshal(*NewFile_Settings()))
 
 		case NMSG_SET_ENV:
 			data, err := client.ReadArray()
 			if err != nil {
 				log.Fatal(err)
 			}
-			OsUnmarshal(data, NewFile_Env())
+			OsUnmarshal(data, NewFile_Settings())
 
 		case NMSG_REFRESH:
 			//build
@@ -257,7 +257,8 @@ func main() {
 					inLayout.fnSetEditbox(in.EditValue, in.EditEnter)
 				}
 
-			} else if in.Pick.File != "" {
+			} else if in.Pick.Line > 0 {
+				in.Pick.time_sec = float64(time.Now().UnixMilli()) / 1000
 				NewFile_AssistantChat().findPickOrAdd(in.Pick)
 
 			} else if inLayout.fnInput != nil {

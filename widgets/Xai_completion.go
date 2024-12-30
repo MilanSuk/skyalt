@@ -6,35 +6,35 @@ import (
 	"fmt"
 )
 
-type Xai_chat struct {
+type Xai_completion struct {
 	UID        string
-	Properties Xai_chat_props
+	Properties Xai_completion_props
 
 	Out  string
 	done func()
 }
 
-func (layout *Layout) AddXai_chat(x, y, w, h int, props *Xai_chat) *Xai_chat {
-	layout._createDiv(x, y, w, h, "Xai_chat", props.Build, nil, nil)
+func (layout *Layout) AddXai_completion(x, y, w, h int, props *Xai_completion) *Xai_completion {
+	layout._createDiv(x, y, w, h, "Xai_completion", props.Build, nil, nil)
 	return props
 }
 
-var g_global_Xai_chat = make(map[string]*Xai_chat)
+var g_global_Xai_completion = make(map[string]*Xai_completion)
 
-func NewGlobal_Xai_chat(uid string) *Xai_chat {
-	uid = fmt.Sprintf("Xai_chat:%s", uid)
+func NewGlobal_Xai_completion(uid string) *Xai_completion {
+	uid = fmt.Sprintf("Xai_completion:%s", uid)
 
-	st, found := g_global_Xai_chat[uid]
+	st, found := g_global_Xai_completion[uid]
 	if !found {
-		st = &Xai_chat{UID: uid}
+		st = &Xai_completion{UID: uid}
 		st.Properties.Reset()
 
-		g_global_Xai_chat[uid] = st
+		g_global_Xai_completion[uid] = st
 	}
 	return st
 }
 
-func (st *Xai_chat) Build(layout *Layout) {
+func (st *Xai_completion) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 1, 3)
@@ -55,20 +55,20 @@ func (st *Xai_chat) Build(layout *Layout) {
 	}
 }
 
-func (st *Xai_chat) Start() *Job {
+func (st *Xai_completion) Start() *Job {
 	return StartJob(st.UID, "XAi chat completion", st.Run)
 }
-func (st *Xai_chat) Stop() {
+func (st *Xai_completion) Stop() {
 	job := FindJob(st.UID)
 	if job != nil {
 		job.Stop()
 	}
 }
-func (st *Xai_chat) IsRunning() bool {
+func (st *Xai_completion) IsRunning() bool {
 	return FindJob(st.UID) != nil
 }
 
-func (st *Xai_chat) Run(job *Job) {
+func (st *Xai_completion) Run(job *Job) {
 	if !NewFile_Xai().Enable {
 		job.AddError(errors.New("Xai is disabled"))
 		return
@@ -81,14 +81,14 @@ func (st *Xai_chat) Run(job *Job) {
 		return
 	}
 
-	st.Properties.Stream = true
+	//st.Properties.Stream = true
 	jsProps, err := json.Marshal(&st.Properties)
 	if err != nil {
 		job.AddError(fmt.Errorf("Marshal() failed: %w", err))
 		return
 	}
 
-	st.Out, err = OpenAI_chat_Complete(jsProps, "https://api.x.ai/v1/chat/completions", NewFile_Xai().Api_key, job)
+	st.Out, err = OpenAI_completion_Run(jsProps, st.Properties.Stream, "https://api.x.ai/v1/chat/completions", NewFile_Xai().Api_key, job)
 	if err != nil {
 		job.AddError(err)
 		return

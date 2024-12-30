@@ -1,30 +1,33 @@
 package main
 
-type Xai_chat_props struct {
-	Model    string            `json:"model"`
-	Messages []OpenAI_chat_msg `json:"messages"`
-	Stream   bool              `json:"stream"`
+func (layout *Layout) AddOpenAI_completionV_props(x, y, w, h int, props *OpenAI_completionV_props) *OpenAI_completionV_props {
+	layout._createDiv(x, y, w, h, "OpenAI_completionV_props", props.Build, nil, nil)
+	return props
+}
+
+type OpenAI_completionV_props struct {
+	Model    string                   `json:"model"`
+	Messages []OpenAI_completion_msgV `json:"messages"`
+	Stream   bool                     `json:"stream"`
 
 	Temperature       float64 `json:"temperature"`       //1.0
 	Max_tokens        int     `json:"max_tokens"`        //
 	Top_p             float64 `json:"top_p"`             //1.0
 	Frequency_penalty float64 `json:"frequency_penalty"` //0
 	Presence_penalty  float64 `json:"presence_penalty"`  //0
+
+	Response_format *OpenAI_completion_format `json:"response_format"`
 }
 
-func (layout *Layout) AddXai_chat_props(x, y, w, h int, props *Xai_chat_props) *Xai_chat_props {
-	layout._createDiv(x, y, w, h, "Xai_chat_props", props.Build, nil, nil)
-	return props
-}
+func (st *OpenAI_completionV_props) Build(layout *Layout) {
 
-func (st *Xai_chat_props) Build(layout *Layout) {
 	layout.SetColumn(0, 2, 3.5)
 	layout.SetColumn(1, 1, 100)
 
 	y := 0
 
 	layout.AddText(0, y, 1, 1, "Model")
-	layout.AddCombo(1, y, 1, 1, &st.Model, Xai_GetChatModelList(), Xai_GetChatModelList())
+	layout.AddCombo(1, y, 1, 1, &st.Model, OpenAI_GetChatModelList(), OpenAI_GetChatModelList())
 	y++
 
 	sl := layout.AddSliderEdit(0, y, 2, 1, &st.Temperature, 0, 2, 0.1)
@@ -80,14 +83,17 @@ func (st *Xai_chat_props) Build(layout *Layout) {
 	y++
 }
 
-func (props *Xai_chat_props) Reset() {
+func (props *OpenAI_completionV_props) Reset() {
 	if props.Model == "" {
-		props.Model = NewFile_Xai().ChatModel
+		props.Model = NewFile_OpenAI().ChatModel
 	}
-	props.Stream = true
+	//props.Stream = true
 	props.Temperature = 1.0
 	props.Max_tokens = 4046
 	props.Top_p = 0.7 //1.0
-	//props.Frequency_penalty = 0
-	//props.Presence_penalty = 0
+	props.Frequency_penalty = 0
+	props.Presence_penalty = 0
+	//props.Seed = -1
+	//props.Cache_prompt = false
+	//props.Stop = []string{"</s>", "<|im_start|>", "<|im_end|>", "Llama:", "User:"}
 }

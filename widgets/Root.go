@@ -54,10 +54,10 @@ func (st *Root) Build(layout *Layout) {
 		HeaderDiv.SetColumn(1, 1, 100)
 		HeaderDiv.SetColumnFromSub(2)  //mic
 		HeaderDiv.SetColumn(3, 1, 15)  //prompt
-		HeaderDiv.SetColumn(4, 1, 2)   //send
-		HeaderDiv.SetColumn(5, 1, 100) //empty/errors
-		//HeaderDiv.SetColumn(6, 1, 1)   //jobs
-		//HeaderDiv.SetColumn(7, 1, 1)   //settings panel
+		HeaderDiv.SetColumn(4, 1, 1)   //clear
+		HeaderDiv.SetColumn(5, 1, 3)   //send
+		HeaderDiv.SetColumn(6, 1, 100) //empty/errors
+		HeaderDiv.SetColumn(7, 1, 1)   //jobs
 		HeaderDiv.SetRowFromSub(0)
 		HeaderDiv.Back_cd = Paint_GetPalette().GetGrey(0.9)
 
@@ -78,17 +78,25 @@ func (st *Root) Build(layout *Layout) {
 
 		//prompt
 		//...ChatDia := ast.CreateDialog(layout)
-		ast.Prompt = Assistant_recomputeColors(ast.Prompt, ast.Picks)
+		ast.Assistant_recomputePromptColors() //, ast.Picks)
 		ed, edLay := HeaderDiv.AddEditboxMultiline(3, 0, 1, 1, &ast.Prompt)
 		ed.Ghost = "What can I do for you?"
-		ed.Tooltip = "Use Ctrl + L/R click to select widgets."
+		ed.Tooltip = "Use Ctrl + Mouse to select widgets."
 		edLay.Back_cd = Paint_GetPalette().B
 		if ast.Prompt == "" {
-			ast.Picks = nil //clean
+			ast.reset()
 		}
 
 		//clear
-		sendBt := HeaderDiv.AddButton(4, 0, 1, 1, NewButton("Send"))
+		clearBt := HeaderDiv.AddButton(4, 0, 1, 1, NewButton("X"))
+		clearBt.Background = 0.5
+		//sendLay.Enable = len(ast.Prompt) > 0
+		clearBt.clicked = func() {
+			ast.reset()
+		}
+
+		//send
+		sendBt := HeaderDiv.AddButton(5, 0, 1, 1, NewButton("Send"))
 		//sendLay.Enable = len(ast.Prompt) > 0
 		sendBt.clicked = func() {
 			ast.Send()
@@ -98,15 +106,15 @@ func (st *Root) Build(layout *Layout) {
 		{
 			logs := NewFile_Logs()
 
+			ErrDia := HeaderDiv.AddDialog("errors")
+			ErrDia.Layout.SetColumn(0, 1, 15)
+			ErrDia.Layout.SetRow(0, 1, 15)
+			ErrDia.Layout.AddLogs(0, 0, 1, 1, logs)
+
 			err := logs.GetError(st.Last_error_time_unix)
 			if err != nil {
-				errDia := HeaderDiv.AddDialog("errors")
-				errDia.Layout.SetColumn(0, 1, 15)
-				errDia.Layout.SetRow(0, 1, 20)
-				errDia.Layout.AddLogs(0, 0, 1, 1, logs)
-
 				HeaderDiv.AddLayout(1, 0, 1, 1) //empty layout, so prompt(editbox) stays centered
-				errDiv := HeaderDiv.AddLayout(5, 0, 1, 1)
+				errDiv := HeaderDiv.AddLayout(6, 0, 1, 1)
 				errDiv.SetColumn(0, 1, 1)
 				errDiv.SetColumn(2, 1, 100) //text
 				errDiv.SetColumn(3, 1, 1)
@@ -116,7 +124,7 @@ func (st *Root) Build(layout *Layout) {
 				openBt.Cd = Paint_GetPalette().E
 				openBt.Background = 0.2
 				openBt.clicked = func() {
-					errDia.OpenCentered()
+					ErrDia.OpenCentered()
 					st.Last_error_time_unix = err.Time_unix + 1 //hide
 				}
 
@@ -124,7 +132,6 @@ func (st *Root) Build(layout *Layout) {
 				if now_unix-5 > err.Time_unix {
 					st.Last_error_time_unix = now_unix
 				}
-
 			}
 		}
 
@@ -140,7 +147,7 @@ func (st *Root) Build(layout *Layout) {
 			if enable {
 				sz = 0.1 //bigger icon
 			}
-			JobsBt, JobsL := HeaderDiv.AddButton2(6, 0, 1, 1, NewButtonIcon("resources/logo_Counter.png", sz, "List of jobs"))
+			JobsBt, JobsL := HeaderDiv.AddButton2(7, 0, 1, 1, NewButtonIcon("resources/logo_Counter.png", sz, "List of jobs"))
 			if enable {
 				JobsBt.Cd = Paint_GetPalette().P
 			}
@@ -162,7 +169,7 @@ func (st *Root) Build(layout *Layout) {
 		}*/
 
 		//udpate skyalt dom paints
-		layout.CmdSetPicks(ast.Picks)
+		//layout.CmdSetPicks(ast.Picks)
 	}
 
 	{

@@ -138,34 +138,24 @@ type LayoutCR struct {
 }
 
 type LayoutScroll struct {
-	Show   bool
+	Hide   bool
 	Narrow bool
 }
 
 type LayoutPick struct {
-	File                           string
-	Line                           int
-	Grid_x, Grid_y, Grid_w, Grid_h int
-	Tip                            string
+	Line       int
+	X, Y, W, H int
 
-	Cd       color.RGBA
-	Time_sec float64
+	Cd       color.RGBA //paintbrush color
+	time_sec float64
 }
 
 func (a *LayoutPick) Cmp(b *LayoutPick) bool {
-	return a.File == b.File &&
-		a.Line == b.Line &&
-		a.Grid_x == b.Grid_x &&
-		a.Grid_y == b.Grid_y &&
-		a.Grid_w == b.Grid_w &&
-		a.Grid_h == b.Grid_h
-}
-func LayoutPick_getMark(i int) string {
-	if i < 25 { //25 = 'Z'-'A'
-		return fmt.Sprintf("{%c}", 'A'+i)
-	} else {
-		return fmt.Sprintf("{%c}", '0'+(i-25))
-	}
+	return a.Line == b.Line &&
+		a.X == b.X &&
+		a.Y == b.Y &&
+		a.W == b.W &&
+		a.H == b.H
 }
 
 type LayoutInput struct {
@@ -196,6 +186,8 @@ type LayoutInput struct {
 	Shortcut_key byte
 
 	Pick LayoutPick
+	//PickCode  string
+	//PickImage []byte
 }
 
 type LayoutDialog struct {
@@ -534,6 +526,10 @@ func Layout_RefreshDelayed() {
 func Layout_Recompile() {
 	_addCmd(LayoutCmd{Hash: 0, Cmd: "Compile"})
 }
+func Layout_ResetBrushes() {
+	_addCmd(LayoutCmd{Hash: 0, Cmd: "ResetBrushes"})
+}
+
 func Layout_SetClipboardText(text string) {
 	_addCmd(LayoutCmd{Hash: 0, Cmd: "SetClipboardText", Param1: text})
 }
@@ -548,9 +544,6 @@ func (layout *Layout) CutText() {
 }
 func (layout *Layout) PasteText() {
 	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "PasteText"})
-}
-func (layout *Layout) CmdSetPicks(picks []LayoutPick) {
-	_addCmd(LayoutCmd{Hash: 0, Cmd: "Picks", Param1: string(OsMarshal(picks))})
 }
 
 var g_theme_light = LayoutPalette{
@@ -588,12 +581,12 @@ var g_theme_dark = LayoutPalette{
 }
 
 func Layout_Cell() int { //number of pixels in one cell
-	return int(float32(NewFile_Env().Dpi) / 2.5)
+	return int(float32(NewFile_Settings().Dpi) / 2.5)
 }
 
 func Paint_GetPalette() *LayoutPalette {
 
-	env := NewFile_Env()
+	env := NewFile_Settings()
 
 	theme := env.Theme
 
@@ -618,7 +611,7 @@ func Paint_GetPalette() *LayoutPalette {
 }
 
 func Layout_GetDateFormat() string {
-	return NewFile_Env().DateFormat
+	return NewFile_Settings().DateFormat
 }
 
 func Layout_WriteError(err error) error {
@@ -831,7 +824,7 @@ func Layout_ConvertTextDate(unix_sec int64) string {
 	tm := time.Unix(unix_sec, 0)
 	//dd := Date_GetDateFromTime(unix_sec)
 
-	switch NewFile_Env().DateFormat {
+	switch NewFile_Settings().DateFormat {
 	case "eu":
 		return fmt.Sprintf("%d/%d/%d", tm.Day(), int(tm.Month()), tm.Year())
 

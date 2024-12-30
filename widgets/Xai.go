@@ -20,7 +20,7 @@ var g_Xai *Xai
 
 func NewFile_Xai() *Xai {
 	if g_Xai == nil {
-		g_Xai = &Xai{Enable: true}
+		g_Xai = &Xai{Enable: true, ChatModel: "grok-beta"}
 		_read_file("Xai-Xai", g_Xai)
 	}
 	return g_Xai
@@ -75,5 +75,10 @@ func (st *Xai) Build(layout *Layout) {
 }
 
 func Xai_GetChatModelList() []string {
-	return []string{"grok-beta"}
+	return []string{
+		"grok-2-vision-1212",
+		"grok-2-1212",
+		"grok-vision-beta",
+		"grok-beta",
+	}
 }

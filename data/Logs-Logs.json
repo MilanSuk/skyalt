@@ -1,39 +1,164 @@
 {
 "Items": [
 {
-"Time_unix": 1735046517,
-"Layout_hash": 0,
-"Error": "statusCode 400 != 200, response: "
-},
-{
-"Time_unix": 1735049315,
-"Layout_hash": 0,
-"Error": "statusCode 400 != 200, response: "
-},
-{
-"Time_unix": 1735049331,
+"Time_unix": 1735298210,
 "Layout_hash": 0,
 "Error": "prompt is too short"
 },
 {
-"Time_unix": 1735082977,
+"Time_unix": 1735338753,
 "Layout_hash": 0,
-"Error": "statusCode 400 != 200, response: "
+"Error": "statusCode 422 != 200, response: "
 },
 {
-"Time_unix": 1735082998,
+"Time_unix": 1735338777,
 "Layout_hash": 0,
-"Error": "statusCode 400 != 200, response: "
+"Error": "statusCode 422 != 200, response: "
 },
 {
-"Time_unix": 1735083011,
+"Time_unix": 1735339352,
 "Layout_hash": 0,
-"Error": "statusCode 400 != 200, response: "
+"Error": "statusCode 422 != 200, response: "
 },
 {
-"Time_unix": 1735173880,
+"Time_unix": 1735339849,
 "Layout_hash": 0,
-"Error": "Transcribe() failed: Do() failed: Post \"http://127.0.0.1:8091/inference\": EOF"
+"Error": "statusCode 422 != 200, response: "
+},
+{
+"Time_unix": 1735340230,
+"Layout_hash": 0,
+"Error": "statusCode 422 != 200, response: "
+},
+{
+"Time_unix": 1735340848,
+"Layout_hash": 0,
+"Error": "invalid character 'B' looking for beginning of value"
+},
+{
+"Time_unix": 1735342013,
+"Layout_hash": 0,
+"Error": "Prompt_2() json: cannot unmarshal array into Go value of type main.Out"
+},
+{
+"Time_unix": 1735342096,
+"Layout_hash": 0,
+"Error": "statusCode 422 != 200, response: "
+},
+{
+"Time_unix": 1735342116,
+"Layout_hash": 0,
+"Error": "statusCode 422 != 200, response: "
+},
+{
+"Time_unix": 1735342333,
+"Layout_hash": 0,
+"Error": "statusCode 429 != 200, response: "
+},
+{
+"Time_unix": 1735415848,
+"Layout_hash": 0,
+"Error": "Prompt_2() json: cannot unmarshal array into Go value of type main.Out"
+},
+{
+"Time_unix": 1735422029,
+"Layout_hash": 0,
+"Error": "Read() failed: stream error: stream ID 3; INTERNAL_ERROR; received from peer"
+},
+{
+"Time_unix": 1735423279,
+"Layout_hash": 0,
+"Error": "json: cannot unmarshal object into Go value of type []main.OutputFile"
+},
+{
+"Time_unix": 1735425235,
+"Layout_hash": 0,
+"Error": "Read() failed: stream error: stream ID 3; INTERNAL_ERROR; received from peer"
+},
+{
+"Time_unix": 1735512426,
+"Layout_hash": 0,
+"Error": "Read() failed: stream error: stream ID 3; INTERNAL_ERROR; received from peer"
+},
+{
+"Time_unix": 1735512572,
+"Layout_hash": 0,
+"Error": "Read() failed: stream error: stream ID 3; INTERNAL_ERROR; received from peer"
+},
+{
+"Time_unix": 1735513176,
+"Layout_hash": 0,
+"Error": "Read() failed: stream error: stream ID 3; INTERNAL_ERROR; received from peer"
+},
+{
+"Time_unix": 1735513730,
+"Layout_hash": 0,
+"Error": "Prompt_2() unrecognized user prompt"
+},
+{
+"Time_unix": 1735513845,
+"Layout_hash": 0,
+"Error": "Prompt_2() unrecognized user prompt"
+},
+{
+"Time_unix": 1735515169,
+"Layout_hash": 0,
+"Error": "Unmarshal() failed: \u0026{%!E(string=invalid character 'e' looking for beginning of value) %!E(int64=1)}"
+},
+{
+"Time_unix": 1735515169,
+"Layout_hash": 0,
+"Error": "invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735515306,
+"Layout_hash": 0,
+"Error": "Unmarshal() failed: \u0026{%!E(string=invalid character 'e' looking for beginning of value) %!E(int64=1)}"
+},
+{
+"Time_unix": 1735515306,
+"Layout_hash": 0,
+"Error": "invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735516242,
+"Layout_hash": 0,
+"Error": "Unmarshal() failed: invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735516242,
+"Layout_hash": 0,
+"Error": "invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735516530,
+"Layout_hash": 0,
+"Error": "Unmarshal() failed: invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735516530,
+"Layout_hash": 0,
+"Error": "invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735516769,
+"Layout_hash": 0,
+"Error": "Unmarshal() failed: invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735516769,
+"Layout_hash": 0,
+"Error": "invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735516890,
+"Layout_hash": 0,
+"Error": "Unmarshal() of error code: 520 failed: invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735516890,
+"Layout_hash": 0,
+"Error": "invalid character 'e' looking for beginning of value"
 }
 ]
 }

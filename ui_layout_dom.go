@@ -25,38 +25,9 @@ import (
 )
 
 type LayoutPick struct {
-	File                           string
-	Line                           int
-	Grid_x, Grid_y, Grid_w, Grid_h int
-	Tip                            string
-
-	Cd       color.RGBA
-	Time_sec float64
-}
-
-func InitLayoutPick(file string, line int, grid OsV4, tip string) LayoutPick {
-	return LayoutPick{File: file,
-		Line:   line,
-		Grid_x: grid.Start.X, Grid_y: grid.Start.Y, Grid_w: grid.Size.X, Grid_h: grid.Size.Y,
-		Tip:      tip,
-		Time_sec: OsTime(),
-	}
-}
-func (pick *LayoutPick) GetGrid() OsV4 {
-	return InitOsV4(pick.Grid_x, pick.Grid_y, pick.Grid_w, pick.Grid_h)
-}
-func LayoutPick_getMark(i int) string {
-	if i < 25 { //25 = 'Z'-'A'
-		return fmt.Sprintf("{%c}", 'A'+i)
-	} else {
-		return fmt.Sprintf("{%c}", '0'+(i-25))
-	}
-}
-
-type Layout3PickGrid struct {
-	Cd                             color.RGBA
-	Grid_x, Grid_y, Grid_w, Grid_h int
-	Label                          string
+	Line       int
+	X, Y, W, H int
+	Cd         color.RGBA //paintbrush color
 }
 
 type Rect struct {
@@ -132,7 +103,7 @@ type LayoutDialog struct {
 	Layout *Layout
 }
 type LayoutScroll struct {
-	Show   bool
+	Hide   bool
 	Narrow bool
 }
 
@@ -267,10 +238,6 @@ type Layout3 struct {
 	touchResizeIsActive     bool
 
 	buffer []LayoutDrawPrim
-
-	prompt_label   string
-	prompt_comp_cd color.RGBA //highlight with rect
-	prompt_grids   []Layout3PickGrid
 }
 
 func NewUiLayoutDOM(props Layout, parent *Layout3, ui *Ui) *Layout3 {
@@ -298,40 +265,13 @@ func (dom *Layout3) extractRects(rects map[uint64]Rect) {
 	}
 }
 
-func (dom *Layout3) projectPicks(picks []LayoutPick) {
-	dom.ResetPicks()
-	for pk_i, pk := range picks {
-
-		if pk.Cd.A == 0 {
-			continue //invisible
-		}
-
-		var marks []*Layout3
-		dom.FindAppLine(pk.File, pk.Line, &marks)
-		for _, mark := range marks {
-
-			label := LayoutPick_getMark(pk_i)
-			if pk.GetGrid().Size.IsZero() {
-				mark.prompt_label = label
-				mark.prompt_comp_cd = pk.Cd
-			} else {
-				grid := pk.GetGrid()
-				mark.prompt_grids = append(mark.prompt_grids, Layout3PickGrid{
-					Cd:     pk.Cd,
-					Grid_x: grid.Start.X, Grid_y: grid.Start.Y, Grid_w: grid.Size.X, Grid_h: grid.Size.Y,
-					Label: label})
-			}
-		}
-	}
-}
-
 func (dom *Layout3) project(src *Layout) {
 	dom.props = *src
 
 	//scroll
-	dom.scrollV.Show = src.ScrollH.Show
-	dom.scrollH.Show = src.ScrollH.Show
-	dom.scrollV.Narrow = src.ScrollH.Narrow
+	dom.scrollV.Show = !src.ScrollV.Hide
+	dom.scrollH.Show = !src.ScrollH.Hide
+	dom.scrollV.Narrow = src.ScrollV.Narrow
 	dom.scrollH.Narrow = src.ScrollH.Narrow
 
 	dom.scrollV.wheel = dom.GetSettings().GetScrollV(dom.props.Hash)
@@ -442,18 +382,6 @@ func (dom *Layout3) SetTouchAll() {
 	}
 }
 
-func (dom *Layout3) ResetPicks() {
-	dom.prompt_comp_cd = color.RGBA{}
-	dom.prompt_grids = nil
-
-	if dom.dialog != nil {
-		dom.dialog.ResetPicks()
-	}
-	for _, it := range dom.childs {
-		it.ResetPicks()
-	}
-}
-
 func (dom *Layout3) Destroy() {
 	if dom.dialog != nil {
 		dom.dialog.Destroy()
@@ -505,6 +433,28 @@ func (dom *Layout3) FindHash(hash uint64) *Layout3 {
 
 	for _, it := range dom.childs {
 		d := it.FindHash(hash)
+		if d != nil {
+			return d
+		}
+	}
+
+	return nil
+}
+
+func (dom *Layout3) FindFirstName(name string) *Layout3 {
+	if dom.props.Name == name {
+		return dom
+	}
+
+	if dom.dialog != nil {
+		d := dom.dialog.FindFirstName(name)
+		if d != nil {
+			return d
+		}
+	}
+
+	for _, it := range dom.childs {
+		d := it.FindFirstName(name)
 		if d != nil {
 			return d
 		}
@@ -1086,10 +1036,8 @@ func (dom *Layout3) Draw() {
 	}
 
 	//selection
-	if dom.ui.selection.IsActive() {
-		buff.AddCrop(dom.CropWithScroll())
-		dom.ui.selection.Draw(buff, dom.ui)
-	}
+	dom.ui.selection.Draw(buff, dom.ui)
+
 }
 
 func (dom *Layout3) drawBuffers() {
@@ -1127,104 +1075,54 @@ func (dom *Layout3) drawBuffers() {
 		}
 	}
 
-	dom.draw_grid()
-	dom.draw_prompts()
 	dom.draw_drag_and_drop()
 }
 
-func (dom *Layout3) draw_grid() {
+func (dom *Layout3) draw_grid2(cd color.RGBA, w float64, depth int) {
 	buff := dom.ui.GetWin().buff
 
-	//show grid
-	if dom.ui.selection.ShowGrid || dom.GetUis().win.io.Keys.Ctrl {
-		canvas := dom.canvas.Size
-		cd := dom.GetPalette().OnB
-		cd.A = 30
+	canvas := dom.canvas.Size
 
-		mx := float64(dom.cols.GetSumOutput(-1)) / float64(canvas.X)
-		my := float64(dom.rows.GetSumOutput(-1)) / float64(canvas.Y)
+	mx := float64(dom.cols.GetSumOutput(-1)) / float64(canvas.X)
+	my := float64(dom.rows.GetSumOutput(-1)) / float64(canvas.Y)
 
-		var start, end OsV2
+	var start, end OsV2
+	width := dom.ui.CellWidth(w)
 
-		buff.AddCrop(dom.crop)
+	cr := dom.crop.Crop(depth * width)
+	buff.AddCrop(cr)
 
-		//columns
-		start = dom.canvas.Start
-		end = dom.canvas.End()
-		end.Y = dom.canvas.Start.Y + int(float64(dom.canvas.Size.Y)*my)
-		sum := int32(0)
-		for _, c := range dom.cols.outputs {
-			sum += c
-			p := float64(sum) / float64(canvas.X)
+	//main border
+	//rc := dom._getRect()
+	//rc = rc.Cut(float64(depth) * 0.06)
+	buff.AddRect(cr, cd, width)
 
-			start.X = dom.canvas.Start.X + int(float64(dom.canvas.Size.X)*p)
-			end.X = start.X
-			buff.AddLine(start, end, cd, dom.ui.CellWidth(0.03))
-		}
+	//columns
+	start = dom.canvas.Start
+	end = dom.canvas.End()
+	end.Y = dom.canvas.Start.Y + int(float64(dom.canvas.Size.Y)*my)
+	sum := int32(0)
+	for _, c := range dom.cols.outputs {
+		sum += c
+		p := float64(sum) / float64(canvas.X)
 
-		//rows
-		sum = 0
-		start = dom.canvas.Start
-		end = dom.canvas.End()
-		end.X = dom.canvas.Start.X + int(float64(dom.canvas.Size.X)*mx)
-		for _, r := range dom.rows.outputs {
-			sum += r
-			p := float64(sum) / float64(canvas.Y)
-
-			start.Y = dom.canvas.Start.Y + int(float64(dom.canvas.Size.Y)*p)
-			end.Y = start.Y
-			buff.AddLine(start, end, cd, dom.ui.CellWidth(0.03))
-		}
-	}
-}
-
-func (dom *Layout3) draw_prompts() {
-	buff := dom.ui.GetWin().buff
-
-	buff.AddCrop(dom.crop)
-
-	//prompt - component
-	if dom.prompt_comp_cd.A > 0 {
-		//component
-		rc := dom._getRect()
-		rc = rc.Cut(0.1)
-		cd := dom.prompt_comp_cd
-
-		buff.AddRect(dom.getCanvasPx(rc), cd, dom.ui.CellWidth(0.06))
-		buff.AddText("<h2>"+dom.prompt_label, InitWinFontPropsDef(dom.Cell()), cd, dom.getCanvasPx(rc.Cut(0.1)), OsV2{0, 0}, 0, 1)
+		start.X = dom.canvas.Start.X + int(float64(dom.canvas.Size.X)*p)
+		end.X = start.X
+		buff.AddLine(start, end, cd, width)
 	}
 
-	//prompt - grids
-	for _, it := range dom.prompt_grids {
-		//grid
-		cell := float64(dom.Cell())
+	//rows
+	sum = 0
+	start = dom.canvas.Start
+	end = dom.canvas.End()
+	end.X = dom.canvas.Start.X + int(float64(dom.canvas.Size.X)*mx)
+	for _, r := range dom.rows.outputs {
+		sum += r
+		p := float64(sum) / float64(canvas.Y)
 
-		start := OsV2{it.Grid_x, it.Grid_y}
-		end := OsV2{it.Grid_x + it.Grid_w, it.Grid_y + it.Grid_h}
-		sx := dom.cols.GetSumOutput(start.X)
-		ex := dom.cols.GetSumOutput(end.X)
-		sy := dom.rows.GetSumOutput(start.Y)
-		ey := dom.rows.GetSumOutput(end.Y)
-
-		rc := dom._getRect()
-		rc.X += float64(sx) / cell
-		rc.Y += float64(sy) / cell
-		rc.W = float64(ex-sx) / cell
-		rc.H = float64(ey-sy) / cell
-
-		rc = rc.Cut(0.1)
-		cd := it.Cd
-		cd.A = 30
-
-		cq := dom.getCanvasPx(rc)
-		buff.AddRect(cq, cd, 0)
-
-		st := cq.Start
-		en := cq.End()
-		buff.AddLine(st, en, cd, dom.ui.CellWidth(0.06))
-		buff.AddLine(OsV2{en.X, st.Y}, OsV2{st.X, en.Y}, cd, dom.ui.CellWidth(0.06))
-
-		buff.AddText("<h2>"+it.Label, InitWinFontPropsDef(dom.Cell()), it.Cd, dom.getCanvasPx(rc.Cut(0.1)), OsV2{1, 1}, 0, 1)
+		start.Y = dom.canvas.Start.Y + int(float64(dom.canvas.Size.Y)*p)
+		end.Y = start.Y
+		buff.AddLine(start, end, cd, width)
 	}
 }
 

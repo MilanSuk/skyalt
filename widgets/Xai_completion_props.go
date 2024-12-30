@@ -1,24 +1,9 @@
 package main
 
-type OpenAI_chat_msg struct {
-	Role    string `json:"role"` //"system", "user", "assistant"
-	Content string `json:"content"`
-}
-
-type OpenAI_chat_format struct {
-	Type string `json:"type"` //json_object
-	//Json_schema ...
-}
-
-func (layout *Layout) AddOpenAI_chat_props(x, y, w, h int, props *OpenAI_chat_props) *OpenAI_chat_props {
-	layout._createDiv(x, y, w, h, "OpenAI_chat_props", props.Build, nil, nil)
-	return props
-}
-
-type OpenAI_chat_props struct {
-	Model    string            `json:"model"`
-	Messages []OpenAI_chat_msg `json:"messages"`
-	Stream   bool              `json:"stream"`
+type Xai_completion_props struct {
+	Model    string                  `json:"model"`
+	Messages []OpenAI_completion_msg `json:"messages"`
+	Stream   bool                    `json:"stream"`
 
 	Temperature       float64 `json:"temperature"`       //1.0
 	Max_tokens        int     `json:"max_tokens"`        //
@@ -26,18 +11,22 @@ type OpenAI_chat_props struct {
 	Frequency_penalty float64 `json:"frequency_penalty"` //0
 	Presence_penalty  float64 `json:"presence_penalty"`  //0
 
-	Response_format OpenAI_chat_format `json:"response_format"`
+	Response_format *OpenAI_completion_format `json:"response_format"`
 }
 
-func (st *OpenAI_chat_props) Build(layout *Layout) {
+func (layout *Layout) AddXai_completion_props(x, y, w, h int, props *Xai_completion_props) *Xai_completion_props {
+	layout._createDiv(x, y, w, h, "Xai_completion_props", props.Build, nil, nil)
+	return props
+}
 
+func (st *Xai_completion_props) Build(layout *Layout) {
 	layout.SetColumn(0, 2, 3.5)
 	layout.SetColumn(1, 1, 100)
 
 	y := 0
 
 	layout.AddText(0, y, 1, 1, "Model")
-	layout.AddCombo(1, y, 1, 1, &st.Model, OpenAI_GetChatModelList(), OpenAI_GetChatModelList())
+	layout.AddCombo(1, y, 1, 1, &st.Model, Xai_GetChatModelList(), Xai_GetChatModelList())
 	y++
 
 	sl := layout.AddSliderEdit(0, y, 2, 1, &st.Temperature, 0, 2, 0.1)
@@ -93,17 +82,14 @@ func (st *OpenAI_chat_props) Build(layout *Layout) {
 	y++
 }
 
-func (props *OpenAI_chat_props) Reset() {
+func (props *Xai_completion_props) Reset() {
 	if props.Model == "" {
-		props.Model = NewFile_OpenAI().ChatModel
+		props.Model = NewFile_Xai().ChatModel
 	}
-	props.Stream = true
+	//props.Stream = true
 	props.Temperature = 1.0
 	props.Max_tokens = 4046
 	props.Top_p = 0.7 //1.0
-	props.Frequency_penalty = 0
-	props.Presence_penalty = 0
-	//props.Seed = -1
-	//props.Cache_prompt = false
-	//props.Stop = []string{"</s>", "<|im_start|>", "<|im_end|>", "Llama:", "User:"}
+	//props.Frequency_penalty = 0
+	//props.Presence_penalty = 0
 }
