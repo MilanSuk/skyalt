@@ -84,7 +84,7 @@ func (st *Xai_completionV_props) Build(layout *Layout) {
 
 func (props *Xai_completionV_props) Reset() {
 	if props.Model == "" {
-		props.Model = NewFile_Xai().ChatModel
+		props.Model = OpenFile_Xai().ChatModel
 	}
 	//props.Stream = true
 	props.Temperature = 1.0

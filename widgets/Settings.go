@@ -28,7 +28,7 @@ func (layout *Layout) AddSettings(x, y, w, h int, props *Settings) *Settings {
 
 var g_Settings *Settings
 
-func NewFile_Settings() *Settings {
+func OpenFile_Settings() *Settings {
 	if g_Settings == nil {
 		g_Settings = &Settings{Volume: 0.5, Theme: "light"}
 

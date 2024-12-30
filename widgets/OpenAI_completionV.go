@@ -69,7 +69,7 @@ func (st *OpenAI_completionV) IsRunning() bool {
 
 func (st *OpenAI_completionV) Run(job *Job) {
 
-	if !NewFile_OpenAI().Enable {
+	if !OpenFile_OpenAI().Enable {
 		job.AddError(errors.New("OpenAI is disabled"))
 		return
 	}
@@ -88,7 +88,7 @@ func (st *OpenAI_completionV) Run(job *Job) {
 		return
 	}
 
-	st.Out, err = OpenAI_completion_Run(jsProps, st.Properties.Stream, "https://api.openai.com/v1/chat/completions", NewFile_OpenAI().Api_key, job)
+	st.Out, err = OpenAI_completion_Run(jsProps, st.Properties.Stream, "https://api.openai.com/v1/chat/completions", OpenFile_OpenAI().Api_key, job)
 	if err != nil {
 		job.AddError(err)
 		return

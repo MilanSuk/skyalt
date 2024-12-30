@@ -45,7 +45,7 @@ func (job *Job) AddError(err error) {
 	if err != nil {
 		job.errors = append(job.errors, err)
 
-		NewFile_Logs().AddError(err, 0)
+		OpenFile_Logs().AddError(err, 0)
 	}
 }
 func (job *Job) SetProgress(done float64, info string) {

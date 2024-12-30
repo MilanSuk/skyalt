@@ -85,7 +85,8 @@ type LayoutInput struct {
 
 	Shortcut_key byte
 
-	Pick LayoutPick
+	Pick    LayoutPick
+	PickApp string
 }
 type LayoutCR struct {
 	Pos int     `json:",omitempty"`
@@ -335,18 +336,18 @@ func (dom *Layout3) setTouchEnable(touch bool) {
 	}
 }
 
-func (dom *Layout3) setTouchDialogDisable(subDialogs bool) {
+func (dom *Layout3) setTouchDialogDisable(ignoreDia *Layout3) {
 	dom.touchDia = false
 	for _, it := range dom.childs {
 		if it.props.App {
-			it.setTouchDialogDisable(true) //disable dialogs inside
+			it.setTouchDialogDisable(nil) //disable dialogs inside
 		} else {
-			it.setTouchDialogDisable(subDialogs)
+			it.setTouchDialogDisable(ignoreDia)
 		}
 	}
 
-	if dom.dialog != nil && subDialogs {
-		dom.dialog.setTouchDialogDisable(true)
+	if dom.dialog != nil && dom.dialog != ignoreDia {
+		dom.dialog.setTouchDialogDisable(ignoreDia)
 	}
 }
 
@@ -370,13 +371,16 @@ func (dom *Layout3) SetTouchAll() {
 	dom.setTouchEnable(true)
 
 	//dialogs
-	for _, dia := range dom.ui.settings.Dialogs {
+	for i, dia := range dom.ui.settings.Dialogs {
 		layDia := dom.FindHash(dia.Hash)
 		if layDia != nil {
 			layApp := layDia.parent.GetApp()
 			if layApp != nil {
-				//dia.appHash = layApp.props.Hash
-				layApp.setTouchDialogDisable(false)
+
+				topApp_i := dom.ui.settings.GetHigherDialogApp(layApp, dom.ui)
+				if i == topApp_i {
+					layApp.setTouchDialogDisable(layDia)
+				}
 			}
 		}
 	}
@@ -461,6 +465,19 @@ func (dom *Layout3) FindFirstName(name string) *Layout3 {
 	}
 
 	return nil
+}
+
+func (dom *Layout3) FindChildMaxArea() *Layout3 {
+	var max_layout *Layout3
+	var max_area int
+	for _, it := range dom.childs {
+		area := it.canvas.Area()
+		if area > max_area {
+			max_layout = it
+			max_area = area
+		}
+	}
+	return max_layout
 }
 
 func (dom *Layout3) FindShortcut(key byte) *Layout3 {

@@ -29,6 +29,8 @@ type UiSelection2Brush struct {
 type UiSelection struct {
 	active bool
 
+	appName string
+
 	brushes []UiSelection2Brush
 }
 
@@ -44,7 +46,7 @@ func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
 
 	if ui.parent.win.io.Keys.Ctrl {
 		n := 0
-		ui.dom.postDraw("Counter", 0, &n) //dialogs? ....
+		ui.dom.postDraw(s.appName, 0, &n) //dialogs? ....
 	}
 
 	buff.AddCrop(ui.dom.CropWithScroll())
@@ -76,9 +78,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 	if ui.GetWin().io.Touch.End {
 		s.active = false
 
-		appName := "Counter"
-
-		appLay := ui.dom.FindFirstName(appName)
+		appLay := ui.dom.FindFirstName(s.appName)
 		if appLay != nil {
 
 			cq := s.getRect()
@@ -89,7 +89,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 
 				best_layout := appLay
 				best_area := 0.0
-				appLay.findSelection(cq, cqArea, &best_area, &best_layout, appName)
+				appLay.findSelection(cq, cqArea, &best_area, &best_layout, s.appName)
 
 				st_rel := cq.Start.Sub(best_layout.canvas.Start)
 				en_rel := cq.End().Sub(best_layout.canvas.Start)
@@ -111,7 +111,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 
 				if best_layout == appLay {
 					//get Build() pos
-					wf, err := Compile_getWidgetFile(appName)
+					wf, err := Compile_getWidgetFile(s.appName)
 					if err != nil {
 						fmt.Println("Error:", err)
 						return
@@ -126,7 +126,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 					pick.Line = best_layout.props.Caller_line
 				}
 
-				in := LayoutInput{Pick: pick}
+				in := LayoutInput{Pick: pick, PickApp: s.appName}
 				ui.parent.CallInput(&ui.dom.props, &in)
 			}
 		}

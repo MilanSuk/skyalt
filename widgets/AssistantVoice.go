@@ -38,9 +38,9 @@ func (st *AssistantVoice) Build(layout *Layout) {
 	//STT
 	whisp := NewGlobal_Whispercpp_stt("AssistantVoice")
 	whisp.done = func() {
-		NewFile_AssistantChat().SetVoice([]byte(whisp.Out), Mic.startUnixTime)
+		OpenFile_AssistantChat().SetVoice([]byte(whisp.Out), Mic.startUnixTime)
 		if st.AutoSend > 0 {
-			NewFile_AssistantChat().Send()
+			OpenFile_AssistantChat().Send()
 		}
 	}
 

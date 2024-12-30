@@ -120,19 +120,20 @@ func main() {
 			_skyalt_save()
 
 		case NMSG_GET_ENV:
-			client.WriteArray(OsMarshal(*NewFile_Settings()))
+			client.WriteArray(OsMarshal(*OpenFile_Settings()))
 
 		case NMSG_SET_ENV:
 			data, err := client.ReadArray()
 			if err != nil {
 				log.Fatal(err)
 			}
-			OsUnmarshal(data, NewFile_Settings())
+			OsUnmarshal(data, OpenFile_Settings())
 
 		case NMSG_REFRESH:
 			//build
 			layout = _newLayoutRoot()
-			layout.fnBuild = NewFile_Root().Build
+			root := &Root{}
+			layout.fnBuild = root.Build
 			_build(layout)
 
 			//root & dialogs
@@ -259,7 +260,8 @@ func main() {
 
 			} else if in.Pick.Line > 0 {
 				in.Pick.time_sec = float64(time.Now().UnixMilli()) / 1000
-				NewFile_AssistantChat().findPickOrAdd(in.Pick)
+				OpenFile_AssistantChat().findPickOrAdd(in.Pick)
+				OpenFile_AssistantChat().AppName = in.PickApp
 
 			} else if inLayout.fnInput != nil {
 				inLayout.fnInput(in, inLayout)

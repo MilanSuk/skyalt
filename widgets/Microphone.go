@@ -15,7 +15,7 @@ func (layout *Layout) AddMicrophone(x, y, w, h int) *Microphone {
 
 var g_Microphone *Microphone
 
-func NewFile_Microphone() *Microphone {
+func OpenFile_Microphone() *Microphone {
 	if g_Microphone == nil {
 		g_Microphone = &Microphone{Enable: true, SampleRate: 44100, Channels: 1}
 		_read_file("Microphone-Microphone", g_Microphone)

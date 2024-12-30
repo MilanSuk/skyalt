@@ -16,7 +16,7 @@ type OpenAI_completion struct {
 	Properties OpenAI_completion_props
 
 	Out  string
-	done func()
+	done func(Out string)
 }
 
 func (layout *Layout) AddOpenAI_completion(x, y, w, h int, props *OpenAI_completion) *OpenAI_completion {
@@ -74,7 +74,7 @@ func (st *OpenAI_completion) IsRunning() bool {
 
 func (st *OpenAI_completion) Run(job *Job) {
 
-	if !NewFile_OpenAI().Enable {
+	if !OpenFile_OpenAI().Enable {
 		job.AddError(errors.New("OpenAI is disabled"))
 		return
 	}
@@ -93,7 +93,7 @@ func (st *OpenAI_completion) Run(job *Job) {
 		return
 	}
 
-	st.Out, err = OpenAI_completion_Run(jsProps, st.Properties.Stream, "https://api.openai.com/v1/chat/completions", NewFile_OpenAI().Api_key, job)
+	st.Out, err = OpenAI_completion_Run(jsProps, st.Properties.Stream, "https://api.openai.com/v1/chat/completions", OpenFile_OpenAI().Api_key, job)
 	if err != nil {
 		fmt.Println("--OpenAI_completion_Run error", err)
 		job.AddError(err)
@@ -103,12 +103,13 @@ func (st *OpenAI_completion) Run(job *Job) {
 	fmt.Println("--OpenAI_completion_Run done")
 
 	if st.done != nil {
-		st.done()
+		st.done(st.Out)
 	}
 }
 
 func OpenAI_completion_Run(jsProps []byte, stream bool, Completion_url string, Api_key string, job *Job) (string, error) {
-	//fmt.Println("jsProps", string(jsProps))
+	fmt.Println("jsProps", string(jsProps))
+
 	startTime := float64(time.Now().UnixMilli()) / 1000
 
 	body := bytes.NewReader(jsProps)
@@ -151,7 +152,7 @@ func OpenAI_completion_Run(jsProps []byte, stream bool, Completion_url string, A
 			Message STMsg
 			Delta   STMsg
 		}
-		type Usage struct {
+		type STUsage struct {
 			Prompt_tokens     int
 			Completion_tokens int
 			Total_tokens      int
@@ -159,7 +160,7 @@ func OpenAI_completion_Run(jsProps []byte, stream bool, Completion_url string, A
 		}
 		type ST struct {
 			Choices []STChoice
-			Usage   Usage
+			Usage   STUsage
 		}
 		var st ST
 		err = json.Unmarshal(js, &st)
@@ -182,7 +183,7 @@ func OpenAI_completion_Run(jsProps []byte, stream bool, Completion_url string, A
 		return "", fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, answer)
 	}
 
-	return string(answer), nil
+	return answer, nil
 }
 
 func OpenAI_completion_parseStream(res *http.Response, job *Job) (string, error) {

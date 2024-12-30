@@ -18,7 +18,7 @@ func (layout *Layout) AddCounter(x, y, w, h int, props *Counter) *Counter {
 
 var g_Counter *Counter
 
-func NewFile_Counter() *Counter {
+func OpenFile_Counter() *Counter {
 	if g_Counter == nil {
 		g_Counter = &Counter{Count: 7, NumOfLines: 3}
 		_read_file("Counter-Counter", g_Counter)
@@ -26,7 +26,7 @@ func NewFile_Counter() *Counter {
 	return g_Counter
 }
 
-func (st *Counter) Build(layout *Layout) {
+func (st *Counter) Build(layout *Layout) { // //{MARK 29}
 	layout.SetColumn(0, 1, 9)
 	layout.SetColumn(1, 1, 5)   // New empty column
 	layout.SetColumn(2, 5, 5)   // Original column now at index 2
@@ -100,4 +100,8 @@ func (st *Counter) Build(layout *Layout) {
 			st.NumOfLines--
 		}
 	}
+
+	// Add button with label "1234"
+	newButton := layout.AddButton(2, 2, 2, 1, NewButton("1234"))
+	newButton.Tooltip = "This is the 1234 button"
 }

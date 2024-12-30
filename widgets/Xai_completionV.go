@@ -69,7 +69,7 @@ func (st *Xai_completionV) IsRunning() bool {
 }
 
 func (st *Xai_completionV) Run(job *Job) {
-	if !NewFile_Xai().Enable {
+	if !OpenFile_Xai().Enable {
 		job.AddError(errors.New("Xai is disabled"))
 		return
 	}
@@ -88,7 +88,7 @@ func (st *Xai_completionV) Run(job *Job) {
 		return
 	}
 
-	st.Out, err = OpenAI_completion_Run(jsProps, st.Properties.Stream, "https://api.x.ai/v1/chat/completions", NewFile_Xai().Api_key, job)
+	st.Out, err = OpenAI_completion_Run(jsProps, st.Properties.Stream, "https://api.x.ai/v1/chat/completions", OpenFile_Xai().Api_key, job)
 	if err != nil {
 		job.AddError(err)
 		return

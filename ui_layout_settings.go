@@ -79,6 +79,19 @@ func (s *UiSettings) CloseTouchDialogs(ui *Ui) bool {
 	return changed
 }
 
+func (s *UiSettings) GetHigherDialogApp(findApp *Layout3, ui *Ui) int {
+	for i := len(s.Dialogs) - 1; i >= 0; i-- {
+		layDia := ui.dom.FindHash(s.Dialogs[i].Hash)
+		if layDia != nil {
+			layApp := layDia.parent.GetApp()
+			if layApp == findApp {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
 type UiDialog struct {
 	Hash         uint64
 	RelativeHash uint64

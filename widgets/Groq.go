@@ -4,32 +4,32 @@ import (
 	"strings"
 )
 
-type Xai struct {
+type Groq struct {
 	Enable  bool
 	Api_key string
 
 	ChatModel string
 }
 
-func (layout *Layout) AddXai(x, y, w, h int, props *Xai) *Xai {
-	layout._createDiv(x, y, w, h, "Xai", props.Build, nil, nil)
+func (layout *Layout) AddGroq(x, y, w, h int, props *Groq) *Groq {
+	layout._createDiv(x, y, w, h, "Groq", props.Build, nil, nil)
 	return props
 }
 
-var g_Xai *Xai
+var g_Groq *Groq
 
-func OpenFile_Xai() *Xai {
-	if g_Xai == nil {
-		g_Xai = &Xai{Enable: true, ChatModel: "grok-2-1212"}
-		_read_file("Xai-Xai", g_Xai)
+func OpenFile_Groq() *Groq {
+	if g_Groq == nil {
+		g_Groq = &Groq{Enable: true, ChatModel: "llama-3.3-70b-versatile"}
+		_read_file("Groq-Groq", g_Groq)
 	}
-	return g_Xai
+	return g_Groq
 }
 
-func (st *Xai) Build(layout *Layout) {
+func (st *Groq) Build(layout *Layout) {
 
 	if st.ChatModel == "" {
-		st.ChatModel = "grok-beta"
+		st.ChatModel = "llama-3.3-70b-versatile"
 	}
 
 	layout.SetColumn(0, 1, 4)
@@ -66,19 +66,16 @@ func (st *Xai) Build(layout *Layout) {
 	KeyBt := layout.AddButton(1, y, 1, 1, NewButton("Get API key"))
 	KeyBt.Align = 0
 	KeyBt.Background = 0
-	KeyBt.BrowserUrl = "https://console.x.ai"
+	KeyBt.BrowserUrl = "https://console.groq.com/keys"
 	y++
 
 	layout.AddText(0, y, 1, 1, "Chat Model")
-	layout.AddCombo(1, y, 1, 1, &st.ChatModel, Xai_GetChatModelList(), Xai_GetChatModelList())
+	layout.AddCombo(1, y, 1, 1, &st.ChatModel, Groq_GetChatModelList(), Groq_GetChatModelList())
 	y++
 }
 
-func Xai_GetChatModelList() []string {
+func Groq_GetChatModelList() []string {
 	return []string{
-		"grok-2-vision-1212",
-		"grok-2-1212",
-		"grok-vision-beta",
-		"grok-beta",
+		"llama-3.3-70b-versatile",
 	}
 }

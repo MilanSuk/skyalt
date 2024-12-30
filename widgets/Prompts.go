@@ -32,7 +32,7 @@ func (st *Prompts) Build(layout *Layout) {
 }
 
 func (st *Prompts) AddButton(prompt string, y *int, layout *Layout) {
-	ast := NewFile_AssistantChat()
+	ast := OpenFile_AssistantChat()
 
 	bt := layout.AddButton(1, *y, 1, 1, NewButtonMenu(prompt, "", 0))
 	bt.Background = 0.5
@@ -40,7 +40,7 @@ func (st *Prompts) AddButton(prompt string, y *int, layout *Layout) {
 		ast.Prompt = prompt
 		ast.Send()
 
-		NewFile_Root().ShowPromptList = false
+		OpenFile_RootHeader().ShowPromptList = false
 	}
 	(*y)++
 }

@@ -153,7 +153,7 @@ func (st *OsmMap) Build(layout *Layout) {
 	}
 
 	//serv := layout.GetIni().GetOsmMap(st.Service)
-	osm := NewFile_Osm()
+	osm := OpenFile_Osm()
 	copyright := layout.AddButton(3, 1, 1, 1, NewButton(osm.Copyright))
 	copyright.Background = 0
 	copyright.BrowserUrl = osm.Copyright_url
@@ -162,7 +162,7 @@ func (st *OsmMap) Build(layout *Layout) {
 func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	st.rect = rect
-	osm := NewFile_Osm()
+	osm := OpenFile_Osm()
 
 	g_map.CheckInit()
 

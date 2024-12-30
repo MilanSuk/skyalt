@@ -159,6 +159,36 @@
 "Time_unix": 1735516890,
 "Layout_hash": 0,
 "Error": "invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735560410,
+"Layout_hash": 0,
+"Error": "Unmarshal() of error code: 520 failed: invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735560410,
+"Layout_hash": 0,
+"Error": "invalid character 'e' looking for beginning of value"
+},
+{
+"Time_unix": 1735596412,
+"Layout_hash": 0,
+"Error": "Missing answer in js: {\"error\":{\"message\":\"Request too large for model `llama-3.3-70b-versatile` in organization `org_01j79vqcw8esqbxaj0mfdjfqr4` on tokens per minute (TPM): Limit 6000, Requested 7054, please reduce your message size and try again. Visit https://console.groq.com/docs/rate-limits for more information.\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n"
+},
+{
+"Time_unix": 1735596412,
+"Layout_hash": 0,
+"Error": "Chat2 output is empty"
+},
+{
+"Time_unix": 1735598745,
+"Layout_hash": 0,
+"Error": "Missing answer in js: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans \u0026 Billing to upgrade or purchase credits.\"}}"
+},
+{
+"Time_unix": 1735598745,
+"Layout_hash": 0,
+"Error": "Chat1 output is empty"
 }
 ]
 }

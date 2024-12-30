@@ -6,7 +6,7 @@ type Divider struct {
 }
 
 func (layout *Layout) AddDivider(x, y, w, h int, horizontal bool) *Divider {
-	props := &Divider{Horizontal: horizontal}
+	props := &Divider{Horizontal: horizontal, Width: 0.03}
 	layout._createDiv(x, y, w, h, "Divider", nil, props.Draw, nil)
 	return props
 }

@@ -45,8 +45,8 @@ func NewGlobal_Whispercpp_stt(uid string) *Whispercpp_stt {
 	if !found {
 		st = &Whispercpp_stt{UID: uid}
 		st.Properties = *NewWhispercpp_props()
-		st.Input_Channels = NewFile_Microphone().Channels
-		st.Input_SampleRate = NewFile_Microphone().SampleRate
+		st.Input_Channels = OpenFile_Microphone().Channels
+		st.Input_SampleRate = OpenFile_Microphone().SampleRate
 
 		g_global_Whispercpp_stt[uid] = st
 	}
@@ -90,7 +90,7 @@ func (st *Whispercpp_stt) IsRunning() bool {
 
 func (st *Whispercpp_stt) Run(job *Job) {
 
-	wsp := NewFile_Whispercpp()
+	wsp := OpenFile_Whispercpp()
 
 	//start
 	st.Out = ""

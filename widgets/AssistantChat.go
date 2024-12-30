@@ -13,8 +13,11 @@ import (
 )
 
 type AssistantChat struct {
-	Prompt string
-	Picks  []LayoutPick //for voice mode
+	Prompt  string
+	Picks   []LayoutPick
+	AppName string
+
+	Model Models
 }
 
 func (layout *Layout) AddAssistant(x, y, w, h int, props *AssistantChat) *AssistantChat {
@@ -24,9 +27,9 @@ func (layout *Layout) AddAssistant(x, y, w, h int, props *AssistantChat) *Assist
 
 var g_AssistantChat *AssistantChat
 
-func NewFile_AssistantChat() *AssistantChat {
+func OpenFile_AssistantChat() *AssistantChat {
 	if g_AssistantChat == nil {
-		g_AssistantChat = &AssistantChat{}
+		g_AssistantChat = &AssistantChat{Model: Models{Model: "grok-2-1212"}}
 		_read_file("AssistantChat-AssistantChat", g_AssistantChat)
 	}
 	return g_AssistantChat
@@ -34,6 +37,43 @@ func NewFile_AssistantChat() *AssistantChat {
 
 func (st *AssistantChat) Build(layout *Layout) {
 	//...
+}
+
+func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion_msg, done func(string)) {
+
+	switch ast.Model.GetService() {
+	case "xai":
+		chat := NewGlobal_Xai_completion(jobName)
+		chat.Properties.Model = ast.Model.Model
+		chat.Properties.Messages = msgs
+		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
+		chat.done = done
+		chat.Start()
+
+	case "openai":
+		chat := NewGlobal_OpenAI_completion(jobName)
+		chat.Properties.Model = ast.Model.Model
+		chat.Properties.Messages = msgs
+		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
+		chat.done = done
+		chat.Start()
+
+	case "anthropic":
+		chat := NewGlobal_Anthropic_completion(jobName)
+		chat.Properties.Model = ast.Model.Model
+		chat.Properties.Messages = msgs
+		//chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
+		chat.done = done
+		chat.Start()
+
+	case "groq":
+		chat := NewGlobal_Groq_completion(jobName)
+		chat.Properties.Model = ast.Model.Model
+		chat.Properties.Messages = msgs
+		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
+		chat.done = done
+		chat.Start()
+	}
 }
 
 func (ast *AssistantChat) Send() {
@@ -60,49 +100,31 @@ func (ast *AssistantChat) Send() {
 		msgs = append(msgs, msg_usr)
 	}
 
-	chat1 := NewGlobal_Xai_completion("AssistantChat_1") //NewGlobal_OpenAI_completion, NewGlobal_Xai_completion
-	chat1.Properties.Model = "grok-2-1212"               //"gpt-4o-mini" , "grok-2-1212"
-	chat1.Properties.Messages = msgs
-	chat1.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
-
-	appName := "Counter"
-
 	//smazat ..............
-	js, err := json.MarshalIndent(chat1.Properties, "", "\t")
 	if err == nil {
-		code, _ := ast.GetCodeWithMarks(appName)
+		//js, _ := json.MarshalIndent(chat1.Properties, "", "\t")
+		code, _ := ast.GetCodeWithMarks()
 
 		//os.WriteFile("prompt_image.png", ast.Img, 0644)
 		os.WriteFile("prompt_code.txt", []byte(code), 0644)
-		os.WriteFile("prompt_json1.json", js, 0644)
+		//os.WriteFile("prompt_json1.json", js, 0644)
 	}
 
-	chat1.done = func() {
-		if chat1.Out == "" {
+	done1 := func(Out string) {
+		if Out == "" {
 			Layout_WriteError(fmt.Errorf("Chat1 output is empty"))
 			return
 		}
-		chat1.Out = FixOutput(chat1.Out)
-		fmt.Println("prompt_1_output:", chat1.Out)
+		Out = FixOutput(Out)
+		fmt.Println("prompt_1_output:", Out)
 
-		UserPrompt, err := ast.prompt_2([]byte(chat1.Out), appName) //..........................
+		UserPrompt, err := ast.prompt_2([]byte(Out))
 		if err != nil {
 			Layout_WriteError(fmt.Errorf("Prompt_2() %w", err))
 			return
 		}
 		fmt.Println("prompt_2_input:", UserPrompt)
 
-		/*var msgs []OpenAI_completion_msgV
-		{
-			msg_sys := OpenAI_completion_msgV{Role: "system"}
-			msg_sys.AddText(SystemPrompt)
-			msgs = append(msgs, msg_sys)
-
-			msg_usr := OpenAI_completion_msgV{Role: "user"}
-			msg_usr.AddImage(ast.Img, "png")
-			msg_usr.AddText(UserPrompt)
-			msgs = append(msgs, msg_usr)
-		}*/
 		var msgs []OpenAI_completion_msg
 		{
 			msg_sys := OpenAI_completion_msg{Role: "system", Content: SystemPrompt}
@@ -110,27 +132,15 @@ func (ast *AssistantChat) Send() {
 			msg_usr := OpenAI_completion_msg{Role: "user", Content: UserPrompt}
 			msgs = append(msgs, msg_usr)
 		}
-		//msgs = append(msgs, OpenAI_completion_msgV{Role: "system", Content: SystemPrompt})
-		//msgs = append(msgs, OpenAI_completion_msgV{Role: "user", Content: UserPrompt})
-		chat2 := NewGlobal_Xai_completion("AssistantChat_2") //NewGlobal_OpenAI_completionV, NewGlobal_Xai_completionV
-		chat2.Properties.Model = "grok-2-1212"               //"gpt-4o-mini" , "grok-2-vision-1212"
-		chat2.Properties.Messages = msgs
-		chat2.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
 
-		//smazat ..............
-		js, err := json.MarshalIndent(chat2.Properties, "", "\t")
-		if err == nil {
-			os.WriteFile("prompt_json2.json", js, 0644)
-		}
-
-		chat2.done = func() {
+		done2 := func(Out string) {
 			fmt.Println("---done2 starts")
-			if chat2.Out == "" {
+			if Out == "" {
 				Layout_WriteError(fmt.Errorf("Chat2 output is empty"))
 				return
 			}
-			chat2.Out = FixOutput(chat2.Out)
-			fmt.Println("prompt_2_output:", chat2.Out)
+			Out = FixOutput(Out)
+			fmt.Println("prompt_2_output:", Out)
 
 			//project new code to file(s)
 			type OutputFile struct {
@@ -138,10 +148,10 @@ func (ast *AssistantChat) Send() {
 				Content string
 			}
 			var outs []OutputFile
-			err := json.Unmarshal([]byte(chat2.Out), &outs)
+			err := json.Unmarshal([]byte(Out), &outs)
 			if err != nil {
 				var out OutputFile
-				err := json.Unmarshal([]byte(chat2.Out), &out)
+				err := json.Unmarshal([]byte(Out), &out)
 				if err != nil {
 					Layout_WriteError(err)
 					return
@@ -178,9 +188,9 @@ func (ast *AssistantChat) Send() {
 
 			Layout_Recompile()
 		}
-		chat2.Start()
+		ast.executePrompt("AssistantChat_2", msgs, done2)
 	}
-	chat1.Start()
+	ast.executePrompt("AssistantChat_1", msgs, done1)
 }
 
 func (st *AssistantChat) reset() {
@@ -244,9 +254,9 @@ Mark refers to line in code(mark is in comment for example: subDiv := layout.Add
 Mark also has x,y,w,h which represent layout grid position which was selected by user. Grid position is usefull for creating/editing layout components, for example prompt "Delete {MARK 2; x:0, y:5, w:2, h:1}" must delete line with AddText in bellow code:
 subDiv := layout.AddLayout(0, 1, 3, 5)	//{MARK 2}
 subDiv.AddText(0, 5, 2, 1, "Hello")
-
-If user prompt is about adding or deleting new column or row, you have to change(rewrite code) coordinates for layout.Add...(x,y,w,h) calls!
 `
+
+const code_marks_explain = `Note: If user prompt is about adding or deleting new column or row, you have to change(rewrite code) coordinates for layout.Add...(x,y,w,h) calls!`
 
 func (ast *AssistantChat) prompt_1() (string, error) {
 
@@ -275,7 +285,7 @@ func (ast *AssistantChat) prompt_1() (string, error) {
 	return str.String(), nil
 }
 
-func (ast *AssistantChat) prompt_2(output_1 []byte, appName string) (string, error) {
+func (ast *AssistantChat) prompt_2(output_1 []byte) (string, error) {
 
 	userPrompt := FixUserPrompt(ast.Prompt)
 
@@ -379,7 +389,7 @@ func (ast *AssistantChat) prompt_2(output_1 []byte, appName string) (string, err
 			str.WriteString("```go\n" + edit_code + "```\n\n")
 
 			//add code
-			ast.addPromptCode(appName, &str)
+			ast.addPromptCode(&str)
 		}
 
 		str.WriteString("This is the prompt from the user:\n")
@@ -404,12 +414,12 @@ func (ast *AssistantChat) prompt_2(output_1 []byte, appName string) (string, err
 		str.WriteString("```go\n" + fileFns.String() + "\n```")
 
 		str.WriteString("\n\n// Here are the files:\n")
-		ast.addPromptCode(appName, &str)
-		//str.WriteString("\n" + code_marks_explain + "\n")
+		ast.addPromptCode(&str)
 
 		str.WriteString("This is the prompt from the user:\n")
 		str.WriteString(_AssistantChat_buildUserPrompt(userPrompt) + "\n")
 		str.WriteString("\n" + prompt_marks_explain + "\n")
+		str.WriteString("\n" + code_marks_explain + "\n")
 
 		str.WriteString("\nYour job is implement the request(user prompt) by editting code in files. Usually you edit only one file.\n\n")
 
@@ -423,13 +433,13 @@ func (ast *AssistantChat) prompt_2(output_1 []byte, appName string) (string, err
 		str.WriteString("```go\n" + fileFns.String() + "\n```")
 
 		str.WriteString("\n\n// Here are the files:\n")
-		ast.addPromptCode(appName, &str)
+		ast.addPromptCode(&str)
 
 		str.WriteString("This is the prompt from the user:\n")
 		str.WriteString(_AssistantChat_buildUserPrompt(userPrompt) + "\n")
 		str.WriteString("\n" + prompt_marks_explain + "\n")
 
-		str.WriteString("\nYour job is implement the request(user prompt) by editting code in file sdk_change.go. Use functions NewFile_?() to read/write data.\n\n")
+		str.WriteString("\nYour job is implement the request(user prompt) by editting code in file sdk_change.go. Use functions OpenFile_?() to read/write data.\n\n")
 
 		str.WriteString(`Don't add main() function to the code. Please respond in the JSON format [{"name": <file_name.go>, "content": <code>}]`)
 	} else if out.Q_code {
@@ -467,20 +477,20 @@ func (ast *AssistantChat) addReadFile(appName string, out *strings.Builder) erro
 	out.WriteString("```go\n" + string(fl) + "```\n\n")
 	return nil
 }
-func (ast *AssistantChat) addPromptCode(appName string, out *strings.Builder) error {
-	code, err := ast.GetCodeWithMarks(appName)
+func (ast *AssistantChat) addPromptCode(out *strings.Builder) error {
+	code, err := ast.GetCodeWithMarks()
 	if err != nil {
 		return err
 	}
 
-	out.WriteString(fmt.Sprintf("file: %s.go\n", appName))
+	out.WriteString(fmt.Sprintf("file: %s.go\n", ast.AppName))
 	out.WriteString("```go\n" + code + "```\n\n")
 	return nil
 }
 
-func (ast *AssistantChat) GetCodeWithMarks(appName string) (string, error) {
+func (ast *AssistantChat) GetCodeWithMarks() (string, error) {
 
-	fileName := appName + ".go"
+	fileName := ast.AppName + ".go"
 	path := filepath.Join("widgets", fileName)
 	fl, err := os.ReadFile(path)
 	if err != nil {
@@ -709,7 +719,7 @@ func _Assistant_findBuildFunction(ghostPath string, code string, stName string) 
 				addFuncs = append(addFuncs, string(code[x.Pos()-1:x.Body.Lbrace-1]))
 			}
 			//FileFuncs
-			if tp == "" && strings.HasPrefix(x.Name.Name, "NewFile_") {
+			if tp == "" && strings.HasPrefix(x.Name.Name, "OpenFile_") {
 				fileFuncs = append(fileFuncs, string(code[x.Pos()-1:x.Body.Lbrace-1]))
 			}
 		}

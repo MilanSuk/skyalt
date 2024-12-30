@@ -10,7 +10,7 @@ func (layout *Layout) AddAbout(x, y, w, h int, props *About) *About {
 
 var g_About *About
 
-func NewFile_About() *About {
+func OpenFile_About() *About {
 	if g_About == nil {
 		g_About = &About{}
 		_read_file("About-About", g_About)

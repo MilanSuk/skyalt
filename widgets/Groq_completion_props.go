@@ -1,6 +1,6 @@
 package main
 
-type Xai_completion_props struct {
+type Groq_completion_props struct {
 	Model    string                  `json:"model"`
 	Messages []OpenAI_completion_msg `json:"messages"`
 	Stream   bool                    `json:"stream"`
@@ -11,22 +11,22 @@ type Xai_completion_props struct {
 	Frequency_penalty float64 `json:"frequency_penalty"` //0
 	Presence_penalty  float64 `json:"presence_penalty"`  //0
 
-	Response_format *OpenAI_completion_format `json:"response_format"`
+	Response_format *OpenAI_completion_format `json:"response_format"` //? .......
 }
 
-func (layout *Layout) AddXai_completion_props(x, y, w, h int, props *Xai_completion_props) *Xai_completion_props {
-	layout._createDiv(x, y, w, h, "Xai_completion_props", props.Build, nil, nil)
+func (layout *Layout) AddGroq_completion_props(x, y, w, h int, props *Groq_completion_props) *Groq_completion_props {
+	layout._createDiv(x, y, w, h, "Groq_completion_props", props.Build, nil, nil)
 	return props
 }
 
-func (st *Xai_completion_props) Build(layout *Layout) {
+func (st *Groq_completion_props) Build(layout *Layout) {
 	layout.SetColumn(0, 2, 3.5)
 	layout.SetColumn(1, 1, 100)
 
 	y := 0
 
 	layout.AddText(0, y, 1, 1, "Model")
-	layout.AddCombo(1, y, 1, 1, &st.Model, Xai_GetChatModelList(), Xai_GetChatModelList())
+	layout.AddCombo(1, y, 1, 1, &st.Model, Groq_GetChatModelList(), Groq_GetChatModelList())
 	y++
 
 	sl := layout.AddSliderEdit(0, y, 2, 1, &st.Temperature, 0, 2, 0.1)
@@ -82,9 +82,9 @@ func (st *Xai_completion_props) Build(layout *Layout) {
 	y++
 }
 
-func (props *Xai_completion_props) Reset() {
+func (props *Groq_completion_props) Reset() {
 	if props.Model == "" {
-		props.Model = OpenFile_Xai().ChatModel
+		props.Model = OpenFile_Groq().ChatModel
 	}
 	//props.Stream = true
 	props.Temperature = 1.0

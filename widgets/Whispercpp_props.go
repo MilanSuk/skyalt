@@ -30,7 +30,7 @@ func (st *Whispercpp_props) Build(layout *Layout) {
 	y := 0
 
 	layout.AddText(0, y, 1, 1, "Model")
-	_, model_pathes := NewFile_Whispercpp().GetModelList()
+	_, model_pathes := OpenFile_Whispercpp().GetModelList()
 	layout.AddCombo(1, y, 1, 1, &st.Model, model_pathes, model_pathes)
 	y++
 
@@ -57,7 +57,7 @@ func (st *Whispercpp_props) Build(layout *Layout) {
 
 func (props *Whispercpp_props) Reset() {
 	if props.Model == "" {
-		props.Model = NewFile_Whispercpp().Model
+		props.Model = OpenFile_Whispercpp().Model
 	}
 	props.Temperature = 0 //default
 	props.Response_format = "verbose_json"

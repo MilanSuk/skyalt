@@ -44,8 +44,8 @@ func NewGlobal_OpenAI_stt(uid string) *OpenAI_stt {
 	if !found {
 		st = &OpenAI_stt{UID: uid}
 		st.Properties.Reset()
-		st.Input_Channels = NewFile_Microphone().Channels
-		st.Input_SampleRate = NewFile_Microphone().SampleRate
+		st.Input_Channels = OpenFile_Microphone().Channels
+		st.Input_SampleRate = OpenFile_Microphone().SampleRate
 
 		g_global_OpenAI_stt[uid] = st
 	}
@@ -88,7 +88,7 @@ func (st *OpenAI_stt) IsRunning() bool {
 
 func (st *OpenAI_stt) Run(job *Job) {
 
-	oai := NewFile_OpenAI()
+	oai := OpenFile_OpenAI()
 
 	if !oai.Enable {
 		job.AddError(errors.New("OpenAI is disabled"))

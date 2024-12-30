@@ -5,6 +5,10 @@ func _skyalt_save() {
 		_write_file("About-About", g_About)
 		g_About = nil
 	}
+	if g_Anthropic != nil {
+		_write_file("Anthropic-Anthropic", g_Anthropic)
+		g_Anthropic = nil
+	}
 	if g_AssistantChat != nil {
 		_write_file("AssistantChat-AssistantChat", g_AssistantChat)
 		g_AssistantChat = nil
@@ -12,6 +16,10 @@ func _skyalt_save() {
 	if g_Counter != nil {
 		_write_file("Counter-Counter", g_Counter)
 		g_Counter = nil
+	}
+	if g_Groq != nil {
+		_write_file("Groq-Groq", g_Groq)
+		g_Groq = nil
 	}
 	if g_Logs != nil {
 		_write_file("Logs-Logs", g_Logs)
@@ -29,9 +37,9 @@ func _skyalt_save() {
 		_write_file("Osm-Osm", g_Osm)
 		g_Osm = nil
 	}
-	if g_Root != nil {
-		_write_file("Root-Root", g_Root)
-		g_Root = nil
+	if g_RootHeader != nil {
+		_write_file("RootHeader-RootHeader", g_RootHeader)
+		g_RootHeader = nil
 	}
 	if g_Settings != nil {
 		_write_file("Settings-Settings", g_Settings)

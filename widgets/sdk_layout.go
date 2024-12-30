@@ -185,9 +185,8 @@ type LayoutInput struct {
 
 	Shortcut_key byte
 
-	Pick LayoutPick
-	//PickCode  string
-	//PickImage []byte
+	Pick    LayoutPick
+	PickApp string
 }
 
 type LayoutDialog struct {
@@ -396,7 +395,6 @@ func (layout *Layout) AddDialog(name string) *LayoutDialog {
 }
 
 func (layout *Layout) AddDialogBorder(name string, title string, width float64) (*LayoutDialog, *Layout) {
-
 	dia := layout.AddDialog(name)
 	lay := dia.Layout
 	lay.SetColumn(1, 1, width)
@@ -581,12 +579,12 @@ var g_theme_dark = LayoutPalette{
 }
 
 func Layout_Cell() int { //number of pixels in one cell
-	return int(float32(NewFile_Settings().Dpi) / 2.5)
+	return int(float32(OpenFile_Settings().Dpi) / 2.5)
 }
 
 func Paint_GetPalette() *LayoutPalette {
 
-	env := NewFile_Settings()
+	env := OpenFile_Settings()
 
 	theme := env.Theme
 
@@ -611,13 +609,13 @@ func Paint_GetPalette() *LayoutPalette {
 }
 
 func Layout_GetDateFormat() string {
-	return NewFile_Settings().DateFormat
+	return OpenFile_Settings().DateFormat
 }
 
 func Layout_WriteError(err error) error {
 	//who calls this function and write it ...
 	if err != nil {
-		NewFile_Logs().AddError(err, 0)
+		OpenFile_Logs().AddError(err, 0)
 	}
 	return err
 }
@@ -824,7 +822,7 @@ func Layout_ConvertTextDate(unix_sec int64) string {
 	tm := time.Unix(unix_sec, 0)
 	//dd := Date_GetDateFromTime(unix_sec)
 
-	switch NewFile_Settings().DateFormat {
+	switch OpenFile_Settings().DateFormat {
 	case "eu":
 		return fmt.Sprintf("%d/%d/%d", tm.Day(), int(tm.Month()), tm.Year())
 

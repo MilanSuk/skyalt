@@ -24,7 +24,7 @@ func (layout *Layout) AddLogs(x, y, w, h int, props *Logs) *Logs {
 
 var g_Logs *Logs
 
-func NewFile_Logs() *Logs {
+func OpenFile_Logs() *Logs {
 	if g_Logs == nil {
 		g_Logs = &Logs{}
 		_read_file("Logs-Logs", g_Logs)

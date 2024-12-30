@@ -48,7 +48,7 @@ func (st *Microphone_recorder) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
 	layout.SetRow(0, 1, 100)
 
-	layout.Enable = NewFile_Microphone().Enable
+	layout.Enable = OpenFile_Microphone().Enable
 
 	var bt *Button
 	var btL *Layout
@@ -141,7 +141,7 @@ func (mlg *MicMalgo) _checkDevice() error {
 		return err
 	}
 
-	mic := NewFile_Microphone()
+	mic := OpenFile_Microphone()
 
 	deviceConfig := malgo.DefaultDeviceConfig(malgo.Duplex)
 	deviceConfig.Capture.Format = malgo.FormatS16

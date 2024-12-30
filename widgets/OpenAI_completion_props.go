@@ -120,7 +120,7 @@ func (st *OpenAI_completion_props) Build(layout *Layout) {
 
 func (props *OpenAI_completion_props) Reset() {
 	if props.Model == "" {
-		props.Model = NewFile_OpenAI().ChatModel
+		props.Model = OpenFile_OpenAI().ChatModel
 	}
 	//props.Stream = true
 	props.Temperature = 1.0

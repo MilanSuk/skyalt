@@ -11,7 +11,7 @@ type Xai_completion struct {
 	Properties Xai_completion_props
 
 	Out  string
-	done func()
+	done func(Out string)
 }
 
 func (layout *Layout) AddXai_completion(x, y, w, h int, props *Xai_completion) *Xai_completion {
@@ -69,7 +69,7 @@ func (st *Xai_completion) IsRunning() bool {
 }
 
 func (st *Xai_completion) Run(job *Job) {
-	if !NewFile_Xai().Enable {
+	if !OpenFile_Xai().Enable {
 		job.AddError(errors.New("Xai is disabled"))
 		return
 	}
@@ -88,13 +88,13 @@ func (st *Xai_completion) Run(job *Job) {
 		return
 	}
 
-	st.Out, err = OpenAI_completion_Run(jsProps, st.Properties.Stream, "https://api.x.ai/v1/chat/completions", NewFile_Xai().Api_key, job)
+	st.Out, err = OpenAI_completion_Run(jsProps, st.Properties.Stream, "https://api.x.ai/v1/chat/completions", OpenFile_Xai().Api_key, job)
 	if err != nil {
 		job.AddError(err)
 		return
 	}
 
 	if st.done != nil {
-		st.done()
+		st.done(st.Out)
 	}
 }

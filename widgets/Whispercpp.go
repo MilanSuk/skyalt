@@ -23,7 +23,7 @@ func (layout *Layout) AddWhispercpp(x, y, w, h int, props *Whispercpp) *Whisperc
 
 var g_Whispercpp *Whispercpp
 
-func NewFile_Whispercpp() *Whispercpp {
+func OpenFile_Whispercpp() *Whispercpp {
 	if g_Whispercpp == nil {
 		g_Whispercpp = &Whispercpp{RunProcess: true, Folder: "services/whisper.cpp", Addr: "127.0.0.1", Port: 8091, Model: "ggml-tiny.en"}
 		_read_file("Whispercpp-Whispercpp", g_Whispercpp)

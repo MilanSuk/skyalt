@@ -73,7 +73,7 @@ func (st *OpenAI_tts) IsRunning() bool {
 }
 func (st *OpenAI_tts) Run(job *Job) {
 
-	if !NewFile_OpenAI().Enable {
+	if !OpenFile_OpenAI().Enable {
 		job.AddError(errors.New("OpenAI is disabled"))
 		return
 	}
@@ -102,7 +102,7 @@ func (st *OpenAI_tts) Run(job *Job) {
 		return
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Bearer "+NewFile_OpenAI().Api_key)
+	req.Header.Add("Authorization", "Bearer "+OpenFile_OpenAI().Api_key)
 
 	client := &http.Client{}
 	res, err := client.Do(req)

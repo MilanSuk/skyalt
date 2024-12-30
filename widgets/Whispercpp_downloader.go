@@ -68,5 +68,5 @@ func Whispercpp_GetUrl(model string) (*url.URL, error) {
 	return u, nil
 }
 func Whispercpp_GetPath(model string) string {
-	return filepath.Join(NewFile_Whispercpp().Folder, "models/"+model+".bin")
+	return filepath.Join(OpenFile_Whispercpp().Folder, "models/"+model+".bin")
 }

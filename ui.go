@@ -346,6 +346,17 @@ func (ui *Ui) _refresh() {
 
 	ui.dom.SetTouchAll()
 
+	//update appName
+	{
+		showAppLay := ui.dom.FindFirstName("ShowApp")
+		if showAppLay != nil {
+			lay := showAppLay.FindChildMaxArea()
+			if lay != nil {
+				ui.selection.appName = lay.props.Name
+			}
+		}
+	}
+
 	fmt.Printf("Refreshed: %.4fsec\n", OsTime()-st)
 }
 

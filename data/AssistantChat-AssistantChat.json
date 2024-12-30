@@ -1,4 +1,8 @@
 {
 "Prompt": "",
-"Picks": null
+"Picks": null,
+"AppName": "Counter",
+"Model": {
+"Model": "gpt-4o-mini"
+}
 }

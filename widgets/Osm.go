@@ -16,7 +16,7 @@ func (layout *Layout) AddOsm(x, y, w, h int, props *Osm) *Osm {
 
 var g_Osm *Osm
 
-func NewFile_Osm() *Osm {
+func OpenFile_Osm() *Osm {
 	if g_Osm == nil {
 		g_Osm = &Osm{Enable: true}
 		_read_file("Osm-Osm", g_Osm)
