@@ -192,6 +192,9 @@ func (rs *UiClients) CallInput(props *Layout, in *LayoutInput) error {
 		}
 		OsUnmarshal(data, &cmds)
 		rs.ui._executeCmds(cmds)
+
+		//fmt.Println("in", in)
+		//fmt.Println("cmds", cmds)
 	}
 
 	rs.ui.parent.CallGetEnv()

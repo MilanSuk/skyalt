@@ -134,7 +134,9 @@ func main() {
 			layout = _newLayoutRoot()
 			root := &Root{}
 			layout.fnBuild = root.Build
+			st := time.Now().UnixMilli()
 			_build(layout)
+			fmt.Println("_build()", float64(time.Now().UnixMilli()-st)/1000, "sec")
 
 			//root & dialogs
 			hash, err := client.ReadInt()
@@ -174,7 +176,11 @@ func main() {
 						OsUnmarshal(data, &rects)
 					}
 					out_buffs := make(map[uint64][]LayoutDrawPrim)
+
+					st := time.Now().UnixMilli()
 					_draw(lay, rects, out_buffs)
+					fmt.Println("_draw()", float64(time.Now().UnixMilli()-st)/1000, "sec")
+
 					client.WriteArray(OsMarshal(out_buffs))
 				}
 

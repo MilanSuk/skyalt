@@ -221,7 +221,9 @@ type Layout struct {
 
 	App bool //touch crop
 
-	Enable bool
+	Enable      bool //touch and visual(fade)
+	EnableTouch bool
+
 	LLMTip string
 
 	Shortcut_key byte
@@ -247,6 +249,8 @@ type Layout struct {
 
 	Caller_file string `json:",omitempty"`
 	Caller_line int    `json:",omitempty"`
+
+	List_auto_spacing bool
 
 	fnBuild      func(*Layout)
 	fnDraw       func(Rect, *Layout) LayoutPaint
@@ -330,7 +334,7 @@ func (layout *Layout) _findParent(find *Layout) *Layout {
 }
 
 func _newLayout(x, y, w, h int, name string, parent *Layout) *Layout {
-	layout := &Layout{X: x, Y: y, W: w, H: h, Name: name, Enable: true}
+	layout := &Layout{X: x, Y: y, W: w, H: h, Name: name, Enable: true, EnableTouch: true}
 	layout.Hash = layout._computeHash(parent)
 	return layout
 }
@@ -379,6 +383,16 @@ func (layout *Layout) AddLayoutWithName(x, y, w, h int, name string) *Layout {
 }
 func (layout *Layout) AddLayout(x, y, w, h int) *Layout {
 	return layout._createDiv(x, y, w, h, "_layout", nil, nil, nil)
+}
+
+func (layout *Layout) AddLayoutList(x, y, w, h int, auto_spacing bool) *Layout {
+	lay := layout._createDiv(x, y, w, h, "_list", nil, nil, nil)
+	lay.List_auto_spacing = auto_spacing
+	return lay
+}
+
+func (layout *Layout) AddListSubItem() *Layout {
+	return layout.AddLayout(0, len(layout.Childs), 1, 1)
 }
 
 func (layout *Layout) AddDialog(name string) *LayoutDialog {
@@ -610,6 +624,14 @@ func Paint_GetPalette() *LayoutPalette {
 
 func Layout_GetDateFormat() string {
 	return OpenFile_Settings().DateFormat
+}
+
+func Layout_GetDatePage() *int64 {
+	page := &OpenFile_Settings().DatePage
+	if *page == 0 {
+		*page = time.Now().Unix()
+	}
+	return page
 }
 
 func Layout_WriteError(err error) error {

@@ -265,11 +265,14 @@ func (dom *Layout3) _refreshLayout() {
 	}
 	OsUnmarshal(data, &layout)
 
+	st := OsTime()
 	//project
 	dom.project(&layout)
 
 	//relayout
-	dom.Relayout(true)
+	dom.relayout(true)
+
+	fmt.Println("project() + Relayout()", (OsTime()-st)/1000, "sec")
 
 	//send rects
 	{
@@ -531,7 +534,7 @@ func (ui *Ui) Tick() {
 	}
 
 	if ui.relayout {
-		ui.dom.Relayout(true)
+		ui.dom.relayout(true)
 		ui.relayout = false
 	}
 

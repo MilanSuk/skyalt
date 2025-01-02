@@ -17,6 +17,10 @@ func _skyalt_save() {
 		_write_file("Counter-Counter", g_Counter)
 		g_Counter = nil
 	}
+	if g_Events != nil {
+		_write_file("Events-Events", g_Events)
+		g_Events = nil
+	}
 	if g_Groq != nil {
 		_write_file("Groq-Groq", g_Groq)
 		g_Groq = nil

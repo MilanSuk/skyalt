@@ -189,6 +189,11 @@
 "Time_unix": 1735598745,
 "Layout_hash": 0,
 "Error": "Chat1 output is empty"
+},
+{
+"Time_unix": 1735820373,
+"Layout_hash": 0,
+"Error": "prompt is too short"
 }
 ]
 }

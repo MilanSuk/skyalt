@@ -378,11 +378,9 @@ func (ast *AssistantChat) prompt_2(output_1 []byte) (string, error) {
 
 		{
 			//define new file as example
-
 			str.WriteString(fmt.Sprintf("file: %s.go\n", edit_struct))
 			edit_code := fmt.Sprintf(`package main
 				type %s struct {
-					layout *Layout
 				}
 				func (st *%s) Build(layout *Layout) {
 				}`, edit_struct, edit_struct)

@@ -146,8 +146,9 @@ type Layout struct {
 
 	App bool //touch crop
 
-	Enable bool
-	LLMTip string
+	Enable      bool
+	EnableTouch bool
+	LLMTip      string
 
 	Shortcut_key byte
 
@@ -172,6 +173,8 @@ type Layout struct {
 
 	Caller_file string `json:",omitempty"`
 	Caller_line int    `json:",omitempty"`
+
+	List_auto_spacing bool
 
 	fnBuild      func(*Layout)
 	fnDraw       func(Rect, *Layout) LayoutPaint
@@ -199,7 +202,7 @@ func (layout *Layout) _computeHash(parent *Layout) uint64 {
 }
 
 func _newLayout(x, y, w, h int, name string, parent *Layout) *Layout {
-	layout := &Layout{X: x, Y: y, W: w, H: h, Name: name, Enable: true}
+	layout := &Layout{X: x, Y: y, W: w, H: h, Name: name, Enable: true, EnableTouch: true}
 	layout.Hash = layout._computeHash(parent)
 	return layout
 }
@@ -216,8 +219,9 @@ type Layout3 struct {
 
 	props Layout
 
-	touch    bool
-	touchDia bool
+	touch          bool
+	touchDia       bool
+	drawEnableFade bool
 
 	dialog *Layout3 //open
 	childs []*Layout3
@@ -324,15 +328,17 @@ func (dom *Layout3) hasDialog() bool {
 	return false
 }
 
-func (dom *Layout3) setTouchEnable(touch bool) {
-	dom.touch = touch && dom.props.Enable
+func (dom *Layout3) setTouchEnable(parent_touch bool, parent_drawEnableFade bool) {
+	dom.touch = parent_touch && dom.props.Enable && dom.props.EnableTouch
 	dom.touchDia = true
 
+	dom.drawEnableFade = !parent_drawEnableFade && !dom.props.Enable
+
 	for _, it := range dom.childs {
-		it.setTouchEnable(dom.touch)
+		it.setTouchEnable(dom.touch, dom.drawEnableFade || !parent_drawEnableFade)
 	}
 	if dom.dialog != nil {
-		dom.dialog.setTouchEnable(true)
+		dom.dialog.setTouchEnable(true, false)
 	}
 }
 
@@ -368,7 +374,7 @@ func (dom *Layout3) checkDialogs() {
 func (dom *Layout3) SetTouchAll() {
 	dom.checkDialogs()
 
-	dom.setTouchEnable(true)
+	dom.setTouchEnable(true, false)
 
 	//dialogs
 	for i, dia := range dom.ui.settings.Dialogs {
@@ -603,8 +609,10 @@ func (dom *Layout3) TouchDialogs(editHash, touchHash uint64, check bool) {
 		return
 	}
 
-	for _, it := range dom.childs {
-		it.TouchDialogs(editHash, touchHash, false)
+	if editHash == 0 && touchHash == 0 {
+		for _, it := range dom.childs {
+			it.TouchDialogs(editHash, touchHash, false)
+		}
 	}
 
 }
@@ -643,7 +651,7 @@ func (dom *Layout3) RebuildSoft() {
 	}
 }
 
-func (dom *Layout3) Relayout(setFromSubs bool) {
+func (dom *Layout3) relayout(setFromSubs bool) {
 
 	if dom.IsLevel() {
 		dom.rebuildLevel()
@@ -662,11 +670,11 @@ func (dom *Layout3) Relayout(setFromSubs bool) {
 	}
 
 	//order List
-	//dom.rebuildList()
+	dom.rebuildList()
 
 	for _, it := range dom.childs {
 		if it.IsShown() {
-			it.Relayout(setFromSubs)
+			it.relayout(setFromSubs)
 		}
 	}
 
@@ -704,7 +712,7 @@ func (dom *Layout3) Relayout(setFromSubs bool) {
 		}
 
 		if changed {
-			dom.Relayout(false)
+			dom.relayout(false)
 		}
 
 	}
@@ -717,6 +725,75 @@ func (dom *Layout3) Relayout(setFromSubs bool) {
 		//fmt.Println("-Relayout", dom.props.Name, dom.canvas.Size.Y)
 		//dom.needRedraw = dom.needRedraw || (oldRect != dom._getRect())
 	}
+}
+
+func (dom *Layout3) rebuildList() {
+
+	if dom.props.Name != "_list" {
+		return
+	}
+
+	max_width := dom._getWidth()
+
+	//get max item size
+	it_width := 0.0
+	it_height := 0.0
+	for _, it := range dom.childs {
+		sz := it.GetLevelSize().Size
+		it_width = OsMaxFloat(it_width, float64(sz.X)/float64(dom.Cell()))
+		it_height = OsMaxFloat(it_height, float64(sz.Y)/float64(dom.Cell()))
+	}
+
+	//num cols/rows
+	nx := int(max_width / it_width)
+	if nx == 0 {
+		nx = 1
+	}
+	ny := len(dom.childs) / nx
+	if len(dom.childs)%nx > 0 {
+		ny++
+	}
+
+	total_extra_space_w := max_width - float64(nx)*it_width
+	space_between := total_extra_space_w / float64(nx-1)
+	if !dom.props.List_auto_spacing {
+		space_between = 0
+	}
+
+	//set cols/rows
+	for x := 0; x < nx; x++ {
+		dom.props.UserCols = append(dom.props.UserCols, LayoutCR{Pos: x*2 + 0, Min: it_width, Max: it_width})
+		//dom.SetColumn(x*2+0, it_width, it_width)
+		if x+1 < nx {
+			dom.props.UserCols = append(dom.props.UserCols, LayoutCR{Pos: x*2 + 1, Min: 0, Max: space_between})
+			//dom.SetColumn(x*2+1, 0, space_between)
+		}
+	}
+	for y := 0; y < ny; y++ {
+		dom.props.UserRows = append(dom.props.UserRows, LayoutCR{Pos: y*2 + 0, Min: it_height, Max: it_height})
+		//dom.SetRow(y*2+0, it_height, it_height)
+		if y+1 < ny {
+			dom.props.UserRows = append(dom.props.UserRows, LayoutCR{Pos: y*2 + 1, Min: 0, Max: space_between})
+			//dom.SetRow(y*2+1, 0, space_between)
+		}
+	}
+
+	//set item grid poses
+	i := 0
+	for y := 0; y < ny; y++ {
+		for x := 0; x < nx; x++ {
+			if i < len(dom.props.Childs) {
+				dom.childs[i].props.X = x * 2
+				dom.childs[i].props.Y = y * 2
+				dom.childs[i].props.W = 1
+				dom.childs[i].props.H = 1
+				i++
+			}
+		}
+	}
+
+	//update!
+	dom.updateCoord(0, 0, 1, 1)
 }
 
 func (dom *Layout3) GetCd(cd, cd_over, cd_down color.RGBA) color.RGBA {
@@ -788,6 +865,10 @@ func (dom *Layout3) renderBuffer(buffer []LayoutDrawPrim) {
 		case 5:
 			prop := InitWinFontPropsDef(dom.Cell())
 
+			if it.Text == "<h2>2. Thursday" {
+				fmt.Println("d")
+			}
+
 			prop.formating = it.Text_formating
 			coord := dom.getCanvasPx(it.Rect)
 
@@ -832,10 +913,6 @@ func (dom *Layout3) _getRect() Rect {
 
 func (dom *Layout3) GetPalette() *WinCdPalette {
 	return dom.ui.GetPalette()
-}
-
-func (dom *Layout3) GetDateFormat() string {
-	return dom.GetEnv().DateFormat
 }
 
 func (dom *Layout3) GetMouseX() float64 {
@@ -1080,7 +1157,7 @@ func (dom *Layout3) drawBuffers() {
 	dom.drawResizer()
 
 	//draw alpha rect = disable
-	if !dom.touch && (dom.parent == nil || dom.parent.touch) {
+	if dom.drawEnableFade && dom.touchDia && !dom.touch && (dom.parent == nil || dom.parent.touch) {
 		buff.AddCrop(dom.crop)
 		buff.AddRect(dom.canvas, color.RGBA{255, 255, 255, 150}, 0)
 	}

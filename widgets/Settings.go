@@ -6,6 +6,7 @@ import (
 
 type Settings struct {
 	DateFormat  string
+	DatePage    int64
 	Volume      float64
 	Dpi         int
 	Dpi_default int

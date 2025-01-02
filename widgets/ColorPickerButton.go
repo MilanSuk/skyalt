@@ -17,7 +17,6 @@ func (layout *Layout) AddColorPickerButton(x, y, w, h int, cd *color.RGBA) *Colo
 }
 
 func (st *ColorPickerButton) Build(layout *Layout) {
-
 	layout.SetColumn(0, 1, 100)
 	layout.SetRow(0, 1, 100)
 
@@ -27,7 +26,7 @@ func (st *ColorPickerButton) Build(layout *Layout) {
 	bt.Cd = *st.Cd //set Button
 	bt.Tooltip = fmt.Sprintf("RGBA(%d,%d,%d,%d)", int(st.Cd.R), int(st.Cd.G), int(st.Cd.B), int(st.Cd.A))
 
-	cdialog := layout.AddDialog("dialog")
+	cdialog := layout.AddDialog("color_picker_dialog")
 	cdialog.Layout.SetColumn(0, 10, 17)
 	cdialog.Layout.SetRow(0, 7, 7)
 	cld := cdialog.Layout.AddColorPicker(0, 0, 1, 1, st.Cd)

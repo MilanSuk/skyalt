@@ -1,0 +1,34 @@
+{
+"HideSide": false,
+"Mode": "year",
+"Events": [
+{
+"Title": "Hello",
+"Description": "",
+"File": "",
+"Start": 1735808400,
+"Duration": 7200,
+"Color": {
+"R": 140,
+"G": 19,
+"B": 19,
+"A": 255
+}
+}
+],
+"NewEvent": {
+"Title": "",
+"Description": "",
+"File": "",
+"Start": 1735815094,
+"Duration": 1800,
+"Color": {
+"R": 37,
+"G": 89,
+"B": 120,
+"A": 255
+}
+},
+"Selected_date": 1740917945,
+"Selected_page": 1740831545
+}
