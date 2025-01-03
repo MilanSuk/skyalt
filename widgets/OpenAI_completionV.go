@@ -48,7 +48,7 @@ func (st *OpenAI_completionV) Build(layout *Layout) {
 		txtLay.VScrollToTheBottom()
 	}
 
-	stopBt := layout.AddButton(1, 1, 1, 1, NewButton("Stop"))
+	stopBt := layout.AddButton(1, 1, 1, 1, "Stop")
 	stopBt.clicked = func() {
 		st.Stop()
 	}

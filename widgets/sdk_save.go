@@ -5,6 +5,10 @@ func _skyalt_save() {
 		_write_file("About-About", g_About)
 		g_About = nil
 	}
+	if g_Activities != nil {
+		_write_file("Activities-Activities", g_Activities)
+		g_Activities = nil
+	}
 	if g_Anthropic != nil {
 		_write_file("Anthropic-Anthropic", g_Anthropic)
 		g_Anthropic = nil
@@ -48,6 +52,10 @@ func _skyalt_save() {
 	if g_Settings != nil {
 		_write_file("Settings-Settings", g_Settings)
 		g_Settings = nil
+	}
+	if g_UserInfo != nil {
+		_write_file("UserInfo-UserInfo", g_UserInfo)
+		g_UserInfo = nil
 	}
 	if g_Whispercpp != nil {
 		_write_file("Whispercpp-Whispercpp", g_Whispercpp)

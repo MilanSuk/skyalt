@@ -85,7 +85,7 @@ func (st *EventsMonthView) Build(layout *Layout) {
 
 					d := Date_GetDateFromTime(dt)
 
-					bt := Div.AddButton(0, 0, 1, 1, NewButton("<h2>"+strconv.Itoa(d.Day)+"."))
+					bt := Div.AddButton(0, 0, 1, 1, "<h2>"+strconv.Itoa(d.Day)+".")
 					bt.Background = 0
 					bt.Align = 0
 					bt.Cd_fade = (d.Month != month) //is day in current month
@@ -121,7 +121,7 @@ func (st *EventsMonthView) Build(layout *Layout) {
 							}
 
 							toolTip := event.Title + ": " + Date_GetTextTime(event.Start) + " - " + Date_GetTextTime(event.Start+event.Duration)
-							bt := Div2.AddButton(0, y, 1, 1, NewButton(event.Title))
+							bt := Div2.AddButton(0, y, 1, 1, event.Title)
 							bt.Tooltip = toolTip
 							//bt.Draw_back = 2
 							bt.Cd = event.Color

@@ -75,7 +75,7 @@ func (st *Calendar) Build(layout *Layout) {
 				fade = true
 			}
 
-			Day := layout.AddButton(x, 1+y, 1, 1, NewButton(strconv.Itoa(dtt.Day)))
+			Day := layout.AddButton(x, 1+y, 1, 1, strconv.Itoa(dtt.Day))
 			dtClicked := dt
 			Day.clicked = func() {
 				*st.Value = dtClicked

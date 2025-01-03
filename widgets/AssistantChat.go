@@ -147,7 +147,11 @@ func (ast *AssistantChat) Send() {
 				Name    string
 				Content string
 			}
-			var outs []OutputFile
+			type OutputFiles struct {
+				Files []OutputFile
+			}
+
+			var outs OutputFiles
 			err := json.Unmarshal([]byte(Out), &outs)
 			if err != nil {
 				var out OutputFile
@@ -156,12 +160,12 @@ func (ast *AssistantChat) Send() {
 					Layout_WriteError(err)
 					return
 				}
-				outs = append(outs, out)
+				outs.Files = append(outs.Files, out)
 			}
 
 			fmt.Println("---writing files")
 
-			for _, f := range outs {
+			for _, f := range outs.Files {
 
 				//remove marks
 				{
@@ -177,6 +181,7 @@ func (ast *AssistantChat) Send() {
 				}
 
 				//write file
+				fmt.Println("Writing", f.Name)
 				err = os.WriteFile("widgets/"+f.Name, []byte(f.Content), 0644)
 				if err != nil {
 					Layout_WriteError(err)
@@ -207,7 +212,7 @@ func FixOutput(str string) string {
 	return str
 }
 
-func FixUserPrompt(userPrompt string) string {
+func (st *AssistantChat) convertUserPromptToMarks(userPrompt string) string {
 	userPrompt = _Assistant_RemoveFormatingRGBA(userPrompt)
 
 	if userPrompt == "" {
@@ -220,6 +225,12 @@ func FixUserPrompt(userPrompt string) string {
 	//ends with dot
 	if !strings.ContainsAny(userPrompt[len(userPrompt)-1:], ".!?") {
 		userPrompt += "."
+	}
+
+	for _, pk := range st.Picks {
+		src := _AssistantChat_getPromptMarkLabel(pk)
+		dst := _AssistantChat_getPromptMarkOrig(pk)
+		userPrompt = strings.ReplaceAll(userPrompt, src, dst)
 	}
 
 	return userPrompt
@@ -260,7 +271,7 @@ const code_marks_explain = `Note: If user prompt is about adding or deleting new
 
 func (ast *AssistantChat) prompt_1() (string, error) {
 
-	userPrompt := FixUserPrompt(ast.Prompt)
+	userPrompt := ast.convertUserPromptToMarks(ast.Prompt)
 
 	var str strings.Builder
 
@@ -287,7 +298,7 @@ func (ast *AssistantChat) prompt_1() (string, error) {
 
 func (ast *AssistantChat) prompt_2(output_1 []byte) (string, error) {
 
-	userPrompt := FixUserPrompt(ast.Prompt)
+	userPrompt := ast.convertUserPromptToMarks(ast.Prompt)
 
 	type Out struct {
 		Open    bool
@@ -361,11 +372,11 @@ func (ast *AssistantChat) prompt_2(output_1 []byte) (string, error) {
 
 		str.WriteString(fmt.Sprintf("\nYour job is implement the request(user prompt) by editting file %s.\n\n", edited_file))
 
-		str.WriteString(`Don't add main() function to the code. Please respond in the JSON format [{"name": <file_name.go>, "content": <code>}]`)
+		str.WriteString(`Don't add main() function to the code. Please respond in the JSON format {"files": [{"name": <file_name.go>, "content": <code>}]}`)
 
 	} else if out.Create {
-		str.WriteString("\n// Here are the widget's structures:\n")
-		str.WriteString("```go\n" + structs.String() + "\n```")
+		//str.WriteString("\n// Here are the widget's structures:\n")
+		//str.WriteString("```go\n" + structs.String() + "\n```")
 
 		str.WriteString("\n\n// Here are the functions to add Widgets:\n")
 		str.WriteString("```go\n" + addFns.String() + "\n```")
@@ -374,29 +385,34 @@ func (ast *AssistantChat) prompt_2(output_1 []byte) (string, error) {
 		str.WriteString("```go\n" + fileFns.String() + "\n```")
 
 		str.WriteString("\n\n// Here are the files:\n")
-		edit_struct := strings.TrimSuffix(out.Name, filepath.Ext(out.Name))
-
+		new_file := strings.TrimSuffix(out.Name, filepath.Ext(out.Name))
+		edited_file := "ShowApp"
 		{
-			//define new file as example
-			str.WriteString(fmt.Sprintf("file: %s.go\n", edit_struct))
-			edit_code := fmt.Sprintf(`package main
-				type %s struct {
-				}
-				func (st *%s) Build(layout *Layout) {
-				}`, edit_struct, edit_struct)
-			str.WriteString("```go\n" + edit_code + "```\n\n")
-
+			//example
+			str.WriteString(fmt.Sprintf("file: %s.go\n", new_file))
+			new_code := fmt.Sprintf(`package main
+type %s struct {
+}
+func (layout *Layout) Add%s(x, y, w, h int, props *%s) *%s {
+	layout._createDiv(x, y, w, h, "%s", props.Build, nil, nil)
+	return props
+}
+func (st *%s) Build(layout *Layout) {
+}`, new_file, new_file, new_file, new_file, new_file, new_file)
 			//add code
-			ast.addPromptCode(&str)
+			ast.addCode(new_file, new_code, &str)
+		}
+		{
+			ast.addReadFile(edited_file, &str)
 		}
 
 		str.WriteString("This is the prompt from the user:\n")
 		str.WriteString(_AssistantChat_buildUserPrompt(userPrompt) + "\n")
 		str.WriteString("\n" + prompt_marks_explain + "\n")
 
-		str.WriteString(fmt.Sprintf("\nYour job is implement the request(user prompt) by editting code in file %s.go.\n\n", edit_struct))
+		str.WriteString(fmt.Sprintf("\nYour job is implement the request(user prompt) by editting code in files %s.go and %s.go(grid position[0, 0, 1, 1], replace old widget).\n\n", new_file, edited_file))
 
-		str.WriteString(`Don't add main() function to the code. Please respond in the JSON format [{"name": <file_name.go>, "content": <code>}]`)
+		str.WriteString(`Don't add main() function to the code. Please respond in the JSON format {"files": [{"name": <file_name.go>, "content": <code>}]}`)
 
 	} else if out.Code {
 		str.WriteString("\n// Here are the layout structures and functions:\n")
@@ -421,7 +437,7 @@ func (ast *AssistantChat) prompt_2(output_1 []byte) (string, error) {
 
 		str.WriteString("\nYour job is implement the request(user prompt) by editting code in files. Usually you edit only one file.\n\n")
 
-		str.WriteString(`Don't add main() function to the code. Please respond in the JSON format [{"name": <file_name.go>, "content": <code>}]`)
+		str.WriteString(`Don't add main() function to the code. Please respond in the JSON format {"files": [{"name": <file_name.go>, "content": <code>}]}`)
 
 	} else if out.Data {
 		str.WriteString("\n// Here are the widget's structures:\n")
@@ -439,7 +455,7 @@ func (ast *AssistantChat) prompt_2(output_1 []byte) (string, error) {
 
 		str.WriteString("\nYour job is implement the request(user prompt) by editting code in file sdk_change.go. Use functions OpenFile_?() to read/write data.\n\n")
 
-		str.WriteString(`Don't add main() function to the code. Please respond in the JSON format [{"name": <file_name.go>, "content": <code>}]`)
+		str.WriteString(`Don't add main() function to the code. Please respond in the JSON format {"files": [{"name": <file_name.go>, "content": <code>}]}`)
 	} else if out.Q_code {
 		//...
 		//system promp říká že je programátor, který píše kód! ...
@@ -463,6 +479,10 @@ func _AssistantChat_buildUserPrompt(userPrompt string) string {
 	return prompt
 }
 
+func (ast *AssistantChat) addCode(appName string, code string, out *strings.Builder) {
+	out.WriteString(fmt.Sprintf("file: %s.go\n", appName))
+	out.WriteString("```go\n" + code + "```\n\n")
+}
 func (ast *AssistantChat) addReadFile(appName string, out *strings.Builder) error {
 	fileName := appName + ".go"
 	path := filepath.Join("widgets", fileName)
@@ -471,8 +491,7 @@ func (ast *AssistantChat) addReadFile(appName string, out *strings.Builder) erro
 		return err
 	}
 
-	out.WriteString(fmt.Sprintf("file: %s.go\n", appName))
-	out.WriteString("```go\n" + string(fl) + "```\n\n")
+	ast.addCode(appName, string(fl), out)
 	return nil
 }
 func (ast *AssistantChat) addPromptCode(out *strings.Builder) error {
@@ -481,8 +500,7 @@ func (ast *AssistantChat) addPromptCode(out *strings.Builder) error {
 		return err
 	}
 
-	out.WriteString(fmt.Sprintf("file: %s.go\n", ast.AppName))
-	out.WriteString("```go\n" + code + "```\n\n")
+	ast.addCode(ast.AppName, code, out)
 	return nil
 }
 
@@ -558,7 +576,7 @@ func (st *AssistantChat) SetVoice(js []byte, voiceStart_sec float64) {
 	for _, seg := range verb.Segments {
 		for _, w := range seg.Words {
 			for pick_i < len(st.Picks) && st.Picks[pick_i].time_sec < (voiceStart_sec+w.Start) { //for(!)
-				prompt += _AssistantChat_getPromptMark(st.Picks[pick_i]) //LayoutPick_getMark(pick_i)
+				prompt += _AssistantChat_getPromptMarkLabel(st.Picks[pick_i])
 				pick_i++
 			}
 			prompt += w.Word
@@ -595,7 +613,7 @@ func (ast *AssistantChat) findPickOrAdd(item LayoutPick) bool {
 
 	//add
 	ast.Picks = append(ast.Picks, item)
-	ast.Prompt += _AssistantChat_getPromptMark(item)
+	ast.Prompt += _AssistantChat_getPromptMarkLabel(item)
 
 	return false //new
 }
@@ -604,15 +622,18 @@ func _AssistantChat_GetCodeMark(item LayoutPick) string {
 	return fmt.Sprintf("{MARK %d}", item.Line)
 }
 
-func _AssistantChat_getPromptMark(item LayoutPick) string {
+func _AssistantChat_getPromptMarkOrig(item LayoutPick) string {
 	return fmt.Sprintf("{MARK %d: x:%d,y:%d,w:%d,h:%d}", item.Line, item.X, item.Y, item.W, item.H)
 }
+func _AssistantChat_getPromptMarkLabel(item LayoutPick) string {
+	return fmt.Sprintf("{%s}", item.Label)
+}
 
-func (ast *AssistantChat) Assistant_recomputePromptColors() { //, picks []LayoutPick
+func (ast *AssistantChat) Assistant_recomputePromptColors() {
 	prompt := _Assistant_RemoveFormatingRGBA(ast.Prompt)
 
 	for _, pk := range ast.Picks {
-		mark := _AssistantChat_getPromptMark(pk)
+		mark := _AssistantChat_getPromptMarkLabel(pk)
 		start := len(prompt)
 		for start >= 0 {
 			start = strings.LastIndex(prompt[:start], mark)

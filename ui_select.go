@@ -21,9 +21,9 @@ import (
 	"image/color"
 )
 
-type UiSelection2Brush struct {
+type UiSelectionBrush struct {
 	Points []OsV2
-	Cd     color.RGBA
+	Cd     LayoutPromptColor
 }
 
 type UiSelection struct {
@@ -31,7 +31,9 @@ type UiSelection struct {
 
 	appName string
 
-	brushes []UiSelection2Brush
+	brushes []UiSelectionBrush
+
+	backup_edit_hash uint64
 }
 
 func (s *UiSelection) IsActive() bool {
@@ -53,7 +55,7 @@ func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
 
 	thick := ui.CellWidth(0.3)
 	for _, it := range s.brushes {
-		buff.AddLines(it.Points, it.Cd, thick, true)
+		buff.AddLines(it.Points, it.Cd.Cd, thick, true)
 	}
 }
 
@@ -63,7 +65,9 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 	if ui.GetWin().io.Keys.Ctrl {
 		if ui.GetWin().io.Touch.Start {
 			s.active = true
-			s.brushes = append(s.brushes, UiSelection2Brush{Cd: g_prompt_colors[len(s.brushes)].Cd})
+			s.brushes = append(s.brushes, UiSelectionBrush{Cd: Layout3_Get_prompt_color(len(s.brushes))})
+
+			s.backup_edit_hash = ui.parent.edit.hash
 		}
 	}
 
@@ -93,10 +97,10 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 
 				st_rel := cq.Start.Sub(best_layout.canvas.Start)
 				en_rel := cq.End().Sub(best_layout.canvas.Start)
-				stCol := best_layout.cols.GetCloseCell(st_rel.X)
-				stRow := best_layout.rows.GetCloseCell(st_rel.Y)
-				enCol := best_layout.cols.GetCloseCell(en_rel.X)
-				enRow := best_layout.rows.GetCloseCell(en_rel.Y)
+				stCol := best_layout.cols.GetCellPos(st_rel.X, ui.Cell())
+				stRow := best_layout.rows.GetCellPos(st_rel.Y, ui.Cell())
+				enCol := best_layout.cols.GetCellPos(en_rel.X, ui.Cell())
+				enRow := best_layout.rows.GetCellPos(en_rel.Y, ui.Cell())
 
 				grid := InitOsV4ab(OsV2{stCol, stRow}, OsV2{enCol, enRow})
 				grid.Size.X++
@@ -107,7 +111,10 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 				pick.Y = grid.Start.Y
 				pick.W = grid.Size.X
 				pick.H = grid.Size.Y
-				pick.Cd = s.brushes[len(s.brushes)-1].Cd
+				pick.Cd = s.brushes[len(s.brushes)-1].Cd.Cd
+				pick.Label = s.brushes[len(s.brushes)-1].Cd.Label
+
+				fmt.Println("--pick", pick.X, pick.Y, pick.W, pick.H)
 
 				if best_layout == appLay {
 					//get Build() pos
@@ -130,6 +137,12 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 				ui.parent.CallInput(&ui.dom.props, &in)
 			}
 		}
+
+		//recover editbox
+		ui.SetRefresh()
+		ui._refresh()
+		ui.parent.edit.reload_hash = s.backup_edit_hash
+		s.backup_edit_hash = 0
 	}
 }
 
@@ -174,36 +187,39 @@ func (dom *Layout3) findSelection(cq OsV4, cqArea float64, best_area *float64, b
 }
 
 type LayoutPromptColor struct {
-	Name string
-	Cd   color.RGBA
+	Label string
+	Cd    color.RGBA
 }
 
 var g_prompt_colors = []LayoutPromptColor{
-	{Name: "red", Cd: color.RGBA{255, 0, 0, 255}},
-	{Name: "green", Cd: color.RGBA{0, 255, 0, 255}},
-	{Name: "blue", Cd: color.RGBA{0, 0, 255, 255}},
+	{Label: "red", Cd: color.RGBA{255, 0, 0, 255}},
+	{Label: "green", Cd: color.RGBA{0, 255, 0, 255}},
+	{Label: "blue", Cd: color.RGBA{0, 0, 255, 255}},
 
-	{Name: "yellow", Cd: color.RGBA{255, 255, 0, 255}},
-	{Name: "aqua", Cd: color.RGBA{0, 255, 255, 255}},
-	{Name: "fuchsia", Cd: color.RGBA{255, 0, 255, 255}},
+	{Label: "yellow", Cd: color.RGBA{200, 200, 0, 255}},
+	{Label: "aqua", Cd: color.RGBA{0, 255, 255, 255}},
+	{Label: "fuchsia", Cd: color.RGBA{255, 0, 255, 255}},
 
-	{Name: "olive", Cd: color.RGBA{128, 128, 0, 255}},
-	{Name: "teal", Cd: color.RGBA{0, 128, 128, 255}},
-	{Name: "purple", Cd: color.RGBA{128, 0, 128, 255}},
+	{Label: "olive", Cd: color.RGBA{128, 128, 0, 255}},
+	{Label: "teal", Cd: color.RGBA{0, 128, 128, 255}},
+	{Label: "purple", Cd: color.RGBA{128, 0, 128, 255}},
 
-	{Name: "navy", Cd: color.RGBA{0, 0, 128, 255}},
-	{Name: "marron", Cd: color.RGBA{128, 0, 0, 255}},
+	{Label: "navy", Cd: color.RGBA{0, 0, 128, 255}},
+	{Label: "marron", Cd: color.RGBA{128, 0, 0, 255}},
 }
 
-// note: colors should not collide with GUI palette colors => use default palette when rendering png!!!
+func Layout3_Get_prompt_color(i int) LayoutPromptColor {
+	return g_prompt_colors[i%len(g_prompt_colors)]
+}
+
 func (dom *Layout3) postDraw(name string, depth int, num_cds *int) {
 
 	if dom.props.Name == name || (dom.props.Caller_file == name+".go" && dom.props.Name == "_layout") {
 
-		cd := g_prompt_colors[len(dom.ui.selection.brushes)+*num_cds] //'g_prompt_colors' out of range ...........
+		cd := Layout3_Get_prompt_color(*num_cds)
 		cd.Cd.A = 200
 
-		dom.draw_grid2(cd.Cd, 0.03, depth)
+		dom.drawGrid(cd.Cd, 0.03, depth)
 
 		(*num_cds)++
 		depth++

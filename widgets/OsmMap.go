@@ -123,9 +123,9 @@ func (st *OsmMap) Build(layout *Layout) {
 			}
 		}
 
-		btA := Div.AddButton(6, 0, 1, 1, NewButton("+"))
-		btS := Div.AddButton(7, 0, 1, 1, NewButton("-"))
-		btT, btTLay := Div.AddButton2(8, 0, 1, 1, NewButtonIcon("resources/target.png", 0.1, "Center"))
+		btA := Div.AddButton(6, 0, 1, 1, "+")
+		btS := Div.AddButton(7, 0, 1, 1, "-")
+		btT, btTLay := Div.AddButtonIcon2(8, 0, 1, 1, "resources/target.png", 0.1, "Center")
 		btTLay.Enable = len(st.Locators) > 0 || len(st.Routes) > 0
 		btA.Background = 0.5
 		btS.Background = 0.5
@@ -154,7 +154,7 @@ func (st *OsmMap) Build(layout *Layout) {
 
 	//serv := layout.GetIni().GetOsmMap(st.Service)
 	osm := OpenFile_Osm()
-	copyright := layout.AddButton(3, 1, 1, 1, NewButton(osm.Copyright))
+	copyright := layout.AddButton(3, 1, 1, 1, osm.Copyright)
 	copyright.Background = 0
 	copyright.BrowserUrl = osm.Copyright_url
 }

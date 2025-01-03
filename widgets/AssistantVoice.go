@@ -28,7 +28,7 @@ func (st *AssistantVoice) Build(layout *Layout) {
 	if Mic.IsRunning() {
 		layout.SetColumn(0, 1, 1)
 		layout.SetColumn(1, 2, 2)
-		cancelBt := layout.AddButton(1, 0, 1, 1, NewButton("Cancel"))
+		cancelBt := layout.AddButton(1, 0, 1, 1, "Cancel")
 		cancelBt.Cd = Paint_GetPalette().E
 		cancelBt.clicked = func() {
 			Mic.Cancel()

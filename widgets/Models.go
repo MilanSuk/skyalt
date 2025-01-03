@@ -23,7 +23,7 @@ type ModelsServices struct {
 
 var g_models_services = []ModelsServices{
 	{Service: "xai", Models: []string{"grok-2-1212", "grok-beta"}},
-	{Service: "openai", Models: []string{"gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-4o-mini"}},
+	{Service: "openai", Models: []string{"gpt-4", "gpt-4-turbo", "gpt-4o"}},
 	{Service: "anthropic", Models: []string{"claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"}},
 	{Service: "groq", Models: []string{"llama-3.3-70b-specdec", "llama-3.3-70b-versatile"}},
 }
@@ -55,7 +55,7 @@ func (st *Models) Build(layout *Layout) {
 
 		//service
 		layout.AddText(0, y, 1, 1, "XAI").Align_h = 1
-		bt := layout.AddButton(1, y, 1, 1, NewButtonMenu("", "resources/settings.png", icon_margin))
+		bt := layout.AddButtonMenu(1, y, 1, 1, "", "resources/settings.png", icon_margin)
 		bt.clicked = func() {
 			dia.OpenCentered()
 			//dia.OpenRelative(layout)
@@ -88,7 +88,7 @@ func (st *Models) Build(layout *Layout) {
 
 		//service
 		layout.AddText(0, y, 1, 1, "OpenAI").Align_h = 1
-		bt := layout.AddButton(1, y, 1, 1, NewButtonMenu("", "resources/settings.png", icon_margin))
+		bt := layout.AddButtonMenu(1, y, 1, 1, "", "resources/settings.png", icon_margin)
 		bt.clicked = func() {
 			dia.OpenCentered()
 		}
@@ -120,7 +120,7 @@ func (st *Models) Build(layout *Layout) {
 
 		//service
 		layout.AddText(0, y, 1, 1, "Anthropic").Align_h = 1
-		bt := layout.AddButton(1, y, 1, 1, NewButtonMenu("", "resources/settings.png", icon_margin))
+		bt := layout.AddButtonMenu(1, y, 1, 1, "", "resources/settings.png", icon_margin)
 		bt.clicked = func() {
 			dia.OpenCentered()
 		}
@@ -152,7 +152,7 @@ func (st *Models) Build(layout *Layout) {
 
 		//service
 		layout.AddText(0, y, 1, 1, "Groq").Align_h = 1
-		bt := layout.AddButton(1, y, 1, 1, NewButtonMenu("", "resources/settings.png", icon_margin))
+		bt := layout.AddButtonMenu(1, y, 1, 1, "", "resources/settings.png", icon_margin)
 		bt.clicked = func() {
 			dia.OpenCentered()
 		}
@@ -175,7 +175,7 @@ func (st *Models) Build(layout *Layout) {
 }
 
 func (st *Models) _addModel(layout *Layout, y int, model string, enable bool) {
-	b, bLay := layout.AddButton2(0, y, 2, 1, NewButtonMenu(model, "", 0))
+	b, bLay := layout.AddButtonMenu2(0, y, 2, 1, model, "", 0)
 	bLay.Enable = enable
 	if st.Model == model {
 		b.Background = 1

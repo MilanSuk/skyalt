@@ -24,7 +24,7 @@ func (st *Combo) Build(layout *Layout) {
 	cdialog := layout.AddDialog("dialog")
 
 	//button
-	bt := layout.AddButton(0, 0, 1, 1, NewButton(st.getValueLabel())) //from scratch every frame => easy to debug. Hold
+	bt := layout.AddButton(0, 0, 1, 1, st.getValueLabel()) //from scratch every frame => easy to debug. Hold
 	bt.Tooltip = *st.Value
 
 	bt.Icon = "resources/arrow.png"
@@ -56,7 +56,7 @@ func (st *Combo) Build(layout *Layout) {
 		cdialog.Layout.SetColumn(0, 1, st.DialogWidth)
 		for i, name := range st.Labels {
 
-			bt := cdialog.Layout.AddButton(0, i, 1, 1, NewButton(name))
+			bt := cdialog.Layout.AddButton(0, i, 1, 1, name)
 			bt.Tooltip = st.Values[i]
 			if st.Values[i] == *st.Value {
 				bt.Background = 1 //selected

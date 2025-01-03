@@ -27,6 +27,7 @@ import (
 type LayoutPick struct {
 	Line       int
 	X, Y, W, H int
+	Label      string
 	Cd         color.RGBA //paintbrush color
 }
 
@@ -578,43 +579,23 @@ func (dom *Layout3) IsShown() bool {
 	return dom.parent == nil || (dom.props.W != 0 && dom.props.H != 0)
 }
 
-func (dom *Layout3) TouchDialogs(editHash, touchHash uint64, check bool) {
-
-	if dom.CanTouch() && check {
-		//dom.updateShortcut()
-		dom.updateTouch()
-
-		var act *Layout3
-		var actE *Layout3
-		if editHash != 0 {
-			actE = dom.FindHash(editHash)
-		}
-
-		if touchHash != 0 {
-			act = dom.FindHash(touchHash)
-		} else {
-			act = dom.findTouch()
-		}
-
-		if actE != nil {
-			actE.touchComp()
-		}
-		if act != nil && act != actE {
-			act.touchComp()
-		}
+func (dom *Layout3) TouchDialogs(editHash, touchHash uint64) {
+	var act *Layout3
+	var actE *Layout3
+	if editHash != 0 {
+		actE = dom.FindHash(editHash)
 	}
 
-	if dom.dialog != nil {
-		dom.dialog.TouchDialogs(editHash, touchHash, true)
-		return
+	if touchHash != 0 {
+		act = dom.FindHash(touchHash)
 	}
 
-	if editHash == 0 && touchHash == 0 {
-		for _, it := range dom.childs {
-			it.TouchDialogs(editHash, touchHash, false)
-		}
+	if actE != nil {
+		actE.touchComp()
 	}
-
+	if act != nil && act != actE {
+		act.touchComp()
+	}
 }
 
 func (dom *Layout3) GetApp() *Layout3 {
@@ -980,16 +961,22 @@ func (dom *Layout3) IsMouseButtonUse() bool {
 	return dom.ui.parent.touch.IsCanvasActive() && !dom.IsCtrlPressed()
 }
 
-func (layout *Layout3) updateTouch() {
+func (layout *Layout3) UpdateTouch() {
 
-	layout.Touch()
+	if layout.CanTouch() {
+		layout.Touch()
+		layout.updateResizer()
+	}
 
-	layout.updateResizer()
+	//dialogs
+	if layout.dialog != nil {
+		layout.dialog.UpdateTouch()
+	}
 
 	//subs
 	for _, it := range layout.childs {
 		if it.IsShown() {
-			it.updateTouch()
+			it.UpdateTouch()
 		}
 	}
 }
@@ -1157,7 +1144,7 @@ func (dom *Layout3) drawBuffers() {
 	dom.drawResizer()
 
 	//draw alpha rect = disable
-	if dom.drawEnableFade && dom.touchDia && !dom.touch && (dom.parent == nil || dom.parent.touch) {
+	if dom.drawEnableFade && !dom.touch && (dom.parent == nil || dom.parent.touch) {
 		buff.AddCrop(dom.crop)
 		buff.AddRect(dom.canvas, color.RGBA{255, 255, 255, 150}, 0)
 	}
@@ -1169,16 +1156,16 @@ func (dom *Layout3) drawBuffers() {
 		}
 	}
 
-	dom.draw_drag_and_drop()
+	dom.drawDragAndDrop()
 }
 
-func (dom *Layout3) draw_grid2(cd color.RGBA, w float64, depth int) {
+func (dom *Layout3) drawGrid(cd color.RGBA, w float64, depth int) {
 	buff := dom.ui.GetWin().buff
 
 	canvas := dom.canvas.Size
 
-	mx := float64(dom.cols.GetSumOutput(-1)) / float64(canvas.X)
-	my := float64(dom.rows.GetSumOutput(-1)) / float64(canvas.Y)
+	mx := 1.0 //float64(dom.cols.GetSumOutput(-1)) / float64(canvas.X)
+	my := 1.0 //float64(dom.rows.GetSumOutput(-1)) / float64(canvas.Y)
 
 	var start, end OsV2
 	width := dom.ui.CellWidth(w)
@@ -1204,6 +1191,12 @@ func (dom *Layout3) draw_grid2(cd color.RGBA, w float64, depth int) {
 		end.X = start.X
 		buff.AddLine(start, end, cd, width)
 	}
+	//rest
+	for start.X < dom.canvas.End().X {
+		start.X += dom.Cell()
+		end.X = start.X
+		buff.AddLine(start, end, cd, width)
+	}
 
 	//rows
 	sum = 0
@@ -1218,9 +1211,15 @@ func (dom *Layout3) draw_grid2(cd color.RGBA, w float64, depth int) {
 		end.Y = start.Y
 		buff.AddLine(start, end, cd, width)
 	}
+	//rest
+	for start.Y < dom.canvas.End().Y {
+		start.Y += dom.Cell()
+		end.Y = start.Y
+		buff.AddLine(start, end, cd, width)
+	}
 }
 
-func (dom *Layout3) draw_drag_and_drop() {
+func (dom *Layout3) drawDragAndDrop() {
 	if !dom.CanTouch() {
 		return
 	}

@@ -145,8 +145,9 @@ type LayoutScroll struct {
 type LayoutPick struct {
 	Line       int
 	X, Y, W, H int
+	Label      string
+	Cd         color.RGBA //paintbrush color
 
-	Cd       color.RGBA //paintbrush color
 	time_sec float64
 }
 

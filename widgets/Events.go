@@ -167,7 +167,7 @@ func (cal *Events) ModePanel(layout *Layout) {
 		Div.SetColumn(4, 1, 8)
 
 		//today
-		TodayBt := Div.AddButton(0, 0, 1, 1, NewButton("Today"))
+		TodayBt := Div.AddButton(0, 0, 1, 1, "Today")
 		TodayBt.Background = 0.5
 		TodayBt.Tooltip = Layout_ConvertTextDate(GetTime())
 		TodayBt.clicked = func() {
@@ -176,8 +176,8 @@ func (cal *Events) ModePanel(layout *Layout) {
 		}
 
 		//arrows
-		btL := Div.AddButton(1, 0, 1, 1, NewButton("<"))
-		btR := Div.AddButton(2, 0, 1, 1, NewButton(">"))
+		btL := Div.AddButton(1, 0, 1, 1, "<")
+		btR := Div.AddButton(2, 0, 1, 1, ">")
 		btL.Background = 0.5
 		btR.Background = 0.5
 
@@ -248,7 +248,7 @@ func (cal *Events) Side(layout *Layout) {
 			NewEventDia.Close()
 		}
 
-		NewEventBt := layout.AddButton(0, 0, 1, 1, NewButton("New Event"))
+		NewEventBt := layout.AddButton(0, 0, 1, 1, "New Event")
 		NewEventBt.clicked = func() {
 			cal.NewEvent.SetNow(Paint_GetPalette().P)
 			NewEventDia.OpenCentered()
@@ -261,13 +261,13 @@ func (cal *Events) Side(layout *Layout) {
 			PageDiv.SetColumn(0, 1, 100)
 			PageDiv.AddText(0, 0, 1, 1, "<h2>"+Date_GetMonthYear(cal.Selected_page))
 
-			btL := PageDiv.AddButton(1, 0, 1, 1, NewButton("<"))
+			btL := PageDiv.AddButton(1, 0, 1, 1, "<")
 			btL.Background = 0.5
 			btL.clicked = func() {
 				cal.Selected_page = Date_AddDate(cal.Selected_page, 0, -1, 0)
 			}
 
-			btR := PageDiv.AddButton(2, 0, 1, 1, NewButton(">"))
+			btR := PageDiv.AddButton(2, 0, 1, 1, ">")
 			btR.Background = 0.5
 			btR.clicked = func() {
 				cal.Selected_page = Date_AddDate(cal.Selected_page, 0, 1, 0)
@@ -280,7 +280,7 @@ func (cal *Events) Side(layout *Layout) {
 
 		ShowSideDiv := layout.AddLayout(0, 6, 1, 1)
 		{
-			bt := ShowSideDiv.AddButton(0, 0, 1, 1, NewButton(">>"))
+			bt := ShowSideDiv.AddButton(0, 0, 1, 1, ">>")
 			bt.Background = 0.5
 			bt.clicked = func() {
 				cal.HideSide = true
@@ -289,7 +289,7 @@ func (cal *Events) Side(layout *Layout) {
 	} else {
 		layout.SetRow(0, 1, 100)
 
-		bt := layout.AddButton(0, 1, 1, 1, NewButton("<<"))
+		bt := layout.AddButton(0, 1, 1, 1, "<<")
 		bt.Background = 0.5
 		bt.clicked = func() {
 			cal.HideSide = false
@@ -424,7 +424,7 @@ func (cal *Events) DayEvent(unix_sec int64, layout *Layout, layout_height float6
 				cal.Events = append(cal.Events[:event_i], cal.Events[event_i+1:]...) //remove
 			}
 
-			bt := Div.AddButton(0, i*2+1, 1, 1, NewButton(event.Title))
+			bt := Div.AddButton(0, i*2+1, 1, 1, event.Title)
 			bt.Tooltip = tooltip
 			bt.Cd = event.Color
 			bt.Align = 0

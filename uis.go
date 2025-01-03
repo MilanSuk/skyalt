@@ -94,7 +94,7 @@ func (env *UiEnv) Check() bool {
 type UiClients struct {
 	win *Win
 
-	edit_history UiPaintTextHistoryArray2
+	edit_history UiPaintTextHistoryArray
 	touch        UiLayoutInput
 	edit         UiLayoutEdit
 	drag         UiLayoutDrag

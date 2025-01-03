@@ -54,7 +54,7 @@ func (st *Anthropic_completion) Build(layout *Layout) {
 		txtLay.VScrollToTheBottom()
 	}
 
-	stopBt := layout.AddButton(1, 1, 1, 1, NewButton("Stop"))
+	stopBt := layout.AddButton(1, 1, 1, 1, "Stop")
 	stopBt.clicked = func() {
 		st.Stop()
 	}
@@ -172,79 +172,6 @@ func Anthropic_completion_Run(jsProps []byte, stream bool, Completion_url string
 		return "", fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, answer)
 	}
 	return answer, nil
-
-	/*body := bytes.NewReader(jsProps)
-
-	req, err := http.NewRequest(http.MethodPost, Completion_url, body)
-	if err != nil {
-		return "", fmt.Errorf("NewRequest() failed: %w", err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Bearer "+Api_key)
-	//req.Header.Set("Accept", "text/event-stream")
-	//req.Header.Set("Cache-Control", "no-cache")
-	//req.Header.Set("Connection", "keep-alive")
-
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("Do() failed: %w", err)
-	}
-	defer res.Body.Close()
-
-	var answer string
-	if stream {
-		answer, err = Anthropic_completion_parseStream(res, job)
-		if err != nil {
-			return "", err
-		}
-	} else {
-
-		js, err := io.ReadAll(res.Body) //job.close ...
-		if err != nil {
-			job.AddError(fmt.Errorf("ReadAll() failed: %E", err))
-			return "", err
-		}
-
-		type STMsg struct {
-			Content string
-		}
-		type STChoice struct {
-			Message STMsg
-			Delta   STMsg
-		}
-		type Usage struct {
-			Prompt_tokens     int
-			Completion_tokens int
-			Total_tokens      int
-			//prompt_tokens_details ...
-		}
-		type ST struct {
-			Choices []STChoice
-			Usage   Usage
-		}
-		var st ST
-		err = json.Unmarshal(js, &st)
-		if err != nil {
-			job.AddError(fmt.Errorf("Unmarshal() of %s failed: %w", js, err))
-			return "", err
-		}
-		if len(st.Choices) > 0 {
-			answer = st.Choices[0].Message.Content
-		} else {
-			job.AddError(fmt.Errorf("Missing answer in js: %s", string(js)))
-			return "", err
-		}
-
-		dt := (float64(time.Now().UnixMilli()) / 1000) - startTime
-		fmt.Printf("info: generated %dtoks which took %.1fsec = %.1f toks/sec\n", st.Usage.Completion_tokens, dt, float64(st.Usage.Completion_tokens)/dt)
-	}
-
-	if res.StatusCode != 200 {
-		return "", fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, answer)
-	}
-
-	return string(answer), nil*/
 }
 
 func Anthropic_completion_parseStream(res *http.Response, job *Job) (string, error) {

@@ -47,7 +47,7 @@ func (st *Whispercpp_props) Build(layout *Layout) {
 	sl.Edit_width = 2
 	y++
 
-	ResetBt := layout.AddButton(0, y, 1, 1, NewButton("Reset"))
+	ResetBt := layout.AddButton(0, y, 1, 1, "Reset")
 	ResetBt.Background = 0.5
 	ResetBt.clicked = func() {
 		st.Reset()

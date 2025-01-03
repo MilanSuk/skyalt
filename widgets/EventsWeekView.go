@@ -35,7 +35,7 @@ func (st *EventsWeekView) Build(layout *Layout) {
 		if format == "us" {
 			//"us"
 			this_dt := dt
-			bt := layout.AddButton(1, 0, 1, 1, NewButton("<h2>"+strconv.Itoa(d.Day)+". "+Layout_GetDayTextShort(7)))
+			bt := layout.AddButton(1, 0, 1, 1, "<h2>"+strconv.Itoa(d.Day)+". "+Layout_GetDayTextShort(7))
 			bt.Background = 0
 			bt.clicked = func() {
 				*st.Date = this_dt
@@ -48,7 +48,7 @@ func (st *EventsWeekView) Build(layout *Layout) {
 
 			for x := 1; x < 7; x++ {
 				this_dt := dt
-				bt := layout.AddButton(1+x, 0, 1, 1, NewButton("<h2>"+strconv.Itoa(d.Day)+". "+Layout_GetDayTextShort(x)))
+				bt := layout.AddButton(1+x, 0, 1, 1, "<h2>"+strconv.Itoa(d.Day)+". "+Layout_GetDayTextShort(x))
 				bt.Background = 0
 				bt.clicked = func() {
 					*st.Date = this_dt
@@ -64,7 +64,7 @@ func (st *EventsWeekView) Build(layout *Layout) {
 			for x := 1; x < 8; x++ {
 
 				this_dt := dt
-				bt := layout.AddButton(x, 0, 1, 1, NewButton("<h2>"+strconv.Itoa(d.Day)+". "+Layout_GetDayTextShort(x)))
+				bt := layout.AddButton(x, 0, 1, 1, "<h2>"+strconv.Itoa(d.Day)+". "+Layout_GetDayTextShort(x))
 				bt.Background = 0
 				bt.clicked = func() {
 					*st.Date = this_dt

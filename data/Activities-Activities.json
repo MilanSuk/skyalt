@@ -1,0 +1,35 @@
+{
+"Activities": [
+{
+"FilePath": "/home/milan/Pictures/skyalt/temp/1.gpx",
+"Cam": {
+"Lon": 16.118252277374268,
+"Lat": 50.43783487328499,
+"Zoom": 14
+},
+"Title": "test",
+"Description": "",
+"Activity": "",
+"Date": 0,
+"Total_distance": 0,
+"Total_time_sec": 0,
+"Calories": 0
+},
+{
+"FilePath": "/home/milan/Pictures/skyalt/temp/2.gpx",
+"Cam": {
+"Lon": 16.110141277313232,
+"Lat": 50.440205988820054,
+"Zoom": 13
+},
+"Title": "test2",
+"Description": "",
+"Activity": "",
+"Date": 0,
+"Total_distance": 0,
+"Total_time_sec": 0,
+"Calories": 0
+}
+],
+"Selected_activity": 1
+}

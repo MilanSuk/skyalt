@@ -46,7 +46,7 @@ func (st *Anthropic_completion_props) Build(layout *Layout) {
 	sl.Legend = true
 	y++
 
-	ResetBt := layout.AddButton(0, y, 1, 1, NewButton("Reset"))
+	ResetBt := layout.AddButton(0, y, 1, 1, "Reset")
 	ResetBt.Background = 0.5
 	ResetBt.clicked = func() {
 		st.Reset()

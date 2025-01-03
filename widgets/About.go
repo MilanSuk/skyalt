@@ -29,7 +29,7 @@ func (st *About) Build(layout *Layout) {
 	Version := layout.AddText(1, 3, 1, 1, "v0.1")
 	Version.Align_h = 1
 
-	Url := layout.AddButton(1, 4, 1, 1, NewButton("github.com/milansuk/skyalt/"))
+	Url := layout.AddButton(1, 4, 1, 1, "github.com/milansuk/skyalt/")
 	Url.Background = 0
 	Url.BrowserUrl = "https://github.com/milansuk/skyalt/"
 

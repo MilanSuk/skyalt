@@ -31,28 +31,43 @@ type Button struct {
 	clickedEx func(numClicks int, altClick bool)
 }
 
-func NewButton(label string) *Button {
-	return &Button{Value: label, Align: 1, Background: 1}
+func (layout *Layout) AddButton(x, y, w, h int, label string) *Button {
+	props := &Button{Value: label, Align: 1, Background: 1}
+	layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	return props
+}
+func (layout *Layout) AddButton2(x, y, w, h int, label string) (*Button, *Layout) {
+	props := &Button{Value: label, Align: 1, Background: 1}
+	lay := layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	return props, lay
 }
 
-func NewButtonDanger(label string) *Button {
-	bt := NewButton(label)
-	bt.Cd = Paint_GetPalette().E // background has error(red) color
-
-	return bt
-}
-func NewButtonIcon(icon_path string, icon_margin float64, Tooltip string) *Button {
-	return &Button{Icon: icon_path, Icon_align: 1, Icon_margin: icon_margin, Tooltip: Tooltip, Background: 1}
-}
-func NewButtonMenu(label string, icon_path string, icon_margin float64) *Button {
-	return &Button{Value: label, Icon: icon_path, Icon_margin: icon_margin, Align: 0, Background: 0.25}
+func (layout *Layout) AddButtonMenu(x, y, w, h int, label string, icon_path string, icon_margin float64) *Button {
+	props := &Button{Value: label, Icon: icon_path, Icon_margin: icon_margin, Align: 0, Background: 0.25}
+	layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	return props
 }
 
-func (layout *Layout) AddButton2(x, y, w, h int, props *Button) (*Button, *Layout) {
-	return props, layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+func (layout *Layout) AddButtonMenu2(x, y, w, h int, label string, icon_path string, icon_margin float64) (*Button, *Layout) {
+	props := &Button{Value: label, Icon: icon_path, Icon_margin: icon_margin, Align: 0, Background: 0.25}
+	lay := layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	return props, lay
 }
-func (layout *Layout) AddButton(x, y, w, h int, props *Button) *Button {
-	layout.AddButton2(x, y, w, h, props)
+
+func (layout *Layout) AddButtonIcon(x, y, w, h int, icon_path string, icon_margin float64, Tooltip string) *Button {
+	props := &Button{Icon: icon_path, Icon_align: 1, Icon_margin: icon_margin, Tooltip: Tooltip, Background: 1}
+	layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	return props
+}
+func (layout *Layout) AddButtonIcon2(x, y, w, h int, icon_path string, icon_margin float64, Tooltip string) (*Button, *Layout) {
+	props := &Button{Icon: icon_path, Icon_align: 1, Icon_margin: icon_margin, Tooltip: Tooltip, Background: 1}
+	lay := layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	return props, lay
+}
+
+func (layout *Layout) AddButtonDanger(x, y, w, h int, label string) *Button {
+	props := &Button{Value: label, Align: 1, Background: 1, Cd: Paint_GetPalette().E}
+	layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
 	return props
 }
 

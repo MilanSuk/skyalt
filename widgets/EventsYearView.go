@@ -39,7 +39,7 @@ func (st *EventsYearView) Build(layout *Layout) {
 		Div.SetColumn(0, 1, 100)
 		Div.SetRow(1, 1, 100)
 
-		bt := Div.AddButton(0, 0, 1, 1, NewButtonMenu("<h2>"+Layout_GetMonthText(1+i), "", 0))
+		bt := Div.AddButtonMenu(0, 0, 1, 1, "<h2>"+Layout_GetMonthText(1+i), "", 0)
 		bt.clicked = func() {
 			if st.openMonth != nil {
 				st.openMonth() //time.Month(1 + this_i))

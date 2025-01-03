@@ -44,7 +44,7 @@ func (st *ButtonConfirm) Build(layout *Layout) {
 		tx := dia.Layout.AddText(0, 0, 3, 1, st.Question)
 		tx.Align_h = 1
 
-		yes := dia.Layout.AddButton(0, 1, 1, 1, NewButtonDanger("Yes"))
+		yes := dia.Layout.AddButtonDanger(0, 1, 1, 1, "Yes")
 		yes.clicked = func() {
 			if st.confirmed != nil {
 				st.confirmed()
@@ -52,13 +52,13 @@ func (st *ButtonConfirm) Build(layout *Layout) {
 			dia.Close()
 		}
 
-		no := dia.Layout.AddButton(2, 1, 1, 1, NewButton("No"))
+		no := dia.Layout.AddButton(2, 1, 1, 1, "No")
 		no.clicked = func() {
 			dia.Close()
 		}
 	}
 
-	bt, btL := layout.AddButton2(0, 0, 1, 1, NewButton(st.Value))
+	bt, btL := layout.AddButton2(0, 0, 1, 1, st.Value)
 	bt.Tooltip = st.Tooltip
 	bt.Align = st.Align
 	bt.Background = st.Draw_back

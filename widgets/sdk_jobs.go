@@ -119,7 +119,7 @@ func (st *Jobs) Build(layout *Layout) {
 
 	for i, it := range st.jobs {
 		layout.AddText(0, i*2+0, 1, 1, fmt.Sprintf("%.1f%%: %s", it.progress*100, it.title))
-		bt := layout.AddButton(1, i*2+0, 1, 1, NewButtonDanger("Stop"))
+		bt := layout.AddButtonDanger(1, i*2+0, 1, 1, "Stop")
 		bt.clicked = func() {
 			it.Stop()
 		}

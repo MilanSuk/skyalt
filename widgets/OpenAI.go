@@ -75,7 +75,7 @@ func (st *OpenAI) Build(layout *Layout) {
 		y++
 	}
 
-	KeyBt := layout.AddButton(1, y, 1, 1, NewButton("Get API key"))
+	KeyBt := layout.AddButton(1, y, 1, 1, "Get API key")
 	KeyBt.Align = 0
 	KeyBt.Background = 0
 	KeyBt.BrowserUrl = "https://platform.openai.com/account/api-keys"

@@ -94,7 +94,7 @@ func (st *EventShow) Build(layout *Layout) {
 			EditDia.Close()
 		}
 
-		editBt := Div.AddButton(0, 0, 1, 1, NewButton("Edit"))
+		editBt := Div.AddButton(0, 0, 1, 1, "Edit")
 		editBt.clicked = func() {
 			EditDia.OpenCentered()
 		}

@@ -41,7 +41,7 @@ func (st *ButtonDownload) Build(layout *Layout) {
 		layout.AddProgressBar(0, 0, 1, 1, job.progress)
 		layout.AddText(0, 0, 1, 1, job.info)
 
-		pauseBt := layout.AddButton(1, 0, 1, 1, NewButton("Pause"))
+		pauseBt := layout.AddButton(1, 0, 1, 1, "Pause")
 		pauseBt.clicked = func() {
 			job.Stop()
 		}
@@ -51,7 +51,7 @@ func (st *ButtonDownload) Build(layout *Layout) {
 		layout.SetColumn(0, 1, 100)
 		layout.SetColumn(1, 2, 2)
 
-		resumeBt := layout.AddButton(0, 0, 1, 1, NewButton("Resume"))
+		resumeBt := layout.AddButton(0, 0, 1, 1, "Resume")
 		resumeBt.Tooltip = st.Url
 		resumeBt.clicked = func() {
 			st.Start()
@@ -76,7 +76,7 @@ func (st *ButtonDownload) Build(layout *Layout) {
 		//download - file not exist
 		layout.SetColumn(0, 1, 100)
 
-		bt := layout.AddButton(0, 0, 1, 1, NewButton("Download"))
+		bt := layout.AddButton(0, 0, 1, 1, "Download")
 		bt.Tooltip = st.Url
 		bt.clicked = func() {
 			st.Start()

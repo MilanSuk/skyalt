@@ -272,7 +272,7 @@ func (dom *Layout3) _refreshLayout() {
 	//relayout
 	dom.relayout(true)
 
-	fmt.Println("project() + Relayout()", (OsTime()-st)/1000, "sec")
+	fmt.Printf("project() + Relayout(): %.4fsec\n", (OsTime()-st)/1000)
 
 	//send rects
 	{
@@ -554,13 +554,13 @@ func (ui *Ui) Tick() {
 		ui.dom.SetTouchAll()
 	}
 
-	editHash := ui.parent.edit.hash
-	touchHash := ui.parent.touch.canvas
-	ui.dom.TouchDialogs(editHash, touchHash, true)
+	ui.dom.UpdateTouch()
+	ui.dom.TouchDialogs(ui.parent.edit.hash, ui.parent.touch.canvas)
+
+	ui.selection.UpdateComp(ui)
 
 	ui.dom.textComp()
 
-	ui.selection.UpdateComp(ui)
 }
 
 func (ui *Ui) Draw() {

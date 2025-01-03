@@ -30,12 +30,15 @@ func (st *Root) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
 
 	layout.SetRowFromSub(0)
-	layout.SetRow(1, 1, 100)
+	layout.SetRow(1, 0.1, 0.1)
+	layout.SetRow(2, 1, 100)
 
 	header := OpenFile_RootHeader()
 	layout.AddRootHeader(0, 0, 1, 1, header)
 
-	AppDiv := layout.AddLayout(0, 1, 1, 1)
+	layout.AddDivider(0, 1, 1, 1, true).Margin = 0
+
+	AppDiv := layout.AddLayout(0, 2, 1, 1)
 	AppDiv.App = true
 	AppDiv.SetColumn(0, 1, 100)
 	AppDiv.SetRow(0, 1, 100)

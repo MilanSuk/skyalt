@@ -53,9 +53,9 @@ func (st *Microphone_recorder) Build(layout *Layout) {
 	var bt *Button
 	var btL *Layout
 	if st.Label == "" {
-		bt, btL = layout.AddButton2(0, 0, 1, 1, NewButtonIcon("resources/mic.png", 0.15, st.Tooltip))
+		bt, btL = layout.AddButtonIcon2(0, 0, 1, 1, "resources/mic.png", 0.15, st.Tooltip)
 	} else {
-		bt, btL = layout.AddButton2(0, 0, 1, 1, NewButtonMenu(st.Label, "resources/mic.png", 0.15))
+		bt, btL = layout.AddButtonMenu2(0, 0, 1, 1, st.Label, "resources/mic.png", 0.15)
 	}
 
 	job := FindJob(st.UID)

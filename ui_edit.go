@@ -19,6 +19,7 @@ package main
 type UiLayoutEdit struct {
 	hash                uint64
 	activate_next_iters int //after pressing tab
+	reload_hash         uint64
 
 	temp       string
 	start, end int

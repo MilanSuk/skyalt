@@ -28,10 +28,10 @@ func OpenFile_Counter() *Counter {
 
 func (st *Counter) Build(layout *Layout) { // //{MARK 29}
 	layout.SetColumn(0, 1, 9)
-	layout.SetColumn(1, 1, 5)   // New empty column
-	layout.SetColumn(2, 5, 5)   // Original column now at index 2
-	layout.SetColumn(3, 1, 100) // New column for the map component
-	layout.SetRow(0, 1, 7)      // Set row max to 7
+	layout.SetColumn(1, 1, 5)  // New empty column
+	layout.SetColumn(2, 5, 5)  // Original column now at index 2
+	layout.SetColumn(3, 1, 10) // New column for the map component
+	layout.SetRow(0, 1, 3)     // Set row max to 7
 
 	div := layout.AddLayout(0, 0, 1, 1)
 	div.SetColumnResizable(0, 1, 15, 2)
@@ -40,7 +40,7 @@ func (st *Counter) Build(layout *Layout) { // //{MARK 29}
 	div.SetColumn(3, 1, 100) // New column for the text component
 	div.SetRow(0, 1, 100)
 
-	inc, incL := div.AddButton2(0, 0, 1, 1, NewButton("+"))
+	inc, incL := div.AddButton2(0, 0, 1, 1, "+")
 	inc.Tooltip = "Increment counter"
 	incL.LLMTip = "Add 1 into '.Count'"
 	inc.clicked = func() {
@@ -51,7 +51,7 @@ func (st *Counter) Build(layout *Layout) { // //{MARK 29}
 	valL.LLMTip = "'.Count'"
 	val.Align_h = 1
 
-	dec, decL := div.AddButton2(2, 0, 1, 1, NewButton("-"))
+	dec, decL := div.AddButton2(2, 0, 1, 1, "-")
 	dec.Tooltip = "Decrement counter"
 	decL.LLMTip = "Subtract 1 from '.Count'"
 	dec.clicked = func() {
@@ -82,7 +82,7 @@ func (st *Counter) Build(layout *Layout) { // //{MARK 29}
 	layout.SetRow(2, 1, 1) // Changed from 3 to 1
 
 	// Add a new button in the new row
-	newBtn := layout.AddButton(0, 6, 1, 1, NewButton("New Button"))
+	newBtn := layout.AddButton(0, 6, 1, 1, "New Button")
 	newBtn.Tooltip = "This is a new button added in the new row"
 	newBtn.clicked = func() {
 		st.NumOfLines++
@@ -92,8 +92,8 @@ func (st *Counter) Build(layout *Layout) { // //{MARK 29}
 	layout.AddOsmMap(1, 0, 3, 1, &st.MapCam)
 
 	// Add new button here
-	layout.SetRow(1, 1, 8) // Adjust row to accommodate new button
-	decNumOfLines := layout.AddButton(0, 7, 1, 1, NewButton("-"))
+	layout.SetRow(1, 1, 2) // Adjust row to accommodate new button
+	decNumOfLines := layout.AddButton(0, 7, 1, 1, "-")
 	decNumOfLines.Tooltip = "Decrement Number of Lines"
 	decNumOfLines.clicked = func() {
 		if st.NumOfLines > 0 {
@@ -102,6 +102,6 @@ func (st *Counter) Build(layout *Layout) { // //{MARK 29}
 	}
 
 	// Add button with label "1234"
-	newButton := layout.AddButton(2, 2, 2, 1, NewButton("1234"))
+	newButton := layout.AddButton(2, 2, 2, 1, "1234")
 	newButton.Tooltip = "This is the 1234 button"
 }

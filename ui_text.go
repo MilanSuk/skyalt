@@ -185,7 +185,7 @@ func (ui *Ui) _Text_update(dom *Layout3,
 		}
 
 		//touch
-		if edit.IsActivateNext() || dom.IsOver() || dom.IsTouchActive() {
+		if edit.IsActivateNext() || dom.IsOver() || dom.IsTouchActive() || edit.reload_hash > 0 {
 
 			var touchCursor int
 			if multi_line {
@@ -286,7 +286,6 @@ func (ui *Ui) _Text_update(dom *Layout3,
 }
 
 func (ui *Ui) _UiPaint_TextSelectTouch(dom *Layout3, editable bool, orig_text string, text string, lines []WinGphLine, cursor int, prop WinFontProps) {
-
 	if !dom.CanTouch() {
 		return
 	}
@@ -295,16 +294,22 @@ func (ui *Ui) _UiPaint_TextSelectTouch(dom *Layout3, editable bool, orig_text st
 	keys := &ui.GetWin().io.Keys
 	touch := &ui.GetWin().io.Touch
 
-	//if touch.Rm && dom.IsTouchPosInside() && edit.Is(dom) && cursor >= OsMin(edit.start, edit.end) && cursor < OsMax(edit.start, edit.end) {
 	if touch.Rm && dom.IsTouchPosInside() && edit.Is(dom) {
 		return
 	}
 
-	if !dom.GetUis().touch.IsScrollOrResizeActive() && (!edit.Is(dom) && editable && edit.IsActivateNext()) /* || (editable && edit.tab) || activate_next_uid)*/ {
+	if !dom.GetUis().touch.IsScrollOrResizeActive() && (dom.props.Hash == edit.reload_hash && editable) {
+		//reload dom
+		edit.Set(dom, editable, orig_text, text, false, false)
+		edit.start = edit.end //set cursor at the end(not full select)
+		edit.reload_hash = 0
+	}
+
+	if !dom.GetUis().touch.IsScrollOrResizeActive() && (!edit.Is(dom) && editable && edit.IsActivateNext()) {
+		//tab
 		edit.Set(dom, editable, orig_text, text, false, false)
 
 	} else if dom.IsTouchPosInside() && dom.IsMouseButtonDownStart() {
-
 		//click inside
 		if !edit.Is(dom) {
 			edit.Set(dom, editable, orig_text, text, false, false)

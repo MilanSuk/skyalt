@@ -34,7 +34,7 @@ func (st *Prompts) Build(layout *Layout) {
 func (st *Prompts) AddButton(prompt string, y *int, layout *Layout) {
 	ast := OpenFile_AssistantChat()
 
-	bt := layout.AddButton(1, *y, 1, 1, NewButtonMenu(prompt, "", 0))
+	bt := layout.AddButtonMenu(1, *y, 1, 1, prompt, "", 0)
 	bt.Background = 0.5
 	bt.clicked = func() {
 		ast.Prompt = prompt

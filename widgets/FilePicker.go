@@ -52,14 +52,14 @@ func (st *FilePicker) Build(layout *Layout) {
 
 	layout.SetRow(1, 2, 10)
 
-	Root := layout.AddButton(0, 0, 1, 1, NewButton("/"))
-	CurDir := layout.AddButton(1, 0, 1, 1, NewButton("SA"))
-	Home := layout.AddButton(2, 0, 1, 1, NewButtonIcon("resources/home.png", 0.25, "Home directory"))
-	Levelup, LevelupL := layout.AddButton2(3, 0, 1, 1, NewButtonIcon("resources/levelup.png", 0.25, "Jump into parent directory"))
+	Root := layout.AddButton(0, 0, 1, 1, "/")
+	CurDir := layout.AddButton(1, 0, 1, 1, "SA")
+	Home := layout.AddButtonIcon(2, 0, 1, 1, "resources/home.png", 0.25, "Home directory")
+	Levelup, LevelupL := layout.AddButtonIcon2(3, 0, 1, 1, "resources/levelup.png", 0.25, "Jump into parent directory")
 	layout.AddEditbox(4, 0, 2, 1, st.Path) //path editbox
 
-	CreateFile, CreateFileL := layout.AddButton2(0, 2, 3, 1, NewButton("Create File"))
-	CreateFolder := layout.AddButton(3, 2, 2, 1, NewButton("CreateFolder"))
+	CreateFile, CreateFileL := layout.AddButton2(0, 2, 3, 1, "Create File")
+	CreateFolder := layout.AddButton(3, 2, 2, 1, "CreateFolder")
 	EditSearch := layout.AddEditboxSearch(5, 2, 1, 1, &g_FilePicker2_search, -1)
 
 	Root.Background = 0
@@ -104,7 +104,7 @@ func (st *FilePicker) Build(layout *Layout) {
 		createDia.Layout.SetColumn(1, 3, 3)
 		var file_name string
 		createDia.Layout.AddEditbox(0, 0, 1, 1, &file_name)
-		bt := createDia.Layout.AddButton(1, 0, 1, 1, NewButton("Create"))
+		bt := createDia.Layout.AddButton(1, 0, 1, 1, "Create")
 		bt.clicked = func() {
 			newPath := folder + "/" + file_name
 			file, err := os.Create(newPath)
@@ -127,7 +127,7 @@ func (st *FilePicker) Build(layout *Layout) {
 		createDia.Layout.SetColumn(1, 3, 3)
 		var file_name string
 		createDia.Layout.AddEditbox(0, 0, 1, 1, &file_name)
-		bt := createDia.Layout.AddButton(1, 0, 1, 1, NewButton("Create"))
+		bt := createDia.Layout.AddButton(1, 0, 1, 1, "Create")
 		bt.clicked = func() {
 			newPath := folder + "/" + file_name
 			err := os.MkdirAll(newPath, os.ModePerm)
@@ -178,7 +178,7 @@ func (st *FilePicker) Build(layout *Layout) {
 
 			selected := (folder+"/"+fileName == *st.Path)
 
-			bt, btL := List.AddButton2(0, y, 1, 1, NewButton(fileName))
+			bt, btL := List.AddButton2(0, y, 1, 1, fileName)
 			bt.Align = 0
 			btL.Enable = enable
 			bt.Icon = "resources/" + iconFile

@@ -53,7 +53,7 @@ func (st *OpenAI_completion) Build(layout *Layout) {
 		txtLay.VScrollToTheBottom()
 	}
 
-	stopBt := layout.AddButton(1, 1, 1, 1, NewButton("Stop"))
+	stopBt := layout.AddButton(1, 1, 1, 1, "Stop")
 	stopBt.clicked = func() {
 		st.Stop()
 	}
@@ -217,7 +217,7 @@ func OpenAI_completion_parseStream(res *http.Response, job *Job) (string, error)
 		}
 		if n > 0 {
 			buff = append(buff, tb[:n]...)
-			fmt.Println(string(tb[:n])) //bug somewhere around: sometime never return [done] .........
+			fmt.Println(string(tb[:n])) //bug(somewhere): sometime never return [done] .........
 		}
 
 		for {

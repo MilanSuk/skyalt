@@ -206,7 +206,7 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 	dia := layout.AddDialog("context")
 	dia.Layout.SetColumn(0, 1, 5)
 
-	SelectAll := dia.Layout.AddButton(0, 0, 1, 1, NewButton("Select All"))
+	SelectAll := dia.Layout.AddButton(0, 0, 1, 1, "Select All")
 	SelectAll.Align = 0
 	SelectAll.Background = 0.25
 	SelectAll.clicked = func() {
@@ -214,7 +214,7 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 		dia.Close()
 	}
 
-	Copy := dia.Layout.AddButton(0, 1, 1, 1, NewButton("Copy"))
+	Copy := dia.Layout.AddButton(0, 1, 1, 1, "Copy")
 	Copy.Align = 0
 	Copy.Background = 0.25
 	Copy.clicked = func() {
@@ -222,7 +222,7 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 		dia.Close()
 	}
 
-	Cut := dia.Layout.AddButton(0, 2, 1, 1, NewButton("Cut"))
+	Cut := dia.Layout.AddButton(0, 2, 1, 1, "Cut")
 	Cut.Align = 0
 	Cut.Background = 0.25
 	Cut.clicked = func() {
@@ -230,7 +230,7 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 		dia.Close()
 	}
 
-	Paste := dia.Layout.AddButton(0, 3, 1, 1, NewButton("Paste"))
+	Paste := dia.Layout.AddButton(0, 3, 1, 1, "Paste")
 	Paste.Align = 0
 	Paste.Background = 0.25
 	Paste.clicked = func() {

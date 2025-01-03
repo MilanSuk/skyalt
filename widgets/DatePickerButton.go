@@ -22,7 +22,7 @@ func (st *DatePickerButton) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
 	layout.SetRow(0, 1, 100)
 
-	bt := layout.AddButton(0, 0, 1, 1, NewButton(Layout_ConvertTextDate(*st.Value)))
+	bt := layout.AddButton(0, 0, 1, 1, Layout_ConvertTextDate(*st.Value))
 	bt.Icon = "resources/calendar.png"
 	bt.Align = 0
 	bt.Icon_margin = 0.1

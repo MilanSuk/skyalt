@@ -96,7 +96,7 @@ func (st *EventEdit) Build(layout *Layout) {
 	{
 		Div.SetColumn(0, 1, 100)
 
-		bt, btLay := Div.AddButton2(0, 0, 1, 1, NewButton(st.ChangedButtonTitle))
+		bt, btLay := Div.AddButton2(0, 0, 1, 1, st.ChangedButtonTitle)
 		btLay.Enable = (errTitle == nil && errOrder == nil)
 		bt.clicked = func() {
 			if st.changed != nil {

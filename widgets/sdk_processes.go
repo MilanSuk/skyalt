@@ -104,7 +104,7 @@ func (st *Processes) Build(layout *Layout) {
 
 	for i, it := range st.items {
 		layout.AddText(0, i, 1, 1, it.uid)
-		bt := layout.AddButton(1, i, 1, 1, NewButtonDanger("Stop"))
+		bt := layout.AddButtonDanger(1, i, 1, 1, "Stop")
 		bt.clicked = func() {
 			st.items = append(st.items[:i], st.items[i+1:]...) //remove
 		}

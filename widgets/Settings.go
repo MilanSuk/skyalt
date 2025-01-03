@@ -68,7 +68,7 @@ func (st *Settings) Build(layout *Layout) {
 		DPI.Tooltip = "DPI(Dots per inch)"
 
 		//+
-		Add := ZoomDiv.AddButton(2, 0, 1, 1, NewButton("+"))
+		Add := ZoomDiv.AddButton(2, 0, 1, 1, "+")
 		Add.Background = 0.5
 		Add.clicked = func() {
 			st.Dpi += 3
@@ -80,14 +80,14 @@ func (st *Settings) Build(layout *Layout) {
 		Info.Align_h = 1
 
 		//-
-		Sub := ZoomDiv.AddButton(4, 0, 1, 1, NewButton("-"))
+		Sub := ZoomDiv.AddButton(4, 0, 1, 1, "-")
 		Sub.Background = 0.5
 		Sub.clicked = func() {
 			st.Dpi -= 3
 		}
 
 		//Reset
-		Reset := ZoomDiv.AddButton(6, 0, 1, 1, NewButton("Reset"))
+		Reset := ZoomDiv.AddButton(6, 0, 1, 1, "Reset")
 		Reset.Background = 0.5
 		Reset.clicked = func() {
 			st.Dpi = st.Dpi_default

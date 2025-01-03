@@ -80,11 +80,11 @@ func (his *UiPaintTextHistory) Forward() UiPaintTextHistoryItem {
 	return his.items[his.act]
 }
 
-type UiPaintTextHistoryArray2 struct {
+type UiPaintTextHistoryArray struct {
 	items []*UiPaintTextHistory
 }
 
-func (his *UiPaintTextHistoryArray2) FindOrAdd(uid uint64, init UiPaintTextHistoryItem) *UiPaintTextHistory {
+func (his *UiPaintTextHistoryArray) FindOrAdd(uid uint64, init UiPaintTextHistoryItem) *UiPaintTextHistory {
 
 	//finds
 	for _, it := range his.items {

@@ -32,10 +32,10 @@ func (st *DatePicker) Build(layout *Layout) {
 	layout.SetRow(2, 2, 2)
 
 	//Info
-	Today := layout.AddButton(0, 0, 2, 1, NewButton("Today"))
+	Today := layout.AddButton(0, 0, 2, 1, "Today")
 	Info := layout.AddText(2, 0, 3, 1, "<h2>"+Date_GetMonthYear(*st.Page))
-	PageBack := layout.AddButton(5, 0, 1, 1, NewButton("<"))
-	PageForward := layout.AddButton(6, 0, 1, 1, NewButton(">"))
+	PageBack := layout.AddButton(5, 0, 1, 1, "<")
+	PageForward := layout.AddButton(6, 0, 1, 1, ">")
 
 	Info.Align_h = 1
 

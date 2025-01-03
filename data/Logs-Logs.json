@@ -194,6 +194,16 @@
 "Time_unix": 1735820373,
 "Layout_hash": 0,
 "Error": "prompt is too short"
+},
+{
+"Time_unix": 1735839631,
+"Layout_hash": 0,
+"Error": "open widgets/: is a directory"
+},
+{
+"Time_unix": 1735841822,
+"Layout_hash": 0,
+"Error": "prompt is too short"
 }
 ]
 }

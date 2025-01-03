@@ -44,7 +44,7 @@ func (st *FilePickerButton) Build(layout *Layout) {
 			hDiv.SetColumn(1, 1, 100)
 			hDiv.SetColumn(2, 1, 3)
 
-			closeBt := hDiv.AddButton(0, 0, 1, 1, NewButton("Cancel"))
+			closeBt := hDiv.AddButton(0, 0, 1, 1, "Cancel")
 			closeBt.clicked = func() {
 				cdialog.Close()
 			}
@@ -56,7 +56,7 @@ func (st *FilePickerButton) Build(layout *Layout) {
 			tx := hDiv.AddText(1, 0, 1, 1, nm)
 			tx.Align_h = 1
 
-			openBt := hDiv.AddButton(2, 0, 1, 1, NewButton("Open"))
+			openBt := hDiv.AddButton(2, 0, 1, 1, "Open")
 			openBt.clicked = func() {
 				*st.Path = g_file_picker_temp_path
 				if st.changed != nil {
@@ -85,7 +85,7 @@ func (st *FilePickerButton) Build(layout *Layout) {
 	if st.SelectFile {
 		icon = "resources/file.png"
 	}
-	bt := layout.AddButton(0, 0, 1, 1, NewButtonMenu(*st.Path, icon, 0.1))
+	bt := layout.AddButtonMenu(0, 0, 1, 1, *st.Path, icon, 0.1)
 	bt.Border = true
 	bt.clicked = func() {
 		if *st.Path == "" {

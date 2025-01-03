@@ -20,7 +20,7 @@ func (st *ColorPickerButton) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
 	layout.SetRow(0, 1, 100)
 
-	bt := layout.AddButton(0, 0, 1, 1, NewButtonMenu("", "resources/color.png", 0.1))
+	bt := layout.AddButtonMenu(0, 0, 1, 1, "", "resources/color.png", 0.1)
 	bt.Border = true
 	bt.Background = 1
 	bt.Cd = *st.Cd //set Button

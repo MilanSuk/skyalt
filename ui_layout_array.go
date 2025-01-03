@@ -151,7 +151,26 @@ func (arr *UiLayoutArray) ConvertMax(cell int, start int, end int) OsV2 {
 	return ret
 }
 
-func (arr *UiLayoutArray) GetCloseCell(rel_px_pos int) int {
+func (arr *UiLayoutArray) GetCellPos(rel_px_pos int, cell int) int {
+	if rel_px_pos < 0 {
+		return 0
+	}
+	allPixels := 0
+	allPixelsLast := 0
+	for i := 0; i < len(arr.outputs); i++ {
+		allPixels += int(arr.outputs[i])
+
+		if rel_px_pos >= allPixelsLast && rel_px_pos < allPixels {
+			return i //found
+		}
+
+		allPixelsLast = allPixels
+	}
+
+	return len(arr.outputs) + (rel_px_pos-allPixelsLast)/cell
+}
+
+func (arr *UiLayoutArray) GetCloseCellPos(rel_px_pos int) int {
 	if rel_px_pos < 0 {
 		return 0
 	}

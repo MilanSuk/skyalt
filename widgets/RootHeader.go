@@ -45,7 +45,7 @@ func (st *RootHeader) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 1.5) //logo
 	layout.SetColumn(1, 1, 100)
 	layout.SetColumnFromSub(2)  //mic
-	layout.SetColumn(3, 1, 15)  //prompt
+	layout.SetColumn(3, 1, 20)  //prompt
 	layout.SetColumn(4, 1, 1)   //clear
 	layout.SetColumn(5, 1, 3)   //send
 	layout.SetColumn(6, 1, 1)   //settings
@@ -56,7 +56,7 @@ func (st *RootHeader) Build(layout *Layout) {
 
 	ast := OpenFile_AssistantChat()
 
-	logoBt := layout.AddButton(0, 0, 1, 1, NewButtonIcon("resources/logo_small.png", 0.1, "v0.1")) //v0.1 .......
+	logoBt := layout.AddButtonIcon(0, 0, 1, 1, "resources/logo_small.png", 0.1, "v0.1") //v0.1 .......
 	if !st.ShowPromptList {
 		logoBt.Background = 0
 	}
@@ -70,18 +70,17 @@ func (st *RootHeader) Build(layout *Layout) {
 	av.Button_background = 0.25
 
 	//prompt
-	//...ChatDia := ast.CreateDialog(layout)
 	ast.Assistant_recomputePromptColors() //, ast.Picks)
 	ed, edLay := layout.AddEditboxMultiline(3, 0, 1, 1, &ast.Prompt)
 	ed.Ghost = "What can I do for you?"
-	ed.Tooltip = "Use Ctrl + Mouse to select widgets."
+	ed.Tooltip = "Use Ctrl + Mouse to paint over."
 	edLay.Back_cd = Paint_GetPalette().B
 	if ast.Prompt == "" {
 		ast.reset()
 	}
 
 	//clear
-	clearBt := layout.AddButton(4, 0, 1, 1, NewButton("X"))
+	clearBt := layout.AddButton(4, 0, 1, 1, "X")
 	clearBt.Background = 0.2
 	//sendLay.Enable = len(ast.Prompt) > 0
 	clearBt.clicked = func() {
@@ -89,7 +88,7 @@ func (st *RootHeader) Build(layout *Layout) {
 	}
 
 	//send
-	sendBt := layout.AddButton(5, 0, 1, 1, NewButton("Send"))
+	sendBt := layout.AddButton(5, 0, 1, 1, "Send")
 	//sendLay.Enable = len(ast.Prompt) > 0
 	sendBt.clicked = func() {
 		ast.Send()
@@ -102,7 +101,7 @@ func (st *RootHeader) Build(layout *Layout) {
 		SDia.Layout.SetRowFromSub(0)
 		SDia.Layout.AddModels(0, 0, 1, 1, &ast.Model)
 
-		SettingsBt, SettingsLay := layout.AddButton2(6, 0, 1, 1, NewButtonIcon("resources/settings.png", 0.2, "Pick the model"))
+		SettingsBt, SettingsLay := layout.AddButtonIcon2(6, 0, 1, 1, "resources/settings.png", 0.2, "Pick the model")
 		SettingsBt.Background = 0.5
 		SettingsBt.clicked = func() {
 			SDia.OpenRelative(SettingsLay)
@@ -126,7 +125,7 @@ func (st *RootHeader) Build(layout *Layout) {
 			errDiv.SetColumn(2, 1, 100) //text
 			errDiv.SetColumn(3, 1, 1)
 
-			openBt := errDiv.AddButton(2, 0, 1, 1, NewButtonMenu("Error: "+err.Error, "", 0))
+			openBt := errDiv.AddButtonMenu(2, 0, 1, 1, "Error: "+err.Error, "", 0)
 			openBt.Tooltip = "Open Errors App"
 			openBt.Cd = Paint_GetPalette().E
 			openBt.Background = 0.2
@@ -154,7 +153,7 @@ func (st *RootHeader) Build(layout *Layout) {
 		if enable {
 			sz = 0.1 //bigger icon
 		}
-		JobsBt, JobsL := layout.AddButton2(8, 0, 1, 1, NewButtonIcon("resources/logo_Counter.png", sz, "List of jobs"))
+		JobsBt, JobsL := layout.AddButtonIcon2(8, 0, 1, 1, "resources/logo_Counter.png", sz, "List of jobs")
 		if enable {
 			JobsBt.Cd = Paint_GetPalette().P
 		}
@@ -166,7 +165,7 @@ func (st *RootHeader) Build(layout *Layout) {
 	}
 
 	//panel switch
-	/*PanelBt := layout.AddButton(7, 0, 1, 1, NewButtonIcon("resources/settings.png", 0.2, "Open/Close AI Assistant"))
+	/*PanelBt := layout.AddButtonIcon(7, 0, 1, 1, "resources/settings.png", 0.2, "Open/Close AI Assistant")
 	PanelBt.Background = 0.25
 	if ast.Show {
 		PanelBt.Background = 1

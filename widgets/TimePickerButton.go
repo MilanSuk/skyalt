@@ -26,7 +26,7 @@ func (st *TimePickerButton) Build(layout *Layout) {
 	layout.SetColumn(3, 0.5, 0.5)
 	layout.SetRow(0, 1, 100)
 
-	btDate := layout.AddButton(0, 0, 1, 1, NewButton(Layout_ConvertTextDate(*st.Value)))
+	btDate := layout.AddButton(0, 0, 1, 1, Layout_ConvertTextDate(*st.Value))
 	btDate.Tooltip = "Date"
 	btDate.Icon = "resources/calendar.png"
 	btDate.Align = 0
