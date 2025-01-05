@@ -31,6 +31,14 @@ type LayoutPick struct {
 	Cd         color.RGBA //paintbrush color
 }
 
+func (a *LayoutPick) Cmp(b *LayoutPick) bool {
+	return a.Line == b.Line &&
+		a.X == b.X &&
+		a.Y == b.Y &&
+		a.W == b.W &&
+		a.H == b.H
+}
+
 type Rect struct {
 	X, Y, W, H float64
 }

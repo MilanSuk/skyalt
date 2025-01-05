@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -149,18 +150,33 @@ func (st *RootHeader) Build(layout *Layout) {
 		JobsDia.Layout.AddJobs(0, 0, 1, 1)
 
 		enable := len(g__jobs.jobs) > 0
-		sz := 0.2
-		if enable {
-			sz = 0.1 //bigger icon
+		doneStr := ""
+		slowJob := g__jobs.GetSlowestEstimateJob()
+		if slowJob != nil {
+			doneStr = fmt.Sprintf("%.1f%%", slowJob.GetEstimateDone()*100) //slowJob.GetEndTime()
 		}
-		JobsBt, JobsL := layout.AddButtonIcon2(8, 0, 1, 1, "resources/logo_Counter.png", sz, "List of jobs")
-		if enable {
-			JobsBt.Cd = Paint_GetPalette().P
-		}
+		//doneStr ...
+		JobsBt, JobsL := layout.AddButton2(8, 0, 1, 1, doneStr)
 		JobsL.Enable = enable
 		JobsBt.Background = 0.25
+		JobsBt.Tooltip = "List of jobs"
+		JobsBt.Icon = "resources/logo_Counter.png"
+		JobsBt.Icon_margin = 0.2
+		if enable {
+			JobsBt.Background = 1
+			//JobsBt.Cd = Paint_GetPalette().P
+			JobsBt.Icon_margin = 0.1 //bigger
+		}
+		if doneStr == "" {
+			JobsBt.Icon_align = 1
+		}
+
 		JobsBt.clicked = func() {
 			JobsDia.OpenRelative(JobsL)
+		}
+
+		if doneStr != "" {
+			layout.SetColumn(8, 1, 3)
 		}
 	}
 

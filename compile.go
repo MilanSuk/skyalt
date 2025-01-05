@@ -62,7 +62,7 @@ func Compile_GetIniPath() string {
 func (comp *Compile) Tick() error {
 
 	//recompile
-	if !OsIsTicksIn(comp.lastRecompileTicks, 3000) {
+	if comp.recompile || !OsIsTicksIn(comp.lastRecompileTicks, 3000) {
 
 		// recompile
 		if !comp.compiling.Load() && comp.NeedRecompile() {

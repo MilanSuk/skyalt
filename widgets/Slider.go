@@ -23,6 +23,14 @@ func (layout *Layout) AddSlider(x, y, w, h int, value *float64, min, max, step f
 	layout._createDiv(x, y, w, h, "Slider", nil, props.Draw, props.Input)
 	return props
 }
+func (layout *Layout) AddSliderInt(x, y, w, h int, value *int, min, max, step float64) *Slider {
+	val := float64(*value)
+	props := layout.AddSlider(x, y, w, h, &val, min, max, step)
+	props.changed = func() {
+		*value = int(val)
+	}
+	return props
+}
 
 func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 

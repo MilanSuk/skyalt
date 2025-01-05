@@ -13,5 +13,5 @@ func (st *ShowApp) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
 	layout.SetRow(0, 1, 100)
 
-	layout.AddEvents(0, 0, 1, 1, OpenFile_Events()) // Show Events
+	layout.AddTest(0, 0, 1, 1, OpenFile_Test())
 }

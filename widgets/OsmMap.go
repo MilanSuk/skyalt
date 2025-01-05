@@ -260,7 +260,7 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 							out_bytes = append(out_bytes, data[:n]...)
 
 							recv_bytes += n
-							job.SetProgress(float64(recv_bytes)/float64(final_bytes), "")
+							job.SetProgress(float64(recv_bytes) / float64(final_bytes))
 						}
 
 						//save

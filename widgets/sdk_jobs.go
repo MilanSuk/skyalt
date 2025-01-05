@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type Job struct {
@@ -28,9 +29,16 @@ type Job struct {
 
 	stop atomic.Bool
 
-	title    string
-	progress float64 //<0, 1>
-	info     string
+	title string
+	done  float64 //<0, 1>
+	info  string
+
+	start_time_sec   float64
+	estimate_end_sec float64 //0 = off
+
+	//last_done float64
+	//last_time float64 //sec when SetProgress() was called last
+	//rest_time float64 //sec to finish job
 }
 
 func (job *Job) Stop() {
@@ -48,9 +56,37 @@ func (job *Job) AddError(err error) {
 		OpenFile_Logs().AddError(err, 0)
 	}
 }
-func (job *Job) SetProgress(done float64, info string) {
-	job.progress = done
+
+func (job *Job) SetInfo(info string) {
 	job.info = info
+}
+
+func (job *Job) SetProgress(done float64) {
+	job.done = done
+
+	act := float64(time.Now().UnixMilli()) / 1000
+	job.estimate_end_sec = job.start_time_sec + ((act - job.start_time_sec) / done * (1 - done))
+
+	/*time := float64(time.Now().UnixMilli()) / 1000
+	dt := time - job.last_time
+	if job.last_time > 0 && dt > 0.5 { //need 0.5sec different
+		rest_done := (1 - job.last_done)
+		diff_done := (done - job.last_done)
+
+		job.rest_time = rest_done / diff_done * dt
+		job.last_time = time
+		job.last_done = done
+	}*/
+}
+
+func (job *Job) SetEstimate(end_sec float64) {
+	job.estimate_end_sec = end_sec
+}
+
+func (job *Job) GetEstimateDone() float64 {
+	act := float64(time.Now().UnixMilli()) / 1000
+
+	return (act - job.start_time_sec) / (job.estimate_end_sec - job.start_time_sec)
 }
 
 type Jobs struct {
@@ -73,6 +109,22 @@ func FindJob(uid string) *Job {
 	return nil
 }
 
+func (jobs *Jobs) GetSlowestEstimateJob() *Job {
+	g__jobs.lock.Lock()
+	defer g__jobs.lock.Unlock()
+
+	//find
+	end_time := 0.0
+	var end_job *Job
+	for _, it := range g__jobs.jobs {
+		if it.estimate_end_sec > end_time {
+			end_time = it.estimate_end_sec
+			end_job = it
+		}
+	}
+	return end_job
+}
+
 func StartJob(uid string, title string, fnRun func(job *Job)) *Job {
 	g__jobs.lock.Lock()
 	defer g__jobs.lock.Unlock()
@@ -84,7 +136,7 @@ func StartJob(uid string, title string, fnRun func(job *Job)) *Job {
 		}
 	}
 
-	job := &Job{title: title, uid: uid}
+	job := &Job{title: title, uid: uid, start_time_sec: float64(time.Now().UnixMilli()) / 1000}
 	g__jobs.jobs = append(g__jobs.jobs, job)
 	go func() {
 		fnRun(job)
@@ -118,7 +170,7 @@ func (st *Jobs) Build(layout *Layout) {
 	layout.SetColumn(1, 1, 4)
 
 	for i, it := range st.jobs {
-		layout.AddText(0, i*2+0, 1, 1, fmt.Sprintf("%.1f%%: %s", it.progress*100, it.title))
+		layout.AddText(0, i*2+0, 1, 1, fmt.Sprintf("%.1f%%: %s", it.done*100, it.title))
 		bt := layout.AddButtonDanger(1, i*2+0, 1, 1, "Stop")
 		bt.clicked = func() {
 			it.Stop()

@@ -23,16 +23,13 @@ import (
 
 type UiSelectionBrush struct {
 	Points []OsV2
-	Cd     LayoutPromptColor
+	Pick   LayoutPick
 }
 
 type UiSelection struct {
-	active bool
-
-	appName string
-
-	brushes []UiSelectionBrush
-
+	active           bool
+	appName          string
+	brushes          []*UiSelectionBrush
 	backup_edit_hash uint64
 }
 
@@ -55,7 +52,7 @@ func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
 
 	thick := ui.CellWidth(0.3)
 	for _, it := range s.brushes {
-		buff.AddLines(it.Points, it.Cd.Cd, thick, true)
+		buff.AddLines(it.Points, it.Pick.Cd, thick, true)
 	}
 }
 
@@ -65,7 +62,8 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 	if ui.GetWin().io.Keys.Ctrl {
 		if ui.GetWin().io.Touch.Start {
 			s.active = true
-			s.brushes = append(s.brushes, UiSelectionBrush{Cd: Layout3_Get_prompt_color(len(s.brushes))})
+			pcd := Layout3_Get_prompt_color(len(s.brushes))
+			s.brushes = append(s.brushes, &UiSelectionBrush{Pick: LayoutPick{Cd: pcd.Cd, Label: pcd.Label}})
 
 			s.backup_edit_hash = ui.parent.edit.hash
 		}
@@ -75,8 +73,10 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 		return
 	}
 
+	actBr := s.brushes[len(s.brushes)-1]
+
 	//add point
-	s.brushes[len(s.brushes)-1].Points = append(s.brushes[len(s.brushes)-1].Points, ui.GetWin().io.Touch.Pos)
+	actBr.Points = append(actBr.Points, ui.GetWin().io.Touch.Pos)
 
 	//end
 	if ui.GetWin().io.Touch.End {
@@ -106,16 +106,15 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 				grid.Size.X++
 				grid.Size.Y++
 
-				var pick LayoutPick
-				pick.X = grid.Start.X
-				pick.Y = grid.Start.Y
-				pick.W = grid.Size.X
-				pick.H = grid.Size.Y
-				pick.Cd = s.brushes[len(s.brushes)-1].Cd.Cd
-				pick.Label = s.brushes[len(s.brushes)-1].Cd.Label
+				//var pick LayoutPick
+				actBr.Pick.X = grid.Start.X
+				actBr.Pick.Y = grid.Start.Y
+				actBr.Pick.W = grid.Size.X
+				actBr.Pick.H = grid.Size.Y
 
-				fmt.Println("--pick", pick.X, pick.Y, pick.W, pick.H)
+				fmt.Println("--pick", actBr.Pick.X, actBr.Pick.Y, actBr.Pick.W, actBr.Pick.H)
 
+				//find line
 				if best_layout == appLay {
 					//get Build() pos
 					wf, err := Compile_getWidgetFile(s.appName)
@@ -127,13 +126,24 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 						fmt.Println("Error 1456")
 						return
 					}
-					pick.Line = wf.Build
+					actBr.Pick.Line = wf.Build
 
 				} else {
-					pick.Line = best_layout.props.Caller_line
+					actBr.Pick.Line = best_layout.props.Caller_line
 				}
 
-				in := LayoutInput{Pick: pick, PickApp: s.appName}
+				//find if pick(line & grid) already exist
+				for i := 0; i < len(s.brushes)-1; i++ { //-1 = not last
+					it := s.brushes[i]
+					if it.Pick.Cmp(&actBr.Pick) {
+						//rewrite color
+						actBr.Pick.Cd = it.Pick.Cd
+						actBr.Pick.Label = it.Pick.Label
+						break
+					}
+				}
+
+				in := LayoutInput{Pick: actBr.Pick, PickApp: s.appName}
 				ui.parent.CallInput(&ui.dom.props, &in)
 			}
 		}

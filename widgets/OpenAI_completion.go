@@ -138,7 +138,6 @@ func OpenAI_completion_Run(jsProps []byte, stream bool, Completion_url string, A
 			return "", err
 		}
 	} else {
-
 		js, err := io.ReadAll(res.Body) //job.close ...
 		if err != nil {
 			job.AddError(fmt.Errorf("ReadAll() failed: %E", err))
@@ -250,7 +249,7 @@ func OpenAI_completion_parseStream(res *http.Response, job *Job) (string, error)
 				}
 
 				if len(st.Choices) > 0 {
-					job.info = job.info + st.Choices[0].Delta.Content
+					job.SetInfo(job.info + st.Choices[0].Delta.Content)
 					//fmt.Print(st.Choices[0].Delta.Content)
 				}
 			}

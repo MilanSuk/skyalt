@@ -1,37 +1,12 @@
 {
-"Prompt": "Move \u003crgba255,0,0,255\u003e{red}\u003c/rgba\u003e to \u003crgba0,255,0,255\u003e{green}\u003c/rgba\u003e.",
-"Picks": [
-{
-"Line": 29,
-"X": 2,
-"Y": 2,
-"W": 2,
-"H": 1,
-"Label": "red",
-"Cd": {
-"R": 255,
-"G": 0,
-"B": 0,
-"A": 255
-}
-},
-{
-"Line": 29,
-"X": 2,
-"Y": 6,
-"W": 2,
-"H": 1,
-"Label": "green",
-"Cd": {
-"R": 0,
-"G": 255,
-"B": 0,
-"A": 255
-}
-}
-],
-"AppName": "Counter",
+"Prompt": "",
+"Picks": null,
+"AppName": "Test",
 "Model": {
 "Model": "gpt-4o"
+},
+"Stats": {
+"openai_gpt-4o_AssistantChat1_Test": 0.0002999999428873008,
+"openai_gpt-4o_AssistantChat2-code_Test": 0.00025172047700723827
 }
 }

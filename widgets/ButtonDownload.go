@@ -38,7 +38,7 @@ func (st *ButtonDownload) Build(layout *Layout) {
 		layout.SetColumn(0, 1, 100)
 		layout.SetColumn(1, 2, 2)
 
-		layout.AddProgressBar(0, 0, 1, 1, job.progress)
+		layout.AddProgressBar(0, 0, 1, 1, job.done)
 		layout.AddText(0, 0, 1, 1, job.info)
 
 		pauseBt := layout.AddButton(1, 0, 1, 1, "Pause")
@@ -197,7 +197,8 @@ func (st *ButtonDownload) Run(job *Job) {
 		recv_bytes += int64(m)
 		st.stat_recv += int64(m)
 
-		job.SetProgress(st._getProgress(recv_bytes, final_bytes), st._getProgressStr(recv_bytes, final_bytes))
+		job.SetProgress(st._getProgress(recv_bytes, final_bytes))
+		job.SetInfo(st._getProgressStr(recv_bytes, final_bytes))
 	}
 
 	if file != nil {

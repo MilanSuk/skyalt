@@ -53,6 +53,10 @@ func _skyalt_save() {
 		_write_file("Settings-Settings", g_Settings)
 		g_Settings = nil
 	}
+	if g_Test != nil {
+		_write_file("Test-Test", g_Test)
+		g_Test = nil
+	}
 	if g_UserInfo != nil {
 		_write_file("UserInfo-UserInfo", g_UserInfo)
 		g_UserInfo = nil
