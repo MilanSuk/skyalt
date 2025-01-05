@@ -40,10 +40,10 @@ func (st *Microphone) Build(layout *Layout) {
 	y++
 
 	layout.AddText(0, y, 1, 1, "Sample rate")
-	layout.AddEditboxInt(1, y, 1, 1, &st.SampleRate)
+	layout.AddEditbox(1, y, 1, 1, &st.SampleRate)
 	y++
 
 	layout.AddText(0, y, 1, 1, "Number of Channels")
-	layout.AddEditboxInt(1, y, 1, 1, &st.Channels)
+	layout.AddEditbox(1, y, 1, 1, &st.Channels)
 	y++
 }

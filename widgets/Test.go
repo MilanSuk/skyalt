@@ -1,7 +1,5 @@
 package main
 
-import "strconv"
-
 // Test struct holds the Count attribute.
 type Test struct {
 	Count int
@@ -41,6 +39,10 @@ func (st *Test) Build(layout *Layout) {
 		layout.Redraw()
 	}
 
+	// Add editbox with count attribute as value
+	ed := layout.AddEditbox(1, 0, 1, 1, &st.Count)
+	ed.Align_h = 1
+
 	// Add button to decrement the count
 	decrementButton := layout.AddButton(2, 0, 1, 1, "-")
 	decrementButton.clicked = func() {
@@ -48,11 +50,6 @@ func (st *Test) Build(layout *Layout) {
 		layout.Redraw()
 	}
 
-	// Add an editbox for the Count attribute at the specified position.
-	countStr := strconv.Itoa(st.Count)
-	editbox := layout.AddEditbox(1, 0, 1, 1, &countStr)
-	editbox.Align_h = 1 // Center the text horizontally
-
-	// Add a slider for the Count attribute at the specified position.
-	layout.AddSliderInt(0, 1, 3, 2, &st.Count, -10, 10, 1)
+	// Add slider with min -10 and max 10 using Count attribute as value
+	layout.AddSlider(0, 1, 3, 2, &st.Count, -10, 10, 1)
 }

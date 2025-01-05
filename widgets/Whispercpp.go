@@ -58,7 +58,7 @@ func (st *Whispercpp) Build(layout *Layout) {
 
 	layout.AddText(0, y, 1, 1, "Address")
 	layout.AddEditbox(1, y, 1, 1, &st.Addr)
-	layout.AddEditboxInt(2, y, 1, 1, &st.Port)
+	layout.AddEditbox(2, y, 1, 1, &st.Port)
 	y++
 
 	//models

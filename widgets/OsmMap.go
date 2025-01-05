@@ -98,7 +98,8 @@ func (st *OsmMap) Build(layout *Layout) {
 
 		tx := Div.AddText(0, 0, 1, 1, "Lon")
 		tx.Align_h = 2
-		edLon := Div.AddEditboxFloat(1, 0, 1, 1, &st.Cam.Lon, 4)
+		edLon := Div.AddEditbox(1, 0, 1, 1, &st.Cam.Lon)
+		edLon.ValueFloatPrec = 4
 		edLon.changed = func() {
 			if st.changed != nil {
 				st.changed()
@@ -107,7 +108,8 @@ func (st *OsmMap) Build(layout *Layout) {
 
 		tx = Div.AddText(2, 0, 1, 1, "Lat")
 		tx.Align_h = 2
-		edLat := Div.AddEditboxFloat(3, 0, 1, 1, &st.Cam.Lat, 4)
+		edLat := Div.AddEditbox(3, 0, 1, 1, &st.Cam.Lat)
+		edLat.ValueFloatPrec = 4
 		edLat.changed = func() {
 			if st.changed != nil {
 				st.changed()
@@ -116,7 +118,8 @@ func (st *OsmMap) Build(layout *Layout) {
 
 		tx = Div.AddText(4, 0, 1, 1, "Zoom")
 		tx.Align_h = 2
-		edZoom := Div.AddEditboxFloat(5, 0, 1, 1, &st.Cam.Zoom, 0)
+		edZoom := Div.AddEditbox(5, 0, 1, 1, &st.Cam.Zoom)
+		edZoom.ValueFloatPrec = 0
 		edZoom.changed = func() {
 			if st.changed != nil {
 				st.changed()

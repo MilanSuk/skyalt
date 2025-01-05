@@ -93,7 +93,7 @@ func (st *ColorPicker) Build(layout *Layout) {
 
 func (st *ColorPicker) _addValue(layout *Layout, x, y, w, h int, Description string, Prec int, Value *float64, Min, Max, Step float64) *SliderEdit {
 	it := layout.AddSliderEdit(x, y, w, h, Value, Min, Max, Step)
-	it.ValuePrec = Prec
+	it.ValuePointerPrec = Prec
 	it.Description_width = 2
 	it.Slider_width = 100
 	it.Edit_width = 2

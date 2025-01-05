@@ -47,7 +47,7 @@ func (st *Counter) Build(layout *Layout) { // //{MARK 29}
 		st.Count++
 	}
 
-	val, valL := div.AddEditboxInt2(1, 0, 1, 1, &st.Count)
+	val, valL := div.AddEditbox2(1, 0, 1, 1, &st.Count)
 	valL.LLMTip = "'.Count'"
 	val.Align_h = 1
 

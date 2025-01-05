@@ -29,7 +29,7 @@ func (st *Anthropic_completion_props) Build(layout *Layout) {
 	y++
 
 	sl := layout.AddSliderEdit(0, y, 2, 1, &st.Temperature, 0, 2, 0.1)
-	sl.ValuePrec = 1
+	sl.ValuePointerPrec = 1
 	sl.Description = "Temperature"
 	sl.Tooltip = "The sampling temperature, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. If set to 0, the model will use log probability to automatically increase the temperature until certain thresholds are hit."
 	sl.Description_width = 3.5
@@ -38,7 +38,7 @@ func (st *Anthropic_completion_props) Build(layout *Layout) {
 	y++
 
 	sl = layout.AddSliderEditInt(0, y, 2, 1, &st.Max_tokens, 128, 4096, 1)
-	sl.ValuePrec = 0
+	sl.ValuePointerPrec = 0
 	sl.Description = "Max Tokens"
 	sl.Tooltip = "The maximum number of tokens that can be generated in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length."
 	sl.Description_width = 3.5

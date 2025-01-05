@@ -64,7 +64,7 @@ func (st *Settings) Build(layout *Layout) {
 		ZoomDiv.SetColumn(6, 2, 2)
 
 		//dpi
-		DPI := ZoomDiv.AddEditboxInt(0, 0, 1, 1, &st.Dpi)
+		DPI := ZoomDiv.AddEditbox(0, 0, 1, 1, &st.Dpi)
 		DPI.Tooltip = "DPI(Dots per inch)"
 
 		//+

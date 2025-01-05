@@ -34,11 +34,11 @@ func (st *UserInfo) Build(layout *Layout) {
 	y++
 
 	layout.AddText(0, y, 1, 1, "Height(meters)")
-	layout.AddEditboxFloat(1, y, 1, 1, &st.Height, 2)
+	layout.AddEditbox(1, y, 1, 1, &st.Height).ValueFloatPrec = 2
 	y++
 
 	layout.AddText(0, y, 1, 1, "Weight(kg)")
-	layout.AddEditboxFloat(1, y, 1, 1, &st.Weight, 2)
+	layout.AddEditbox(1, y, 1, 1, &st.Weight).ValueFloatPrec = 2
 	y++
 
 	layout.AddText(0, y, 1, 1, "Born")

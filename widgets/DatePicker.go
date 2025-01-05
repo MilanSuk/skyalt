@@ -82,7 +82,7 @@ func (st *DatePicker) Build(layout *Layout) {
 		curr := Date_GetDateFromTime(*st.Value)
 
 		ymdDiv.AddText(0, 0, 1, 1, "Year").Align_h = 1
-		yearEd := ymdDiv.AddEditboxInt(0, 1, 1, 1, &curr.Year)
+		yearEd := ymdDiv.AddEditbox(0, 1, 1, 1, &curr.Year)
 		yearEd.changed = func() {
 			*st.Value = Date_GetTimeFromDate(&curr)
 			*st.Page = *st.Value
@@ -92,11 +92,11 @@ func (st *DatePicker) Build(layout *Layout) {
 		}
 
 		ymdDiv.AddText(1, 0, 1, 1, "Month").Align_h = 1
-		monthEd := ymdDiv.AddEditboxInt(1, 1, 1, 1, &curr.Month)
+		monthEd := ymdDiv.AddEditbox(1, 1, 1, 1, &curr.Month)
 		monthEd.changed = yearEd.changed
 
 		ymdDiv.AddText(2, 0, 1, 1, "Day").Align_h = 1
-		dayEd := ymdDiv.AddEditboxInt(2, 1, 1, 1, &curr.Day)
+		dayEd := ymdDiv.AddEditbox(2, 1, 1, 1, &curr.Day)
 		dayEd.changed = yearEd.changed
 	}
 }

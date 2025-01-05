@@ -6,7 +6,7 @@
 "Model": "gpt-4o"
 },
 "Stats": {
-"openai_gpt-4o_AssistantChat1_Test": 0.0002999999428873008,
-"openai_gpt-4o_AssistantChat2-code_Test": 0.00025172047700723827
+"openai_gpt-4o_AssistantChat1_Test": 0.0003066740178036151,
+"openai_gpt-4o_AssistantChat2-code_Test": 0.00022153329018772804
 }
 }

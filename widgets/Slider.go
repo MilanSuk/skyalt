@@ -6,20 +6,20 @@ import (
 )
 
 type Slider struct {
-	Value *float64
-	Min   float64
-	Max   float64
-	Step  float64
+	ValuePointer interface{} //*int, *float64
 
-	Legend bool
+	Min  float64
+	Max  float64
+	Step float64
 
+	Legend    bool
 	DrawSteps bool
 
 	changed func()
 }
 
-func (layout *Layout) AddSlider(x, y, w, h int, value *float64, min, max, step float64) *Slider {
-	props := &Slider{Value: value, Min: min, Max: max, Step: step}
+func (layout *Layout) AddSlider(x, y, w, h int, valuePointer interface{}, min, max, step float64) *Slider {
+	props := &Slider{ValuePointer: valuePointer, Min: min, Max: max, Step: step}
 	layout._createDiv(x, y, w, h, "Slider", nil, props.Draw, props.Input)
 	return props
 }
@@ -48,7 +48,8 @@ func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	cdThumb_over = Color_Aprox(cdThumb, S, 0.2)
 	cdThumb_down = Color_Aprox(cdThumb, onS, 0.4)
 
-	rad, coord, cqA, cqB := st._getCoords(rect)
+	value := st.getValue()
+	rad, coord, cqA, cqB := st._getCoords(rect, value)
 
 	//steps
 	if st.DrawSteps {
@@ -62,7 +63,7 @@ func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 			rc.H = sz
 
 			cdd := cd
-			if st.Value != nil && i >= *st.Value {
+			if i >= value {
 				cdd = cd2
 			}
 
@@ -99,30 +100,26 @@ func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	}
 
 	//label
-	if st.Value != nil {
-		Value := *st.Value
+	{
 		cqB.Y -= rad //move up
 		cqB.W = rad * 2
 		cqB.H = rad * 2
 
-		str := strconv.FormatFloat(Value, 'f', 2, 64)
+		str := strconv.FormatFloat(value, 'f', 2, 64)
 		paint.TooltipEx(cqB, str, true)
 	}
 	return
 }
 
 func (st *Slider) Input(in LayoutInput, layout *Layout) {
-	if st.Value == nil {
-		return
-	}
 
 	active := in.IsActive
 	inside := in.IsInside && (active || !in.IsActive)
 
-	val := *st.Value
-	changed := false
+	value := st.getValue()
+
 	if active {
-		_, coord, _, _ := st._getCoords(in.Rect)
+		_, coord, _, _ := st._getCoords(in.Rect, value)
 
 		touch_x := (in.X - coord.X) / coord.W
 		//clamp
@@ -133,42 +130,40 @@ func (st *Slider) Input(in LayoutInput, layout *Layout) {
 			touch_x = 1
 		}
 
-		val = st.Min + (st.Max-st.Min)*touch_x
-
-		changed = true
+		value = st.Min + (st.Max-st.Min)*touch_x
+		//changed = true
 	}
 
 	if !active && inside && in.Wheel != 0 {
-		val += st.Step * float64(-in.Wheel)
-		changed = true
+		value += st.Step * float64(-in.Wheel)
+		//changed = true
 	}
 
 	//check & round
 	{
 		tt := 0.0
 		if st.Step != 0 {
-			tt = math.Round((val - st.Min) / st.Step)
+			tt = math.Round((value - st.Min) / st.Step)
 		}
-		val = st.Min + tt*st.Step
+		value = st.Min + tt*st.Step
 
 		//clamp
-		if val < st.Min {
-			val = st.Min
+		if value < st.Min {
+			value = st.Min
 		}
-		if val > st.Max {
-			val = st.Max
+		if value > st.Max {
+			value = st.Max
 		}
 	}
 
-	if changed && *st.Value != val {
-		*st.Value = val
+	if st.setValue(value) {
 		if st.changed != nil {
 			st.changed()
 		}
 	}
 }
 
-func (st *Slider) _getCoords(rect Rect) (float64, Rect, Rect, Rect) {
+func (st *Slider) _getCoords(rect Rect, value float64) (float64, Rect, Rect, Rect) {
 
 	rad := 0.2
 
@@ -178,7 +173,7 @@ func (st *Slider) _getCoords(rect Rect) (float64, Rect, Rect, Rect) {
 
 	t := 0.0
 	if st.Max != st.Min {
-		t = (*st.Value - st.Min) / (st.Max - st.Min)
+		t = (value - st.Min) / (st.Max - st.Min)
 	}
 	cqA := coord
 	cqB := coord
@@ -193,4 +188,104 @@ func (st *Slider) _getCoords(rect Rect) (float64, Rect, Rect, Rect) {
 	cqB.H = h_rad
 
 	return rad, coord, cqA, cqB
+}
+
+func (st *Slider) setValue(value float64) bool {
+	diff := false
+	switch v := st.ValuePointer.(type) {
+	case *string:
+		val := strconv.FormatFloat(value, 'f', -1, 64)
+		diff = (*v != val)
+		*v = val
+
+	case *int:
+		diff = (*v != int(value))
+		*v = int(value)
+	case *int64:
+		diff = (*v != int64(value))
+		*v = int64(value)
+	case *int32: //also rune
+		diff = (*v != int32(value))
+		*v = int32(value)
+	case *int16:
+		diff = (*v != int16(value))
+		*v = int16(value)
+	case *int8:
+		diff = (*v != int8(value))
+		*v = int8(value)
+
+	case *uint:
+		diff = (*v != uint(value))
+		*v = uint(value)
+	case *uint64:
+		diff = (*v != uint64(value))
+		*v = uint64(value)
+	case *uint32: //also rune
+		diff = (*v != uint32(value))
+		*v = uint32(value)
+	case *uint16:
+		diff = (*v != uint16(value))
+		*v = uint16(value)
+	case *uint8:
+		diff = (*v != uint8(value))
+		*v = uint8(value)
+
+	case *float64:
+		diff = (*v != float64(value))
+		*v = float64(value)
+	case *float32:
+		diff = (*v != float32(value))
+		*v = float32(value)
+
+	case *bool:
+		val := (value != 0)
+		diff = (*v != val)
+		*v = val
+	}
+
+	return diff
+}
+
+func (st *Slider) getValue() float64 {
+	switch v := st.ValuePointer.(type) {
+	case *string:
+		val, _ := strconv.ParseFloat(*v, 64)
+		return val
+
+	case *int:
+		return float64(*v)
+	case *int64:
+		return float64(*v)
+	case *int32: //also rune
+		return float64(*v)
+	case *int16:
+		return float64(*v)
+	case *int8:
+		return float64(*v)
+
+	case *uint:
+		return float64(*v)
+	case *uint64:
+		return float64(*v)
+	case *uint32: //also rune
+		return float64(*v)
+	case *uint16:
+		return float64(*v)
+	case *uint8:
+		return float64(*v)
+
+	case *float64:
+		return *v
+	case *float32:
+		return float64(*v)
+
+	case *bool:
+		if *v {
+			return 1
+		} else {
+			return 0
+		}
+	}
+
+	return 0
 }

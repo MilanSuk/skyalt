@@ -8,16 +8,14 @@ import (
 type Editbox struct {
 	Cd color.RGBA
 
-	Value      *string
-	ValueFloat *float64
-	ValueInt   *int
-	FloatPrec  int //for 'ValueFloat'
+	ValuePointer   interface{} //*string, *int, *float64
+	ValueFloatPrec int
 
 	Ghost   string
 	Tooltip string
 
-	Align_h int
-	Align_v int
+	Align_h int //0=left, 1=center, 2=right
+	Align_v int //0=top, 1=center, 2=bottom
 
 	Icon        string
 	Icon_margin float64
@@ -35,29 +33,19 @@ type Editbox struct {
 	enter   func()
 }
 
-func (layout *Layout) AddEditbox(x, y, w, h int, value *string) *Editbox {
-	props := &Editbox{Value: value, Align_v: 1, Formating: true}
+func (layout *Layout) AddEditbox(x, y, w, h int, valuePointer interface{}) *Editbox {
+	props := &Editbox{ValuePointer: valuePointer, Align_v: 1, Formating: true, ValueFloatPrec: 2}
 	layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
 	return props
 }
-
-func (layout *Layout) AddEditboxInt2(x, y, w, h int, value *int) (*Editbox, *Layout) {
-	props := &Editbox{ValueInt: value, Align_v: 1, Formating: true}
-	return props, layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
-}
-func (layout *Layout) AddEditboxInt(x, y, w, h int, value *int) *Editbox {
-	props, _ := layout.AddEditboxInt2(x, y, w, h, value)
-	return props
-}
-
-func (layout *Layout) AddEditboxFloat(x, y, w, h int, value *float64, prec int) *Editbox {
-	props := &Editbox{ValueFloat: value, FloatPrec: prec, Align_v: 1, Formating: true}
-	layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
-	return props
+func (layout *Layout) AddEditbox2(x, y, w, h int, valuePointer interface{}) (*Editbox, *Layout) {
+	props := &Editbox{ValuePointer: valuePointer, Align_v: 1, Formating: true, ValueFloatPrec: 2}
+	lay := layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
+	return props, lay
 }
 
 func (layout *Layout) AddEditboxMultiline(x, y, w, h int, value *string) (*Editbox, *Layout) {
-	props := &Editbox{Value: value, Align_v: 1, Formating: true, Multiline: true, Linewrapping: true}
+	props := &Editbox{ValuePointer: value, Align_v: 1, Formating: true, Multiline: true, Linewrapping: true}
 	return props, layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
 }
 
@@ -65,7 +53,7 @@ func (layout *Layout) AddEditboxSearch(x, y, w, h int, value *string, refreshDel
 	if refreshDelaySec < 0 {
 		refreshDelaySec = 0.5
 	}
-	props := &Editbox{Value: value, RefreshDelaySec: refreshDelaySec,
+	props := &Editbox{ValuePointer: value, RefreshDelaySec: refreshDelaySec,
 		Ghost: "Search", Icon: "resources/search.png", Icon_margin: 0.2,
 		DrawBackWhenNonEmpty: true, ResetButton: true}
 
@@ -82,26 +70,16 @@ func (st *Editbox) Build(layout *Layout) {
 	}
 
 	layout.dropFile = func(path string) {
-		*st.Value += path
+		if st.setValueAdd(path) {
+			if st.changed != nil {
+				st.changed()
+			}
+		}
+
 	}
 
 	layout.fnSetEditbox = func(value string, enter bool) {
-		diff := false
-		if st.Value != nil {
-			v := value
-			diff = (*st.Value != v)
-			*st.Value = v
-		}
-		if st.ValueFloat != nil {
-			v, _ := strconv.ParseFloat(value, 64)
-			diff = (*st.ValueFloat != v)
-			*st.ValueFloat = v
-		}
-		if st.ValueInt != nil {
-			v, _ := strconv.Atoi(value)
-			diff = (*st.ValueInt != v)
-			*st.ValueInt = v
-		}
+		diff := st.setValue(value)
 
 		if diff && st.changed != nil {
 			st.changed()
@@ -125,7 +103,7 @@ func (st *Editbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	}
 
 	//back
-	if st.DrawBackWhenNonEmpty && *st.Value != "" {
+	if st.DrawBackWhenNonEmpty && st.IsValue() {
 		backCd := Color_Aprox(Paint_GetPalette().P, Paint_GetPalette().B, 0.5)
 		paint.Rect(rectOrig, backCd, backCd, backCd, 0)
 	}
@@ -159,16 +137,7 @@ func (st *Editbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	paint.CursorEx(rectLabel, "ibeam")
 	paint.TooltipEx(rectLabel, st.Tooltip, false)
 
-	var value string
-	if st.Value != nil {
-		value = *st.Value
-	}
-	if st.ValueFloat != nil {
-		value = strconv.FormatFloat(*st.ValueFloat, 'f', st.FloatPrec, 64) //update string from float. Map use it for lon/lat/zoom editboxes
-	}
-	if st.ValueInt != nil {
-		value = strconv.Itoa(*st.ValueInt)
-	}
+	value := st.getValue()
 
 	//draw icon
 	if st.Icon != "" {
@@ -199,6 +168,116 @@ func (st *Editbox) Input(in LayoutInput, layout *Layout) {
 			dia.OpenOnTouch()
 		}
 	}
+}
+
+func (st *Editbox) setValueAdd(value string) bool {
+	switch v := st.ValuePointer.(type) {
+	case *string:
+		*v += value
+		return true
+	}
+	return false
+}
+func (st *Editbox) IsValue() bool {
+	switch v := st.ValuePointer.(type) {
+	case *string:
+		return *v != ""
+	}
+	return false
+}
+
+func (st *Editbox) setValue(value string) bool {
+	diff := false
+	switch v := st.ValuePointer.(type) {
+	case *string:
+		diff = (*v != value)
+		*v = value
+
+	case *int:
+		val, _ := strconv.Atoi(value)
+		diff = (*v != val)
+		*v = val
+	case *int64:
+		val, _ := strconv.Atoi(value)
+		diff = (*v != int64(val))
+		*v = int64(val)
+	case *int32: //also rune
+		val, _ := strconv.Atoi(value)
+		diff = (*v != int32(val))
+		*v = int32(val)
+	case *int16:
+		val, _ := strconv.Atoi(value)
+		diff = (*v != int16(val))
+		*v = int16(val)
+	case *int8:
+		val, _ := strconv.Atoi(value)
+		diff = (*v != int8(val))
+		*v = int8(val)
+
+	case *uint:
+		val, _ := strconv.Atoi(value)
+		diff = (*v != uint(val))
+		*v = uint(val)
+	case *uint64:
+		val, _ := strconv.Atoi(value)
+		diff = (*v != uint64(val))
+		*v = uint64(val)
+	case *uint32:
+		val, _ := strconv.Atoi(value)
+		diff = (*v != uint32(val))
+		*v = uint32(val)
+	case *uint16:
+		val, _ := strconv.Atoi(value)
+		diff = (*v != uint16(val))
+		*v = uint16(val)
+	case *uint8: //also byte
+		val, _ := strconv.Atoi(value)
+		diff = (*v != uint8(val))
+		*v = uint8(val)
+
+	case *float64:
+		val, _ := strconv.ParseFloat(value, 64)
+		diff = (*v != val)
+		*v = val
+	case *float32:
+		val, _ := strconv.ParseFloat(value, 32)
+		diff = (*v != float32(val))
+		*v = float32(val)
+
+	case *bool:
+		val, _ := strconv.ParseBool(value)
+		diff = (*v != val)
+		*v = val
+	}
+
+	return diff
+}
+
+func (st *Editbox) getValue() string {
+	switch v := st.ValuePointer.(type) {
+	case *string:
+		return *v
+	case *int:
+		return strconv.Itoa(*v)
+	case *int64:
+		return strconv.Itoa(int(*v))
+	case *int32: //also rune
+		return strconv.Itoa(int(*v))
+	case *int16:
+		return strconv.Itoa(int(*v))
+	case *int8:
+		return strconv.Itoa(int(*v))
+
+	case *float64:
+		return strconv.FormatFloat(*v, 'f', st.ValueFloatPrec, 64)
+	case *float32:
+		return strconv.FormatFloat(float64(*v), 'f', st.ValueFloatPrec, 64)
+
+	case *bool:
+		return strconv.FormatBool(*v)
+	}
+
+	return ""
 }
 
 func (st *Editbox) buildContextDialog(layout *Layout) {

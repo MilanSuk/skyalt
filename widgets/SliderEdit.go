@@ -4,11 +4,11 @@ type SliderEdit struct {
 	Description string
 	Tooltip     string
 
-	Value          *float64
+	ValuePointer   interface{}
 	Min, Max, Step float64
 	Legend         bool
 
-	ValuePrec int
+	ValuePointerPrec int
 
 	Description_width, Slider_width, Edit_width float64
 
@@ -17,8 +17,8 @@ type SliderEdit struct {
 	changed func()
 }
 
-func (layout *Layout) AddSliderEdit(x, y, w, h int, value *float64, min, max, step float64) *SliderEdit {
-	props := &SliderEdit{Description_width: 100, Slider_width: 100, Edit_width: 100, Value: value, ValuePrec: -1, Min: min, Max: max, Step: step}
+func (layout *Layout) AddSliderEdit(x, y, w, h int, valuePointer interface{}, min, max, step float64) *SliderEdit {
+	props := &SliderEdit{Description_width: 100, Slider_width: 100, Edit_width: 100, ValuePointer: valuePointer, ValuePointerPrec: -1, Min: min, Max: max, Step: step}
 	layout._createDiv(x, y, w, h, "SliderEdit", props.Build, nil, nil)
 	return props
 }
@@ -40,7 +40,7 @@ func (st *SliderEdit) Build(layout *Layout) {
 	tx := layout.AddText(0, 0, 1, 1, st.Description) //description
 	tx.Tooltip = st.Tooltip
 
-	sli := layout.AddSlider(1, 0, 1, 1, st.Value, st.Min, st.Max, st.Step)
+	sli := layout.AddSlider(1, 0, 1, 1, st.ValuePointer, st.Min, st.Max, st.Step)
 	sli.DrawSteps = st.DrawSteps
 	sli.Legend = st.Legend
 	sli.changed = func() {
@@ -49,6 +49,7 @@ func (st *SliderEdit) Build(layout *Layout) {
 		}
 	}
 
-	ed := layout.AddEditboxFloat(2, 0, 1, 1, st.Value, st.ValuePrec)
+	ed := layout.AddEditbox(2, 0, 1, 1, st.ValuePointer)
+	ed.ValueFloatPrec = st.ValuePointerPrec
 	ed.changed = sli.changed
 }

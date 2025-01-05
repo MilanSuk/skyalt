@@ -37,7 +37,7 @@ func (st *TimePickerButton) Build(layout *Layout) {
 	date := time.Unix(*st.Value, 0)
 
 	hour := date.Hour()
-	edHour := layout.AddEditboxInt(2, 0, 1, 1, &hour)
+	edHour := layout.AddEditbox(2, 0, 1, 1, &hour)
 	edHour.Tooltip = "Hour"
 	edHour.changed = func() {
 		*st.Value = time.Date(date.Year(), time.Month(date.Month()), date.Day(), hour, date.Minute(), 0, 0, time.Local).Unix()
@@ -49,7 +49,7 @@ func (st *TimePickerButton) Build(layout *Layout) {
 	layout.AddText(3, 0, 1, 1, ":").Align_h = 1
 
 	min := date.Minute()
-	edMin := layout.AddEditboxInt(4, 0, 1, 1, &min)
+	edMin := layout.AddEditbox(4, 0, 1, 1, &min)
 	edMin.Tooltip = "Minute"
 	edMin.changed = func() {
 		*st.Value = time.Date(date.Year(), time.Month(date.Month()), date.Day(), date.Hour(), min, 0, 0, time.Local).Unix()
