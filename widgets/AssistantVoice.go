@@ -38,14 +38,15 @@ func (st *AssistantVoice) Build(layout *Layout) {
 	//STT
 	whisp := NewGlobal_Whispercpp_stt("AssistantVoice")
 	whisp.done = func() {
-		OpenFile_AssistantChat().SetVoice([]byte(whisp.Out), Mic.startUnixTime)
+		OpenFile_AssistantChat().SetVoice([]byte(whisp.Out), Mic.Out_startUnixTime)
 		if st.AutoSend > 0 {
 			OpenFile_AssistantChat().Send()
+			layout.Redraw()
 		}
 	}
 
 	Mic.done = func() {
-		whisp.Input_Data = Mic.Out
+		whisp.Input_Data = Mic.Out_buffer
 		//SttDia.OpenCentered()
 		whisp.Start()
 	}

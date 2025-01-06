@@ -281,8 +281,6 @@ func (actvs *Activities) buildListOfFiles(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
 
 	for i := range actvs.Activities {
-		act_i := i
-
 		ItemDiv := layout.AddLayout(0, i, 1, 1)
 		ItemDiv.SetColumn(0, 1, 100)
 		ItemDiv.Drag_group = "chat"
@@ -296,32 +294,32 @@ func (actvs *Activities) buildListOfFiles(layout *Layout) {
 			}
 		}
 
-		bt, btLay := ItemDiv.AddButtonMenu2(0, 0, 1, 1, actvs.Activities[act_i].Title, "", 0)
-		bt.Tooltip = actvs.Activities[act_i].Description
+		bt, btLay := ItemDiv.AddButtonMenu2(0, 0, 1, 1, actvs.Activities[i].Title, "", 0)
+		bt.Tooltip = actvs.Activities[i].Description
 		if i == actvs.Selected_activity {
 			bt.Background = 1
 		}
 		bt.clicked = func() {
-			actvs.Selected_activity = act_i
+			actvs.Selected_activity = i
 		}
 
 		ctx := ItemDiv.AddButtonIcon(1, 0, 1, 1, "resources/settings.png", 0.2, "")
 		ctx.Background = 0.1
-		ctxDia := layout.AddDialog("settings")
+		ctxDia := layout.AddDialog(fmt.Sprintf("activity_%d", i))
 		{
 			ctxDia.Layout.SetColumn(0, 1, 3)
 			ctxDia.Layout.SetColumn(1, 1, 10)
 			y := 0
 			ctxDia.Layout.AddText(0, y, 1, 1, "Title")
-			ctxDia.Layout.AddEditbox(1, y, 1, 1, &actvs.Activities[act_i].Title)
+			ctxDia.Layout.AddEditbox(1, y, 1, 1, &actvs.Activities[i].Title)
 			y++
 
 			ctxDia.Layout.AddText(0, y, 1, 1, "Description")
-			ctxDia.Layout.AddEditbox(1, y, 1, 1, &actvs.Activities[act_i].Description)
+			ctxDia.Layout.AddEditbox(1, y, 1, 1, &actvs.Activities[i].Description)
 			y++
 
 			ctxDia.Layout.AddText(0, y, 1, 1, "File")
-			ctxDia.Layout.AddFilePickerButton(1, y, 1, 1, &actvs.Activities[act_i].FilePath, true)
+			ctxDia.Layout.AddFilePickerButton(1, y, 1, 1, &actvs.Activities[i].FilePath, true)
 			y++
 
 			//type: walk, run, swimming, cycling
@@ -330,9 +328,9 @@ func (actvs *Activities) buildListOfFiles(layout *Layout) {
 
 			y++ //space
 
-			Delete := ctxDia.Layout.AddButtonConfirm(0, y, 2, 1, "Delete", "Delete '"+actvs.Activities[act_i].Title+"'?")
+			Delete := ctxDia.Layout.AddButtonConfirm(0, y, 2, 1, "Delete", "Delete '"+actvs.Activities[i].Title+"'?")
 			Delete.confirmed = func() {
-				actvs.Activities = append(actvs.Activities[:act_i], actvs.Activities[act_i+1:]...) //remove
+				actvs.Activities = append(actvs.Activities[:i], actvs.Activities[i+1:]...) //remove
 				ctxDia.Close()
 			}
 			y++

@@ -204,6 +204,16 @@
 "Time_unix": 1735841822,
 "Layout_hash": 0,
 "Error": "prompt is too short"
+},
+{
+"Time_unix": 1736160417,
+"Layout_hash": 0,
+"Error": "Transcribe() failed: Do() failed: Post \"http://127.0.0.1:8091/inference\": dial tcp 127.0.0.1:8091: connect: connection refused"
+},
+{
+"Time_unix": 1736160428,
+"Layout_hash": 0,
+"Error": "Transcribe() failed: Do() failed: Post \"http://127.0.0.1:8091/inference\": dial tcp 127.0.0.1:8091: connect: connection refused"
 }
 ]
 }

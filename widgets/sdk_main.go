@@ -48,7 +48,7 @@ func _addCmd(cmd LayoutCmd) {
 	g_cmds = append(g_cmds, cmd)
 }
 func _getCmds() []LayoutCmd {
-	if len(g__jobs.jobs) > 0 {
+	if g__jobs.NeedRefresh() {
 		Layout_RefreshDelayed() //calls _addCmd() which has lock() inside
 	}
 

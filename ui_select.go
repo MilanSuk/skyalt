@@ -27,14 +27,15 @@ type UiSelectionBrush struct {
 }
 
 type UiSelection struct {
-	active           bool
+	active *UiSelectionBrush
+
 	appName          string
 	brushes          []*UiSelectionBrush
 	backup_edit_hash uint64
 }
 
 func (s *UiSelection) IsActive() bool {
-	return s.active
+	return s.active != nil
 }
 
 func (s *UiSelection) Reset() {
@@ -42,7 +43,6 @@ func (s *UiSelection) Reset() {
 }
 
 func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
-
 	if ui.parent.win.io.Keys.Ctrl {
 		n := 0
 		ui.dom.postDraw(s.appName, 0, &n) //dialogs? ....
@@ -54,6 +54,11 @@ func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
 	for _, it := range s.brushes {
 		buff.AddLines(it.Points, it.Pick.Cd, thick, true)
 	}
+
+	if s.active != nil {
+		buff.AddLines(s.active.Points, s.active.Pick.Cd, thick, true)
+	}
+
 }
 
 func (s *UiSelection) UpdateComp(ui *Ui) {
@@ -61,10 +66,8 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 	//start
 	if ui.GetWin().io.Keys.Ctrl {
 		if ui.GetWin().io.Touch.Start {
-			s.active = true
 			pcd := Layout3_Get_prompt_color(len(s.brushes))
-			s.brushes = append(s.brushes, &UiSelectionBrush{Pick: LayoutPick{Cd: pcd.Cd, Label: pcd.Label}})
-
+			s.active = &UiSelectionBrush{Pick: LayoutPick{Cd: pcd.Cd, Label: pcd.Label}}
 			s.backup_edit_hash = ui.parent.edit.hash
 		}
 	}
@@ -73,15 +76,11 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 		return
 	}
 
-	actBr := s.brushes[len(s.brushes)-1]
-
 	//add point
-	actBr.Points = append(actBr.Points, ui.GetWin().io.Touch.Pos)
+	s.active.Points = append(s.active.Points, ui.GetWin().io.Touch.Pos)
 
 	//end
 	if ui.GetWin().io.Touch.End {
-		s.active = false
-
 		appLay := ui.dom.FindFirstName(s.appName)
 		if appLay != nil {
 
@@ -107,6 +106,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 				grid.Size.Y++
 
 				//var pick LayoutPick
+				actBr := s.active
 				actBr.Pick.X = grid.Start.X
 				actBr.Pick.Y = grid.Start.Y
 				actBr.Pick.W = grid.Size.X
@@ -133,8 +133,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 				}
 
 				//find if pick(line & grid) already exist
-				for i := 0; i < len(s.brushes)-1; i++ { //-1 = not last
-					it := s.brushes[i]
+				for _, it := range s.brushes {
 					if it.Pick.Cmp(&actBr.Pick) {
 						//rewrite color
 						actBr.Pick.Cd = it.Pick.Cd
@@ -143,10 +142,16 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 					}
 				}
 
+				//add
+				s.brushes = append(s.brushes, actBr)
+
+				//call
 				in := LayoutInput{Pick: actBr.Pick, PickApp: s.appName}
 				ui.parent.CallInput(&ui.dom.props, &in)
 			}
 		}
+
+		s.active = nil
 
 		//recover editbox
 		ui.SetRefresh()
@@ -157,8 +162,11 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 }
 
 func (s *UiSelection) getRect() OsV4 {
+	if s.active == nil {
+		return OsV4{}
+	}
 
-	points := s.brushes[len(s.brushes)-1].Points
+	points := s.active.Points
 
 	if len(points) == 0 {
 		return OsV4{}

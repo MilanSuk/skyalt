@@ -92,6 +92,8 @@ func (job *Job) GetEstimateDone() float64 {
 type Jobs struct {
 	jobs []*Job
 	lock sync.Mutex
+
+	need_refresh bool
 }
 
 var g__jobs Jobs
@@ -149,6 +151,8 @@ func (st *Jobs) maintenance() {
 	st.lock.Lock()
 	defer st.lock.Unlock()
 
+	had_job := (len(st.jobs) > 0)
+
 	//find
 	for i := len(st.jobs) - 1; i >= 0; i-- {
 		it := st.jobs[i]
@@ -156,6 +160,27 @@ func (st *Jobs) maintenance() {
 			st.jobs = append(st.jobs[:i], st.jobs[i+1:]...) //remove
 		}
 	}
+
+	if !st.need_refresh {
+		//just finished, one more refresh
+		st.need_refresh = had_job && (len(st.jobs) == 0)
+	}
+}
+
+func (st *Jobs) NeedRefresh() bool {
+	st.lock.Lock()
+	defer st.lock.Unlock()
+
+	if len(g__jobs.jobs) > 0 {
+		return true
+	}
+
+	if st.need_refresh {
+		st.need_refresh = false
+		return true
+	}
+
+	return false
 }
 
 func (layout *Layout) AddJobs(x, y, w, h int) {

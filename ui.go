@@ -542,6 +542,13 @@ func (ui *Ui) Tick() {
 
 	ui._redrawHashes()
 
+	ui.dom.UpdateTouch()
+	ui.dom.TouchDialogs(ui.parent.edit.hash, ui.parent.touch.canvas)
+
+	ui.selection.UpdateComp(ui)
+
+	ui.dom.textComp()
+
 	// close all levels
 	if win.io.Keys.Shift && win.io.Keys.Esc {
 		ui.parent.ResetIO()
@@ -553,14 +560,6 @@ func (ui *Ui) Tick() {
 	if ui.settings.CloseTouchDialogs(ui) {
 		ui.dom.SetTouchAll()
 	}
-
-	ui.dom.UpdateTouch()
-	ui.dom.TouchDialogs(ui.parent.edit.hash, ui.parent.touch.canvas)
-
-	ui.selection.UpdateComp(ui)
-
-	ui.dom.textComp()
-
 }
 
 func (ui *Ui) Draw() {

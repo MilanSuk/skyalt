@@ -76,8 +76,10 @@ func (st *RootHeader) Build(layout *Layout) {
 	ed.Ghost = "What can I do for you?"
 	ed.Tooltip = "Use Ctrl + Mouse to paint over."
 	edLay.Back_cd = Paint_GetPalette().B
-	if ast.Prompt == "" {
-		ast.reset()
+	ed.changed = func() {
+		if ast.Prompt == "" {
+			ast.reset()
+		}
 	}
 
 	//clear

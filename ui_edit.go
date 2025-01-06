@@ -21,6 +21,8 @@ type UiLayoutEdit struct {
 	activate_next_iters int //after pressing tab
 	reload_hash         uint64
 
+	orig_value string
+
 	temp       string
 	start, end int
 
@@ -32,7 +34,7 @@ type UiLayoutEdit struct {
 	KeyPaste     bool
 }
 
-func (edit *UiLayoutEdit) Set(dom *Layout3, editable bool, orig_value, value string, enter_key bool, finish bool) {
+func (edit *UiLayoutEdit) Set(dom *Layout3, editable bool, orig_value, value string, enter_key bool, finish bool, save bool) {
 	if !finish && edit.hash == dom.props.Hash {
 
 		if editable {
@@ -43,13 +45,16 @@ func (edit *UiLayoutEdit) Set(dom *Layout3, editable bool, orig_value, value str
 		return //no change
 	}
 
-	if editable {
+	if editable && save && edit.hash != 0 {
 		//save old editbox
-		diff := (orig_value != value)
+		diff := (edit.orig_value != edit.temp)
 
 		if diff || enter_key {
 			in := LayoutInput{SetEdit: true, EditValue: edit.temp, EditEnter: enter_key}
-			dom.ui.parent.CallInput(&dom.props, &in)
+			lay := dom.ui.dom.FindHash(edit.hash)
+			if lay != nil {
+				dom.ui.parent.CallInput(&lay.props, &in)
+			}
 		}
 	}
 
@@ -58,12 +63,13 @@ func (edit *UiLayoutEdit) Set(dom *Layout3, editable bool, orig_value, value str
 	edit.temp = ""
 	edit.activate_next_iters = 0
 	edit.RefreshTicks = 0
-	edit.ResetKeys()
+	edit.ResetShortcutKeys()
 
 	//set new
 	if !finish {
 		edit.hash = dom.props.Hash
 		edit.temp = value
+		edit.orig_value = orig_value
 
 		edit.start = 0
 		edit.end = len(value)
@@ -76,7 +82,7 @@ func (edit *UiLayoutEdit) Set(dom *Layout3, editable bool, orig_value, value str
 	}
 }
 
-func (edit *UiLayoutEdit) ResetKeys() {
+func (edit *UiLayoutEdit) ResetShortcutKeys() {
 	edit.KeySelectAll = false
 	edit.KeyCopy = false
 	edit.KeyCut = false

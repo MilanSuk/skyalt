@@ -26,7 +26,7 @@ func OpenFile_Counter() *Counter {
 	return g_Counter
 }
 
-func (st *Counter) Build(layout *Layout) { // //{MARK 29}
+func (st *Counter) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 9)
 	layout.SetColumn(1, 1, 5)  // New empty column
 	layout.SetColumn(2, 5, 5)  // Original column now at index 2

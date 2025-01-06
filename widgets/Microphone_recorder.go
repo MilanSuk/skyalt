@@ -18,12 +18,11 @@ type Microphone_recorder struct {
 	Shortcut_key byte
 	Background   float64
 
-	startUnixTime float64
-
-	cancel bool
-	start  func()
-	Out    audio.IntBuffer
-	done   func()
+	cancel            bool
+	start             func()
+	Out_buffer        audio.IntBuffer
+	Out_startUnixTime float64
+	done              func()
 }
 
 func (layout *Layout) AddMicrophone_recorder(x, y, w, h int, props *Microphone_recorder) *Microphone_recorder {
@@ -99,7 +98,6 @@ func (st *Microphone_recorder) Run(job *Job) {
 		return
 	}
 
-	st.startUnixTime = float64(time.Now().UnixMilli()) / 1000
 	if st.start != nil {
 		st.start()
 	}
@@ -108,7 +106,7 @@ func (st *Microphone_recorder) Run(job *Job) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	st.Out, err = g_microphone_malgo.Stop(st.UID)
+	st.Out_buffer, st.Out_startUnixTime, err = g_microphone_malgo.Stop(st.UID)
 	if err != nil {
 		job.AddError(err)
 		return
@@ -118,10 +116,15 @@ func (st *Microphone_recorder) Run(job *Job) {
 	}
 }
 
+type MicMalgoRecord struct {
+	data          []byte //int=hash
+	startUnixTime float64
+}
+
 type MicMalgo struct {
 	lock   sync.Mutex
 	device *malgo.Device
-	mics   map[string][]byte //int=hash
+	mics   map[string]*MicMalgoRecord //int=hash
 }
 
 var g_microphone_malgo MicMalgo
@@ -129,7 +132,7 @@ var g_microphone_malgo MicMalgo
 func (mlg *MicMalgo) _checkDevice() error {
 
 	if mlg.mics == nil {
-		mlg.mics = make(map[string][]byte)
+		mlg.mics = make(map[string]*MicMalgoRecord)
 	}
 
 	if g_microphone_malgo.device != nil {
@@ -153,7 +156,12 @@ func (mlg *MicMalgo) _checkDevice() error {
 
 	onRecvFrames := func(pSample2, pSample []byte, framecount uint32) {
 		for key := range mlg.mics {
-			mlg.mics[key] = append(mlg.mics[key], pSample...) //add
+			//there is 200ms delay between this and .Start()
+			if mlg.mics[key].startUnixTime == 0 {
+				mlg.mics[key].startUnixTime = float64(time.Now().UnixMilli()) / 1000
+			}
+			//add data
+			mlg.mics[key].data = append(mlg.mics[key].data, pSample...) //add
 		}
 	}
 
@@ -170,7 +178,7 @@ func (mlg *MicMalgo) Find(uid string) bool {
 	defer mlg.lock.Unlock()
 
 	if mlg.mics == nil {
-		mlg.mics = make(map[string][]byte)
+		return false
 	}
 
 	_, found := mlg.mics[uid]
@@ -189,10 +197,11 @@ func (mlg *MicMalgo) Start(uid string) error {
 	//add
 	_, found := mlg.mics[uid]
 	if !found {
-		mlg.mics[uid] = nil
+		mlg.mics[uid] = &MicMalgoRecord{}
 	}
 
 	if !mlg.device.IsStarted() {
+		//fmt.Println("-----+++++++------- start", time.Now().UnixMilli())
 		err := mlg.device.Start()
 		if err != nil {
 			return err
@@ -203,17 +212,17 @@ func (mlg *MicMalgo) Start(uid string) error {
 	return nil
 }
 
-func (mlg *MicMalgo) Stop(uid string) (audio.IntBuffer, error) {
+func (mlg *MicMalgo) Stop(uid string) (audio.IntBuffer, float64, error) {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
 	err := mlg._checkDevice()
 	if err != nil {
-		return audio.IntBuffer{}, err
+		return audio.IntBuffer{}, 0, err
 	}
 
 	//remove
-	audioData := mlg.mics[uid]
+	rec := mlg.mics[uid]
 	delete(mlg.mics, uid)
 
 	SampleRate := int(mlg.device.SampleRate())
@@ -225,12 +234,12 @@ func (mlg *MicMalgo) Stop(uid string) (audio.IntBuffer, error) {
 		mlg.device = nil
 	}
 
-	intData := make([]int, len(audioData)/2)
-	for i := 0; i+1 < len(audioData); i += 2 {
-		value := int(binary.LittleEndian.Uint16(audioData[i : i+2]))
+	intData := make([]int, len(rec.data)/2)
+	for i := 0; i+1 < len(rec.data); i += 2 {
+		value := int(binary.LittleEndian.Uint16(rec.data[i : i+2]))
 		intData[i/2] = value
 	}
 
 	//fmt.Printf("Mic recording stoped: %d\n", hash)
-	return audio.IntBuffer{Data: intData, Format: &audio.Format{SampleRate: SampleRate, NumChannels: NumChannels}}, nil
+	return audio.IntBuffer{Data: intData, Format: &audio.Format{SampleRate: SampleRate, NumChannels: NumChannels}}, rec.startUnixTime, nil
 }

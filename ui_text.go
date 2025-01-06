@@ -275,13 +275,15 @@ func (ui *Ui) _Text_update(dom *Layout3,
 
 			if isTab || isEnter || isOutside || isEsc {
 				//reset
-				edit.Set(dom, editable, orig_value, value, isEnter, true)
+				edit.Set(dom, editable, orig_value, value, isEnter, true, !isEsc)
+
+				keys.Esc = false //don't close dialog
 			}
 		}
 	}
 
 	if edit.Is(dom) {
-		edit.ResetKeys()
+		edit.ResetShortcutKeys()
 	}
 }
 
@@ -300,19 +302,19 @@ func (ui *Ui) _UiPaint_TextSelectTouch(dom *Layout3, editable bool, orig_text st
 
 	if !dom.GetUis().touch.IsScrollOrResizeActive() && (dom.props.Hash == edit.reload_hash && editable) {
 		//reload dom
-		edit.Set(dom, editable, orig_text, text, false, false)
+		edit.Set(dom, editable, orig_text, text, false, false, true)
 		edit.start = edit.end //set cursor at the end(not full select)
 		edit.reload_hash = 0
 	}
 
 	if !dom.GetUis().touch.IsScrollOrResizeActive() && (!edit.Is(dom) && editable && edit.IsActivateNext()) {
 		//tab
-		edit.Set(dom, editable, orig_text, text, false, false)
+		edit.Set(dom, editable, orig_text, text, false, false, true)
 
 	} else if dom.IsTouchPosInside() && dom.IsMouseButtonDownStart() {
 		//click inside
 		if !edit.Is(dom) {
-			edit.Set(dom, editable, orig_text, text, false, false)
+			edit.Set(dom, editable, orig_text, text, false, false, true)
 		}
 		//set start-end
 		edit.end = cursor

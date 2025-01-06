@@ -593,9 +593,12 @@ func (dom *Layout3) TouchDialogs(editHash, touchHash uint64) {
 	if editHash != 0 {
 		actE = dom.FindHash(editHash)
 	}
-
 	if touchHash != 0 {
 		act = dom.FindHash(touchHash)
+	}
+
+	if dom.ui.GetWin().io.Touch.Wheel != 0 {
+		act = dom.FindHash(dom.ui.parent.touch.canvasOver)
 	}
 
 	if actE != nil {
@@ -1318,10 +1321,14 @@ func (dom *Layout3) Touch() {
 	startTouch := dom.CanTouch() && dom.ui.GetWin().io.Touch.Start && !dom.IsCtrlPressed()
 	over := dom.CanTouch() && dom.IsTouchPosInside() && !dom.GetUis().touch.IsResizeActive()
 
-	if over && startTouch && dom.CanTouch() {
-		if !dom.GetUis().touch.IsScrollOrResizeActive() { //if lower resize or scroll is activated than don't rewrite it with higher canvas
-			dom.GetUis().touch.Set(dom.props.Hash, 0, 0, 0)
+	if over && dom.CanTouch() {
+		if startTouch {
+			if !dom.GetUis().touch.IsScrollOrResizeActive() { //if lower resize or scroll is activated than don't rewrite it with higher canvas
+				dom.GetUis().touch.Set(dom.props.Hash, 0, 0, 0)
+			}
 		}
+
+		dom.GetUis().touch.canvasOver = dom.props.Hash
 	}
 
 	dom.touchScroll()

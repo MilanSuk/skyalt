@@ -21,33 +21,35 @@ type UiLayoutInput struct {
 	scrollV uint64
 	scrollH uint64
 	resize  uint64
+
+	canvasOver uint64 //when scroll over Slider or Map
 }
 
-func (layTouch *UiLayoutInput) Set(canvas uint64, scrollV uint64, scrollH uint64, resize uint64) {
-	layTouch.canvas = canvas
-	layTouch.scrollV = scrollV
-	layTouch.scrollH = scrollH
-	layTouch.resize = resize
+func (in *UiLayoutInput) Set(canvas uint64, scrollV uint64, scrollH uint64, resize uint64) {
+	in.canvas = canvas
+	in.scrollV = scrollV
+	in.scrollH = scrollH
+	in.resize = resize
 }
 
-func (layTouch *UiLayoutInput) Reset() {
-	*layTouch = UiLayoutInput{}
+func (in *UiLayoutInput) Reset() {
+	*in = UiLayoutInput{}
 }
 
-func (layTouch *UiLayoutInput) IsActive() bool {
-	return layTouch.canvas != 0 || layTouch.scrollV != 0 || layTouch.scrollH != 0 || layTouch.resize != 0
+func (in *UiLayoutInput) IsActive() bool {
+	return in.canvas != 0 || in.scrollV != 0 || in.scrollH != 0 || in.resize != 0
 }
-func (layTouch *UiLayoutInput) IsCanvasActive() bool {
-	return layTouch.canvas != 0
-}
-
-func (layTouch *UiLayoutInput) IsResizeActive() bool {
-	return layTouch.resize != 0
-}
-func (layTouch *UiLayoutInput) IsScrollOrResizeActive() bool {
-	return layTouch.scrollV != 0 || layTouch.scrollH != 0 || layTouch.resize != 0
+func (in *UiLayoutInput) IsCanvasActive() bool {
+	return in.canvas != 0
 }
 
-func (layTouch *UiLayoutInput) IsFnMove(canvas uint64, scrollV uint64, scrollH uint64, resize uint64) bool {
-	return ((canvas != 0 && layTouch.canvas == canvas) || (scrollV != 0 && layTouch.scrollV == scrollV) || (scrollH != 0 && layTouch.scrollH == scrollH) || (resize != 0 && layTouch.resize == resize))
+func (in *UiLayoutInput) IsResizeActive() bool {
+	return in.resize != 0
+}
+func (in *UiLayoutInput) IsScrollOrResizeActive() bool {
+	return in.scrollV != 0 || in.scrollH != 0 || in.resize != 0
+}
+
+func (in *UiLayoutInput) IsFnMove(canvas uint64, scrollV uint64, scrollH uint64, resize uint64) bool {
+	return ((canvas != 0 && in.canvas == canvas) || (scrollV != 0 && in.scrollV == scrollV) || (scrollH != 0 && in.scrollH == scrollH) || (resize != 0 && in.resize == resize))
 }

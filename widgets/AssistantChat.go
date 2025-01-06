@@ -133,16 +133,6 @@ func (ast *AssistantChat) Send() {
 		msgs = append(msgs, msg_usr)
 	}
 
-	//smazat ..............
-	if err == nil {
-		//js, _ := json.MarshalIndent(chat1.Properties, "", "\t")
-		code, _ := ast.GetCodeWithMarks()
-
-		//os.WriteFile("prompt_image.png", ast.Img, 0644)
-		os.WriteFile("prompt_code.txt", []byte(code), 0644)
-		//os.WriteFile("prompt_json1.json", js, 0644)
-	}
-
 	done1 := func(Out string) {
 		if Out == "" {
 			Layout_WriteError(fmt.Errorf("Chat1 output is empty"))
@@ -288,11 +278,6 @@ This is the prompt from user:
 Your job is to match the user prompt to <description> and output <json_response>. Please respond in the JSON format for example: {"open": true, "name": "App"}.
 `
 
-/*
-const code_marks_explain = `Note: Input image has grids(different colors). Every grid connects to line in code by color name.
-Grid(in image) represents layout in code. For example red grid: subDiv := layout.AddLayout(2, 3, 1, 1) //IMAGE_GRID: red.
-Grid has columns and rows. Coordinates starts at top-left = [0, 0]. For example subDiv.AddText(1, 2, 4, 3, "Hello") has coords x:1,y:2,width:4,height:3.`
-*/
 const prompt_marks_explain = `Note: A prompt can have special marks(for ex.: {MARK 1; x:3, y:2, w:1, h:1}).
 Mark refers to line in code(mark is in comment for example: subDiv := layout.AddLayout(2, 3, 1, 1)	//{MARK 2})
 Mark also has x,y,w,h which represent layout grid position which was selected by user. Grid position is usefull for creating/editing layout components, for example prompt "Delete {MARK 2; x:0, y:5, w:2, h:1}" must delete line with AddText in bellow code:
@@ -301,6 +286,7 @@ subDiv.AddText(0, 5, 2, 1, "Hello")
 `
 
 const code_marks_explain = `Note: If user prompt is about adding or deleting new column or row, you have to change(rewrite code) coordinates for layout.Add...(x,y,w,h) calls!`
+const code_attrs_explain = `Note: If user prompt contains creating new attribute/variable/storage you have to add new attribute into widget's struct.`
 
 func (ast *AssistantChat) prompt_1() (string, error) {
 
@@ -413,6 +399,10 @@ func (ast *AssistantChat) prompt_2(output_1 []byte) (string, string, error) {
 	} else if out.Create {
 		jobNameEx = "create"
 
+		if len(out.Name) > 0 {
+			out.Name = strings.ToUpper(out.Name[:1]) + out.Name[1:] //1st letter must be upper
+		}
+
 		//str.WriteString("\n// Here are the widget's structures:\n")
 		//str.WriteString("```go\n" + structs.String() + "\n```")
 
@@ -484,6 +474,7 @@ func (st *%s) Build(layout *Layout) {
 		str.WriteString(_AssistantChat_buildUserPrompt(userPrompt) + "\n")
 		str.WriteString("\n" + prompt_marks_explain + "\n")
 		str.WriteString("\n" + code_marks_explain + "\n")
+		str.WriteString("\n" + code_attrs_explain + "\n")
 
 		str.WriteString("\nYour job is implement the request(user prompt) by editting code in files. Usually you edit only one file.\n\n")
 
@@ -619,6 +610,15 @@ func (st *AssistantChat) SetVoice(js []byte, voiceStart_sec float64) {
 		return
 	}
 
+	//clean(remove for example [BLANK_AUDIO])
+	for i := len(verb.Segments) - 1; i >= 0; i-- {
+		word := strings.Trim(verb.Segments[i].Text, " \t")
+		if len(word) > 0 && word[0] == '[' && word[len(word)-1] == ']' {
+			fmt.Println("removed word", word)
+			verb.Segments = append(verb.Segments[:i], verb.Segments[i+1:]...) //remove
+		}
+	}
+
 	// jump over older picks
 	pick_i := 0
 	for _, pk := range st.Picks {
@@ -636,6 +636,11 @@ func (st *AssistantChat) SetVoice(js []byte, voiceStart_sec float64) {
 			}
 			prompt += w.Word
 		}
+	}
+	//add rest
+	for pick_i < len(st.Picks) {
+		prompt += _AssistantChat_getPromptMarkLabel(st.Picks[pick_i])
+		pick_i++
 	}
 
 	st.Prompt = prompt
