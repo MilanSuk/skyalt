@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://raw.githubusercontent.com/milansuk/skyalt/main/screenshots/screenshot_1.png" />
+<img src="https://raw.githubusercontent.com/MilanSuk/skyalt/refs/heads/main/screenshots/screenshot_1.png" />
 </p>
 
 
@@ -22,7 +22,8 @@ Web: https://www.skyalt.com
 
 
 ## Compile Skyalt
-Skyalt is written in Go language: https://go.dev/doc/install
+Install Go language:
+https://go.dev/doc/install
 
 Install SDL and FFmpeg:
 <pre><code>sudo apt-get install libsdl2-dev
