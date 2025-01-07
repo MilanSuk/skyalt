@@ -23,7 +23,7 @@ Web: https://www.skyalt.com
 
 ## Compile Skyalt
 Install Go language:
-https://go.dev/doc/install
+- https://go.dev/doc/install
 
 Install SDL and FFmpeg:
 <pre><code>sudo apt-get install libsdl2-dev
@@ -41,6 +41,21 @@ Compile Skyalt:
 cd skyalt
 go mod tidy
 go build
+./skyalt
+</code></pre>
+
+(optional) Service LLama.cpp(~100MB):
+<pre><code>cd services
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp
+make
+</code></pre>
+
+(optional) Service Whisper.cpp(~30MB):
+<pre><code>cd services
+git clone https://github.com/ggerganov/whisper.cpp
+cd whisper.cpp
+make
 </code></pre>
 
 
