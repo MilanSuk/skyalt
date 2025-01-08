@@ -3,9 +3,9 @@
 {
 "FilePath": "/home/milan/Pictures/skyalt/temp/1.gpx",
 "Cam": {
-"Lon": 16.174814701080322,
-"Lat": 50.384908296264605,
-"Zoom": 15
+"Lon": 16.176295280456543,
+"Lat": 50.38206919848667,
+"Zoom": 16
 },
 "Title": "Afternoon Run",
 "Description": "",
@@ -18,9 +18,9 @@
 {
 "FilePath": "/home/milan/Pictures/skyalt/temp/2.gpx",
 "Cam": {
-"Lon": 16.181530952453613,
-"Lat": 50.401248616676774,
-"Zoom": 15
+"Lon": 16.185414791107178,
+"Lat": 50.40052371557617,
+"Zoom": 17
 },
 "Title": "Morning Run",
 "Description": "",
@@ -31,5 +31,5 @@
 "Calories": 0
 }
 ],
-"Selected_activity": 0
+"Selected_activity": 1
 }

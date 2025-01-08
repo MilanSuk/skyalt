@@ -4,19 +4,19 @@ import (
 	"mime/multipart"
 )
 
-type OpenAI_stt_props struct {
+type Groq_stt_props struct {
 	Model           string
 	Temperature     float64
 	Response_format string
 }
 
-func (layout *Layout) AddOpenAI_stt_props(x, y, w, h int) *OpenAI_stt_props {
-	props := &OpenAI_stt_props{}
-	layout._createDiv(x, y, w, h, "OpenAI_stt_props", props.Build, nil, nil)
+func (layout *Layout) AddGroq_stt_props(x, y, w, h int) *Groq_stt_props {
+	props := &Groq_stt_props{}
+	layout._createDiv(x, y, w, h, "Groq_stt_props", props.Build, nil, nil)
 	return props
 }
 
-func (st *OpenAI_stt_props) Build(layout *Layout) {
+func (st *Groq_stt_props) Build(layout *Layout) {
 
 	layout.SetColumn(0, 3, 3)
 	layout.SetColumn(1, 1, 100)
@@ -24,7 +24,7 @@ func (st *OpenAI_stt_props) Build(layout *Layout) {
 	y := 0
 
 	layout.AddText(0, y, 1, 1, "Model")
-	layout.AddCombo(1, y, 1, 1, &st.Model, OpenAI_GetSTTModelList(), OpenAI_GetSTTModelList())
+	layout.AddCombo(1, y, 1, 1, &st.Model, Groq_GetSTTModelList(), Groq_GetSTTModelList())
 	y++
 
 	res := layout.AddText(0, y, 1, 1, "Response format")
@@ -48,17 +48,17 @@ func (st *OpenAI_stt_props) Build(layout *Layout) {
 	y++
 }
 
-func (props *OpenAI_stt_props) Reset() {
-	props.Model = OpenFile_OpenAI().STTModel
-	props.Temperature = 0 //default
-	props.Response_format = "verbose_json"
+func (props *Groq_stt_props) Reset() {
+	props.Model = OpenFile_Groq().STTModel
+	props.Temperature = 0                  //default
+	props.Response_format = "verbose_json" //"text"
 }
 
-func (props *OpenAI_stt_props) Write(w *multipart.Writer) {
+func (props *Groq_stt_props) Write(w *multipart.Writer) {
 	w.WriteField("model", props.Model)
 	w.WriteField("response_format", props.Response_format)
 
 	if props.Response_format == "verbose_json" {
-		w.WriteField("timestamp_granularities[]", "word")
+		//w.WriteField("timestamp_granularities[]", "word")
 	}
 }

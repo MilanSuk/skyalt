@@ -42,11 +42,11 @@ func (st *Xai_completionV) Build(layout *Layout) {
 
 	job := FindJob(st.UID)
 
-	txt, txtLay := layout.AddTextMultiline(0, 0, 2, 1, "")
+	txt := layout.AddTextMultiline(0, 0, 2, 1, "")
 	txt.Align_h = 0
 	if job != nil {
 		txt.Value = job.info
-		txtLay.VScrollToTheBottom()
+		txt.ScrollToEnd = true
 	}
 
 	stopBt := layout.AddButton(1, 1, 1, 1, "Stop")

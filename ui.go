@@ -439,7 +439,7 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 				fmt.Printf("warning: hash %d not found\n", cmd.Hash)
 			}
 
-		case "HScrollToTheTop":
+		case "HScrollToTheLeft":
 			layout := ui.dom.FindHash(cmd.Hash)
 			if layout != nil {
 				layout.ScrollIntoTop_horizontal()
@@ -447,7 +447,7 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 				fmt.Printf("warning: hash %d not found\n", cmd.Hash)
 			}
 
-		case "HScrollToTheBottom":
+		case "HScrollToTheRight":
 			layout := ui.dom.FindHash(cmd.Hash)
 			if layout != nil {
 				layout.ScrollIntoBottom_horizontal()
@@ -498,6 +498,13 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 
 		case "ResetBrushes":
 			ui.selection.Reset()
+
+		case "SetBrushes":
+			var picks []*LayoutPick
+			err := json.Unmarshal([]byte(cmd.Param1), &picks)
+			if err == nil {
+				ui.selection.brushes = picks
+			}
 		}
 	}
 }

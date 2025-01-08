@@ -14,10 +14,10 @@ import (
 	"github.com/go-audio/wav"
 )
 
-type OpenAI_stt struct {
+type Groq_stt struct {
 	UID string
 
-	Properties OpenAI_stt_props
+	Properties Groq_stt_props
 
 	Input_Data       audio.IntBuffer
 	Input_SampleRate int
@@ -27,30 +27,29 @@ type OpenAI_stt struct {
 	done func(out string)
 }
 
-func (layout *Layout) AddOpenAI_stt(x, y, w, h int, props *OpenAI_stt) *OpenAI_stt {
-	layout._createDiv(x, y, w, h, "OpenAI_stt", props.Build, nil, nil)
+func (layout *Layout) AddGroq_stt(x, y, w, h int, props *Groq_stt) *Groq_stt {
+	layout._createDiv(x, y, w, h, "Groq_stt", props.Build, nil, nil)
 	return props
 }
 
-var g_global_OpenAI_stt = make(map[string]*OpenAI_stt)
+var g_global_Groq_stt = make(map[string]*Groq_stt)
 
-func NewGlobal_OpenAI_stt(uid string) *OpenAI_stt {
-	uid = fmt.Sprintf("OpenAI_stt:%s", uid)
+func NewGlobal_Groq_stt(uid string) *Groq_stt {
+	uid = fmt.Sprintf("Groq_stt:%s", uid)
 
-	st, found := g_global_OpenAI_stt[uid]
+	st, found := g_global_Groq_stt[uid]
 	if !found {
-		st = &OpenAI_stt{UID: uid}
+		st = &Groq_stt{UID: uid}
 		st.Properties.Reset()
 		st.Input_Channels = OpenFile_Microphone().Channels
 		st.Input_SampleRate = OpenFile_Microphone().SampleRate
 
-		g_global_OpenAI_stt[uid] = st
+		g_global_Groq_stt[uid] = st
 	}
 	return st
 }
 
-func (st *OpenAI_stt) Build(layout *Layout) {
-
+func (st *Groq_stt) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 1, 3)
 	layout.SetRow(0, 1, 10)
@@ -70,25 +69,25 @@ func (st *OpenAI_stt) Build(layout *Layout) {
 	}
 }
 
-func (st *OpenAI_stt) Start() *Job {
-	return StartJob(st.UID, "OpenAI speech-to-text", st.Run)
+func (st *Groq_stt) Start() *Job {
+	return StartJob(st.UID, "Groq speech-to-text", st.Run)
 }
-func (st *OpenAI_stt) Stop() {
+func (st *Groq_stt) Stop() {
 	job := FindJob(st.UID)
 	if job != nil {
 		job.Stop()
 	}
 }
-func (st *OpenAI_stt) IsRunning() bool {
+func (st *Groq_stt) IsRunning() bool {
 	return FindJob(st.UID) != nil
 }
 
-func (st *OpenAI_stt) Run(job *Job) {
+func (st *Groq_stt) Run(job *Job) {
 
-	oai := OpenFile_OpenAI()
+	oai := OpenFile_Groq()
 
 	if !oai.Enable {
-		job.AddError(errors.New("OpenAI is disabled"))
+		job.AddError(errors.New("Groq is disabled"))
 		return
 	}
 
@@ -131,7 +130,7 @@ func (st *OpenAI_stt) Run(job *Job) {
 			file.Close()
 		}
 
-		err := OpenAI_stt_ffmpeg_convert(path, compress_path)
+		err := Groq_stt_ffmpeg_convert(path, compress_path)
 		if err != nil {
 			job.AddError(err)
 			return
@@ -159,7 +158,7 @@ func (st *OpenAI_stt) Run(job *Job) {
 	}
 	writer.Close()
 
-	req, err := http.NewRequest(http.MethodPost, "https://api.openai.com/v1/audio/transcriptions", body)
+	req, err := http.NewRequest(http.MethodPost, "https://api.groq.com/openai/v1/audio/transcriptions", body)
 	if err != nil {
 		job.AddError(fmt.Errorf("NewRequest() failed: %w", err))
 		return
@@ -192,7 +191,7 @@ func (st *OpenAI_stt) Run(job *Job) {
 	}
 }
 
-func OpenAI_stt_ffmpeg_convert(src, dst string) error {
+func Groq_stt_ffmpeg_convert(src, dst string) error {
 	os.Remove(dst) //ffmpeg complains that 'file already exists'
 
 	cmd := exec.Command("ffmpeg", "-i", src, dst)

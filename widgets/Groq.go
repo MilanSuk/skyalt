@@ -9,6 +9,7 @@ type Groq struct {
 	Api_key string
 
 	ChatModel string
+	STTModel  string
 }
 
 func (layout *Layout) AddGroq(x, y, w, h int, props *Groq) *Groq {
@@ -20,7 +21,7 @@ var g_Groq *Groq
 
 func OpenFile_Groq() *Groq {
 	if g_Groq == nil {
-		g_Groq = &Groq{Enable: true, ChatModel: "llama-3.3-70b-versatile"}
+		g_Groq = &Groq{Enable: true, ChatModel: "llama-3.3-70b-versatile", STTModel: "whisper-large-v3"}
 		_read_file("Groq-Groq", g_Groq)
 	}
 	return g_Groq
@@ -30,6 +31,9 @@ func (st *Groq) Build(layout *Layout) {
 
 	if st.ChatModel == "" {
 		st.ChatModel = "llama-3.3-70b-versatile"
+	}
+	if st.STTModel == "" {
+		st.STTModel = "whisper-large-v3"
 	}
 
 	layout.SetColumn(0, 1, 4)
@@ -72,10 +76,17 @@ func (st *Groq) Build(layout *Layout) {
 	layout.AddText(0, y, 1, 1, "Chat Model")
 	layout.AddCombo(1, y, 1, 1, &st.ChatModel, Groq_GetChatModelList(), Groq_GetChatModelList())
 	y++
+
+	layout.AddText(0, y, 1, 1, "STT Model")
+	layout.AddCombo(1, y, 1, 1, &st.STTModel, Groq_GetSTTModelList(), Groq_GetSTTModelList())
+	y++
+
 }
 
 func Groq_GetChatModelList() []string {
-	return []string{
-		"llama-3.3-70b-versatile",
-	}
+	return []string{"llama-3.3-70b-versatile"}
+}
+
+func Groq_GetSTTModelList() []string {
+	return []string{"whisper-large-v3", "whisper-large-v3-turbo", "distil-whisper-large-v3-en"}
 }

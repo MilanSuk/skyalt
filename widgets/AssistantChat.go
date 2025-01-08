@@ -18,13 +18,13 @@ type AssistantChat struct {
 	Picks   []LayoutPick
 	AppName string
 
-	Model Models
+	Model AssistantModels
 
 	Stats map[string]float64 //seconds per single (input) byte
 }
 
-func (layout *Layout) AddAssistant(x, y, w, h int, props *AssistantChat) *AssistantChat {
-	layout._createDiv(x, y, w, h, "Assistant", props.Build, nil, nil)
+func (layout *Layout) AddAssistantChat(x, y, w, h int, props *AssistantChat) *AssistantChat {
+	layout._createDiv(x, y, w, h, "AssistantChat", props.Build, nil, nil)
 	return props
 }
 
@@ -32,7 +32,7 @@ var g_AssistantChat *AssistantChat
 
 func OpenFile_AssistantChat() *AssistantChat {
 	if g_AssistantChat == nil {
-		g_AssistantChat = &AssistantChat{Model: Models{Model: "grok-2-1212"}}
+		g_AssistantChat = &AssistantChat{Model: AssistantModels{TextModel: "gpt-4o", STTModel: "whisper-1"}}
 		_read_file("AssistantChat-AssistantChat", g_AssistantChat)
 	}
 	return g_AssistantChat
@@ -46,7 +46,7 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 
 	st := (float64(time.Now().UnixMilli()) / 1000)
 
-	statKey := ast.Model.GetService() + "_" + ast.Model.Model + "_" + jobName + "_" + ast.AppName
+	statKey := ast.Model.GetTTService() + "_" + ast.Model.TextModel + "_" + jobName + "_" + ast.AppName
 	var numInputBytes int
 	{
 		js, _ := json.Marshal(msgs) //inputs
@@ -65,10 +65,10 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 	}
 
 	var job *Job
-	switch ast.Model.GetService() {
+	switch ast.Model.GetTTService() {
 	case "xai":
 		chat := NewGlobal_Xai_completion(jobName)
-		chat.Properties.Model = ast.Model.Model
+		chat.Properties.Model = ast.Model.TextModel
 		chat.Properties.Messages = msgs
 		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
 		chat.done = done2
@@ -76,7 +76,7 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 
 	case "openai":
 		chat := NewGlobal_OpenAI_completion(jobName)
-		chat.Properties.Model = ast.Model.Model
+		chat.Properties.Model = ast.Model.TextModel
 		chat.Properties.Messages = msgs
 		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
 		chat.done = done2
@@ -84,7 +84,7 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 
 	case "anthropic":
 		chat := NewGlobal_Anthropic_completion(jobName)
-		chat.Properties.Model = ast.Model.Model
+		chat.Properties.Model = ast.Model.TextModel
 		chat.Properties.Messages = msgs
 		//chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
 		chat.done = done2
@@ -92,7 +92,7 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 
 	case "groq":
 		chat := NewGlobal_Groq_completion(jobName)
-		chat.Properties.Model = ast.Model.Model
+		chat.Properties.Model = ast.Model.TextModel
 		chat.Properties.Messages = msgs
 		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
 		chat.done = done2
@@ -590,7 +590,10 @@ func (ast *AssistantChat) GetCodeWithMarks() (string, error) {
 	return strings.Join(lines, "\n"), nil
 }
 
-func (st *AssistantChat) SetVoice(js []byte, voiceStart_sec float64) {
+func (st *AssistantChat) SetVoice(js []byte, voiceStart_sec float64, service string) {
+
+	fmt.Println("Out", string(js))
+
 	type VerboseJsonWord struct {
 		Start, End float64
 		Word       string
@@ -601,13 +604,25 @@ func (st *AssistantChat) SetVoice(js []byte, voiceStart_sec float64) {
 		Words      []VerboseJsonWord
 	}
 	type VerboseJson struct {
+		Task     string
+		Language string
+		Duration float64
+		Text     string
 		Segments []VerboseJsonSegment
+		Words    []VerboseJsonWord
 	}
 
 	var verb VerboseJson
 	err := json.Unmarshal(js, &verb)
 	if err != nil {
+		Layout_WriteError(fmt.Errorf("SetVoice() failed: %w", err))
 		return
+	}
+
+	//if it's ouputs(openai) .Worlds instead of .Segments, put worlds into segments
+	if len(verb.Words) > 0 {
+		verb.Segments = append(verb.Segments, VerboseJsonSegment{End: verb.Duration, Text: verb.Text, Words: verb.Words})
+		verb.Words = nil
 	}
 
 	//clean(remove for example [BLANK_AUDIO])
@@ -634,9 +649,12 @@ func (st *AssistantChat) SetVoice(js []byte, voiceStart_sec float64) {
 				prompt += _AssistantChat_getPromptMarkLabel(st.Picks[pick_i])
 				pick_i++
 			}
-			prompt += w.Word
+			prompt += w.Word + " "
 		}
 	}
+
+	prompt = strings.ReplaceAll(prompt, "  ", " ") //remove double space with single space
+
 	//add rest
 	for pick_i < len(st.Picks) {
 		prompt += _AssistantChat_getPromptMarkLabel(st.Picks[pick_i])

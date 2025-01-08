@@ -44,9 +44,10 @@ func (layout *Layout) AddEditbox2(x, y, w, h int, valuePointer interface{}) (*Ed
 	return props, lay
 }
 
-func (layout *Layout) AddEditboxMultiline(x, y, w, h int, value *string) (*Editbox, *Layout) {
+func (layout *Layout) AddEditboxMultiline(x, y, w, h int, value *string) *Editbox {
 	props := &Editbox{ValuePointer: value, Align_v: 1, Formating: true, Multiline: true, Linewrapping: true}
-	return props, layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
+	layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
+	return props
 }
 
 func (layout *Layout) AddEditboxSearch(x, y, w, h int, value *string, refreshDelaySec float64) *Editbox {

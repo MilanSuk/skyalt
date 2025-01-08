@@ -20,6 +20,9 @@ type Text struct {
 	Formating    bool
 	Multiline    bool
 	Linewrapping bool
+
+	ScrollToStart bool
+	ScrollToEnd   bool
 }
 
 func (layout *Layout) AddText(x, y, w, h int, value string) *Text {
@@ -28,15 +31,27 @@ func (layout *Layout) AddText(x, y, w, h int, value string) *Text {
 	return props
 }
 
-func (layout *Layout) AddTextMultiline(x, y, w, h int, value string) (*Text, *Layout) {
+func (layout *Layout) AddTextMultiline(x, y, w, h int, value string) *Text {
 	props := &Text{Value: value, Selection: true, Formating: true, Multiline: true, Linewrapping: true}
-	return props, layout._createDiv(x, y, w, h, "Text", props.Build, props.Draw, props.Input)
+	layout._createDiv(x, y, w, h, "Text", props.Build, props.Draw, props.Input)
+	return props
 }
 
 func (st *Text) Build(layout *Layout) {
 	st.buildContextDialog(layout)
 	if !st.Multiline {
 		layout.ScrollH.Narrow = true
+	}
+
+	if st.ScrollToStart {
+		st.ScrollToStart = false
+		layout.HScrollToTheLeft()
+		layout.VScrollToTheTop()
+	}
+	if st.ScrollToEnd {
+		st.ScrollToEnd = false
+		layout.HScrollToTheRight()
+		layout.VScrollToTheBottom()
 	}
 }
 

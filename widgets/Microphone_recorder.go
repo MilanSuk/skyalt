@@ -22,7 +22,7 @@ type Microphone_recorder struct {
 	start             func()
 	Out_buffer        audio.IntBuffer
 	Out_startUnixTime float64
-	done              func()
+	done              func(out audio.IntBuffer)
 }
 
 func (layout *Layout) AddMicrophone_recorder(x, y, w, h int, props *Microphone_recorder) *Microphone_recorder {
@@ -112,7 +112,7 @@ func (st *Microphone_recorder) Run(job *Job) {
 		return
 	}
 	if !st.cancel && st.done != nil {
-		st.done()
+		st.done(st.Out_buffer)
 	}
 }
 

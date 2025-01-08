@@ -214,6 +214,31 @@
 "Time_unix": 1736160428,
 "Layout_hash": 0,
 "Error": "Transcribe() failed: Do() failed: Post \"http://127.0.0.1:8091/inference\": dial tcp 127.0.0.1:8091: connect: connection refused"
+},
+{
+"Time_unix": 1736359267,
+"Layout_hash": 0,
+"Error": "model is empty"
+},
+{
+"Time_unix": 1736359285,
+"Layout_hash": 0,
+"Error": "model is empty"
+},
+{
+"Time_unix": 1736360963,
+"Layout_hash": 0,
+"Error": "NewRequest() failed: parse \"\\thttps://api.groq.com/openai/v1/audio/transcriptions\": net/url: invalid control character in URL"
+},
+{
+"Time_unix": 1736361005,
+"Layout_hash": 0,
+"Error": "statusCode 400 != 200, response: {\"error\":{\"message\":\"`timestamp_granularities[]` not supported by this model\",\"type\":\"invalid_request_error\"}}\n"
+},
+{
+"Time_unix": 1736361092,
+"Layout_hash": 0,
+"Error": "statusCode 400 != 200, response: {\"error\":{\"message\":\"`timestamp_granularities[]` not supported by this model\",\"type\":\"invalid_request_error\"}}\n"
 }
 ]
 }

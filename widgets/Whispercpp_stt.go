@@ -28,7 +28,7 @@ type Whispercpp_stt struct {
 	Input_Channels   int
 
 	Out  string
-	done func()
+	done func(out string)
 }
 
 func (layout *Layout) AddWhispercpp_stt(x, y, w, h int, props *Whispercpp_stt) *Whispercpp_stt {
@@ -61,11 +61,11 @@ func (st *Whispercpp_stt) Build(layout *Layout) {
 
 	job := FindJob(st.UID)
 
-	txt, txtLay := layout.AddTextMultiline(0, 0, 2, 1, "")
+	txt := layout.AddTextMultiline(0, 0, 2, 1, "")
 	txt.Align_h = 0
 	if job != nil {
 		txt.Value = job.info
-		txtLay.VScrollToTheBottom()
+		txt.ScrollToEnd = true
 	}
 
 	stopBt := layout.AddButton(1, 1, 1, 1, "Stop")
@@ -150,7 +150,7 @@ func (st *Whispercpp_stt) Run(job *Job) {
 	st.Out = string(answer)
 
 	if st.done != nil {
-		st.done()
+		st.done(st.Out)
 	}
 }
 

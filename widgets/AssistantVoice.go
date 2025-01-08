@@ -1,5 +1,9 @@
 package main
 
+import (
+	"github.com/go-audio/audio"
+)
+
 type AssistantVoice struct {
 	Shortcut          byte
 	Button_background float64
@@ -35,19 +39,43 @@ func (st *AssistantVoice) Build(layout *Layout) {
 		}
 	}
 
-	//STT
-	whisp := NewGlobal_Whispercpp_stt("AssistantVoice")
-	whisp.done = func() {
-		OpenFile_AssistantChat().SetVoice([]byte(whisp.Out), Mic.Out_startUnixTime)
+	service := OpenFile_AssistantChat().Model.GetSTTService()
+
+	done := func(out string) {
+		OpenFile_AssistantChat().SetVoice([]byte(out), Mic.Out_startUnixTime, service)
 		if st.AutoSend > 0 {
 			OpenFile_AssistantChat().Send()
 			layout.Redraw()
 		}
 	}
 
-	Mic.done = func() {
-		whisp.Input_Data = Mic.Out_buffer
-		//SttDia.OpenCentered()
-		whisp.Start()
+	switch service {
+	case "whispercpp":
+		stt := NewGlobal_Whispercpp_stt("AssistantVoice")
+		stt.Properties.Model = OpenFile_AssistantChat().Model.STTModel
+		stt.done = done
+		Mic.done = func(out audio.IntBuffer) {
+			stt.Input_Data = out
+			stt.Start()
+		}
+
+	case "openai":
+		stt := NewGlobal_OpenAI_stt("AssistantVoice")
+		stt.Properties.Model = OpenFile_AssistantChat().Model.STTModel
+		stt.done = done
+		Mic.done = func(out audio.IntBuffer) {
+			stt.Input_Data = out
+			stt.Start()
+		}
+
+	case "groq":
+		stt := NewGlobal_Groq_stt("AssistantVoice")
+		stt.Properties.Model = OpenFile_AssistantChat().Model.STTModel
+		stt.done = done
+		Mic.done = func(out audio.IntBuffer) {
+			stt.Input_Data = out
+			stt.Start()
+		}
 	}
+
 }

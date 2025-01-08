@@ -21,16 +21,11 @@ import (
 	"image/color"
 )
 
-type UiSelectionBrush struct {
-	Points []OsV2
-	Pick   LayoutPick
-}
-
 type UiSelection struct {
-	active *UiSelectionBrush
+	active *LayoutPick
 
 	appName          string
-	brushes          []*UiSelectionBrush
+	brushes          []*LayoutPick
 	backup_edit_hash uint64
 }
 
@@ -52,11 +47,11 @@ func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
 
 	thick := ui.CellWidth(0.3)
 	for _, it := range s.brushes {
-		buff.AddLines(it.Points, it.Pick.Cd, thick, true)
+		buff.AddLines(it.Points, it.Cd, thick, true)
 	}
 
 	if s.active != nil {
-		buff.AddLines(s.active.Points, s.active.Pick.Cd, thick, true)
+		buff.AddLines(s.active.Points, s.active.Cd, thick, true)
 	}
 
 }
@@ -67,7 +62,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 	if ui.GetWin().io.Keys.Ctrl {
 		if ui.GetWin().io.Touch.Start {
 			pcd := Layout3_Get_prompt_color(len(s.brushes))
-			s.active = &UiSelectionBrush{Pick: LayoutPick{Cd: pcd.Cd, Label: pcd.Label}}
+			s.active = &LayoutPick{Cd: pcd.Cd, Label: pcd.Label}
 			s.backup_edit_hash = ui.parent.edit.hash
 		}
 	}
@@ -107,12 +102,12 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 
 				//var pick LayoutPick
 				actBr := s.active
-				actBr.Pick.X = grid.Start.X
-				actBr.Pick.Y = grid.Start.Y
-				actBr.Pick.W = grid.Size.X
-				actBr.Pick.H = grid.Size.Y
+				actBr.X = grid.Start.X
+				actBr.Y = grid.Start.Y
+				actBr.W = grid.Size.X
+				actBr.H = grid.Size.Y
 
-				fmt.Println("--pick", actBr.Pick.X, actBr.Pick.Y, actBr.Pick.W, actBr.Pick.H)
+				fmt.Println("--pick", actBr.X, actBr.Y, actBr.W, actBr.H)
 
 				//find line
 				if best_layout == appLay {
@@ -126,18 +121,18 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 						fmt.Println("Error 1456")
 						return
 					}
-					actBr.Pick.Line = wf.Build
+					actBr.Line = wf.Build
 
 				} else {
-					actBr.Pick.Line = best_layout.props.Caller_line
+					actBr.Line = best_layout.props.Caller_line
 				}
 
 				//find if pick(line & grid) already exist
 				for _, it := range s.brushes {
-					if it.Pick.Cmp(&actBr.Pick) {
+					if it.Cmp(actBr) {
 						//rewrite color
-						actBr.Pick.Cd = it.Pick.Cd
-						actBr.Pick.Label = it.Pick.Label
+						actBr.Cd = it.Cd
+						actBr.Label = it.Label
 						break
 					}
 				}
@@ -146,7 +141,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 				s.brushes = append(s.brushes, actBr)
 
 				//call
-				in := LayoutInput{Pick: actBr.Pick, PickApp: s.appName}
+				in := LayoutInput{Pick: *actBr, PickApp: s.appName}
 				ui.parent.CallInput(&ui.dom.props, &in)
 			}
 		}

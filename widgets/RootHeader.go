@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -72,13 +73,19 @@ func (st *RootHeader) Build(layout *Layout) {
 
 	//prompt
 	ast.Assistant_recomputePromptColors() //, ast.Picks)
-	ed, edLay := layout.AddEditboxMultiline(3, 0, 1, 1, &ast.Prompt)
+	ed := layout.AddEditboxMultiline(3, 0, 1, 1, &ast.Prompt)
 	ed.Ghost = "What can I do for you?"
 	ed.Tooltip = "Use Ctrl + Mouse to paint over."
-	edLay.Back_cd = Paint_GetPalette().B
+	//edLay.Back_cd = Paint_GetPalette().B
 	ed.changed = func() {
 		if ast.Prompt == "" {
 			ast.reset()
+		}
+	}
+	if len(ast.Picks) > 0 {
+		js, err := json.Marshal(ast.Picks)
+		if err == nil {
+			Layout_SetBrushes(string(js))
 		}
 	}
 
@@ -100,9 +107,10 @@ func (st *RootHeader) Build(layout *Layout) {
 	//settings
 	{
 		SDia := layout.AddDialog("settings")
-		SDia.Layout.SetColumn(0, 1, 5)
+		SDia.Layout.SetColumn(0, 4, 10)
+		//SDia.Layout.SetRow(0, 10, 10)
 		SDia.Layout.SetRowFromSub(0)
-		SDia.Layout.AddModels(0, 0, 1, 1, &ast.Model)
+		SDia.Layout.AddAssistantModels(0, 0, 1, 1, &ast.Model)
 
 		SettingsBt, SettingsLay := layout.AddButtonIcon2(6, 0, 1, 1, "resources/settings.png", 0.2, "Pick the model")
 		SettingsBt.Background = 0.5

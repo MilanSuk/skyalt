@@ -142,11 +142,17 @@ type LayoutScroll struct {
 	Narrow bool
 }
 
+type LayoutPickPoint struct {
+	X int
+	Y int
+}
+
 type LayoutPick struct {
 	Line       int
 	X, Y, W, H int
 	Label      string
 	Cd         color.RGBA //paintbrush color
+	Points     []LayoutPickPoint
 
 	time_sec float64
 }
@@ -523,11 +529,11 @@ func (layout *Layout) VScrollToTheTop() {
 func (layout *Layout) VScrollToTheBottom() {
 	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "VScrollToTheBottom"})
 }
-func (layout *Layout) HScrollToTheTop() {
-	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "HScrollToTheTop"})
+func (layout *Layout) HScrollToTheLeft() {
+	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "HScrollToTheLeft"})
 }
-func (layout *Layout) HScrollToTheBottom() {
-	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "HScrollToTheBottom"})
+func (layout *Layout) HScrollToTheRight() {
+	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "HScrollToTheRight"})
 }
 
 func (layout *Layout) Redraw() {
@@ -539,13 +545,17 @@ func Layout_RefreshDelayed() {
 func Layout_Recompile() {
 	_addCmd(LayoutCmd{Hash: 0, Cmd: "Compile"})
 }
+
+func Layout_SetBrushes(js string) {
+	_addCmd(LayoutCmd{Hash: 0, Cmd: "SetBrushes", Param1: js})
+}
 func Layout_ResetBrushes() {
 	_addCmd(LayoutCmd{Hash: 0, Cmd: "ResetBrushes"})
 }
-
 func Layout_SetClipboardText(text string) {
 	_addCmd(LayoutCmd{Hash: 0, Cmd: "SetClipboardText", Param1: text})
 }
+
 func (layout *Layout) CopyText() {
 	_addCmd(LayoutCmd{Hash: layout.Hash, Cmd: "CopyText"})
 }

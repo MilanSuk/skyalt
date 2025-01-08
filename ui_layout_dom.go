@@ -29,6 +29,7 @@ type LayoutPick struct {
 	X, Y, W, H int
 	Label      string
 	Cd         color.RGBA //paintbrush color
+	Points     []OsV2
 }
 
 func (a *LayoutPick) Cmp(b *LayoutPick) bool {
@@ -341,7 +342,7 @@ func (dom *Layout3) setTouchEnable(parent_touch bool, parent_drawEnableFade bool
 	dom.touch = parent_touch && dom.props.Enable && dom.props.EnableTouch
 	dom.touchDia = true
 
-	dom.drawEnableFade = !parent_drawEnableFade && !dom.props.Enable
+	dom.drawEnableFade = !parent_drawEnableFade || !dom.props.Enable
 
 	for _, it := range dom.childs {
 		it.setTouchEnable(dom.touch, dom.drawEnableFade || !parent_drawEnableFade)
@@ -636,6 +637,7 @@ func (dom *Layout3) RebuildSoft() {
 	}
 
 	dom.updateCoord(0, 0, 1, 1)
+
 	for _, it := range dom.childs {
 		if it.IsShown() {
 			it.RebuildSoft()
@@ -706,16 +708,6 @@ func (dom *Layout3) relayout(setFromSubs bool) {
 		if changed {
 			dom.relayout(false)
 		}
-
-	}
-
-	if setFromSubs {
-		//if dom.props.Name == "_layout" && dom.canvas.Size.Y == 37 {
-		//	fmt.Println("bug")
-		//}
-
-		//fmt.Println("-Relayout", dom.props.Name, dom.canvas.Size.Y)
-		//dom.needRedraw = dom.needRedraw || (oldRect != dom._getRect())
 	}
 }
 
@@ -1120,7 +1112,7 @@ func (dom *Layout3) Draw() {
 			if layApp != nil {
 				//alpha grey background
 				backCanvas := layApp.crop
-				buff.StartLevel(layDia.crop, dom.ui.GetPalette().B, backCanvas)
+				buff.StartLevel(layDia.CropWithScroll(), dom.ui.GetPalette().B, backCanvas)
 			}
 
 			layDia.drawBuffers() //add renderToTexture optimalization ...
