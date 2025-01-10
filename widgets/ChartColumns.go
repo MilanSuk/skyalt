@@ -161,7 +161,7 @@ func (st *ChartColumns) Build(layout *Layout) {
 				}
 
 				rc = rc.CutLeft(st.ColumnMargin).CutRight(st.ColumnMargin)
-				paint.Text(rc, str, "", defCd, defCd, defCd, false, false, 1, 1, false, false, false, 0)
+				paint.Text(rc, str, "", defCd, defCd, defCd, false, false, 1, 1)
 
 				rc.H = small_axis_line
 				paint.Line(rc, 0.5, 0, 0.5, 1, defCd, 0.03)
@@ -200,7 +200,7 @@ func (st *ChartColumns) Build(layout *Layout) {
 				//rc.W = 1
 
 				str := ChartColumn_Format(vy, st.Y_as_time)
-				paint.Text(rc, str, "", defCd, defCd, defCd, false, false, 1, 1, false, true, false, 0)
+				paint.Text(rc, str, "", defCd, defCd, defCd, false, false, 1, 1)
 
 				rc.X = rc.W - small_axis_line
 				rc.W = small_axis_line

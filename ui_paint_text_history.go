@@ -16,22 +16,22 @@ limitations under the License.
 
 package main
 
-type UiPaintTextHistoryItem struct {
+type UiTextHistoryItem struct {
 	str string
 	cur int
 }
 
-type UiPaintTextHistory struct {
+type UiTextHistory struct {
 	uid uint64
 
-	items []UiPaintTextHistoryItem
+	items []UiTextHistoryItem
 
 	act          int
 	lastAddTicks int64
 }
 
-func NewUiPaintTextHistoryItem(uid uint64, init UiPaintTextHistoryItem) *UiPaintTextHistory {
-	var his UiPaintTextHistory
+func NewUiTextHistoryItem(uid uint64, init UiTextHistoryItem) *UiTextHistory {
+	var his UiTextHistory
 	his.uid = uid
 
 	his.items = append(his.items, init)
@@ -40,7 +40,7 @@ func NewUiPaintTextHistoryItem(uid uint64, init UiPaintTextHistoryItem) *UiPaint
 	return &his
 }
 
-func (his *UiPaintTextHistory) Add(value UiPaintTextHistoryItem) bool {
+func (his *UiTextHistory) Add(value UiTextHistoryItem) bool {
 
 	//same as previous
 	if his.items[his.act].str == value.str {
@@ -57,14 +57,14 @@ func (his *UiPaintTextHistory) Add(value UiPaintTextHistoryItem) bool {
 
 	return true
 }
-func (his *UiPaintTextHistory) AddWithTimeOut(value UiPaintTextHistoryItem) bool {
+func (his *UiTextHistory) AddWithTimeOut(value UiTextHistoryItem) bool {
 	if !OsIsTicksIn(his.lastAddTicks, 500) {
 		return his.Add(value)
 	}
 	return false
 }
 
-func (his *UiPaintTextHistory) Backward(init UiPaintTextHistoryItem) UiPaintTextHistoryItem {
+func (his *UiTextHistory) Backward(init UiTextHistoryItem) UiTextHistoryItem {
 
 	his.Add(init)
 
@@ -73,18 +73,18 @@ func (his *UiPaintTextHistory) Backward(init UiPaintTextHistoryItem) UiPaintText
 	}
 	return his.items[his.act]
 }
-func (his *UiPaintTextHistory) Forward() UiPaintTextHistoryItem {
+func (his *UiTextHistory) Forward() UiTextHistoryItem {
 	if his.act+1 < len(his.items) {
 		his.act++
 	}
 	return his.items[his.act]
 }
 
-type UiPaintTextHistoryArray struct {
-	items []*UiPaintTextHistory
+type UiTextHistoryArray struct {
+	items []*UiTextHistory
 }
 
-func (his *UiPaintTextHistoryArray) FindOrAdd(uid uint64, init UiPaintTextHistoryItem) *UiPaintTextHistory {
+func (his *UiTextHistoryArray) FindOrAdd(uid uint64, init UiTextHistoryItem) *UiTextHistory {
 
 	//finds
 	for _, it := range his.items {
@@ -94,7 +94,7 @@ func (his *UiPaintTextHistoryArray) FindOrAdd(uid uint64, init UiPaintTextHistor
 	}
 
 	//adds
-	it := NewUiPaintTextHistoryItem(uid, init)
+	it := NewUiTextHistoryItem(uid, init)
 	his.items = append(his.items, it)
 	return it
 }

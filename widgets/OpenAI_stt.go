@@ -50,15 +50,14 @@ func NewGlobal_OpenAI_stt(uid string) *OpenAI_stt {
 }
 
 func (st *OpenAI_stt) Build(layout *Layout) {
-
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 1, 3)
-	layout.SetRow(0, 1, 10)
+	layout.SetRowFromSub(0, 1, 100)
 
 	job := FindJob(st.UID)
 
 	txt := layout.AddTextMultiline(0, 0, 2, 1, "")
-	txt.Align_h = 0
+
 	if job != nil {
 		txt.Value = job.info
 		txt.ScrollToEnd = true
@@ -71,6 +70,7 @@ func (st *OpenAI_stt) Build(layout *Layout) {
 }
 
 func (st *OpenAI_stt) Start() *Job {
+
 	return StartJob(st.UID, "OpenAI speech-to-text", st.Run)
 }
 func (st *OpenAI_stt) Stop() {
@@ -79,8 +79,8 @@ func (st *OpenAI_stt) Stop() {
 		job.Stop()
 	}
 }
-func (st *OpenAI_stt) IsRunning() bool {
-	return FindJob(st.UID) != nil
+func (st *OpenAI_stt) FindJob() *Job {
+	return FindJob(st.UID)
 }
 
 func (st *OpenAI_stt) Run(job *Job) {

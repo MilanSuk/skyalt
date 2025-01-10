@@ -47,11 +47,7 @@ func (ui *Ui) _Text_draw(dom *Layout3, coord OsV4,
 		}
 	}
 
-	/*if drawBackWhenNonEmpty && value != "" {
-		ui.GetWin().buff.AddRect(coord, dom.ui.GetPalette().S, 0)
-	}*/
-
-	max_line_px := ui._Paint_getMaxLinePx(coord, multi_line, line_wrapping)
+	max_line_px := ui._UiText_getMaxLinePx(coord, multi_line, line_wrapping)
 	lines := ui.GetTextLines(value, max_line_px, prop)
 	startY := ui.GetTextStart(value, prop, coord, align.X, align.Y, len(lines)).Y
 
@@ -69,7 +65,7 @@ func (ui *Ui) _Text_draw(dom *Layout3, coord OsV4,
 			range_sx = OsMin(edit.start, edit.end)
 			range_ex = OsMax(edit.start, edit.end)
 
-			_UiPaint_CheckSelectionExplode(value, &edit.start, &edit.end, &prop)
+			_UiText_CheckSelectionExplode(value, &edit.start, &edit.end, &prop)
 		}
 	}
 
@@ -84,12 +80,12 @@ func (ui *Ui) _Text_draw(dom *Layout3, coord OsV4,
 			if curr_sy > curr_ey {
 				curr_sy, curr_ey = curr_ey, curr_sy //swap
 			}
-			crop_sy, crop_ey := _UiPaint_GetLineYCrop(startY, len(lines), dom.view, prop) //only rows which are on screen
+			crop_sy, crop_ey := _UiText_GetLineYCrop(startY, len(lines), dom.view, prop) //only rows which are on screen
 			yst = OsMax(curr_sy, crop_sy)
 			yen = OsMin(curr_ey, crop_ey)
 		}
 
-		sy, ey := _UiPaint_GetLineYCrop(startY, len(lines), dom.view, prop) //only rows which are on screen
+		sy, ey := _UiText_GetLineYCrop(startY, len(lines), dom.view, prop) //only rows which are on screen
 		for y := sy; y < ey; y++ {
 			st, en := WinGph_PosLineRange(lines, y)
 			ln := value[st:en]
@@ -158,7 +154,7 @@ func (ui *Ui) _Text_update(dom *Layout3,
 	prop WinFontProps,
 	align OsV2,
 	selection, editable, tabIsChar bool,
-	multi_line, multi_line_enter_finish, line_wrapping bool) {
+	multi_line, line_wrapping bool, refresh bool) {
 
 	edit := &dom.GetUis().edit
 	keys := &ui.GetWin().io.Keys
@@ -173,9 +169,13 @@ func (ui *Ui) _Text_update(dom *Layout3,
 		}
 	}
 
+	if editable && edit.Is(dom) && refresh {
+		edit.Set(dom, editable, orig_value, value, false, false, true, true)
+	}
+
 	//wasActive := active
 
-	max_line_px := ui._Paint_getMaxLinePx(coord, multi_line, line_wrapping)
+	max_line_px := ui._UiText_getMaxLinePx(coord, multi_line, line_wrapping)
 	lines := ui.GetTextLines(value, max_line_px, prop)
 	startY := ui.GetTextStart(value, prop, coord, align.X, align.Y, len(lines)).Y
 
@@ -198,7 +198,7 @@ func (ui *Ui) _Text_update(dom *Layout3,
 				touchCursor = ui.GetTextPos(ui.GetWin().io.Touch.Pos.X, value, prop, coord, align)
 			}
 
-			ui._UiPaint_TextSelectTouch(dom, editable, orig_value, value, lines, touchCursor, prop)
+			ui._UiText_TextSelectTouch(dom, editable, orig_value, value, lines, touchCursor, prop)
 		}
 
 		if edit.Is(dom) {
@@ -216,7 +216,7 @@ func (ui *Ui) _Text_update(dom *Layout3,
 				keys.Paste = true
 			}
 
-			ui._UiPaint_TextSelectKeys(dom, value, lines, prop, multi_line)
+			ui._UiText_TextSelectKeys(dom, value, lines, prop, multi_line)
 
 			if editable {
 
@@ -231,24 +231,18 @@ func (ui *Ui) _Text_update(dom *Layout3,
 
 				//old_value := value
 				var tryMoveScroll bool
-				value, tryMoveScroll = ui._UiPaint_TextEditKeys(dom, edit.temp, lines, tabIsChar, prop, multi_line, multi_line_enter_finish) //rewrite 'str' with temp value
-
-				/*if old_value != value && ed.RefreshDelaySec > 0 {
-					edit.SetRefreshTicks()
-				}*/
+				value, tryMoveScroll = ui._UiText_TextEditKeys(dom, edit.temp, lines, tabIsChar, prop, multi_line) //rewrite 'str' with temp value
 
 				num_old_lines := len(lines)
 				lines = ui.GetTextLines(value, max_line_px, prop) //refresh
 
 				if num_old_lines != len(lines) {
-					//if dom.parent.needRebuild(dom) {
-					dom.ui.SetRelayout()
-					//}
+					dom.ui.SetRefresh()
 				}
 
 				if tryMoveScroll {
-					ui._UiPaint_Text_VScrollInto(dom, lines, edit.end, prop)
-					ui._UiPaint_Text_HScrollInto(dom, value, lines, edit.end, prop)
+					ui._UiText_Text_VScrollInto(dom, lines, edit.end, prop)
+					ui._UiText_Text_HScrollInto(dom, value, lines, edit.end, prop)
 				}
 
 				isTab := !tabIsChar && keys.Tab
@@ -265,7 +259,7 @@ func (ui *Ui) _Text_update(dom *Layout3,
 
 			//enter or Tab(key) or outside => save
 			isOutside := (touch.Start && dom.CanTouch() && !dom.IsTouchPosInside() && edit.Is(dom))
-			isEnter := keys.Enter && (!multi_line || (multi_line_enter_finish && !keys.Ctrl) || (!multi_line_enter_finish && keys.Ctrl))
+			isEnter := keys.Enter && multi_line == keys.Ctrl
 			isEsc := keys.Esc
 			isTab := !tabIsChar && keys.Tab
 
@@ -275,7 +269,7 @@ func (ui *Ui) _Text_update(dom *Layout3,
 
 			if isTab || isEnter || isOutside || isEsc {
 				//reset
-				edit.Set(dom, editable, orig_value, value, isEnter, true, !isEsc)
+				edit.Set(dom, editable, orig_value, value, isEnter, true, !isEsc, false)
 
 				keys.Esc = false //don't close dialog
 			}
@@ -287,7 +281,7 @@ func (ui *Ui) _Text_update(dom *Layout3,
 	}
 }
 
-func (ui *Ui) _UiPaint_TextSelectTouch(dom *Layout3, editable bool, orig_text string, text string, lines []WinGphLine, cursor int, prop WinFontProps) {
+func (ui *Ui) _UiText_TextSelectTouch(dom *Layout3, editable bool, orig_text string, text string, lines []WinGphLine, cursor int, prop WinFontProps) {
 	if !dom.CanTouch() {
 		return
 	}
@@ -302,19 +296,19 @@ func (ui *Ui) _UiPaint_TextSelectTouch(dom *Layout3, editable bool, orig_text st
 
 	if !dom.GetUis().touch.IsScrollOrResizeActive() && (dom.props.Hash == edit.reload_hash && editable) {
 		//reload dom
-		edit.Set(dom, editable, orig_text, text, false, false, true)
+		edit.Set(dom, editable, orig_text, text, false, false, true, false)
 		edit.start = edit.end //set cursor at the end(not full select)
 		edit.reload_hash = 0
 	}
 
 	if !dom.GetUis().touch.IsScrollOrResizeActive() && (!edit.Is(dom) && editable && edit.IsActivateNext()) {
 		//tab
-		edit.Set(dom, editable, orig_text, text, false, false, true)
+		edit.Set(dom, editable, orig_text, text, false, false, true, false)
 
 	} else if dom.IsTouchPosInside() && dom.IsMouseButtonDownStart() {
 		//click inside
 		if !edit.Is(dom) {
-			edit.Set(dom, editable, orig_text, text, false, false, true)
+			edit.Set(dom, editable, orig_text, text, false, false, true, false)
 		}
 		//set start-end
 		edit.end = cursor
@@ -325,7 +319,7 @@ func (ui *Ui) _UiPaint_TextSelectTouch(dom *Layout3, editable bool, orig_text st
 
 		switch touch.NumClicks {
 		case 2:
-			st, en := _UiPaint_CursorWordRange(text, cursor)
+			st, en := _UiText_CursorWordRange(text, cursor)
 			edit.start = st //set start
 			edit.end = en   //set end
 		case 3:
@@ -349,14 +343,12 @@ func (ui *Ui) _UiPaint_TextSelectTouch(dom *Layout3, editable bool, orig_text st
 		edit.end = cursor //set end
 
 		//scroll
-		ui._UiPaint_Text_VScrollInto(dom, lines, cursor, prop)
-		ui._UiPaint_Text_HScrollInto(dom, text, lines, cursor, prop)
-
-		//root.buff.ResetHost() //SetNoSleep()
+		ui._UiText_Text_VScrollInto(dom, lines, cursor, prop)
+		ui._UiText_Text_HScrollInto(dom, text, lines, cursor, prop)
 	}
 }
 
-func (ui *Ui) _UiPaint_TextEditKeys(dom *Layout3, text string, lines []WinGphLine, tabIsChar bool, prop WinFontProps, multi_line bool, multi_line_enter_finish bool) (string, bool) {
+func (ui *Ui) _UiText_TextEditKeys(dom *Layout3, text string, lines []WinGphLine, tabIsChar bool, prop WinFontProps, multi_line bool) (string, bool) {
 	edit := &dom.GetUis().edit
 	keys := &ui.GetWin().io.Keys
 
@@ -413,7 +405,7 @@ func (ui *Ui) _UiPaint_TextEditKeys(dom *Layout3, text string, lines []WinGphLin
 		txt += "\t"
 	}
 
-	if keys.Enter && multi_line && ((multi_line_enter_finish && keys.Ctrl) || (!multi_line_enter_finish && !keys.Ctrl)) {
+	if keys.Enter && multi_line {
 		txt = "\n"
 	}
 
@@ -454,7 +446,7 @@ func (ui *Ui) _UiPaint_TextEditKeys(dom *Layout3, text string, lines []WinGphLin
 			//remove
 			if *s > 0 {
 				//removes one letter
-				p := _UiPaint_CursorMoveLR(text, firstCur, -1, prop)
+				p := _UiText_CursorMoveLR(text, firstCur, -1, prop)
 				text = text[:p] + text[firstCur:]
 				edit.temp = text
 
@@ -467,7 +459,7 @@ func (ui *Ui) _UiPaint_TextEditKeys(dom *Layout3, text string, lines []WinGphLin
 			//remove
 			if *s < len(text) {
 				//removes one letter
-				p := _UiPaint_CursorMoveLR(text, firstCur, +1, prop)
+				p := _UiText_CursorMoveLR(text, firstCur, +1, prop)
 				text = text[:firstCur] + text[p:]
 				edit.temp = text
 			}
@@ -479,12 +471,12 @@ func (ui *Ui) _UiPaint_TextEditKeys(dom *Layout3, text string, lines []WinGphLin
 		if *s != *e {
 			if multi_line {
 				if keys.ArrowU {
-					firstCur = _UiPaint_CursorMoveU(text, lines, *e)
+					firstCur = _UiText_CursorMoveU(text, lines, *e)
 					*s = firstCur
 					*e = firstCur
 				}
 				if keys.ArrowD {
-					firstCur = _UiPaint_CursorMoveD(text, lines, *e)
+					firstCur = _UiText_CursorMoveD(text, lines, *e)
 					*s = firstCur
 					*e = firstCur
 				}
@@ -502,19 +494,19 @@ func (ui *Ui) _UiPaint_TextEditKeys(dom *Layout3, text string, lines []WinGphLin
 		} else {
 			if keys.Ctrl {
 				if keys.ArrowL {
-					p := _UiPaint_CursorMoveLR(text, *s, -1, prop)
-					first, _ := _UiPaint_CursorWordRange(text, p)
+					p := _UiText_CursorMoveLR(text, *s, -1, prop)
+					first, _ := _UiText_CursorWordRange(text, p)
 					if first == p && p > 0 {
-						first, _ = _UiPaint_CursorWordRange(text, p-1)
+						first, _ = _UiText_CursorWordRange(text, p-1)
 					}
 					*s = first
 					*e = first
 				}
 				if keys.ArrowR {
-					p := _UiPaint_CursorMoveLR(text, *s, +1, prop)
-					_, last := _UiPaint_CursorWordRange(text, p)
+					p := _UiText_CursorMoveLR(text, *s, +1, prop)
+					_, last := _UiText_CursorWordRange(text, p)
 					if last == p && p+1 < len(text) {
-						_, last = _UiPaint_CursorWordRange(text, p+1)
+						_, last = _UiText_CursorWordRange(text, p+1)
 					}
 					*s = last
 					*e = last
@@ -522,23 +514,23 @@ func (ui *Ui) _UiPaint_TextEditKeys(dom *Layout3, text string, lines []WinGphLin
 			} else {
 				if multi_line {
 					if keys.ArrowU {
-						p := _UiPaint_CursorMoveU(text, lines, *e)
+						p := _UiText_CursorMoveU(text, lines, *e)
 						*s = p
 						*e = p
 					}
 					if keys.ArrowD {
-						p := _UiPaint_CursorMoveD(text, lines, *e)
+						p := _UiText_CursorMoveD(text, lines, *e)
 						*s = p
 						*e = p
 					}
 				}
 
 				if keys.ArrowL {
-					p := _UiPaint_CursorMoveLR(text, *s, -1, prop)
+					p := _UiText_CursorMoveLR(text, *s, -1, prop)
 					*s = p
 					*e = p
 				} else if keys.ArrowR {
-					p := _UiPaint_CursorMoveLR(text, *s, +1, prop)
+					p := _UiText_CursorMoveLR(text, *s, +1, prop)
 					*s = p
 					*e = p
 				}
@@ -568,7 +560,7 @@ func (ui *Ui) _UiPaint_TextEditKeys(dom *Layout3, text string, lines []WinGphLin
 
 	//history
 	{
-		his := UiPaintTextHistoryItem{str: text, cur: *e}
+		his := UiTextHistoryItem{str: text, cur: *e}
 
 		dom.GetUis().edit_history.FindOrAdd(edit.hash, his).AddWithTimeOut(his)
 
@@ -589,7 +581,7 @@ func (ui *Ui) _UiPaint_TextEditKeys(dom *Layout3, text string, lines []WinGphLin
 	return edit.temp, old != *e
 }
 
-func _UiPaint_CursorWordRange(text string, cursor int) (int, int) {
+func _UiText_CursorWordRange(text string, cursor int) (int, int) {
 	start := 0
 	end := 0
 
@@ -613,7 +605,7 @@ func _UiPaint_CursorWordRange(text string, cursor int) (int, int) {
 	return start, end
 }
 
-func (ui *Ui) _UiPaint_TextSelectKeys(dom *Layout3, text string, lines []WinGphLine, prop WinFontProps, multi_line bool) {
+func (ui *Ui) _UiText_TextSelectKeys(dom *Layout3, text string, lines []WinGphLine, prop WinFontProps, multi_line bool) {
 
 	//touch := &ui.GetWin().io.Touch
 	keys := &ui.GetWin().io.Keys
@@ -644,7 +636,7 @@ func (ui *Ui) _UiPaint_TextSelectKeys(dom *Layout3, text string, lines []WinGphL
 		}
 
 		if keys.Shift {
-			ui.GetWin().SetClipboardText(_UiPaint_RemoveFormating(text[firstCur:lastCur]))
+			ui.GetWin().SetClipboardText(_UiText_RemoveFormating(text[firstCur:lastCur]))
 		} else {
 
 			ui.GetWin().SetClipboardText(text[firstCur:lastCur])
@@ -656,37 +648,37 @@ func (ui *Ui) _UiPaint_TextSelectKeys(dom *Layout3, text string, lines []WinGphL
 		//ctrl
 		if keys.Ctrl {
 			if keys.ArrowL {
-				p := _UiPaint_CursorMoveLR(text, *e, -1, prop)
-				first, _ := _UiPaint_CursorWordRange(text, p)
+				p := _UiText_CursorMoveLR(text, *e, -1, prop)
+				first, _ := _UiText_CursorWordRange(text, p)
 				if first == p && p > 0 {
-					first, _ = _UiPaint_CursorWordRange(text, p-1)
+					first, _ = _UiText_CursorWordRange(text, p-1)
 				}
 				*e = first
 			}
 			if keys.ArrowR {
-				p := _UiPaint_CursorMoveLR(text, *e, +1, prop)
-				_, last := _UiPaint_CursorWordRange(text, p)
+				p := _UiText_CursorMoveLR(text, *e, +1, prop)
+				_, last := _UiText_CursorWordRange(text, p)
 				if last == p && p+1 < len(text) {
-					_, last = _UiPaint_CursorWordRange(text, p+1)
+					_, last = _UiText_CursorWordRange(text, p+1)
 				}
 				*e = last
 			}
 		} else {
 			if multi_line {
 				if keys.ArrowU {
-					*e = _UiPaint_CursorMoveU(text, lines, *e)
+					*e = _UiText_CursorMoveU(text, lines, *e)
 				}
 				if keys.ArrowD {
-					*e = _UiPaint_CursorMoveD(text, lines, *e)
+					*e = _UiText_CursorMoveD(text, lines, *e)
 				}
 			}
 
 			if keys.ArrowL {
-				p := _UiPaint_CursorMoveLR(text, *e, -1, prop)
+				p := _UiText_CursorMoveLR(text, *e, -1, prop)
 				*e = p
 			}
 			if keys.ArrowR {
-				p := _UiPaint_CursorMoveLR(text, *e, +1, prop)
+				p := _UiText_CursorMoveLR(text, *e, +1, prop)
 				*e = p
 			}
 		}
@@ -703,18 +695,14 @@ func (ui *Ui) _UiPaint_TextSelectKeys(dom *Layout3, text string, lines []WinGphL
 	//scroll
 	newPos := *e
 	if old != newPos {
-		ui._UiPaint_Text_VScrollInto(dom, lines, newPos, prop)
+		ui._UiText_Text_VScrollInto(dom, lines, newPos, prop)
 	}
 	if old != newPos {
-		ui._UiPaint_Text_HScrollInto(dom, text, lines, newPos, prop)
+		ui._UiText_Text_HScrollInto(dom, text, lines, newPos, prop)
 	}
 }
 
-func (ui *Ui) _UiPaint_Text_VScrollInto(dom *Layout3, lines []WinGphLine, cursor int, prop WinFontProps) {
-	/*if dom.parentLevel == nil {
-		return
-	}*/
-
+func (ui *Ui) _UiText_Text_VScrollInto(dom *Layout3, lines []WinGphLine, cursor int, prop WinFontProps) {
 	v_pos := WinGph_CursorLineY(lines, cursor) * prop.lineH
 
 	v_st := dom.scrollV.GetWheel()
@@ -735,11 +723,7 @@ func (ui *Ui) _UiPaint_Text_VScrollInto(dom *Layout3, lines []WinGphLine, cursor
 
 }
 
-func (ui *Ui) _UiPaint_Text_HScrollInto(dom *Layout3, text string, lines []WinGphLine, cursor int, prop WinFontProps) {
-	/*if dom.parentLevel == nil {
-		return nil
-	}*/
-
+func (ui *Ui) _UiText_Text_HScrollInto(dom *Layout3, text string, lines []WinGphLine, cursor int, prop WinFontProps) {
 	ln, curr := WinGph_CursorLine(text, lines, cursor)
 	h_pos := ui.GetTextSize(curr, ln, prop).X
 
@@ -758,13 +742,10 @@ func (ui *Ui) _UiPaint_Text_HScrollInto(dom *Layout3, text string, lines []WinGp
 		dom.RebuildSoft()
 		dom.GetSettings().SetScrollH(dom.props.Hash, dom.scrollH.wheel)
 	}
-
 }
 
-func _UiPaint_RemoveFormatingRGBA(str string) string {
-
+func _UiText_RemoveFormatingRGBA(str string) string {
 	str = strings.ReplaceAll(str, "</rgba>", "")
-
 	for {
 		st := strings.Index(str, "<rgba")
 		if st < 0 {
@@ -775,11 +756,10 @@ func _UiPaint_RemoveFormatingRGBA(str string) string {
 			str = str[:st] + str[st+en+1:]
 		}
 	}
-
 	return str
 }
 
-func _UiPaint_RemoveFormating(str string) string {
+func _UiText_RemoveFormating(str string) string {
 	str = strings.ReplaceAll(str, "<b>", "")
 	str = strings.ReplaceAll(str, "</b>", "")
 
@@ -795,12 +775,12 @@ func _UiPaint_RemoveFormating(str string) string {
 	str = strings.ReplaceAll(str, "<small>", "")
 	str = strings.ReplaceAll(str, "</small>", "")
 
-	str = _UiPaint_RemoveFormatingRGBA(str)
+	str = _UiText_RemoveFormatingRGBA(str)
 
 	return str
 }
 
-func (ui *Ui) _Paint_getMaxLinePx(view OsV4, multi_line, line_wrapping bool) int {
+func (ui *Ui) _UiText_getMaxLinePx(view OsV4, multi_line, line_wrapping bool) int {
 	max_line_px := -1
 	if multi_line && line_wrapping {
 		max_line_px = view.Size.X //- ui.CellWidth(3*0.1) //3 ...
@@ -809,7 +789,7 @@ func (ui *Ui) _Paint_getMaxLinePx(view OsV4, multi_line, line_wrapping bool) int
 	return max_line_px
 }
 
-func _UiPaint_HashFormatingPreSuf_fix(str string, startWith bool) int {
+func _UiText_HashFormatingPreSuf_fix(str string, startWith bool) int {
 
 	var fn func(a, b string) bool
 	if startWith {
@@ -859,22 +839,22 @@ func _UiPaint_HashFormatingPreSuf_fix(str string, startWith bool) int {
 	return 0
 }
 
-func _UiPaint_CheckSelectionExplode(str string, start *int, end *int, prop *WinFontProps) {
+func _UiText_CheckSelectionExplode(str string, start *int, end *int, prop *WinFontProps) {
 	if !prop.formating {
 		return
 	}
 
 	if *start < *end {
-		*start -= _UiPaint_HashFormatingPreSuf_fix(str[:*start], false)
-		*end += _UiPaint_HashFormatingPreSuf_fix(str[*end:], true)
+		*start -= _UiText_HashFormatingPreSuf_fix(str[:*start], false)
+		*end += _UiText_HashFormatingPreSuf_fix(str[*end:], true)
 	}
 	if *end < *start {
-		*end -= _UiPaint_HashFormatingPreSuf_fix(str[:*end], false)
-		*start += _UiPaint_HashFormatingPreSuf_fix(str[*start:], true)
+		*end -= _UiText_HashFormatingPreSuf_fix(str[:*end], false)
+		*start += _UiText_HashFormatingPreSuf_fix(str[*start:], true)
 	}
 }
 
-func _UiPaint_GetLineYCrop(startY int, num_lines int, crop OsV4, prop WinFontProps) (int, int) {
+func _UiText_GetLineYCrop(startY int, num_lines int, crop OsV4, prop WinFontProps) (int, int) {
 
 	sy := (crop.Start.Y - startY) / prop.lineH
 	ey := OsRoundUp(float64(crop.End().Y-startY) / float64(prop.lineH))
@@ -886,16 +866,16 @@ func _UiPaint_GetLineYCrop(startY int, num_lines int, crop OsV4, prop WinFontPro
 	return sy, ey
 }
 
-func _UiPaint_CursorMoveLR(text string, cursor int, move int, prop WinFontProps) int {
+func _UiText_CursorMoveLR(text string, cursor int, move int, prop WinFontProps) int {
 
 	//skip formating
 	if prop.formating {
 		if move < 0 { //left
-			cursor -= _UiPaint_HashFormatingPreSuf_fix(text[:cursor], false)
+			cursor -= _UiText_HashFormatingPreSuf_fix(text[:cursor], false)
 		}
 
 		if move > 0 { //right
-			cursor += _UiPaint_HashFormatingPreSuf_fix(text[cursor:], true)
+			cursor += _UiText_HashFormatingPreSuf_fix(text[cursor:], true)
 		}
 	}
 
@@ -915,7 +895,7 @@ func _UiPaint_CursorMoveLR(text string, cursor int, move int, prop WinFontProps)
 	return cursor
 }
 
-func _UiPaint_CursorMoveU(text string, lines []WinGphLine, cursor int) int {
+func _UiText_CursorMoveU(text string, lines []WinGphLine, cursor int) int {
 	y := WinGph_CursorLineY(lines, cursor)
 	if y > 0 {
 		_, pos := WinGph_CursorLine(text, lines, cursor)
@@ -925,7 +905,7 @@ func _UiPaint_CursorMoveU(text string, lines []WinGphLine, cursor int) int {
 	}
 	return cursor
 }
-func _UiPaint_CursorMoveD(text string, lines []WinGphLine, cursor int) int {
+func _UiText_CursorMoveD(text string, lines []WinGphLine, cursor int) int {
 	y := WinGph_CursorLineY(lines, cursor)
 	if y+1 < len(lines) {
 		_, pos := WinGph_CursorLine(text, lines, cursor)

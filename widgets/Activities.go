@@ -80,7 +80,7 @@ func (actvs *Activities) Build(layout *Layout) {
 		{
 			UserDia, UserLay := ListDiv.AddDialogBorder("user_info", "User Information", 7)
 			UserLay.SetColumn(0, 1, 100)
-			UserLay.SetRowFromSub(0)
+			UserLay.SetRowFromSub(0, 1, 100)
 			UserLay.AddUserInfo(0, 0, 1, 1, OpenFile_UserInfo())
 
 			UserBt := ListDiv.AddButton(0, 2, 1, 1, "User info")

@@ -77,7 +77,7 @@ func (st *EventShow) Build(layout *Layout) {
 
 		EditDia, EditLay := layout.AddDialogBorder("edit_event", "Event", 14)
 		EditLay.SetColumn(0, 1, 100)
-		EditLay.SetRowFromSub(0)
+		EditLay.SetRowFromSub(0, 1, 100)
 		ed := EditLay.AddEventEdit(0, 0, 1, 1)
 		ed.Event = st.Event
 		ed.ChangedButtonTitle = "Edit"

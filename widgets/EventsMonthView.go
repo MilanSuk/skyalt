@@ -113,7 +113,7 @@ func (st *EventsMonthView) Build(layout *Layout) {
 
 							ShowDia, ShowLay := layout.AddDialogBorder("show_event_"+strconv.Itoa(event_id), "Event", 14)
 							ShowLay.SetColumn(0, 1, 100)
-							ShowLay.SetRowFromSub(0)
+							ShowLay.SetRowFromSub(0, 1, 100)
 							sh := ShowLay.AddEventShow(0, 0, 1, 1)
 							sh.Event = event
 							sh.deleted = func() {

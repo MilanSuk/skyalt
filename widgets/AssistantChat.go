@@ -60,7 +60,6 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 	done2 := func(out string) {
 		dt := ((float64(time.Now().UnixMilli()) / 1000) - st)
 		ast.Stats[statKey] = dt / float64(numInputBytes)
-		//fmt.Println("+++save", statKey, ast.Stats[statKey])
 		done(out) //call
 	}
 
@@ -92,6 +91,14 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 
 	case "groq":
 		chat := NewGlobal_Groq_completion(jobName)
+		chat.Properties.Model = ast.Model.TextModel
+		chat.Properties.Messages = msgs
+		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
+		chat.done = done2
+		job = chat.Start()
+
+	case "llamacpp":
+		chat := NewGlobal_Llamacpp_completion(jobName)
 		chat.Properties.Model = ast.Model.TextModel
 		chat.Properties.Messages = msgs
 		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}

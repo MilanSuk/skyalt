@@ -29,7 +29,7 @@ func (st *AssistantVoice) Build(layout *Layout) {
 	Mic.Shortcut_key = st.Shortcut
 	Mic.Tooltip = "Start/Stop AI Assistant audio recording"
 	Mic.Background = st.Button_background
-	if Mic.IsRunning() {
+	if Mic.FindJob() != nil {
 		layout.SetColumn(0, 1, 1)
 		layout.SetColumn(1, 2, 2)
 		cancelBt := layout.AddButton(1, 0, 1, 1, "Cancel")

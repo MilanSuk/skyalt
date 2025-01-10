@@ -266,7 +266,7 @@ func (dom *Layout3) _refreshLayout() {
 	OsUnmarshal(data, &layout)
 
 	st := OsTime()
-	//project
+	//project & clear buffers
 	dom.project(&layout)
 
 	//relayout

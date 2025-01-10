@@ -17,52 +17,39 @@ type Editbox struct {
 	Align_h int //0=left, 1=center, 2=right
 	Align_v int //0=top, 1=center, 2=bottom
 
-	Icon        string
-	Icon_margin float64
-
 	Formating    bool
 	Multiline    bool
 	Linewrapping bool
 
-	DrawBackWhenNonEmpty bool
-	ResetButton          bool
-
-	RefreshDelaySec float64 //? ...
+	Refresh bool
 
 	changed func()
 	enter   func()
 }
 
 func (layout *Layout) AddEditbox(x, y, w, h int, valuePointer interface{}) *Editbox {
-	props := &Editbox{ValuePointer: valuePointer, Align_v: 1, Formating: true, ValueFloatPrec: 2}
+	props := &Editbox{ValuePointer: valuePointer, Align_v: 1, Formating: true, ValueFloatPrec: 2, Cd: Paint_GetPalette().OnB}
 	layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
 	return props
 }
 func (layout *Layout) AddEditbox2(x, y, w, h int, valuePointer interface{}) (*Editbox, *Layout) {
-	props := &Editbox{ValuePointer: valuePointer, Align_v: 1, Formating: true, ValueFloatPrec: 2}
+	props := &Editbox{ValuePointer: valuePointer, Align_v: 1, Formating: true, ValueFloatPrec: 2, Cd: Paint_GetPalette().OnB}
 	lay := layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
 	return props, lay
 }
 
 func (layout *Layout) AddEditboxMultiline(x, y, w, h int, value *string) *Editbox {
-	props := &Editbox{ValuePointer: value, Align_v: 1, Formating: true, Multiline: true, Linewrapping: true}
-	layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
-	return props
-}
-
-func (layout *Layout) AddEditboxSearch(x, y, w, h int, value *string, refreshDelaySec float64) *Editbox {
-	if refreshDelaySec < 0 {
-		refreshDelaySec = 0.5
-	}
-	props := &Editbox{ValuePointer: value, RefreshDelaySec: refreshDelaySec,
-		Ghost: "Search", Icon: "resources/search.png", Icon_margin: 0.2,
-		DrawBackWhenNonEmpty: true, ResetButton: true}
-
+	props := &Editbox{ValuePointer: value, Formating: true, Multiline: true, Linewrapping: true, Cd: Paint_GetPalette().OnB}
 	layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
 	return props
 }
 
 func (st *Editbox) Build(layout *Layout) {
+
+	{
+		var paint LayoutPaint
+		layout.UserCRFromText = st.addPaintText(Rect{}, &paint)
+	}
 
 	st.buildContextDialog(layout)
 
@@ -76,7 +63,6 @@ func (st *Editbox) Build(layout *Layout) {
 				st.changed()
 			}
 		}
-
 	}
 
 	layout.fnSetEditbox = func(value string, enter bool) {
@@ -89,72 +75,16 @@ func (st *Editbox) Build(layout *Layout) {
 			st.enter()
 		}
 	}
+
 }
 
 func (st *Editbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
-	rectOrig := rect
-	rectOrig = rectOrig.Cut(0.03)
-
-	rectLabel := rect
-
-	//color
-	cd := Paint_GetPalette().OnB
-	if st.Cd.A > 0 {
-		cd = st.Cd
-	}
-
-	//back
-	if st.DrawBackWhenNonEmpty && st.IsValue() {
-		backCd := Color_Aprox(Paint_GetPalette().P, Paint_GetPalette().B, 0.5)
-		paint.Rect(rectOrig, backCd, backCd, backCd, 0)
-	}
-
-	//icon
-	if st.Icon != "" {
-		rectIcon := rectLabel
-		rectIcon.W = 1
-		rectIcon = rectIcon.Cut(st.Icon_margin)
-
-		rectLabel = rectLabel.CutLeft(1)
-
-		paint.File(rectIcon, false, st.Icon, cd, cd, cd, 1, 1)
-	}
-
-	//reset
-	if st.ResetButton {
-		rectReset := rectLabel
-		rectReset = rectReset.CutRight(1)
-		rectReset.X += rectReset.W
-		rectReset.W = 1
-
-		paint.Text(rectReset, "⌫", "", cd, cd, cd, false, false, 1, 1, false, false, false, 0)
-
-		paint.CursorEx(rectReset, "hand")
-		paint.TooltipEx(rectReset, "Clear", false)
-
-		rectLabel = rectLabel.CutRight(1)
-	}
-
-	paint.CursorEx(rectLabel, "ibeam")
-	paint.TooltipEx(rectLabel, st.Tooltip, false)
-
-	value := st.getValue()
-
-	//draw icon
-	if st.Icon != "" {
-		rectIcon := rectLabel
-		if value != "" {
-			rectIcon.W = 1
-		}
-		rectIcon = rectIcon.Cut(st.Icon_margin)
-
-		rectLabel = rectLabel.CutLeft(1)
-
-		paint.File(rectIcon, false, st.Icon, cd, cd, cd, 1, 1)
-	}
+	paint.CursorEx(rect, "ibeam")
+	paint.TooltipEx(rect, st.Tooltip, false)
 
 	//draw text
-	paint.Text(rectLabel, value, st.Ghost, cd, cd, cd, true, true, uint8(st.Align_h), uint8(st.Align_v), st.Formating, st.Multiline, st.Linewrapping, 0.06)
+	st.addPaintText(rect, &paint)
+
 	return
 }
 
@@ -171,6 +101,16 @@ func (st *Editbox) Input(in LayoutInput, layout *Layout) {
 	}
 }
 
+func (st *Editbox) addPaintText(rect Rect, paint *LayoutPaint) *LayoutDrawText {
+	tx := paint.Text(rect, st.getValue(), st.Ghost, st.Cd, st.Cd, st.Cd, true, true, uint8(st.Align_h), uint8(st.Align_v))
+	tx.Formating = st.Formating
+	tx.Multiline = st.Multiline
+	tx.Linewrapping = st.Linewrapping
+	tx.Refresh = st.Refresh
+	tx.Margin = 0.06
+	return tx
+}
+
 func (st *Editbox) setValueAdd(value string) bool {
 	switch v := st.ValuePointer.(type) {
 	case *string:
@@ -179,13 +119,14 @@ func (st *Editbox) setValueAdd(value string) bool {
 	}
 	return false
 }
-func (st *Editbox) IsValue() bool {
+
+/*func (st *Editbox) IsValue() bool {
 	switch v := st.ValuePointer.(type) {
 	case *string:
 		return *v != ""
 	}
 	return false
-}
+}*/
 
 func (st *Editbox) setValue(value string) bool {
 	diff := false

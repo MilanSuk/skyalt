@@ -42,12 +42,12 @@ func (st *OpenAI_tts) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 1, 3)
-	layout.SetRow(0, 1, 10)
+	layout.SetRowFromSub(0, 1, 100)
 
 	job := FindJob(st.UID)
 
 	txt := layout.AddTextMultiline(0, 0, 2, 1, "")
-	txt.Align_h = 0
+
 	if job != nil {
 		txt.Value = job.info
 		txt.ScrollToEnd = true
@@ -60,6 +60,7 @@ func (st *OpenAI_tts) Build(layout *Layout) {
 }
 
 func (st *OpenAI_tts) Start() *Job {
+
 	return StartJob(st.UID, "OpenAI text-to-speech", st.Run)
 }
 func (st *OpenAI_tts) Stop() {
@@ -68,8 +69,8 @@ func (st *OpenAI_tts) Stop() {
 		job.Stop()
 	}
 }
-func (st *OpenAI_tts) IsRunning() bool {
-	return FindJob(st.UID) != nil
+func (st *OpenAI_tts) FindJob() *Job {
+	return FindJob(st.UID)
 }
 func (st *OpenAI_tts) Run(job *Job) {
 

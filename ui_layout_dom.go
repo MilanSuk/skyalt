@@ -105,7 +105,8 @@ type LayoutCR struct {
 
 	Resize_value float64 `json:",omitempty"`
 
-	SetFromChild bool `json:",omitempty"`
+	SetFromChild_min float64 `json:",omitempty"`
+	SetFromChild_max float64 `json:",omitempty"`
 
 	Caller_file string `json:",omitempty"`
 	Caller_line int    `json:",omitempty"`
@@ -118,29 +119,56 @@ type LayoutScroll struct {
 	Narrow bool
 }
 
-type LayoutDrawPrim struct {
-	Type uint8
-
-	Rect           Rect
-	Sx, Sy, Ex, Ey float64
+type LayoutDrawRect struct {
+	Cd, Cd_over, Cd_down color.RGBA
+	Border               float64
+}
+type LayoutDrawLine struct {
+	Cd, Cd_over, Cd_down color.RGBA
+	Border               float64
+	Sx, Sy, Ex, Ey       float64
+}
+type LayoutDrawFile struct {
+	Cd, Cd_over, Cd_down color.RGBA
+	Url                  string
+	Align_h              uint8
+	Align_v              uint8
+}
+type LayoutDrawText struct {
+	Margin float64
 
 	Cd, Cd_over, Cd_down color.RGBA
 
-	Border float64
-
 	Text  string
-	Text2 string
-
-	Boolean bool
+	Ghost string
 
 	Align_h uint8
 	Align_v uint8
 
-	Text_formating    bool
-	Text_multiline    bool
-	Text_linewrapping bool
-	Text_selection    bool
-	Text_editable     bool
+	Formating    bool
+	Multiline    bool
+	Linewrapping bool
+	Selection    bool
+	Editable     bool
+	Refresh      bool
+}
+type LayoutDrawCursor struct {
+	Name string
+}
+type LayoutDrawTooltip struct {
+	Description string
+	Force       bool
+}
+type LayoutDrawPrim struct {
+	Rect Rect
+
+	Rectangle *LayoutDrawRect
+	Circle    *LayoutDrawRect
+	Line      *LayoutDrawLine
+	File      *LayoutDrawFile
+	Text      *LayoutDrawText
+	Cursor    *LayoutDrawCursor
+	Tooltip   *LayoutDrawTooltip
 }
 type LayoutPaint struct {
 	buffer []LayoutDrawPrim
@@ -175,8 +203,9 @@ type Layout struct {
 
 	dropFile func(path string)
 
-	UserCols []LayoutCR
-	UserRows []LayoutCR
+	UserCols       []LayoutCR
+	UserRows       []LayoutCR
+	UserCRFromText *LayoutDrawText
 
 	ScrollV LayoutScroll
 	ScrollH LayoutScroll
@@ -291,6 +320,8 @@ func (dom *Layout3) project(src *Layout) {
 
 	dom.scrollV.wheel = dom.GetSettings().GetScrollV(dom.props.Hash)
 	dom.scrollH.wheel = dom.GetSettings().GetScrollH(dom.props.Hash)
+
+	dom.buffer = nil
 
 	//remove un-used
 	for i := len(dom.childs) - 1; i >= 0; i-- {
@@ -653,10 +684,9 @@ func (dom *Layout3) relayout(setFromSubs bool) {
 
 	dom.updateCoord(0, 0, 1, 1)
 
-	/*if dom.fnResize != nil {
-		dom.fnResize(dom)
+	if dom.resizeFromPaintText() {
 		dom.updateCoord(0, 0, 1, 1)
-	}*/
+	}
 
 	if dom.IsDialog() {
 		dom.rebuildLevel() //for dialogs, it needs to know dialog size
@@ -676,13 +706,14 @@ func (dom *Layout3) relayout(setFromSubs bool) {
 		changed := false
 
 		for i, c := range dom.props.UserCols {
-			if c.SetFromChild {
+			if c.SetFromChild_min > 0 || c.SetFromChild_max > 0 {
 				v := 1.0
 				for _, it := range dom.childs {
 					if it.props.X == c.Pos && it.props.W == 1 {
 						v = OsMaxFloat(v, it._getWidth())
 					}
 				}
+				v = OsClampFloat(v, c.SetFromChild_min, c.SetFromChild_max)
 				dom.props.UserCols[i].Min = v
 				dom.props.UserCols[i].Max = v
 
@@ -691,13 +722,14 @@ func (dom *Layout3) relayout(setFromSubs bool) {
 		}
 
 		for i, r := range dom.props.UserRows {
-			if r.SetFromChild {
+			if r.SetFromChild_min > 0 || r.SetFromChild_max > 0 {
 				v := 1.0
 				for _, it := range dom.childs {
 					if it.props.Y == r.Pos && it.props.H == 1 {
 						v = OsMaxFloat(v, it._getHeight())
 					}
 				}
+				v = OsClampFloat(v, r.SetFromChild_min, r.SetFromChild_max)
 				dom.props.UserRows[i].Min = v
 				dom.props.UserRows[i].Max = v
 
@@ -825,59 +857,74 @@ func (dom *Layout3) renderBuffer(buffer []LayoutDrawPrim) {
 
 	for _, it := range buffer {
 		coord := dom.getCanvasPx(it.Rect)
-		frontCd := dom.GetCd(it.Cd, it.Cd_over, it.Cd_down)
 
-		switch it.Type {
-		case 1:
-			buff.AddRect(coord, frontCd, dom.ui.CellWidth(it.Border))
-		case 2:
-			buff.AddCircle(coord, frontCd, dom.ui.CellWidth(it.Border))
-		case 3:
-			var tx, ty, sx, sy float64
-			path := InitWinMedia_url(it.Text)
-			buff.AddImage(path, coord, frontCd, OsV2{int(it.Align_h), int(it.Align_v)}, &tx, &ty, &sx, &sy, dom.GetPalette().E, dom.Cell())
+		if it.Rectangle != nil {
+			st := it.Rectangle
+			frontCd := dom.GetCd(st.Cd, st.Cd_over, st.Cd_down)
+			buff.AddRect(coord, frontCd, dom.ui.CellWidth(st.Border))
+		}
+		if it.Circle != nil {
+			st := it.Circle
+			frontCd := dom.GetCd(st.Cd, st.Cd_over, st.Cd_down)
+			buff.AddCircle(coord, frontCd, dom.ui.CellWidth(st.Border))
+		}
+		if it.Line != nil {
+			st := it.Line
+			frontCd := dom.GetCd(st.Cd, st.Cd_over, st.Cd_down)
 
-		case 4:
 			var start, end OsV2
-			start.X = coord.Start.X + int(float64(coord.Size.X)*it.Sx)
-			start.Y = coord.Start.Y + int(float64(coord.Size.Y)*it.Sy)
-			end.X = coord.Start.X + int(float64(coord.Size.X)*it.Ex)
-			end.Y = coord.Start.Y + int(float64(coord.Size.Y)*it.Ey)
+			start.X = coord.Start.X + int(float64(coord.Size.X)*st.Sx)
+			start.Y = coord.Start.Y + int(float64(coord.Size.Y)*st.Sy)
+			end.X = coord.Start.X + int(float64(coord.Size.X)*st.Ex)
+			end.Y = coord.Start.Y + int(float64(coord.Size.Y)*st.Ey)
 
-			buff.AddLine(start, end, frontCd, dom.ui.CellWidth(it.Border))
+			buff.AddLine(start, end, frontCd, dom.ui.CellWidth(st.Border))
+		}
 
-		case 5:
+		if it.File != nil {
+			st := it.File
+			frontCd := dom.GetCd(st.Cd, st.Cd_over, st.Cd_down)
+
+			var tx, ty, sx, sy float64
+			path := InitWinMedia_url(st.Url)
+			buff.AddImage(path, coord, frontCd, OsV2{int(st.Align_h), int(st.Align_v)}, &tx, &ty, &sx, &sy, dom.GetPalette().E, dom.Cell())
+		}
+
+		if it.Text != nil {
+			st := it.Text
+			frontCd := dom.GetCd(st.Cd, st.Cd_over, st.Cd_down)
+
+			coord = dom.getCanvasPx(it.Rect.Cut(st.Margin)) //recompute with margin
+
 			prop := InitWinFontPropsDef(dom.Cell())
 
-			if it.Text == "<h2>2. Thursday" {
-				fmt.Println("d")
-			}
+			prop.formating = st.Formating
 
-			prop.formating = it.Text_formating
-			coord := dom.getCanvasPx(it.Rect)
+			align := OsV2{int(st.Align_h), int(st.Align_v)}
+			dom.ui._Text_draw(dom, coord, st.Text, st.Ghost, prop, frontCd, align, st.Selection, st.Editable, st.Multiline, st.Linewrapping)
+		}
 
-			align := OsV2{int(it.Align_h), int(it.Align_v)}
-			dom.ui._Text_draw(dom, coord, it.Text, it.Text2, prop, frontCd, align, it.Text_selection, it.Text_editable, it.Text_multiline, it.Text_linewrapping)
-
-		case 6:
+		if it.Cursor != nil {
+			st := it.Cursor
 			cq := coord.GetIntersect(dom.crop)
 			if dom.CanTouch() && cq.Inside(dom.ui.GetWin().io.Touch.Pos) {
-				dom.ui.GetWin().PaintCursor(it.Text)
+				dom.ui.GetWin().PaintCursor(st.Name)
 			}
+		}
 
-		case 7:
-			force := it.Boolean
+		if it.Tooltip != nil {
+			st := it.Tooltip
+			force := st.Force
 			if force && !dom.IsTouchActive() {
 				force = false
 			}
-
 			if dom.CanTouch() && (force || !dom.GetUis().touch.IsActive()) {
 				coord := coord.GetIntersect(buff.crop)
 
 				if force {
-					dom.ui.tooltip.SetForce(coord, true, it.Text, dom.ui.GetPalette().OnB)
+					dom.ui.tooltip.SetForce(coord, true, st.Description, dom.ui.GetPalette().OnB)
 				} else {
-					dom.ui.tooltip.Set(coord, false, it.Text, dom.ui.GetPalette().OnB)
+					dom.ui.tooltip.Set(coord, false, st.Description, dom.ui.GetPalette().OnB)
 				}
 			}
 		}
@@ -1004,30 +1051,87 @@ func (layout *Layout3) findTouch() *Layout3 {
 	return found
 }
 
-func (layout *Layout3) findBufferText() int {
-	for i, it := range layout.buffer {
-		if it.Type == 5 {
-			return i
+func (dom *Layout3) resizeFromPaintText() (changed bool) {
+	tx := dom.props.UserCRFromText
+	if tx != nil {
+		value := tx.Text
+		if tx.Editable {
+			if dom.ui.parent.edit.Is(dom) {
+				value = dom.ui.parent.edit.temp
+			}
+		}
+
+		coord := dom.canvas.Crop(dom.ui.CellWidth(tx.Margin * 2))
+
+		prop := InitWinFontPropsDef(dom.Cell())
+
+		var size OsV2f
+		var mx, my int
+		if tx.Multiline {
+			max_line_px := dom.ui._UiText_getMaxLinePx(coord, tx.Multiline, tx.Linewrapping)
+			mx, my = dom.ui.GetTextSizeMax(value, max_line_px, prop)
+		} else {
+			mx = dom.ui.GetTextSize(-1, value, prop).X
+			my = 1
+		}
+		sizePx := OsV2{mx, my * prop.lineH}
+		size = sizePx.toV2f().DivV(float32((dom.Cell()))) //conver into cell
+		if !tx.Multiline {
+			size.Y -= 0.5 //make space for narrow h-scroll
+		}
+
+		//add margin back
+		size.X += float32(4 * tx.Margin)
+		size.Y += float32(4 * tx.Margin)
+
+		//column
+		{
+			if len(dom.props.UserCols) == 0 {
+				dom.props.UserCols = make([]LayoutCR, 1)
+			}
+			dom.props.UserCols[0].Min = float64(size.X)
+			dom.props.UserCols[0].Max = float64(size.X)
+
+			changed = true
+		}
+
+		//row
+		if tx.Multiline {
+			if len(dom.props.UserRows) == 0 {
+				dom.props.UserRows = make([]LayoutCR, 1)
+			}
+			dom.props.UserRows[0].Min = float64(size.Y)
+			dom.props.UserRows[0].Max = float64(size.Y)
+
+			changed = true
 		}
 	}
-	return -1
+
+	return changed
+}
+
+func (layout *Layout3) findBufferText() (Rect, *LayoutDrawText) {
+	for _, tx := range layout.buffer {
+		if tx.Text != nil {
+			return tx.Rect, tx.Text
+		}
+	}
+	return Rect{}, nil
 }
 
 func (layout *Layout3) textComp() {
 
 	if layout.CanTouch() {
 
-		ti := layout.findBufferText()
-		if ti >= 0 {
-			it := layout.buffer[ti]
-
+		rect, tx := layout.findBufferText()
+		if tx != nil {
 			prop := InitWinFontPropsDef(layout.Cell())
-			prop.formating = it.Text_formating
+			prop.formating = tx.Formating
 
-			coord := layout.getCanvasPx(it.Rect)
-			align := OsV2{int(it.Align_h), int(it.Align_v)}
+			coord := layout.getCanvasPx(rect)
+			align := OsV2{int(tx.Align_h), int(tx.Align_v)}
 
-			layout.ui._Text_update(layout, coord, it.Text, prop, align, it.Text_selection, it.Text_editable, true, it.Text_multiline, true, it.Text_linewrapping)
+			layout.ui._Text_update(layout, coord, tx.Text, prop, align, tx.Selection, tx.Editable, true, tx.Multiline, tx.Linewrapping, tx.Refresh)
 		}
 	}
 
@@ -1035,9 +1139,9 @@ func (layout *Layout3) textComp() {
 		layout.dialog.textComp()
 	}
 
-	for _, it := range layout.childs {
-		if it.IsShown() {
-			it.textComp()
+	for _, tx := range layout.childs {
+		if tx.IsShown() {
+			tx.textComp()
 		}
 	}
 }
@@ -1153,9 +1257,9 @@ func (dom *Layout3) drawBuffers() {
 	}
 
 	//subs
-	for _, it := range dom.childs {
-		if it.IsShown() {
-			it.drawBuffers()
+	for _, tx := range dom.childs {
+		if tx.IsShown() {
+			tx.drawBuffers()
 		}
 	}
 
@@ -1408,8 +1512,8 @@ func (dom *Layout3) IsTouchActiveSubs() bool {
 	if dom.IsTouchActive() {
 		return true
 	}
-	for _, it := range dom.childs {
-		if it.IsTouchActiveSubs() {
+	for _, tx := range dom.childs {
+		if tx.IsTouchActiveSubs() {
 			return true
 		}
 	}
@@ -1555,7 +1659,7 @@ func (dom *Layout3) updateCoord(rx, ry, rw, rh float64) {
 		dom.crop = dom.view.GetIntersect(dom.parent.crop)
 	}
 
-	//slow ......
+	//slow ...
 	{
 		makeSmallerX := dom.scrollV.Show
 		makeSmallerY := dom.scrollH.Show
@@ -1585,9 +1689,9 @@ func (dom *Layout3) updateCoord(rx, ry, rw, rh float64) {
 
 func (dom *Layout3) GetGridMax(minSize OsV2) OsV2 {
 	mx := minSize
-	for _, it := range dom.childs {
-		if it.IsShown() {
-			mx = mx.Max(OsV2{X: it.props.X + it.props.W, Y: it.props.Y + it.props.H})
+	for _, tx := range dom.childs {
+		if tx.IsShown() {
+			mx = mx.Max(OsV2{X: tx.props.X + tx.props.W, Y: tx.props.Y + tx.props.H})
 		}
 	}
 

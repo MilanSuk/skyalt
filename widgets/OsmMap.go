@@ -638,21 +638,21 @@ func (st *OsmMap) DrawMeasureStrip(rect Rect, paint *LayoutPaint) {
 	}*/
 
 	paint.Rect(rbox, cdB, cdB, cdB, 0)
-	paint.Text(rtext, "<small>"+strconv.Itoa(int(meters*0)), "", cdB, cdB, cdB, false, false, 1, 1, true, false, false, 0)
+	paint.Text(rtext, "<small>"+strconv.Itoa(int(meters*0)), "", cdB, cdB, cdB, false, false, 1, 1)
 	rbox.X += W
 	rtext.X += W
 
 	paint.Rect(rbox, cdW, cdW, cdW, 0)
-	paint.Text(rtext, "<small>"+strconv.Itoa(int(meters*1)), "", cdB, cdB, cdB, false, false, 1, 1, true, false, false, 0)
+	paint.Text(rtext, "<small>"+strconv.Itoa(int(meters*1)), "", cdB, cdB, cdB, false, false, 1, 1)
 	rbox.X += W
 	rtext.X += W
 
 	paint.Rect(rbox, cdB, cdB, cdB, 0)
-	paint.Text(rtext, "<small>"+strconv.Itoa(int(meters*2)), "", cdB, cdB, cdB, false, false, 1, 1, true, false, false, 0)
+	paint.Text(rtext, "<small>"+strconv.Itoa(int(meters*2)), "", cdB, cdB, cdB, false, false, 1, 1)
 	rbox.X += W
 	rtext.X += W
 
-	paint.Text(rtext, "<small>"+strconv.FormatFloat(meters*3, 'f', 0, 64)+" "+unitText, "", cdB, cdB, cdB, false, false, 1, 1, true, false, false, 0)
+	paint.Text(rtext, "<small>"+strconv.FormatFloat(meters*3, 'f', 0, 64)+" "+unitText, "", cdB, cdB, cdB, false, false, 1, 1)
 }
 
 func (st *OsmMap) GetDefaultCam(canvas_size OsV2f, tile float64) OsmMapCam {

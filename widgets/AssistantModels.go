@@ -16,9 +16,6 @@ limitations under the License.
 
 package main
 
-//assistant must use the model ... test
-//add groq into list ... test
-
 type AssistantModelsServices struct {
 	Service         string
 	AssistantModels []string
@@ -30,6 +27,7 @@ var g__models_ttt = []AssistantModelsServices{
 	{Service: "openai", AssistantModels: []string{"gpt-4", "gpt-4-turbo", "gpt-4o"}},
 	{Service: "anthropic", AssistantModels: []string{"claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"}},
 	{Service: "groq", AssistantModels: []string{"llama-3.3-70b-specdec", "llama-3.3-70b-versatile"}},
+	{Service: "llamacpp", AssistantModels: nil},
 }
 var g__models_stt = []AssistantModelsServices{
 	{Service: "openai", AssistantModels: OpenAI_GetSTTModelList()},
@@ -51,7 +49,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 	layout.SetColumn(0, 4, 100)
 	layout.SetColumn(1, 0.1, 1) //divider
 	layout.SetColumn(2, 4, 100)
-	layout.SetRowFromSub(1)
+	layout.SetRowFromSub(1, 1, 100)
 	//layout.SetRow(1, 9, 9)
 
 	icon_margin := 0.2
@@ -67,16 +65,16 @@ func (st *AssistantModels) Build(layout *Layout) {
 		layTTT.SetColumn(0, 1, 100)
 
 		y := 0
-		//XAI
+		//xAI
 		{
 			//settings
-			dia, diaLay := layTTT.AddDialogBorder("xai", "XAI", 15)
+			dia, diaLay := layTTT.AddDialogBorder("xai", "xAI", 15)
 			diaLay.SetColumn(0, 1, 100)
-			diaLay.SetRowFromSub(0)
+			diaLay.SetRowFromSub(0, 1, 100)
 			srv := diaLay.AddXai(0, 0, 1, 1, OpenFile_Xai())
 
 			//service
-			layTTT.AddText(0, y, 1, 1, "XAI").Align_h = 1
+			layTTT.AddText(0, y, 1, 1, "xAI").Align_h = 1
 			bt := layTTT.AddButtonMenu(1, y, 1, 1, "", "resources/settings.png", icon_margin)
 			bt.clicked = func() {
 				dia.OpenCentered()
@@ -84,7 +82,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			}
 			y++
 
-			// models
+			//models
 			enable := srv.Enable && srv.Api_key != ""
 			for _, it := range g__models_ttt {
 				if it.Service == "xai" {
@@ -105,7 +103,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			//settings
 			dia, diaLay := layTTT.AddDialogBorder("openai", "OpenAI", 15)
 			diaLay.SetColumn(0, 1, 100)
-			diaLay.SetRowFromSub(0)
+			diaLay.SetRowFromSub(0, 1, 100)
 			srv := diaLay.AddOpenAI(0, 0, 1, 1, OpenFile_OpenAI())
 
 			//service
@@ -116,7 +114,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			}
 			y++
 
-			// models
+			//models
 			enable := srv.Enable && srv.Api_key != ""
 			for _, it := range g__models_ttt {
 				if it.Service == "openai" {
@@ -137,7 +135,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			//settings
 			dia, diaLay := layTTT.AddDialogBorder("anthropic", "Anthropic", 15)
 			diaLay.SetColumn(0, 1, 100)
-			diaLay.SetRowFromSub(0)
+			diaLay.SetRowFromSub(0, 1, 100)
 			srv := diaLay.AddAnthropic(0, 0, 1, 1, OpenFile_Anthropic())
 
 			//service
@@ -148,7 +146,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			}
 			y++
 
-			// models
+			//models
 			enable := srv.Enable && srv.Api_key != ""
 			for _, it := range g__models_ttt {
 				if it.Service == "anthropic" {
@@ -169,7 +167,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			//settings
 			dia, diaLay := layTTT.AddDialogBorder("groq", "Groq", 15)
 			diaLay.SetColumn(0, 1, 100)
-			diaLay.SetRowFromSub(0)
+			diaLay.SetRowFromSub(0, 1, 100)
 			srv := diaLay.AddGroq(0, 0, 1, 1, OpenFile_Groq())
 
 			//service
@@ -180,12 +178,45 @@ func (st *AssistantModels) Build(layout *Layout) {
 			}
 			y++
 
-			// models
+			//models
 			enable := srv.Enable && srv.Api_key != ""
 			for _, it := range g__models_ttt {
 				if it.Service == "groq" {
 					for _, m := range it.AssistantModels {
 						st._addModelTTT(layTTT, y, m, enable)
+						y++
+					}
+				}
+			}
+		}
+
+		layTTT.AddDivider(0, y, 2, 1, true)
+		layTTT.SetRow(y, 0.1, 0.1)
+		y++
+
+		//Llama.cpp
+		{
+			//settings
+			dia, diaLay := layTTT.AddDialogBorder("llama.cpp", "Llama.cpp", 15)
+			diaLay.SetColumn(0, 1, 100)
+			diaLay.SetRowFromSub(0, 1, 100)
+			srv := diaLay.AddLlamacpp(0, 0, 1, 1, OpenFile_Llamacpp())
+
+			//service
+			layTTT.AddText(0, y, 1, 1, "Llama.cpp").Align_h = 1
+			bt := layTTT.AddButtonMenu(1, y, 1, 1, "", "resources/settings.png", icon_margin)
+			bt.clicked = func() {
+				dia.OpenCentered()
+			}
+			y++
+
+			//models
+			for si, it := range g__models_ttt {
+				if it.Service == "llamacpp" {
+					models := srv.GetModelList()
+					g__models_ttt[si].AssistantModels = models //update
+					for _, mi := range models {
+						st._addModelTTT(layTTT, y, mi, true)
 						y++
 					}
 				}
@@ -205,7 +236,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			//settings
 			dia, diaLay := laySTT.AddDialogBorder("openai", "OpenAI", 15)
 			diaLay.SetColumn(0, 1, 100)
-			diaLay.SetRowFromSub(0)
+			diaLay.SetRowFromSub(0, 1, 100)
 			srv := diaLay.AddOpenAI(0, 0, 1, 1, OpenFile_OpenAI())
 
 			//service
@@ -216,7 +247,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			}
 			y++
 
-			// models
+			//models
 			enable := srv.Enable && srv.Api_key != ""
 			for _, it := range g__models_stt {
 				if it.Service == "openai" {
@@ -233,7 +264,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			//settings
 			dia, diaLay := laySTT.AddDialogBorder("groq", "Groq", 15)
 			diaLay.SetColumn(0, 1, 100)
-			diaLay.SetRowFromSub(0)
+			diaLay.SetRowFromSub(0, 1, 100)
 			srv := diaLay.AddGroq(0, 0, 1, 1, OpenFile_Groq())
 
 			//service
@@ -244,7 +275,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			}
 			y++
 
-			// models
+			//models
 			enable := srv.Enable && srv.Api_key != ""
 			for _, it := range g__models_stt {
 				if it.Service == "groq" {
@@ -265,7 +296,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			//settings
 			dia, diaLay := laySTT.AddDialogBorder("whisper.cpp", "Whisper.cpp", 15)
 			diaLay.SetColumn(0, 1, 100)
-			diaLay.SetRowFromSub(0)
+			diaLay.SetRowFromSub(0, 1, 100)
 			srv := diaLay.AddWhispercpp(0, 0, 1, 1, OpenFile_Whispercpp())
 
 			//service
@@ -276,7 +307,7 @@ func (st *AssistantModels) Build(layout *Layout) {
 			}
 			y++
 
-			// models
+			//models
 			for si, it := range g__models_stt {
 				if it.Service == "whispercpp" {
 					modelNames, modelFiles := srv.GetModelList()

@@ -239,6 +239,31 @@
 "Time_unix": 1736361092,
 "Layout_hash": 0,
 "Error": "statusCode 400 != 200, response: {\"error\":{\"message\":\"`timestamp_granularities[]` not supported by this model\",\"type\":\"invalid_request_error\"}}\n"
+},
+{
+"Time_unix": 1736507312,
+"Layout_hash": 0,
+"Error": "prompt is too short"
+},
+{
+"Time_unix": 1736507332,
+"Layout_hash": 0,
+"Error": "model is empty"
+},
+{
+"Time_unix": 1736515708,
+"Layout_hash": 0,
+"Error": "Complete() failed: user Canceled the job"
+},
+{
+"Time_unix": 1736515721,
+"Layout_hash": 0,
+"Error": "Complete() failed: user Canceled the job"
+},
+{
+"Time_unix": 1736519297,
+"Layout_hash": 0,
+"Error": "downloading not finished: Received 15886981B of 147951465B"
 }
 ]
 }

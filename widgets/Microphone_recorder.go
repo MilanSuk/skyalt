@@ -76,6 +76,7 @@ func (st *Microphone_recorder) Build(layout *Layout) {
 }
 
 func (st *Microphone_recorder) Start() *Job {
+
 	st.cancel = false
 	return StartJob(st.UID, "Recording from microphone", st.Run)
 }
@@ -86,8 +87,8 @@ func (st *Microphone_recorder) Cancel() {
 		job.Stop()
 	}
 }
-func (st *Microphone_recorder) IsRunning() bool {
-	return FindJob(st.UID) != nil
+func (st *Microphone_recorder) FindJob() *Job {
+	return FindJob(st.UID)
 }
 
 func (st *Microphone_recorder) Run(job *Job) {

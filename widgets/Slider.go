@@ -93,9 +93,9 @@ func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 		rc = rc.CutLeft(0.2)
 		rc = rc.CutRight(0.2)
 		rc.Y += 0.5
-		paint.Text(rc, "<small>"+strconv.FormatFloat(st.Min, 'f', -1, 64), "", frontCd, frontCd, frontCd, false, false, 0, 0, true, false, false, 0)
+		paint.Text(rc, "<small>"+strconv.FormatFloat(st.Min, 'f', -1, 64), "", frontCd, frontCd, frontCd, false, false, 0, 0)
 
-		paint.Text(rc, "<small>"+strconv.FormatFloat(st.Max, 'f', -1, 64), "", frontCd, frontCd, frontCd, false, false, 2, 0, true, false, false, 0)
+		paint.Text(rc, "<small>"+strconv.FormatFloat(st.Max, 'f', -1, 64), "", frontCd, frontCd, frontCd, false, false, 2, 0)
 
 	}
 

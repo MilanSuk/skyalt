@@ -32,13 +32,32 @@ type UiLayoutEdit struct {
 	KeyCopy      bool
 	KeyCut       bool
 	KeyPaste     bool
+
+	last_refreshInput_unix float64
 }
 
-func (edit *UiLayoutEdit) Set(dom *Layout3, editable bool, orig_value, value string, enter_key bool, finish bool, save bool) {
-	if !finish && edit.hash == dom.props.Hash {
+func (edit *UiLayoutEdit) send(enter_key bool, ui *Ui) {
 
+	in := LayoutInput{SetEdit: true, EditValue: edit.temp, EditEnter: enter_key}
+	lay := ui.dom.FindHash(edit.hash)
+	if lay != nil {
+		ui.parent.CallInput(&lay.props, &in)
+	}
+
+}
+
+func (edit *UiLayoutEdit) Set(dom *Layout3, editable bool, orig_value, value string, enter_key bool, finish bool, save bool, refreshInput bool) {
+	if !finish && edit.hash == dom.props.Hash {
 		if editable {
 			edit.temp = value //refresh after code
+
+			tm := OsTime()
+			if refreshInput && (edit.orig_value != edit.temp) && (edit.last_refreshInput_unix+1 < OsTime()) {
+
+				edit.orig_value = edit.temp
+				edit.send(false, dom.ui)
+				edit.last_refreshInput_unix = tm
+			}
 		}
 
 		dom.ui.GetWin().SetTextCursorMove()
@@ -47,14 +66,8 @@ func (edit *UiLayoutEdit) Set(dom *Layout3, editable bool, orig_value, value str
 
 	if editable && save && edit.hash != 0 {
 		//save old editbox
-		diff := (edit.orig_value != edit.temp)
-
-		if diff || enter_key {
-			in := LayoutInput{SetEdit: true, EditValue: edit.temp, EditEnter: enter_key}
-			lay := dom.ui.dom.FindHash(edit.hash)
-			if lay != nil {
-				dom.ui.parent.CallInput(&lay.props, &in)
-			}
+		if (edit.orig_value != edit.temp) || enter_key {
+			edit.send(enter_key, dom.ui)
 		}
 	}
 

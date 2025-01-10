@@ -83,7 +83,7 @@ func (st *Checkbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	//draw label
 	if st.Label != "" {
-		paint.Text(rectLabel, st.Label, "", cd_text, cd_text_over, cd_text_down, true, false, 0, 1, true, false, false, 0.1)
+		paint.Text(rectLabel.Cut(0.1), st.Label, "", cd_text, cd_text_over, cd_text_down, true, false, 0, 1)
 	}
 
 	return

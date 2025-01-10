@@ -52,12 +52,12 @@ func NewGlobal_Groq_stt(uid string) *Groq_stt {
 func (st *Groq_stt) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 1, 3)
-	layout.SetRow(0, 1, 10)
+	layout.SetRowFromSub(0, 1, 100)
 
 	job := FindJob(st.UID)
 
 	txt := layout.AddTextMultiline(0, 0, 2, 1, "")
-	txt.Align_h = 0
+
 	if job != nil {
 		txt.Value = job.info
 		txt.ScrollToEnd = true
@@ -70,6 +70,7 @@ func (st *Groq_stt) Build(layout *Layout) {
 }
 
 func (st *Groq_stt) Start() *Job {
+
 	return StartJob(st.UID, "Groq speech-to-text", st.Run)
 }
 func (st *Groq_stt) Stop() {
@@ -78,8 +79,8 @@ func (st *Groq_stt) Stop() {
 		job.Stop()
 	}
 }
-func (st *Groq_stt) IsRunning() bool {
-	return FindJob(st.UID) != nil
+func (st *Groq_stt) FindJob() *Job {
+	return FindJob(st.UID)
 }
 
 func (st *Groq_stt) Run(job *Job) {

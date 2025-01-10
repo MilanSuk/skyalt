@@ -91,7 +91,7 @@ func (st *ChartLines) Build(layout *Layout) {
 					cd = lineCd
 				}
 
-				rc := paint.CircleRad(rect, x, y, st.Point_rad, cd, cd, cd, 0)
+				paint.CircleRad(rect, x, y, st.Point_rad, cd, cd, cd, 0)
 				if pt > 0 {
 					paint.Line(rect, last_x, last_y, x, y, cd, st.Line_thick)
 				}
@@ -115,7 +115,7 @@ func (st *ChartLines) Build(layout *Layout) {
 				if label != "" {
 					separ = ": "
 				}
-				paint.TooltipEx(rc.Cut(-0.1), fmt.Sprintf("%s%s%f, %f", label, separ, st.Lines[ln].Points[pt].X, st.Lines[ln].Points[pt].Y), false)
+				paint.TooltipEx(rect.Cut(-0.1), fmt.Sprintf("%s%s%f, %f", label, separ, st.Lines[ln].Points[pt].X, st.Lines[ln].Points[pt].Y), false)
 
 				last_x = x
 				last_y = y
@@ -158,7 +158,7 @@ func (st *ChartLines) Build(layout *Layout) {
 					str += st.X_unit
 				}
 
-				paint.Text(rc, str, "", defCd, defCd, defCd, false, false, 1, 1, false, false, false, 0)
+				paint.Text(rc, str, "", defCd, defCd, defCd, false, false, 1, 1)
 
 				rc.H = small_axis_line
 				paint.Line(rc, 0.5, 0, 0.5, 1, defCd, 0.03)
@@ -193,7 +193,7 @@ func (st *ChartLines) Build(layout *Layout) {
 				rc := rect
 				rc.Y -= unit_label_space
 				rc.H = 0.5
-				paint.Text(rc, st.Y_unit, "", defCd, defCd, defCd, false, false, 1, 0, false, true, false, 0)
+				paint.Text(rc, st.Y_unit, "", defCd, defCd, defCd, false, false, 1, 0)
 			}
 
 			for vy := min.Y; vy <= max.Y; vy += jump {
@@ -207,7 +207,7 @@ func (st *ChartLines) Build(layout *Layout) {
 
 				str := strconv.FormatFloat(vy, 'f', -1, 64)
 
-				paint.Text(rc, str, "", defCd, defCd, defCd, false, false, 1, 1, false, true, false, 0)
+				paint.Text(rc, str, "", defCd, defCd, defCd, false, false, 1, 1)
 
 				rc.X = rc.W - small_axis_line
 				rc.W = small_axis_line

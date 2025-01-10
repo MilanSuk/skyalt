@@ -54,8 +54,7 @@ func (st *EventEdit) Build(layout *Layout) {
 		TitleDiv.SetColumn(0, 3, 3)
 		TitleDiv.SetColumn(1, 1, 100)
 		TitleDiv.AddText(0, 0, 1, 1, "Title")
-		ed := TitleDiv.AddEditbox(1, 0, 1, 1, &st.Event.Title)
-		ed.RefreshDelaySec = 1
+		TitleDiv.AddEditbox(1, 0, 1, 1, &st.Event.Title)
 		//errTitle ...
 	}
 
@@ -64,8 +63,7 @@ func (st *EventEdit) Build(layout *Layout) {
 		DescDiv.SetColumn(0, 3, 3)
 		DescDiv.SetColumn(1, 1, 100)
 		DescDiv.AddText(0, 0, 1, 1, "Description")
-		ed := DescDiv.AddEditbox(1, 0, 1, 1, &st.Event.Description)
-		ed.RefreshDelaySec = 1
+		DescDiv.AddEditbox(1, 0, 1, 1, &st.Event.Description)
 	}
 
 	{

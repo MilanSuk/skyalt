@@ -42,7 +42,7 @@ func (st *OpenAI_completionV) Build(layout *Layout) {
 	job := FindJob(st.UID)
 
 	txt := layout.AddTextMultiline(0, 0, 2, 1, "")
-	txt.Align_h = 0
+
 	if job != nil {
 		txt.Value = job.info
 		txt.ScrollToEnd = true
@@ -63,8 +63,8 @@ func (st *OpenAI_completionV) Stop() {
 		job.Stop()
 	}
 }
-func (st *OpenAI_completionV) IsRunning() bool {
-	return FindJob(st.UID) != nil
+func (st *OpenAI_completionV) FindJob() *Job {
+	return FindJob(st.UID)
 }
 
 func (st *OpenAI_completionV) Run(job *Job) {

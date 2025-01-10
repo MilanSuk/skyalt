@@ -11,7 +11,7 @@ type Groq_completion_props struct {
 	Frequency_penalty float64 `json:"frequency_penalty"` //0
 	Presence_penalty  float64 `json:"presence_penalty"`  //0
 
-	Response_format *OpenAI_completion_format `json:"response_format"` //? .......
+	Response_format *OpenAI_completion_format `json:"response_format"`
 }
 
 func (layout *Layout) AddGroq_completion_props(x, y, w, h int, props *Groq_completion_props) *Groq_completion_props {
@@ -27,6 +27,11 @@ func (st *Groq_completion_props) Build(layout *Layout) {
 
 	layout.AddText(0, y, 1, 1, "Model")
 	layout.AddCombo(1, y, 1, 1, &st.Model, Groq_GetChatModelList(), Groq_GetChatModelList())
+	y++
+
+	tx := layout.AddText(0, y, 1, 1, "Streaming")
+	tx.Tooltip = "See result as is generated."
+	layout.AddSwitch(1, y, 1, 1, "", &st.Stream)
 	y++
 
 	sl := layout.AddSliderEdit(0, y, 2, 1, &st.Temperature, 0, 2, 0.1)

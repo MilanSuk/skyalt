@@ -28,6 +28,11 @@ func (st *Anthropic_completion_props) Build(layout *Layout) {
 	layout.AddCombo(1, y, 1, 1, &st.Model, Anthropic_GetChatModelList(), Anthropic_GetChatModelList())
 	y++
 
+	tx := layout.AddText(0, y, 1, 1, "Streaming")
+	tx.Tooltip = "See result as is generated."
+	layout.AddSwitch(1, y, 1, 1, "", &st.Stream)
+	y++
+
 	sl := layout.AddSliderEdit(0, y, 2, 1, &st.Temperature, 0, 2, 0.1)
 	sl.ValuePointerPrec = 1
 	sl.Description = "Temperature"

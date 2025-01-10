@@ -29,7 +29,7 @@ func (st *Root) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1, 100)
 
-	layout.SetRowFromSub(0)
+	layout.SetRowFromSub(0, 1, 100)
 	layout.SetRow(1, 0.1, 0.1)
 	layout.SetRow(2, 1, 100)
 

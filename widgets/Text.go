@@ -13,9 +13,6 @@ type Text struct {
 	Align_h int
 	Align_v int
 
-	Icon        string
-	Icon_margin float64
-
 	Selection    bool
 	Formating    bool
 	Multiline    bool
@@ -26,18 +23,24 @@ type Text struct {
 }
 
 func (layout *Layout) AddText(x, y, w, h int, value string) *Text {
-	props := &Text{Value: value, Align_v: 1, Selection: true, Formating: true}
+	props := &Text{Value: value, Align_v: 1, Selection: true, Formating: true, Cd: Paint_GetPalette().OnB}
 	layout._createDiv(x, y, w, h, "Text", props.Build, props.Draw, props.Input)
 	return props
 }
 
 func (layout *Layout) AddTextMultiline(x, y, w, h int, value string) *Text {
-	props := &Text{Value: value, Selection: true, Formating: true, Multiline: true, Linewrapping: true}
+	props := &Text{Value: value, Selection: true, Formating: true, Multiline: true, Linewrapping: true, Cd: Paint_GetPalette().OnB}
 	layout._createDiv(x, y, w, h, "Text", props.Build, props.Draw, props.Input)
 	return props
 }
 
 func (st *Text) Build(layout *Layout) {
+
+	{
+		var paint LayoutPaint
+		layout.UserCRFromText = st.addPaintText(Rect{}, &paint)
+	}
+
 	st.buildContextDialog(layout)
 	if !st.Multiline {
 		layout.ScrollH.Narrow = true
@@ -56,35 +59,15 @@ func (st *Text) Build(layout *Layout) {
 }
 
 func (st *Text) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
-	rectLabel := rect
 
 	if st.Selection {
 		paint.Cursor("ibeam", rect)
-		paint.TooltipEx(rectLabel, st.Tooltip, false)
-	}
-
-	//color
-	cd := Paint_GetPalette().OnB
-	if st.Cd.A > 0 {
-		cd = st.Cd
-	}
-
-	//draw icon
-	if st.Icon != "" {
-		rectIcon := rectLabel
-		if st.Value != "" {
-			rectIcon.W = 1
-		}
-		rectIcon = rectIcon.Cut(st.Icon_margin)
-
-		rectLabel = rectLabel.CutLeft(1)
-
-		paint.File(rectIcon, false, st.Icon, cd, cd, cd, 1, 1)
+		paint.TooltipEx(rect, st.Tooltip, false)
 	}
 
 	//draw text
 	if st.Value != "" {
-		paint.Text(rectLabel, st.Value, "", cd, cd, cd, st.Selection, false, uint8(st.Align_h), uint8(st.Align_v), st.Formating, st.Multiline, st.Linewrapping, 0.06)
+		st.addPaintText(rect, &paint)
 	}
 
 	return
@@ -100,6 +83,15 @@ func (st *Text) Input(in LayoutInput, layout *Layout) {
 			dia.OpenOnTouch()
 		}
 	}
+}
+
+func (st *Text) addPaintText(rect Rect, paint *LayoutPaint) *LayoutDrawText {
+	tx := paint.Text(rect, st.Value, "", st.Cd, st.Cd, st.Cd, st.Selection, false, uint8(st.Align_h), uint8(st.Align_v))
+	tx.Formating = st.Formating
+	tx.Multiline = st.Multiline
+	tx.Linewrapping = st.Linewrapping
+	tx.Margin = 0.06
+	return tx
 }
 
 func (st *Text) buildContextDialog(layout *Layout) {

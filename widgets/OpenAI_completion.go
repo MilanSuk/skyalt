@@ -42,12 +42,12 @@ func (st *OpenAI_completion) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 1, 3)
-	layout.SetRow(0, 1, 10)
+	layout.SetRowFromSub(0, 1, 100)
 
 	job := FindJob(st.UID)
 
 	txt := layout.AddTextMultiline(0, 0, 2, 1, "")
-	txt.Align_h = 0
+
 	if job != nil {
 		txt.Value = job.info
 		txt.ScrollToEnd = true
@@ -60,6 +60,7 @@ func (st *OpenAI_completion) Build(layout *Layout) {
 }
 
 func (st *OpenAI_completion) Start() *Job {
+
 	return StartJob(st.UID, "OpenAI chat completion", st.Run)
 }
 func (st *OpenAI_completion) Stop() {
@@ -68,8 +69,8 @@ func (st *OpenAI_completion) Stop() {
 		job.Stop()
 	}
 }
-func (st *OpenAI_completion) IsRunning() bool {
-	return FindJob(st.UID) != nil
+func (st *OpenAI_completion) FindJob() *Job {
+	return FindJob(st.UID)
 }
 
 func (st *OpenAI_completion) Run(job *Job) {
@@ -99,8 +100,6 @@ func (st *OpenAI_completion) Run(job *Job) {
 		job.AddError(err)
 		return
 	}
-
-	fmt.Println("--OpenAI_completion_Run done")
 
 	if st.done != nil {
 		st.done(st.Out)

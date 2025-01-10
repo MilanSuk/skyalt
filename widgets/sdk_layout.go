@@ -24,7 +24,6 @@ import (
 	"log"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
 )
 
@@ -131,7 +130,8 @@ type LayoutCR struct {
 
 	Resize_value float64 `json:",omitempty"`
 
-	SetFromChild bool `json:",omitempty"`
+	SetFromChild_min float64 `json:",omitempty"`
+	SetFromChild_max float64 `json:",omitempty"`
 
 	Caller_file string `json:",omitempty"`
 	Caller_line int    `json:",omitempty"`
@@ -248,8 +248,9 @@ type Layout struct {
 
 	dropFile func(path string)
 
-	UserCols []LayoutCR
-	UserRows []LayoutCR
+	UserCols       []LayoutCR
+	UserRows       []LayoutCR
+	UserCRFromText *LayoutDrawText
 
 	ScrollV LayoutScroll
 	ScrollH LayoutScroll
@@ -287,6 +288,16 @@ func (layout *Layout) _computeHash(parent *Layout) uint64 {
 func (layout *Layout) FindDialog(name string) *LayoutDialog {
 	for _, it := range layout.dialogs {
 		if it.Layout != nil && it.Layout.Name == name {
+			return it
+		}
+	}
+	return nil
+}
+
+func (layout *Layout) FindLayout(x, y, w, h int) *Layout {
+	//find
+	for _, it := range layout.Childs {
+		if it.X == x && it.Y == y && it.W == w && it.H == h {
 			return it
 		}
 	}
@@ -419,8 +430,7 @@ func (layout *Layout) AddDialogBorder(name string, title string, width float64) 
 	dia := layout.AddDialog(name)
 	lay := dia.Layout
 	lay.SetColumn(1, 1, width)
-	//dia.SetRow(1, 1, height)
-	lay.SetRowFromSub(1)
+	lay.SetRowFromSub(1, 1, 100)
 	lay.SetColumn(2, 1, 1)
 	lay.SetRow(2, 1, 1)
 
@@ -469,13 +479,13 @@ func (layout *Layout) SetRow(grid_y int, min_size, max_size float64) {
 	layout.UserRows = append(layout.UserRows, newItem)
 }
 
-func (layout *Layout) SetColumnFromSub(grid_x int) {
+func (layout *Layout) SetColumnFromSub(grid_x int, min_size, max_size float64) {
 	_, caller_file, caller_line, ok := runtime.Caller(1)
 	if !ok {
 		fmt.Println("runtime.Caller failed")
 	}
 
-	newItem := LayoutCR{Pos: grid_x, SetFromChild: true, Min: 1, Max: 1, Caller_file: _extractFileName(caller_file), Caller_line: caller_line}
+	newItem := LayoutCR{Pos: grid_x, SetFromChild_min: min_size, SetFromChild_max: max_size, Caller_file: _extractFileName(caller_file), Caller_line: caller_line}
 
 	for i := range layout.UserCols {
 		if layout.UserCols[i].Pos == grid_x {
@@ -487,13 +497,13 @@ func (layout *Layout) SetColumnFromSub(grid_x int) {
 	layout.UserCols = append(layout.UserCols, newItem)
 }
 
-func (layout *Layout) SetRowFromSub(grid_y int) {
+func (layout *Layout) SetRowFromSub(grid_y int, min_size, max_size float64) {
 	_, caller_file, caller_line, ok := runtime.Caller(1)
 	if !ok {
 		fmt.Println("runtime.Caller failed")
 	}
 
-	newItem := LayoutCR{Pos: grid_y, SetFromChild: true, Min: 1, Max: 1, Caller_file: _extractFileName(caller_file), Caller_line: caller_line}
+	newItem := LayoutCR{Pos: grid_y, SetFromChild_min: min_size, SetFromChild_max: max_size, Caller_file: _extractFileName(caller_file), Caller_line: caller_line}
 
 	for i := range layout.UserRows {
 		if layout.UserRows[i].Pos == grid_y {
@@ -653,45 +663,77 @@ func Layout_WriteError(err error) error {
 	return err
 }
 
-type LayoutDrawPrim struct {
-	Type uint8
-
-	Rect           Rect
-	Sx, Sy, Ex, Ey float64
+type LayoutDrawRect struct {
+	Cd, Cd_over, Cd_down color.RGBA
+	Border               float64
+}
+type LayoutDrawLine struct {
+	Cd, Cd_over, Cd_down color.RGBA
+	Border               float64
+	Sx, Sy, Ex, Ey       float64
+}
+type LayoutDrawFile struct {
+	Cd, Cd_over, Cd_down color.RGBA
+	Url                  string
+	Align_h              uint8
+	Align_v              uint8
+}
+type LayoutDrawText struct {
+	Margin float64
 
 	Cd, Cd_over, Cd_down color.RGBA
 
-	Border float64
-
 	Text  string
-	Text2 string
-
-	Boolean bool
+	Ghost string
 
 	Align_h uint8
 	Align_v uint8
 
-	Text_formating    bool
-	Text_multiline    bool
-	Text_linewrapping bool
-	Text_selection    bool
-	Text_editable     bool
+	Formating    bool
+	Multiline    bool
+	Linewrapping bool
+	Selection    bool
+	Editable     bool
+	Refresh      bool
 }
+type LayoutDrawCursor struct {
+	Name string
+}
+type LayoutDrawTooltip struct {
+	Description string
+	Force       bool
+}
+type LayoutDrawPrim struct {
+	Rect Rect
+
+	Rectangle *LayoutDrawRect
+	Circle    *LayoutDrawRect
+	Line      *LayoutDrawLine
+	File      *LayoutDrawFile
+	Text      *LayoutDrawText
+	Cursor    *LayoutDrawCursor
+	Tooltip   *LayoutDrawTooltip
+}
+
 type LayoutPaint struct {
 	buffer []LayoutDrawPrim
 }
 
-func (paint *LayoutPaint) Rect(rect Rect, cd, cd_over, cd_down color.RGBA, borderWidth float64) {
-	paint.buffer = append(paint.buffer, LayoutDrawPrim{Type: 1, Rect: rect, Cd: cd, Cd_over: cd_over, Cd_down: cd_down, Border: borderWidth})
+func (paint *LayoutPaint) Rect(rect Rect, cd, cd_over, cd_down color.RGBA, borderWidth float64) *LayoutDrawRect {
+	prim := &LayoutDrawRect{Cd: cd, Cd_over: cd_over, Cd_down: cd_down, Border: borderWidth}
+	paint.buffer = append(paint.buffer, LayoutDrawPrim{Rect: rect, Rectangle: prim})
+	return prim
 }
 
-func (paint *LayoutPaint) Circle(rect Rect, cd, cd_over, cd_down color.RGBA, borderWidth float64) {
-	paint.buffer = append(paint.buffer, LayoutDrawPrim{Type: 2, Rect: rect, Cd: cd, Cd_over: cd_over, Cd_down: cd_down, Border: borderWidth})
+func (paint *LayoutPaint) Circle(rect Rect, cd, cd_over, cd_down color.RGBA, borderWidth float64) *LayoutDrawRect {
+	prim := &LayoutDrawRect{Cd: cd, Cd_over: cd_over, Cd_down: cd_down, Border: borderWidth}
+	paint.buffer = append(paint.buffer, LayoutDrawPrim{Rect: rect, Circle: prim})
+	return prim
 }
 
-func (paint *LayoutPaint) CircleRad(rect Rect, x, y float64, rad_cells float64, cd, cd_over, cd_down color.RGBA, borderWidth float64) Rect {
+func (paint *LayoutPaint) CircleRad(rect Rect, x, y float64, rad_cells float64, cd, cd_over, cd_down color.RGBA, borderWidth float64) *LayoutDrawRect {
 	if rad_cells <= 0 {
-		return Rect{}
+		return &LayoutDrawRect{}
 	}
 
 	rect.X += rect.W * x
@@ -703,77 +745,65 @@ func (paint *LayoutPaint) CircleRad(rect Rect, x, y float64, rad_cells float64, 
 	rect.X -= rect.W / 2
 	rect.Y -= rect.H / 2
 
-	paint.Circle(rect, cd, cd, cd, 0)
-	return rect
+	return paint.Circle(rect, cd, cd, cd, 0)
 }
 
-func (paint *LayoutPaint) File(rect Rect, fromDb bool, path string, cd, cd_over, cd_down color.RGBA, align_h, align_v uint8) {
+func (paint *LayoutPaint) File(rect Rect, fromDb bool, path string, cd, cd_over, cd_down color.RGBA, align_h, align_v uint8) *LayoutDrawFile {
 	preFix := "file:"
 	if fromDb {
 		preFix = "db:"
 	}
 
-	paint.buffer = append(paint.buffer, LayoutDrawPrim{Type: 3,
-		Rect: rect,
-		Cd:   cd, Cd_over: cd_over, Cd_down: cd_down,
-		Text:    preFix + path,
-		Align_h: align_h,
-		Align_v: align_v,
-	})
+	prim := &LayoutDrawFile{Cd: cd, Cd_over: cd_over, Cd_down: cd_down, Url: preFix + path, Align_h: align_h, Align_v: align_v}
+	paint.buffer = append(paint.buffer, LayoutDrawPrim{Rect: rect, File: prim})
+	return prim
 }
 
-func (paint *LayoutPaint) Line(rect Rect, sx, sy, ex, ey float64, cd color.RGBA, width float64) {
-	paint.buffer = append(paint.buffer, LayoutDrawPrim{Type: 4,
-		Rect: rect,
-		Cd:   cd, Cd_over: cd, Cd_down: cd,
-		Border: width,
-		Sx:     sx,
-		Sy:     sy,
-		Ex:     ex,
-		Ey:     ey,
-	})
+func (paint *LayoutPaint) Line(rect Rect, sx, sy, ex, ey float64, cd color.RGBA, width float64) *LayoutDrawLine {
+	prim := &LayoutDrawLine{Cd: cd, Cd_over: cd, Cd_down: cd, Border: width, Sx: sx, Sy: sy, Ex: ex, Ey: ey}
+	paint.buffer = append(paint.buffer, LayoutDrawPrim{Rect: rect, Line: prim})
+	return prim
 }
 
-func (paint *LayoutPaint) Text(rect Rect, text string, ghost string, frontCd, frontCd_over, frontCd_down color.RGBA, selection, editable bool, align_h uint8, align_v uint8, formating bool, multiline bool, linewrapping bool, margin float64) {
-	rect = rect.Cut(margin)
+func (paint *LayoutPaint) Text(rect Rect, text string, ghost string, frontCd, frontCd_over, frontCd_down color.RGBA, selection, editable bool, align_h uint8, align_v uint8) *LayoutDrawText {
+	prim := &LayoutDrawText{
+		Margin: 0.0,
+		Cd:     frontCd, Cd_over: frontCd_over, Cd_down: frontCd_down,
+		Text:         text,
+		Ghost:        ghost,
+		Align_h:      align_h,
+		Align_v:      align_v,
+		Formating:    true,
+		Multiline:    false,
+		Linewrapping: false,
+		Selection:    selection,
+		Editable:     editable,
+		Refresh:      false,
+	}
 
-	paint.buffer = append(paint.buffer, LayoutDrawPrim{Type: 5,
-		Rect: rect,
-		Cd:   frontCd, Cd_over: frontCd_over, Cd_down: frontCd_down,
-
-		Text:              text,
-		Text2:             ghost,
-		Align_h:           align_h,
-		Align_v:           align_v,
-		Text_formating:    formating,
-		Text_multiline:    multiline,
-		Text_linewrapping: linewrapping,
-		Text_selection:    selection,
-		Text_editable:     editable,
-	})
+	paint.buffer = append(paint.buffer, LayoutDrawPrim{Rect: rect, Text: prim})
+	return prim
 }
 
-func (paint *LayoutPaint) CursorEx(rect Rect, name string) {
-	paint.buffer = append(paint.buffer, LayoutDrawPrim{Type: 6,
-		Rect: rect,
-		Text: name,
-	})
+func (paint *LayoutPaint) CursorEx(rect Rect, name string) *LayoutDrawCursor {
+	prim := &LayoutDrawCursor{Name: name}
+	paint.buffer = append(paint.buffer, LayoutDrawPrim{Rect: rect, Cursor: prim})
+	return prim
 }
 func (paint *LayoutPaint) Cursor(name string, rect Rect) {
 	paint.CursorEx(rect, name)
 }
 
+func (paint *LayoutPaint) TooltipEx(rect Rect, description string, force bool) *LayoutDrawTooltip {
+	if description != "" {
+		prim := &LayoutDrawTooltip{Description: description, Force: force}
+		paint.buffer = append(paint.buffer, LayoutDrawPrim{Rect: rect, Tooltip: prim})
+		return prim
+	}
+	return &LayoutDrawTooltip{}
+}
 func (paint *LayoutPaint) Tooltip(text string, rect Rect) {
 	paint.TooltipEx(rect, text, false)
-}
-func (paint *LayoutPaint) TooltipEx(rect Rect, text string, force bool) {
-	if text != "" {
-		paint.buffer = append(paint.buffer, LayoutDrawPrim{Type: 7,
-			Rect:    rect,
-			Text:    text,
-			Boolean: force,
-		})
-	}
 }
 
 func Layout_GetMonthText(month int) string {
@@ -876,49 +906,6 @@ func Layout_ConvertTextDate(unix_sec int64) string {
 }
 func Layout_ConvertTextDateTime(unix_sec int64) string {
 	return Layout_ConvertTextDate(unix_sec) + " " + Layout_ConvertTextTime(unix_sec)
-}
-
-func PrepareSearch(search string) []string {
-
-	search = strings.ToLower(search)
-
-	search = strings.ReplaceAll(search, "\n", " ")
-	search = strings.ReplaceAll(search, "\t", " ")
-	search = strings.ReplaceAll(search, ";", " ")
-	search = strings.ReplaceAll(search, ",", " ")
-	search = strings.ReplaceAll(search, ".", " ")
-	search = strings.ReplaceAll(search, "?", " ")
-	search = strings.ReplaceAll(search, "-", " ")
-
-	//split
-	words := strings.Split(search, " ")
-
-	//remove empty items
-	n := 0
-	for i, s := range words {
-		if s != "" {
-			words[n] = words[i]
-			n++
-		}
-	}
-	words = words[:n]
-
-	return words
-}
-func Search(str string, words []string) bool {
-
-	if len(words) == 0 {
-		return true
-	}
-
-	str = strings.ToLower(str)
-
-	for _, w := range words {
-		if !strings.Contains(str, w) {
-			return false
-		}
-	}
-	return true
 }
 
 func Layout_MoveElement[T any](array_src *[]T, array_dst *[]T, src int, dst int) {

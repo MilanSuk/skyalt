@@ -115,7 +115,6 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	}
 
 	if st.Cd.A > 0 {
-
 		if st.Background <= 0.3 {
 			cdText = st.Cd
 		} else {
@@ -192,10 +191,11 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	//draw label
 	if st.Value != "" {
-		paint.Text(rectLabel, st.Value, "",
+		tx := paint.Text(rectLabel.Cut(0.1), st.Value, "",
 			//cdBack, cdBack_over, cdBack_down,
 			cdText, cdText_over, cdText_down,
-			false, false, uint8(st.Align), 1, true, false, false, 0.1)
+			false, false, uint8(st.Align), 1)
+		tx.Multiline = true
 	}
 
 	return

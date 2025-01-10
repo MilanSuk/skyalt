@@ -17,6 +17,10 @@ func _skyalt_save() {
 		_write_file("AssistantChat-AssistantChat", g_AssistantChat)
 		g_AssistantChat = nil
 	}
+	if g_Chats != nil {
+		_write_file("Chats-Chats", g_Chats)
+		g_Chats = nil
+	}
 	if g_Counter != nil {
 		_write_file("Counter-Counter", g_Counter)
 		g_Counter = nil
@@ -28,6 +32,10 @@ func _skyalt_save() {
 	if g_Groq != nil {
 		_write_file("Groq-Groq", g_Groq)
 		g_Groq = nil
+	}
+	if g_Llamacpp != nil {
+		_write_file("Llamacpp-Llamacpp", g_Llamacpp)
+		g_Llamacpp = nil
 	}
 	if g_Logs != nil {
 		_write_file("Logs-Logs", g_Logs)

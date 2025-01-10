@@ -65,7 +65,21 @@ func (st *Whispercpp) Build(layout *Layout) {
 	{
 		model_labels, model_pathes := st.GetModelList()
 		layout.AddText(0, y, 1, 1, "Default model")
-		layout.AddCombo(1, y, 1, 1, &st.Model, model_labels, model_pathes)
+		layout.AddCombo(1, y, 2, 1, &st.Model, model_labels, model_pathes)
+		y++
+	}
+
+	//downloader
+	{
+		downDia := layout.AddDialog("download_whisper")
+		downDia.Layout.SetColumn(0, 5, 15)
+		downDia.Layout.SetRow(0, 5, 10)
+		downDia.Layout.AddWhispercpp_downloader(0, 0, 1, 1)
+
+		btDown, btDownLay := layout.AddButton2(1, y, 2, 1, "Download model(s)")
+		btDown.clicked = func() {
+			downDia.OpenRelative(btDownLay)
+		}
 		y++
 	}
 }
@@ -81,7 +95,8 @@ func (wsp *Whispercpp) GetModelList() ([]string, []string) {
 	modelsPath := filepath.Join(wsp.Folder, "models")
 	files, err := os.ReadDir(modelsPath)
 	if err != nil {
-		//...
+		Layout_WriteError(err)
+		return nil, nil
 	}
 
 	var model_labels []string

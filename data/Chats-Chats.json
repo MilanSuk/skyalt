@@ -1,0 +1,591 @@
+{
+"SearchChat": "",
+"Chats": [
+{
+"UID": "5258068344923743742",
+"Name": "New Chat",
+"Created": 1736422082,
+"Instructions": "You are an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests.",
+"Msgs": [
+{
+"Text": "Hi there. I am Milan.",
+"CreatedTimeSec": 1736422809.71,
+"CreatedBy": ""
+},
+{
+"Text": "Hello Milan! It's nice to meet you. How can I assist you today? Do you have a specific question, need help with something, or just want to chat?",
+"CreatedTimeSec": 1736422813.419,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+},
+{
+"Text": "Who is president of Czech republic?",
+"CreatedTimeSec": 1736422853.553,
+"CreatedBy": ""
+},
+{
+"Text": "As of my last update in 2021, the President of the Czech Republic is Miloš Zeman. He has been serving as the head of state since May 2018 and will serve until October 2023 when his term ends.\n\nWould you like more information about him or any other topic related to the Czech Republic?",
+"CreatedTimeSec": 1736422859.385,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+},
+{
+"Text": "Yes, please.",
+"CreatedTimeSec": 1736503675.929,
+"CreatedBy": ""
+},
+{
+"Text": "The current President of the Czech Republic is Miloš Zeman. Here are some key facts:\n\n* Born: November 29, 1944\n* Nationality: Czechoslovakian (Czech), Russian (by birth)\n* Education: University of Economics in Prague, Bachelor's degree in economics; Higher School of Public Administration, Master's degree in public administration\n* Career:\n\t+ Minister for Foreign Affairs (1990-2002); Ambassador to Russia (1996-2005) and Ukraine (2007-2009)\n\t+ Prime Minister of the Czech Republic (2003-2006): first non-Czech politician to hold this position\n\t+ President of the Senate (2009-2014)\n\nMiloš Zeman was a member of the Civic Democratic Party and served two consecutive terms as President from 2013 to 2018 before losing re-election in 2018.\n\nAs President, he focused on domestic issues such as economic growth, healthcare reform, and environmental protection. He also played an active role in European politics, particularly during the European migrant crisis.\n\nWhat would you like to know next about Miloš Zeman or the Czech Republic?",
+"CreatedTimeSec": 1736503699.543,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+},
+{
+"Text": "Yes.",
+"CreatedTimeSec": 1736503740.309,
+"CreatedBy": ""
+},
+{
+"Text": "Let me provide more information about Milan, your friend from earlier!\n\nMilan is actually not a well-known figure outside of our conversation so far. As I mentioned earlier, his name might be unfamiliar due to various reasons:\n\n1. **Language barrier**: We're communicating primarily through text-based interfaces, which can lead to misunderstandings.\n2. **Limited online presence**: Milan may not have an extensive online profile or social media following.\n3. **Cultural context**: In some cultures, names are often associated with specific meanings or connotations that aren't immediately apparent without further explanation.\n\nIf you'd like to share more about yourself, what's your profession, interests, or hobbies? That way, we can learn more about each other!",
+"CreatedTimeSec": 1736503751.989,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+}
+],
+"TempMsg": "df",
+"TempMsg_ghost": "",
+"Properties": {
+"model": "llama-3.2-1b-instruct-q8_0",
+"messages": null,
+"stream": true,
+"max_tokens": 4046,
+"seed": -1,
+"n_predict": 400,
+"temperature": 0.8,
+"dynatemp_range": 0,
+"dynatemp_exponent": 1,
+"stop": [
+"\u003c/s\u003e",
+"\u003c|im_start|\u003e",
+"\u003c|im_end|\u003e",
+"Llama:",
+"User:"
+],
+"repeat_last_n": 256,
+"repeat_penalty": 1.18,
+"top_k": 40,
+"top_p": 0.5,
+"min_p": 0,
+"tfs_z": 1,
+"typical_p": 1,
+"presence_penalty": 0,
+"frequency_penalty": 0,
+"mirostat": false,
+"mirostat_tau": 5,
+"mirostat_eta": 0.1,
+"n_probs": 0,
+"cache_prompt": false,
+"slot_id": -1,
+"response_format": null
+}
+},
+{
+"UID": "7468109355401479199",
+"Name": "New Chat",
+"Created": 1736503790,
+"Instructions": "You are an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests.",
+"Msgs": [
+{
+"Text": "Who is prime minister of Czechia?",
+"CreatedTimeSec": 1736503800.696,
+"CreatedBy": ""
+},
+{
+"Text": "As of my last update, the Prime Minister of the Czech Republic (not Czechia) is Petr Fiala. He has been serving as the country's head of government since November 2021. However, please note that political positions can change over time due to various factors such as elections or changes in leadership.\n\nIf you're referring specifically to Czechia, I'd be happy to provide information on its current leaders!",
+"CreatedTimeSec": 1736503807.993,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+},
+{
+"Text": "Tell me more.",
+"CreatedTimeSec": 1736504147.882,
+"CreatedBy": ""
+},
+{
+"Text": "The Czech Republic and Slovakia share a common border and both have governments headed by Presidents, not Prime Ministers. The President serves as the head of state for each country, while the Prime Minister heads the Cabinet of Ministers.\n\nIn the case of the Czech Republic:\n\n* Miloš Zeman served as President from 2018 to 2023.\n* Daniel Klemens served as Acting President until December 2022, when he resigned after his term ended.\n* Václav Klaus served as President from 2003 to 2013.\n\nHowever, if we consider the Prime Ministers of the two countries separately:\n\nFor the Czech Republic:\n- Milan Šouvalský was the first Prime Minister of the modern Czech Republic, appointed in 1990.\n- Václav Klaus took office in 1997 but stepped down before completing three terms.\n- Mirek Topolánek became Prime Minister again in 2004 and held this position until 2005.\n- Petr Fiala has been serving as Prime Minister since November 2021.\n\nAnd for Slovakia:\n- Ivan Gaždič was the first Prime Minister of independent Slovakia, elected in October 1992.\n- Vladimír Mečiar became Prime Minister in June 1996 and held this position until May 1999.\n- Mikuláš Dzurindó served as Prime Minister twice: in January 2006 and September 2007.",
+"CreatedTimeSec": 1736504168.494,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+}
+],
+"TempMsg": "",
+"TempMsg_ghost": "",
+"Properties": {
+"model": "llama-3.2-1b-instruct-q8_0",
+"messages": null,
+"stream": true,
+"max_tokens": 4046,
+"seed": -1,
+"n_predict": 400,
+"temperature": 0.8,
+"dynatemp_range": 0,
+"dynatemp_exponent": 1,
+"stop": [
+"\u003c/s\u003e",
+"\u003c|im_start|\u003e",
+"\u003c|im_end|\u003e",
+"Llama:",
+"User:"
+],
+"repeat_last_n": 256,
+"repeat_penalty": 1.18,
+"top_k": 40,
+"top_p": 0.5,
+"min_p": 0,
+"tfs_z": 1,
+"typical_p": 1,
+"presence_penalty": 0,
+"frequency_penalty": 0,
+"mirostat": false,
+"mirostat_tau": 5,
+"mirostat_eta": 0.1,
+"n_probs": 0,
+"cache_prompt": false,
+"slot_id": -1,
+"response_format": null
+}
+},
+{
+"UID": "3806520324953657718",
+"Name": "New Chat",
+"Created": 1736504645,
+"Instructions": "You are an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests.",
+"Msgs": [
+{
+"Text": "hi",
+"CreatedTimeSec": 1736504648.6,
+"CreatedBy": ""
+},
+{
+"Text": "How can I assist you today? Is there something on your mind that you'd like to talk about or ask for help with?",
+"CreatedTimeSec": 1736504651.812,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+},
+{
+"Text": "who are you?",
+"CreatedTimeSec": 1736504704.438,
+"CreatedBy": ""
+},
+{
+"Text": "I'm a large language model, which means I'm a computer program designed to understand and generate human-like text. My primary function is to assist users by providing information, answering questions, and completing tasks.\n\nI don't have personal experiences, emotions, or consciousness like humans do, but I was trained on a massive dataset of text from the internet, books, and other sources to learn patterns and relationships in language.\n\nIn this conversation, we're starting fresh! What would you like to chat about or ask me?",
+"CreatedTimeSec": 1736504713.386,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+}
+],
+"TempMsg": "",
+"TempMsg_ghost": "",
+"Properties": {
+"model": "llama-3.2-1b-instruct-q8_0",
+"messages": null,
+"stream": true,
+"max_tokens": 4046,
+"seed": -1,
+"n_predict": 400,
+"temperature": 0.8,
+"dynatemp_range": 0,
+"dynatemp_exponent": 1,
+"stop": [
+"\u003c/s\u003e",
+"\u003c|im_start|\u003e",
+"\u003c|im_end|\u003e",
+"Llama:",
+"User:"
+],
+"repeat_last_n": 256,
+"repeat_penalty": 1.18,
+"top_k": 40,
+"top_p": 0.5,
+"min_p": 0,
+"tfs_z": 1,
+"typical_p": 1,
+"presence_penalty": 0,
+"frequency_penalty": 0,
+"mirostat": false,
+"mirostat_tau": 5,
+"mirostat_eta": 0.1,
+"n_probs": 0,
+"cache_prompt": false,
+"slot_id": -1,
+"response_format": null
+}
+},
+{
+"UID": "3831614578477156068",
+"Name": "New Chat",
+"Created": 1736504768,
+"Instructions": "You are an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests.",
+"Msgs": [
+{
+"Text": "Hi",
+"CreatedTimeSec": 1736504771.685,
+"CreatedBy": ""
+},
+{
+"Text": "How can I assist you today? Is there something specific on your mind that you'd like to talk about or ask for help with?",
+"CreatedTimeSec": 1736504775.084,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+},
+{
+"Text": "Tell me more.",
+"CreatedTimeSec": 1736505079.735,
+"CreatedBy": ""
+},
+{
+"Text": "I'm here to listen and provide information.\n\nTo start, how's your day going so far? Any particular topics or concerns that have been on your mind?\n\nIf not, we could chat about a wide range of things, such as:\n\n* Hobbies\n* Travel destinations\n* Favorite books/movies/TV shows\n* Current events\n* Or anything else that comes to mind!\n\nWhat sounds interesting to you?",
+"CreatedTimeSec": 1736505086.602,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+}
+],
+"TempMsg": "",
+"TempMsg_ghost": "",
+"Properties": {
+"model": "llama-3.2-1b-instruct-q8_0",
+"messages": null,
+"stream": true,
+"max_tokens": 4046,
+"seed": -1,
+"n_predict": 400,
+"temperature": 0.8,
+"dynatemp_range": 0,
+"dynatemp_exponent": 1,
+"stop": [
+"\u003c/s\u003e",
+"\u003c|im_start|\u003e",
+"\u003c|im_end|\u003e",
+"Llama:",
+"User:"
+],
+"repeat_last_n": 256,
+"repeat_penalty": 1.18,
+"top_k": 40,
+"top_p": 0.5,
+"min_p": 0,
+"tfs_z": 1,
+"typical_p": 1,
+"presence_penalty": 0,
+"frequency_penalty": 0,
+"mirostat": false,
+"mirostat_tau": 5,
+"mirostat_eta": 0.1,
+"n_probs": 0,
+"cache_prompt": false,
+"slot_id": -1,
+"response_format": null
+}
+},
+{
+"UID": "Chat:6675147082578541972",
+"Name": "New Chat",
+"Created": 1736506129,
+"Instructions": "You are an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests.",
+"Msgs": [
+{
+"Text": "Hi",
+"CreatedTimeSec": 1736506131.782,
+"CreatedBy": ""
+},
+{
+"Text": "How can I assist you today? Is there something on your mind that you'd like to talk about or ask for help with?",
+"CreatedTimeSec": 1736506134.903,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+},
+{
+"Text": "Tell me more",
+"CreatedTimeSec": 1736506270.711,
+"CreatedBy": ""
+},
+{
+"Text": "I'm here to listen and provide information.\n\nWhat's been going on in your life, and how can I help make it a bit easier? Do you have any specific questions or topics you're interested in discussing?\n\nIf not, we could play some text-based games, chat about a favorite hobby, or explore other fun conversation ideas together! What sounds appealing to you?",
+"CreatedTimeSec": 1736506277.321,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+},
+{
+"Text": "continue",
+"CreatedTimeSec": 1736506389.154,
+"CreatedBy": ""
+},
+{
+"Text": "It seems like the conversation has taken a gentle turn. Let's see if we can continue where we left off.\n\nTo recap, what was our previous topic of discussion? If none comes to mind, feel free to share as little or as much as you'd like, and I'll do my best to pick up where we started.\n\n(Also, just a heads-up: since this is our first interaction, I don't want to assume anything about your preferences or interests yet. We can start fresh!)",
+"CreatedTimeSec": 1736506397.821,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+}
+],
+"TempMsg": "",
+"TempMsg_ghost": "",
+"Properties": {
+"model": "llama-3.2-1b-instruct-q8_0",
+"messages": null,
+"stream": true,
+"max_tokens": 4046,
+"seed": -1,
+"n_predict": 400,
+"temperature": 0.8,
+"dynatemp_range": 0,
+"dynatemp_exponent": 1,
+"stop": [
+"\u003c/s\u003e",
+"\u003c|im_start|\u003e",
+"\u003c|im_end|\u003e",
+"Llama:",
+"User:"
+],
+"repeat_last_n": 256,
+"repeat_penalty": 1.18,
+"top_k": 40,
+"top_p": 0.5,
+"min_p": 0,
+"tfs_z": 1,
+"typical_p": 1,
+"presence_penalty": 0,
+"frequency_penalty": 0,
+"mirostat": false,
+"mirostat_tau": 5,
+"mirostat_eta": 0.1,
+"n_probs": 0,
+"cache_prompt": false,
+"slot_id": -1,
+"response_format": null
+}
+},
+{
+"UID": "Chat:6637823176953631117",
+"Name": "New Chat",
+"Created": 1736506706,
+"Instructions": "You are an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests.",
+"Msgs": [
+{
+"Text": "hi",
+"CreatedTimeSec": 1736506707.987,
+"CreatedBy": ""
+},
+{
+"Text": "How can I assist you today? Do you have a specific question, need help with something, or just want to chat?",
+"CreatedTimeSec": 1736506711.041,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+},
+{
+"Text": "tell me more",
+"CreatedTimeSec": 1736506721.716,
+"CreatedBy": ""
+},
+{
+"Text": "I'd be happy to share some information and see if there's anything on my mind that might interest you.\n\nTo get started, what were your initial thoughts about our conversation so far? Did we start discussing something in particular, or was it just a casual hello?\n\nAlso, feel free to ask me any questions - I'm here to provide helpful responses!",
+"CreatedTimeSec": 1736506726.488,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+},
+{
+"Text": "more",
+"CreatedTimeSec": 1736507354.996,
+"CreatedBy": ""
+},
+{
+"Text": "Let's dive deeper into things then!\n\nWhat do you think would make the most interesting topic for us to discuss? Would you like to talk about:\n\n* A current event or news story?\n* A hobby or activity you enjoy (e.g., reading, music, sports)?\n* Something from science fiction or fantasy literature?\n* Or perhaps technology, such as artificial intelligence, space exploration, or emerging trends?\n* And by \"interesting\", I mean topics that spark curiosity, creativity, or new perspectives – not necessarily complex or technical discussions.\n\nPick one of these options, or suggest another direction altogether!",
+"CreatedTimeSec": 1736507364.651,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+},
+{
+"Text": "\n",
+"CreatedTimeSec": 1736507418.057,
+"CreatedBy": ""
+},
+{
+"Text": "It seems like you're still open to exploring various ideas. That's perfectly fine! Sometimes taking a few steps back can help clarify things.\n\nIf you could go back in time and give yourself advice when you first got interested in learning more about AI assistants like myself, what would it be? What sparked your curiosity, and how did you decide to explore this area further?\n\n(No pressure, though!)",
+"CreatedTimeSec": 1736507425.552,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+}
+],
+"TempMsg": "tell me more\n",
+"TempMsg_ghost": "",
+"Properties": {
+"model": "llama-3.2-1b-instruct-q8_0",
+"messages": null,
+"stream": true,
+"max_tokens": 4046,
+"seed": -1,
+"n_predict": 400,
+"temperature": 0.8,
+"dynatemp_range": 0,
+"dynatemp_exponent": 1,
+"stop": [
+"\u003c/s\u003e",
+"\u003c|im_start|\u003e",
+"\u003c|im_end|\u003e",
+"Llama:",
+"User:"
+],
+"repeat_last_n": 256,
+"repeat_penalty": 1.18,
+"top_k": 40,
+"top_p": 0.5,
+"min_p": 0,
+"tfs_z": 1,
+"typical_p": 1,
+"presence_penalty": 0,
+"frequency_penalty": 0,
+"mirostat": false,
+"mirostat_tau": 5,
+"mirostat_eta": 0.1,
+"n_probs": 0,
+"cache_prompt": false,
+"slot_id": -1,
+"response_format": null
+}
+},
+{
+"UID": "Chat:7432092494518361297",
+"Name": "New Chat",
+"Created": 1736515660,
+"Instructions": "You are an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests.",
+"Msgs": [
+{
+"Text": "Hi\n",
+"CreatedTimeSec": 1736515668.196,
+"CreatedBy": ""
+},
+{
+"Text": "How can I assist you today? Do you have a specific question, need help with something, or just want to chat?",
+"CreatedTimeSec": 1736515671.675,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+}
+],
+"TempMsg": "",
+"TempMsg_ghost": "",
+"Properties": {
+"model": "llama-3.2-1b-instruct-q8_0",
+"messages": null,
+"stream": true,
+"max_tokens": 4046,
+"seed": -1,
+"n_predict": 400,
+"temperature": 0.8,
+"dynatemp_range": 0,
+"dynatemp_exponent": 1,
+"stop": [
+"\u003c/s\u003e",
+"\u003c|im_start|\u003e",
+"\u003c|im_end|\u003e",
+"Llama:",
+"User:"
+],
+"repeat_last_n": 256,
+"repeat_penalty": 1.18,
+"top_k": 40,
+"top_p": 0.5,
+"min_p": 0,
+"tfs_z": 1,
+"typical_p": 1,
+"presence_penalty": 0,
+"frequency_penalty": 0,
+"mirostat": false,
+"mirostat_tau": 5,
+"mirostat_eta": 0.1,
+"n_probs": 0,
+"cache_prompt": false,
+"slot_id": -1,
+"response_format": null
+}
+},
+{
+"UID": "Chat:5893234703632417612",
+"Name": "New Chat",
+"Created": 1736515677,
+"Instructions": "You are an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests.",
+"Msgs": [
+{
+"Text": "Hi\n",
+"CreatedTimeSec": 1736515682.125,
+"CreatedBy": ""
+},
+{
+"Text": "How can I assist you today? Do you have a specific question, need help with something, or just want to chat?",
+"CreatedTimeSec": 1736515684.214,
+"CreatedBy": "llama-3.2-1b-instruct-q8_0"
+}
+],
+"TempMsg": "",
+"TempMsg_ghost": "",
+"Properties": {
+"model": "llama-3.2-1b-instruct-q8_0",
+"messages": null,
+"stream": true,
+"max_tokens": 4046,
+"seed": -1,
+"n_predict": 400,
+"temperature": 0.8,
+"dynatemp_range": 0,
+"dynatemp_exponent": 1,
+"stop": [
+"\u003c/s\u003e",
+"\u003c|im_start|\u003e",
+"\u003c|im_end|\u003e",
+"Llama:",
+"User:"
+],
+"repeat_last_n": 256,
+"repeat_penalty": 1.18,
+"top_k": 40,
+"top_p": 0.5,
+"min_p": 0,
+"tfs_z": 1,
+"typical_p": 1,
+"presence_penalty": 0,
+"frequency_penalty": 0,
+"mirostat": false,
+"mirostat_tau": 5,
+"mirostat_eta": 0.1,
+"n_probs": 0,
+"cache_prompt": false,
+"slot_id": -1,
+"response_format": null
+}
+},
+{
+"UID": "Chat:4554266077429028206",
+"Name": "New Chat",
+"Created": 1736523990,
+"Instructions": "You are an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests.",
+"Msgs": null,
+"TempMsg": "",
+"TempMsg_ghost": "",
+"Properties": {
+"model": "llama-3.2-1b-instruct-q8_0",
+"messages": null,
+"stream": true,
+"max_tokens": 4046,
+"seed": -1,
+"n_predict": 400,
+"temperature": 0.8,
+"dynatemp_range": 0,
+"dynatemp_exponent": 1,
+"stop": [
+"\u003c/s\u003e",
+"\u003c|im_start|\u003e",
+"\u003c|im_end|\u003e",
+"Llama:",
+"User:"
+],
+"repeat_last_n": 256,
+"repeat_penalty": 1.18,
+"top_k": 40,
+"top_p": 0.5,
+"min_p": 0,
+"tfs_z": 1,
+"typical_p": 1,
+"presence_penalty": 0,
+"frequency_penalty": 0,
+"mirostat": false,
+"mirostat_tau": 5,
+"mirostat_eta": 0.1,
+"n_probs": 0,
+"cache_prompt": false,
+"slot_id": -1,
+"response_format": null
+}
+}
+],
+"Selected_chat": 0
+}

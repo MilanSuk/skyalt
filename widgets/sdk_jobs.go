@@ -46,7 +46,7 @@ func (job *Job) Stop() {
 }
 
 func (job *Job) IsRunning() bool {
-	return !job.stop.Load()
+	return job != nil && !job.stop.Load()
 }
 
 func (job *Job) AddError(err error) {

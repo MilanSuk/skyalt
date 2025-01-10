@@ -236,7 +236,7 @@ func (cal *Events) Side(layout *Layout) {
 		//create Event
 		NewEventDia, NewEventDiaLay := layout.AddDialogBorder("new_event", "Event", 14)
 		NewEventDiaLay.SetColumn(0, 1, 100)
-		NewEventDiaLay.SetRowFromSub(0)
+		NewEventDiaLay.SetRowFromSub(0, 1, 100)
 		ed := NewEventDiaLay.AddEventEdit(0, 0, 1, 1)
 		ed.Event = &cal.NewEvent
 		ed.ChangedButtonTitle = "Create"
@@ -417,7 +417,7 @@ func (cal *Events) DayEvent(unix_sec int64, layout *Layout, layout_height float6
 
 			ShowDia, ShowLay := layout.AddDialogBorder("show_event_"+strconv.Itoa(it.event_id), "Event", 14)
 			ShowLay.SetColumn(0, 1, 100)
-			ShowLay.SetRowFromSub(0)
+			ShowLay.SetRowFromSub(0, 1, 100)
 			sh := ShowLay.AddEventShow(0, 0, 1, 1)
 			sh.Event = event
 			sh.deleted = func() {

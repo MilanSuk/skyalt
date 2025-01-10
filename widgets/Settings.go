@@ -44,7 +44,7 @@ func (st *Settings) Build(layout *Layout) {
 	layout.SetColumn(2, 12, 12)
 	layout.SetColumn(3, 1, 100)
 
-	layout.SetRowFromSub(5)
+	layout.SetRowFromSub(5, 1, 100)
 
 	//Date format
 	{

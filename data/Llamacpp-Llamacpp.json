@@ -1,0 +1,7 @@
+{
+"RunProcess": true,
+"Folder": "services/llama.cpp",
+"Addr": "127.0.0.1",
+"Port": 8090,
+"Model": "llama-3.2-1b-instruct-q8_0"
+}

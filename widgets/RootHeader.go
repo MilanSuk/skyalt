@@ -46,14 +46,15 @@ func (st *RootHeader) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1, 1.5) //logo
 	layout.SetColumn(1, 1, 100)
-	layout.SetColumnFromSub(2)  //mic
-	layout.SetColumn(3, 1, 20)  //prompt
-	layout.SetColumn(4, 1, 1)   //clear
-	layout.SetColumn(5, 1, 3)   //send
-	layout.SetColumn(6, 1, 1)   //settings
-	layout.SetColumn(7, 1, 100) //empty/errors
-	layout.SetColumn(8, 1, 1)   //jobs
-	layout.SetRowFromSub(0)
+	layout.SetColumnFromSub(2, 1, 100) //mic
+	layout.SetColumn(3, 1, 20)         //prompt
+	layout.SetColumn(4, 1, 1)          //clear
+	layout.SetColumn(5, 1, 3)          //send
+	layout.SetColumn(6, 1, 1)          //settings
+	layout.SetColumn(7, 1, 100)        //empty/errors
+	layout.SetColumn(8, 1, 1)          //jobs
+	layout.SetRowFromSub(0, 1, 5)
+
 	layout.Back_cd = Paint_GetPalette().GetGrey(0.9)
 
 	ast := OpenFile_AssistantChat()
@@ -74,6 +75,7 @@ func (st *RootHeader) Build(layout *Layout) {
 	//prompt
 	ast.Assistant_recomputePromptColors() //, ast.Picks)
 	ed := layout.AddEditboxMultiline(3, 0, 1, 1, &ast.Prompt)
+	ed.Align_v = 1 //? ......
 	ed.Ghost = "What can I do for you?"
 	ed.Tooltip = "Use Ctrl + Mouse to paint over."
 	//edLay.Back_cd = Paint_GetPalette().B
@@ -107,9 +109,9 @@ func (st *RootHeader) Build(layout *Layout) {
 	//settings
 	{
 		SDia := layout.AddDialog("settings")
-		SDia.Layout.SetColumn(0, 4, 10)
+		SDia.Layout.SetColumn(0, 8, 15)
 		//SDia.Layout.SetRow(0, 10, 10)
-		SDia.Layout.SetRowFromSub(0)
+		SDia.Layout.SetRowFromSub(0, 1, 100)
 		SDia.Layout.AddAssistantModels(0, 0, 1, 1, &ast.Model)
 
 		SettingsBt, SettingsLay := layout.AddButtonIcon2(6, 0, 1, 1, "resources/settings.png", 0.2, "Pick the model")

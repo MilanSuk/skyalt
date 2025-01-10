@@ -60,7 +60,7 @@ func (st *FilePicker) Build(layout *Layout) {
 
 	CreateFile, CreateFileL := layout.AddButton2(0, 2, 3, 1, "Create File")
 	CreateFolder := layout.AddButton(3, 2, 2, 1, "CreateFolder")
-	EditSearch := layout.AddEditboxSearch(5, 2, 1, 1, &g_FilePicker2_search, -1)
+	EditSearch := layout.AddSearch(5, 2, 1, 1, &g_FilePicker2_search, "Search files")
 
 	Root.Background = 0
 	Home.Background = 0
@@ -158,14 +158,14 @@ func (st *FilePicker) Build(layout *Layout) {
 			return
 		}
 
-		searchWords := PrepareSearch(g_FilePicker2_search)
+		searchWords := Search_Prepare(g_FilePicker2_search)
 		y := 0
 		for _, f := range dir {
 			fileName := f.Name()
 			isDir := f.IsDir()
 			enable := st.SelectFile || isDir //show both, but enable only what can be selected
 
-			if !Search(fileName, searchWords) {
+			if !Search_Find(fileName, searchWords) {
 				continue
 			}
 

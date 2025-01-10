@@ -38,12 +38,12 @@ func (st *Xai_completionV) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 1, 3)
-	layout.SetRow(0, 1, 10)
+	layout.SetRowFromSub(0, 1, 100)
 
 	job := FindJob(st.UID)
 
 	txt := layout.AddTextMultiline(0, 0, 2, 1, "")
-	txt.Align_h = 0
+
 	if job != nil {
 		txt.Value = job.info
 		txt.ScrollToEnd = true
@@ -56,6 +56,7 @@ func (st *Xai_completionV) Build(layout *Layout) {
 }
 
 func (st *Xai_completionV) Start() *Job {
+
 	return StartJob(st.UID, "XAi chat completion", st.Run)
 }
 func (st *Xai_completionV) Stop() {
@@ -64,8 +65,8 @@ func (st *Xai_completionV) Stop() {
 		job.Stop()
 	}
 }
-func (st *Xai_completionV) IsRunning() bool {
-	return FindJob(st.UID) != nil
+func (st *Xai_completionV) FindJob() *Job {
+	return FindJob(st.UID)
 }
 
 func (st *Xai_completionV) Run(job *Job) {
