@@ -4,23 +4,14 @@ import (
 	"time"
 )
 
-type ChatMsg struct {
-	Text           string
-	CreatedTimeSec float64
-	CreatedBy      string //name of service(AI), empty = user wrote it
-}
-
 type Chat struct {
-	UID string
-
-	Name    string
-	Created int64
+	UID  string
+	Name string
 
 	Instructions string
 	Msgs         []ChatMsg
 
-	TempMsg       string
-	TempMsg_ghost string
+	TempMsg string
 
 	Properties Llamacpp_completion_props
 }
@@ -31,7 +22,6 @@ func (layout *Layout) AddChat(x, y, w, h int, props *Chat) *Chat {
 }
 
 func (st *Chat) Build(layout *Layout) {
-
 	chat := NewGlobal_Llamacpp_completion(st.UID)
 	job := chat.FindJob()
 
@@ -53,8 +43,7 @@ func (st *Chat) Build(layout *Layout) {
 			for i := range st.Msgs {
 				//previous message
 				MsgsDiv.SetRowFromSub(y, 1, 100)
-				msgD := MsgsDiv.AddLayout(0, y, 1, 1)
-				st._addMsg(&st.Msgs[i], msgD)
+				MsgsDiv.AddChatMsg(0, y, 1, 1, &st.Msgs[i])
 				y++
 
 				//space
@@ -65,8 +54,7 @@ func (st *Chat) Build(layout *Layout) {
 			if job != nil {
 				//user msg
 				MsgsDiv.SetRowFromSub(y, 1, 100)
-				msgD := MsgsDiv.AddLayout(0, y, 1, 1)
-				st._addMsg(&ChatMsg{Text: st.TempMsg, CreatedTimeSec: job.start_time_sec, CreatedBy: ""}, msgD)
+				MsgsDiv.AddChatMsg(0, y, 1, 1, &ChatMsg{Text: st.TempMsg, CreatedTimeSec: job.start_time_sec, CreatedBy: ""})
 				y++
 
 				MsgsDiv.SetRow(y, 0.5, 0.5) //space
@@ -86,11 +74,9 @@ func (st *Chat) Build(layout *Layout) {
 		{
 			InputDiv.SetColumn(0, 1, 100)
 			InputDiv.SetColumn(1, 3, 3)
-			//Send.SetRow(0, 1, 100)
 			InputDiv.SetRowFromSub(0, 1, 5)
 
 			NewMsg := InputDiv.AddEditboxMultiline(0, 0, 2, 1, &st.TempMsg)
-			NewMsg.Ghost = st.TempMsg_ghost
 			NewMsg.enter = func() {
 				if st.TempMsg == "" {
 					return
@@ -156,23 +142,6 @@ func (st *Chat) Build(layout *Layout) {
 
 		PropertiesDiv.AddLlamacpp_completion_props(0, 2, 2, 1, &st.Properties)
 	}
-}
-
-func (st *Chat) _addMsg(msg *ChatMsg, layout *Layout) {
-	layout.SetColumn(0, 1, 100)
-	layout.SetColumn(1, 3, 3) //date
-	layout.SetRowFromSub(1, 1, 100)
-
-	sender := "User"
-	if msg.CreatedBy != "" {
-		sender = msg.CreatedBy
-		layout.Back_cd = Paint_GetPalette().GetGrey(0.8)
-	}
-	layout.AddText(0, 0, 1, 1, "<b>"+sender)
-	date := layout.AddText(1, 0, 1, 1, "<small>"+Layout_ConvertTextDateTime(int64(msg.CreatedTimeSec)))
-	date.Align_h = 2
-
-	layout.AddTextMultiline(0, 1, 2, 1, msg.Text)
 }
 
 func (chat *Chat) GetMessages(addTempMsg bool) []OpenAI_completion_msg {

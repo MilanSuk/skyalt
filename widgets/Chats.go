@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"time"
 )
 
 type Chats struct {
@@ -133,8 +132,8 @@ func (st *Chats) checkUIDs() {
 
 func (st *Chats) addNewChat() {
 	item := Chat{
-		UID:  "",
-		Name: "New Chat", Created: time.Now().Unix(),
+		UID:          "",
+		Name:         "New Chat",
 		Instructions: g__chat_instructions_default,
 	}
 	item.Properties.Reset()
