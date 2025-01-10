@@ -1170,34 +1170,6 @@ func (layout *Layout3) touchComp() {
 			layout.ui.parent.CallInput(&layout.props, &in) //err ...
 		}
 	}
-
-	//drop file
-	if layout.CanTouch() {
-		drop_path := layout.GetUis().win.io.Touch.Drop_path
-		if layout.IsMouseInside() && drop_path != "" {
-			in := LayoutInput{Drop_path: drop_path}
-			layout.ui.parent.CallInput(&layout.props, &in) //err ...
-
-		}
-	}
-
-	//drag & drop layouts
-	if layout.CanTouch() {
-		if layout.GetUis().drag.IsOverDrop(layout) {
-			if layout.ui.GetWin().io.Touch.End {
-				srcDom := layout.ui.dom.FindHash(layout.GetUis().drag.srcHash)
-				dstDom := layout.ui.dom.FindHash(layout.GetUis().drag.dstHash)
-				if dstDom != nil {
-					src_i := srcDom.props.Drag_index
-					dst_i := dstDom.props.Drag_index
-					dst_i = OsMoveElementIndex(src_i, dst_i, layout.GetUis().drag.pos)
-
-					in := LayoutInput{SetDropMove: true, DropSrc: src_i, DropDst: dst_i}
-					layout.ui.parent.CallInput(&dstDom.props, &in) //err ...
-				}
-			}
-		}
-	}
 }
 
 func (dom *Layout3) Draw() {
@@ -1428,6 +1400,34 @@ func (dom *Layout3) Touch() {
 	}
 
 	dom.touchScroll()
+
+	// drop file
+	if dom.CanTouch() {
+		drop_path := dom.GetUis().win.io.Touch.Drop_path
+		if dom.IsMouseInside() && drop_path != "" {
+			in := LayoutInput{Drop_path: drop_path}
+			dom.ui.parent.CallInput(&dom.props, &in) //err ...
+		}
+	}
+
+	// drag & drop layouts
+	if dom.CanTouch() {
+		drag := &dom.GetUis().drag
+		if drag.IsOverDrop(dom) && drag.IsDroped(dom) {
+			if dom.ui.GetWin().io.Touch.End {
+				srcDom := dom.ui.dom.FindHash(drag.srcHash)
+				dstDom := dom //dom.ui.dom.FindHash(drag.dstHash)
+
+				src_i := srcDom.props.Drag_index
+				dst_i := dstDom.props.Drag_index
+				dst_i = OsMoveElementIndex(src_i, dst_i, drag.pos)
+
+				in := LayoutInput{SetDropMove: true, DropSrc: src_i, DropDst: dst_i}
+				dom.ui.parent.CallInput(&dstDom.props, &in) //err ...
+			}
+		}
+	}
+
 }
 
 func (dom *Layout3) _isTouchCtrl() bool {

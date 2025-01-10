@@ -37,6 +37,10 @@ func (drag *UiLayoutDrag) Set(dom *Layout3) {
 func (drag *UiLayoutDrag) IsDraged(dom *Layout3) bool {
 	return drag.srcHash == dom.props.Hash
 }
+func (drag *UiLayoutDrag) IsDroped(dom *Layout3) bool {
+	return drag.dstHash == dom.props.Hash
+}
+
 func (drag *UiLayoutDrag) IsOverDrop(dom *Layout3) bool {
 	return drag.group != "" && drag.group == dom.props.Drop_group
 }
