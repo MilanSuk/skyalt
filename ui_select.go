@@ -112,7 +112,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 				//find line
 				if best_layout == appLay {
 					//get Build() pos
-					wf, err := Compile_getWidgetFile(s.appName)
+					wf, err := Compile_getWidgetFile(s.appName, nil)
 					if err != nil {
 						fmt.Println("Error:", err)
 						return

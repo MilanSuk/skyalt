@@ -23,19 +23,10 @@ func (layout *Layout) AddOpenAI_tts(x, y, w, h int, props *OpenAI_tts) *OpenAI_t
 	return props
 }
 
-var g_global_OpenAI_tts = make(map[string]*OpenAI_tts)
-
-func NewGlobal_OpenAI_tts(uid string) *OpenAI_tts {
-	uid = fmt.Sprintf("OpenAI_tts:%s", uid)
-
-	st, found := g_global_OpenAI_tts[uid]
-	if !found {
-		st = &OpenAI_tts{UID: uid}
-		st.Properties.Reset()
-
-		g_global_OpenAI_tts[uid] = st
-	}
-	return st
+func OpenMemory_OpenAI_tts(uid string) *OpenAI_tts {
+	st := &OpenAI_tts{UID: uid}
+	st.Properties.Reset()
+	return OpenMemory(uid, st)
 }
 
 func (st *OpenAI_tts) Build(layout *Layout) {

@@ -269,7 +269,7 @@ type Layout struct {
 func (layout *Layout) _getName() string {
 	return fmt.Sprintf("%s(%d,%d,%d,%d)", layout.Name, layout.X, layout.Y, layout.W, layout.H)
 }
-func (layout *Layout) _computeHash(parent *Layout) uint64 {
+func (layout *Layout) _recomputeHash(parent *Layout) {
 	h := sha256.New()
 
 	//parent
@@ -282,7 +282,7 @@ func (layout *Layout) _computeHash(parent *Layout) uint64 {
 	//this
 	h.Write([]byte(layout._getName()))
 
-	return binary.LittleEndian.Uint64(h.Sum(nil))
+	layout.Hash = binary.LittleEndian.Uint64(h.Sum(nil))
 }
 
 func (layout *Layout) FindDialog(name string) *LayoutDialog {
@@ -302,6 +302,14 @@ func (layout *Layout) FindLayout(x, y, w, h int) *Layout {
 		}
 	}
 	return nil
+}
+func (layout *Layout) RenameLayout(x, y, w, h int, name string) *Layout {
+	lay := layout.FindLayout(x, y, w, h)
+	if lay != nil {
+		lay.Name = name
+		lay._recomputeHash(layout)
+	}
+	return lay
 }
 
 func (layout *Layout) _findHash(hash uint64) *Layout {
@@ -353,7 +361,7 @@ func (layout *Layout) _findParent(find *Layout) *Layout {
 
 func _newLayout(x, y, w, h int, name string, parent *Layout) *Layout {
 	layout := &Layout{X: x, Y: y, W: w, H: h, Name: name, Enable: true, EnableTouch: true}
-	layout.Hash = layout._computeHash(parent)
+	layout._recomputeHash(parent)
 	return layout
 }
 

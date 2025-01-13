@@ -20,16 +20,6 @@ func (layout *Layout) AddLlamacpp(x, y, w, h int, props *Llamacpp) *Llamacpp {
 	return props
 }
 
-var g_Llamacpp *Llamacpp
-
-func OpenFile_Llamacpp() *Llamacpp {
-	if g_Llamacpp == nil {
-		g_Llamacpp = &Llamacpp{RunProcess: true, Folder: "services/llama.cpp", Addr: "127.0.0.1", Port: 8090, Model: ""}
-		_read_file("Llamacpp-Llamacpp", g_Llamacpp)
-	}
-	return g_Llamacpp
-}
-
 func (st *Llamacpp) Build(layout *Layout) {
 
 	if st.Folder == "" {

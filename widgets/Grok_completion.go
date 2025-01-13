@@ -19,19 +19,11 @@ func (layout *Layout) AddGroq_completion(x, y, w, h int, props *Groq_completion)
 	return props
 }
 
-var g_global_Groq_completion = make(map[string]*Groq_completion)
+func OpenMemory_Groq_completion(uid string) *Groq_completion {
+	st := &Groq_completion{UID: uid}
+	st.Properties.Reset()
 
-func NewGlobal_Groq_completion(uid string) *Groq_completion {
-	uid = fmt.Sprintf("Groq_completion:%s", uid)
-
-	st, found := g_global_Groq_completion[uid]
-	if !found {
-		st = &Groq_completion{UID: uid}
-		st.Properties.Reset()
-
-		g_global_Groq_completion[uid] = st
-	}
-	return st
+	return OpenMemory(uid, st)
 }
 
 func (st *Groq_completion) Build(layout *Layout) {

@@ -351,9 +351,9 @@ func (ui *Ui) _refresh() {
 
 	//update appName
 	{
-		showAppLay := ui.dom.FindFirstName("ShowApp")
-		if showAppLay != nil {
-			lay := showAppLay.FindChildMaxArea()
+		rootLay := ui.dom.FindFirstName("Root")
+		if rootLay != nil {
+			lay := rootLay.FindChildMaxArea()
 			if lay != nil {
 				ui.selection.appName = lay.props.Name
 			}
@@ -524,8 +524,8 @@ func (ui *Ui) Tick() {
 	keys := &win.io.Keys
 	if !ui.parent.edit.IsActive() && keys.Ctrl && keys.HasChanged {
 		var sh byte
-		if keys.Text != "" {
-			sh = keys.Text[0]
+		if keys.CtrlChar != "" {
+			sh = keys.CtrlChar[0]
 		}
 		if keys.Tab {
 			sh = '\t'

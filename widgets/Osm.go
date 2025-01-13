@@ -14,16 +14,6 @@ func (layout *Layout) AddOsm(x, y, w, h int, props *Osm) *Osm {
 	return props
 }
 
-var g_Osm *Osm
-
-func OpenFile_Osm() *Osm {
-	if g_Osm == nil {
-		g_Osm = &Osm{Enable: true}
-		_read_file("Osm-Osm", g_Osm)
-	}
-	return g_Osm
-}
-
 func (st *Osm) Build(layout *Layout) {
 	if st.Tiles_url == "" {
 		st.Tiles_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"

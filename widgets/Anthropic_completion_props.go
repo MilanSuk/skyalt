@@ -63,7 +63,7 @@ func (props *Anthropic_completion_props) Reset() {
 	if props.Model == "" {
 		props.Model = OpenFile_Anthropic().ChatModel
 	}
-	//props.Stream = true
+	props.Stream = true
 	props.Temperature = 1.0
 	props.Max_tokens = 4046
 	//props.Top_p = 0.7 //1.0

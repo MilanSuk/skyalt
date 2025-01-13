@@ -16,17 +16,15 @@ limitations under the License.
 
 package main
 
-type Root struct {
-}
+import (
+	"strings"
+)
 
-func (layout *Layout) AddRoot(x, y, w, h int) *Root {
-	props := &Root{}
-	layout._createDiv(x, y, w, h, "Root", props.Build, nil, nil)
-	return props
+type Root struct {
+	AppPath string
 }
 
 func (st *Root) Build(layout *Layout) {
-
 	layout.SetColumn(0, 1, 100)
 
 	layout.SetRowFromSub(0, 1, 100)
@@ -38,20 +36,26 @@ func (st *Root) Build(layout *Layout) {
 
 	layout.AddDivider(0, 1, 1, 1, true).Margin = 0
 
-	AppDiv := layout.AddLayout(0, 2, 1, 1)
-	AppDiv.App = true
-	AppDiv.SetColumn(0, 1, 100)
-	AppDiv.SetRow(0, 1, 100)
-	if header.ShowPromptList {
-		AppDiv.AddPrompts(0, 0, 1, 1)
-	} else {
-		//App
-		AppDiv.AddShowApp(0, 0, 1, 1)
+	appLay := layout.AddApp(0, 2, 1, 1, st.AppPath)
+	if appLay != nil {
+		appLay.App = true
+	}
+}
+
+func (st *Root) OpenApp(folder string, name string) {
+	files, _ := GetListOfFiles(folder)
+
+	//exact
+	for _, file := range files {
+		if file.Name == name {
+			st.AppPath = file.GetPath()
+		}
 	}
 
-	//Assistant panel
-	/*if OpenFile_Assistant().Show {
-		layout.SetColumnResizable(1, 5, 20, 6)
-		layout.AddAssistant(1, 0, 1, 2, OpenFile_Assistant())
-	}*/
+	//contain
+	for _, file := range files {
+		if strings.Contains(file.Name, name) {
+			st.AppPath = file.GetPath()
+		}
+	}
 }

@@ -1,7 +1,7 @@
 {
 "Prompt": "",
 "Picks": null,
-"AppName": "Settings",
+"AppName": "Chats",
 "Model": {
 "TextModel": "gpt-4o",
 "STTModel": "ggml-base.en"

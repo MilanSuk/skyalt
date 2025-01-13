@@ -19,16 +19,6 @@ func (layout *Layout) AddOpenAI(x, y, w, h int, props *OpenAI) *OpenAI {
 	return props
 }
 
-var g_OpenAI *OpenAI
-
-func OpenFile_OpenAI() *OpenAI {
-	if g_OpenAI == nil {
-		g_OpenAI = &OpenAI{Enable: true, ChatModel: "gpt-3.5-turbo", STTModel: "whisper-1", TTSModel: "tts-1", TTSVoice: "alloy"}
-		_read_file("OpenAI-OpenAI", g_OpenAI)
-	}
-	return g_OpenAI
-}
-
 func (st *OpenAI) Build(layout *Layout) {
 
 	if st.ChatModel == "" {

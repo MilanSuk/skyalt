@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/binary"
-	"fmt"
 	"sync"
 	"time"
 
@@ -30,18 +29,11 @@ func (layout *Layout) AddMicrophone_recorder(x, y, w, h int, props *Microphone_r
 	return props
 }
 
-var g_global_Microphone_recorder = make(map[string]*Microphone_recorder)
-
-func NewGlobal_Microphone_recorder(uid string) *Microphone_recorder {
-	uid = fmt.Sprintf("Microphone_recorder:%s", uid)
-
-	st, found := g_global_Microphone_recorder[uid]
-	if !found {
-		st = &Microphone_recorder{UID: uid}
-		g_global_Microphone_recorder[uid] = st
-	}
-	return st
+func OpenMemory_Microphone_recorder(uid string) *Microphone_recorder {
+	st := &Microphone_recorder{UID: uid}
+	return OpenMemory(uid, st)
 }
+
 func (st *Microphone_recorder) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1, 100)

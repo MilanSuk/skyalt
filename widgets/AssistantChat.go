@@ -28,16 +28,6 @@ func (layout *Layout) AddAssistantChat(x, y, w, h int, props *AssistantChat) *As
 	return props
 }
 
-var g_AssistantChat *AssistantChat
-
-func OpenFile_AssistantChat() *AssistantChat {
-	if g_AssistantChat == nil {
-		g_AssistantChat = &AssistantChat{Model: AssistantModels{TextModel: "gpt-4o", STTModel: "whisper-1"}}
-		_read_file("AssistantChat-AssistantChat", g_AssistantChat)
-	}
-	return g_AssistantChat
-}
-
 func (st *AssistantChat) Build(layout *Layout) {
 	//...
 }
@@ -66,7 +56,7 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 	var job *Job
 	switch ast.Model.GetTTService() {
 	case "xai":
-		chat := NewGlobal_Xai_completion(jobName)
+		chat := OpenMemory_Xai_completion(jobName)
 		chat.Properties.Model = ast.Model.TextModel
 		chat.Properties.Messages = msgs
 		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
@@ -74,7 +64,7 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 		job = chat.Start()
 
 	case "openai":
-		chat := NewGlobal_OpenAI_completion(jobName)
+		chat := OpenMemory_OpenAI_completion(jobName)
 		chat.Properties.Model = ast.Model.TextModel
 		chat.Properties.Messages = msgs
 		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
@@ -82,7 +72,7 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 		job = chat.Start()
 
 	case "anthropic":
-		chat := NewGlobal_Anthropic_completion(jobName)
+		chat := OpenMemory_Anthropic_completion(jobName)
 		chat.Properties.Model = ast.Model.TextModel
 		chat.Properties.Messages = msgs
 		//chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
@@ -90,7 +80,7 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 		job = chat.Start()
 
 	case "groq":
-		chat := NewGlobal_Groq_completion(jobName)
+		chat := OpenMemory_Groq_completion(jobName)
 		chat.Properties.Model = ast.Model.TextModel
 		chat.Properties.Messages = msgs
 		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
@@ -98,7 +88,7 @@ func (ast *AssistantChat) executePrompt(jobName string, msgs []OpenAI_completion
 		job = chat.Start()
 
 	case "llamacpp":
-		chat := NewGlobal_Llamacpp_completion(jobName)
+		chat := OpenMemory_Llamacpp_completion(jobName)
 		chat.Properties.Model = ast.Model.TextModel
 		chat.Properties.Messages = msgs
 		chat.Properties.Response_format = &OpenAI_completion_format{Type: "json_object"}
@@ -148,12 +138,16 @@ func (ast *AssistantChat) Send() {
 		Out = FixOutput(Out)
 		fmt.Println("prompt_1_output:", Out)
 
-		UserPrompt, jobNameEx, err := ast.prompt_2([]byte(Out))
+		UserPrompt, jobNameEx, done, err := ast.prompt_2([]byte(Out))
 		if err != nil {
 			Layout_WriteError(fmt.Errorf("Prompt_2() %w", err))
 			return
 		}
 		fmt.Println("prompt_2_input:", UserPrompt)
+
+		if done {
+			return
+		}
 
 		var msgs []OpenAI_completion_msg
 		{
@@ -322,7 +316,7 @@ func (ast *AssistantChat) prompt_1() (string, error) {
 	return str.String(), nil
 }
 
-func (ast *AssistantChat) prompt_2(output_1 []byte) (string, string, error) {
+func (ast *AssistantChat) prompt_2(output_1 []byte) (string, string, bool, error) {
 
 	userPrompt := ast.convertUserPromptToMarks(ast.Prompt)
 
@@ -343,7 +337,7 @@ func (ast *AssistantChat) prompt_2(output_1 []byte) (string, string, error) {
 		var outs []Out
 		err := json.Unmarshal(output_1, &outs)
 		if err != nil {
-			return "", "", err
+			return "", "", false, err
 		}
 		if len(outs) > 0 {
 			out = outs[0]
@@ -352,7 +346,7 @@ func (ast *AssistantChat) prompt_2(output_1 []byte) (string, string, error) {
 
 	info, err := Compile_get_files_info()
 	if err != nil {
-		return "", "", err
+		return "", "", false, err
 	}
 
 	var structs strings.Builder
@@ -375,13 +369,16 @@ func (ast *AssistantChat) prompt_2(output_1 []byte) (string, string, error) {
 	}
 	layoutStFns, err := _build_sdk_layout()
 	if err != nil {
-		return "", "", err
+		return "", "", false, err
 	}
 
 	jobNameEx := ""
 	var str strings.Builder
 	if out.Open {
-		jobNameEx = "open"
+
+		OpenFile_Root().OpenApp("", out.Name)
+		return "", "", true, nil
+		/*jobNameEx = "open"
 
 		str.WriteString("\n\n// Here are the functions to show widgets:\n")
 		str.WriteString("```go\n" + addFns.String() + "\n```")
@@ -402,6 +399,7 @@ func (ast *AssistantChat) prompt_2(output_1 []byte) (string, string, error) {
 		str.WriteString(fmt.Sprintf("\nYour job is implement the request(user prompt) by editting file %s.\n\n", edited_file))
 
 		str.WriteString(`Don't add main() function to the code. Please respond in the JSON format {"files": [{"name": <file_name.go>, "content": <code>}]}`)
+		*/
 
 	} else if out.Create {
 		jobNameEx = "create"
@@ -431,14 +429,6 @@ type %s struct {
 func (layout *Layout) Add%s(x, y, w, h int, props *%s) *%s {
 	layout._createDiv(x, y, w, h, "%s", props.Build, nil, nil)
 	return props
-}
-var g_%s *%s
-func OpenFile_%s() *%s {
-	if g_%s == nil {
-		g_%s = &%s{}
-		_read_file("%s-%s", g_%s)
-	}
-	return g_%s
 }
 func (st *%s) Build(layout *Layout) {
 }`, new_file, new_file, new_file, new_file, new_file,
@@ -517,10 +507,10 @@ func (st *%s) Build(layout *Layout) {
 		jobNameEx = "q_other"
 		//...
 	} else {
-		return "", "", fmt.Errorf("unrecognized user prompt")
+		return "", "", false, fmt.Errorf("unrecognized user prompt")
 	}
 
-	return str.String(), jobNameEx, nil
+	return str.String(), jobNameEx, false, nil
 }
 
 func _AssistantChat_buildUserPrompt(userPrompt string) string {

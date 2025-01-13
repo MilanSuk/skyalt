@@ -24,19 +24,10 @@ func (layout *Layout) AddAnthropic_completion(x, y, w, h int, props *Anthropic_c
 	return props
 }
 
-var g_global_Anthropic_completion = make(map[string]*Anthropic_completion)
-
-func NewGlobal_Anthropic_completion(uid string) *Anthropic_completion {
-	uid = fmt.Sprintf("Anthropic_completion:%s", uid)
-
-	st, found := g_global_Anthropic_completion[uid]
-	if !found {
-		st = &Anthropic_completion{UID: uid}
-		st.Properties.Reset()
-
-		g_global_Anthropic_completion[uid] = st
-	}
-	return st
+func OpenMemory_Anthropic_completion(uid string) *Anthropic_completion {
+	st := &Anthropic_completion{UID: uid}
+	st.Properties.Reset()
+	return OpenMemory(uid, st)
 }
 
 func (st *Anthropic_completion) Build(layout *Layout) {

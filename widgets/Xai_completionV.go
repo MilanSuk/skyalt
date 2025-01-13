@@ -11,7 +11,7 @@ type Xai_completionV struct {
 	Properties Xai_completionV_props
 
 	Out  string
-	done func()
+	done func(out string)
 }
 
 func (layout *Layout) AddXai_completionV(x, y, w, h int, props *Xai_completionV) *Xai_completionV {
@@ -19,19 +19,10 @@ func (layout *Layout) AddXai_completionV(x, y, w, h int, props *Xai_completionV)
 	return props
 }
 
-var g_global_Xai_completionV = make(map[string]*Xai_completionV)
-
-func NewGlobal_Xai_completionV(uid string) *Xai_completionV {
-	uid = fmt.Sprintf("Xai_completionV:%s", uid)
-
-	st, found := g_global_Xai_completionV[uid]
-	if !found {
-		st = &Xai_completionV{UID: uid}
-		st.Properties.Reset()
-
-		g_global_Xai_completionV[uid] = st
-	}
-	return st
+func OpenMemory_Xai_completionV(uid string) *Xai_completionV {
+	st := &Xai_completionV{UID: uid}
+	st.Properties.Reset()
+	return OpenMemory(uid, st)
 }
 
 func (st *Xai_completionV) Build(layout *Layout) {
@@ -96,6 +87,6 @@ func (st *Xai_completionV) Run(job *Job) {
 	}
 
 	if st.done != nil {
-		st.done()
+		st.done(st.Out)
 	}
 }

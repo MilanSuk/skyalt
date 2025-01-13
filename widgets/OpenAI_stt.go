@@ -32,24 +32,23 @@ func (layout *Layout) AddOpenAI_stt(x, y, w, h int, props *OpenAI_stt) *OpenAI_s
 	return props
 }
 
-var g_global_OpenAI_stt = make(map[string]*OpenAI_stt)
+func OpenMemory_OpenAI_stt(uid string) *OpenAI_stt {
+	st := &OpenAI_stt{UID: uid}
+	st.Properties.Reset()
+	st.Input_Channels = OpenFile_Microphone().Channels
+	st.Input_SampleRate = OpenFile_Microphone().SampleRate
 
-func NewGlobal_OpenAI_stt(uid string) *OpenAI_stt {
-	uid = fmt.Sprintf("OpenAI_stt:%s", uid)
-
-	st, found := g_global_OpenAI_stt[uid]
-	if !found {
-		st = &OpenAI_stt{UID: uid}
-		st.Properties.Reset()
-		st.Input_Channels = OpenFile_Microphone().Channels
-		st.Input_SampleRate = OpenFile_Microphone().SampleRate
-
-		g_global_OpenAI_stt[uid] = st
-	}
-	return st
+	return OpenMemory(uid, st)
 }
 
 func (st *OpenAI_stt) Build(layout *Layout) {
+	if st.Input_Channels == 0 {
+		st.Input_Channels = OpenFile_Microphone().Channels
+	}
+	if st.Input_SampleRate == 0 {
+		st.Input_SampleRate = OpenFile_Microphone().SampleRate
+	}
+
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 1, 3)
 	layout.SetRowFromSub(0, 1, 100)

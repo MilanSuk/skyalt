@@ -27,17 +27,6 @@ func (layout *Layout) AddSettings(x, y, w, h int, props *Settings) *Settings {
 	return props
 }
 
-var g_Settings *Settings
-
-func OpenFile_Settings() *Settings {
-	if g_Settings == nil {
-		g_Settings = &Settings{Volume: 0.5, Theme: "light"}
-
-		_read_file("Settings-Settings", g_Settings)
-	}
-	return g_Settings
-}
-
 func (st *Settings) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 4, 4)

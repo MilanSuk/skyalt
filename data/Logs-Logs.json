@@ -264,6 +264,11 @@
 "Time_unix": 1736519297,
 "Layout_hash": 0,
 "Error": "downloading not finished: Received 15886981B of 147951465B"
+},
+{
+"Time_unix": 1736778257,
+"Layout_hash": 0,
+"Error": "Complete() failed: user Canceled the job"
 }
 ]
 }

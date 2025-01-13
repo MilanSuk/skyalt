@@ -25,7 +25,7 @@ func (st *AssistantVoice) Build(layout *Layout) {
 	layout.SetRow(0, 1, 100)
 
 	//Recorder
-	Mic := layout.AddMicrophone_recorder(0, 0, 1, 1, NewGlobal_Microphone_recorder("AssistantVoice"))
+	Mic := layout.AddMicrophone_recorder(0, 0, 1, 1, OpenMemory_Microphone_recorder("AssistantVoice"))
 	Mic.Shortcut_key = st.Shortcut
 	Mic.Tooltip = "Start/Stop AI Assistant audio recording"
 	Mic.Background = st.Button_background
@@ -51,7 +51,7 @@ func (st *AssistantVoice) Build(layout *Layout) {
 
 	switch service {
 	case "whispercpp":
-		stt := NewGlobal_Whispercpp_stt("AssistantVoice")
+		stt := OpenMemory_Whispercpp_stt("AssistantVoice")
 		stt.Properties.Model = OpenFile_AssistantChat().Model.STTModel
 		stt.done = done
 		Mic.done = func(out audio.IntBuffer) {
@@ -60,7 +60,7 @@ func (st *AssistantVoice) Build(layout *Layout) {
 		}
 
 	case "openai":
-		stt := NewGlobal_OpenAI_stt("AssistantVoice")
+		stt := OpenMemory_OpenAI_stt("AssistantVoice")
 		stt.Properties.Model = OpenFile_AssistantChat().Model.STTModel
 		stt.done = done
 		Mic.done = func(out audio.IntBuffer) {
@@ -69,7 +69,7 @@ func (st *AssistantVoice) Build(layout *Layout) {
 		}
 
 	case "groq":
-		stt := NewGlobal_Groq_stt("AssistantVoice")
+		stt := OpenMemory_Groq_stt("AssistantVoice")
 		stt.Properties.Model = OpenFile_AssistantChat().Model.STTModel
 		stt.done = done
 		Mic.done = func(out audio.IntBuffer) {

@@ -185,12 +185,12 @@ func Compile_widgets() error {
 
 	OsFileRemove("widgets/app") //bin
 
-	files, err := Compile_get_files_info()
+	files, err := Compile_get_widget_files()
 	if err != nil {
 		return fmt.Errorf("Compile_get_files_info() failed: %w", err)
 	}
 
-	err = Compile_generate_save(files)
+	err = Compile_generate_files(files)
 	if err != nil {
 		return fmt.Errorf("Compile_generate_save() failed: %w", err)
 	}
@@ -236,23 +236,63 @@ func Compile_widgets() error {
 	return nil
 }
 
-func Compile_generate_save(files []CompileWidgetFile) error {
+func Compile_generate_files(files []CompileWidgetFile) error {
 
 	var code string
-	code += "package main\n\n"
+	code += `package main
 
-	code += "func _skyalt_save() {\n"
+import (
+	"strings"
+	"path/filepath"
+)
+
+`
+
 	for _, f := range files {
+		if f.Name == "" {
+			continue
+		}
+
 		if f.IsFile {
-			code += fmt.Sprintf("\tif g_%s != nil {\n\t\t_write_file(\"%s-%s\", g_%s)\n\t\tg_%s = nil\n\t}\n", f.Name, f.Name, f.Name, f.Name, f.Name)
+			code += fmt.Sprintf(`func OpenFile_%s() *%s {
+	return OpenFilePath_%s("")
+}
+`, f.Name, f.Name, f.Name)
+
+			code += fmt.Sprintf(`func OpenFilePath_%s(path string) *%s {
+	props := OpenFile[%s](path)
+	return props
+}
+`, f.Name, f.Name, f.Name)
 		}
 	}
-	code += "}\n"
+
+	code += `func (layout *Layout) AddApp(x, y, w, h int, path string) *Layout {
+	name := filepath.Base(path)
+	d := strings.IndexByte(name, '-')
+	if d <= 0 {
+		return nil //? ...
+	}
+	var lay *Layout
+	switch name[:d] {
+`
+	for _, f := range files {
+		if f.IsFile {
+			code += fmt.Sprintf(`	case "%s":
+		props := OpenFilePath_%s(path)
+		lay = layout._createDiv(x, y, w, h, "%s", %s, %s, %s)
+`, f.Name, f.Name, f.Name, OsTrnString(f.Build >= 0, "props.Build", "nil"), OsTrnString(f.Draw >= 0, "props.Draw", "nil"), OsTrnString(f.Input >= 0, "props.Input", "nil"))
+		}
+	}
+
+	code += `	}
+	return lay
+}`
 
 	//write the code into the file
 	{
 		//fmt.Println(code)
-		err := os.WriteFile("widgets/sdk_save.go", []byte(code), 0644)
+		err := os.WriteFile("widgets/sdk_generated.go", []byte(code), 0644)
 		if err != nil {
 			return err
 		}
@@ -270,8 +310,30 @@ type CompileWidgetFile struct {
 	Draw  int
 }
 
-func Compile_get_files_info() ([]CompileWidgetFile, error) {
+func Compile_build_widget_types(folder string, types *[]string) error {
+	dataDir, err := os.ReadDir(folder)
+	if err != nil {
+		return err
+	}
+	for _, file := range dataDir {
+
+		if file.IsDir() {
+			Compile_build_widget_types(filepath.Join(folder, file.Name()), types)
+		} else {
+			d := strings.IndexByte(file.Name(), '-')
+			if d > 0 {
+				*types = append(*types, file.Name()[:d])
+			}
+		}
+	}
+	return nil
+}
+
+func Compile_get_widget_files() ([]CompileWidgetFile, error) {
 	var widgets []CompileWidgetFile
+
+	var file_types []string
+	Compile_build_widget_types("data", &file_types)
 
 	sdkDir, err := os.ReadDir("widgets")
 	if err != nil {
@@ -281,31 +343,18 @@ func Compile_get_files_info() ([]CompileWidgetFile, error) {
 		stName, found := strings.CutSuffix(file.Name(), ".go")
 		if !file.IsDir() && found && !strings.HasPrefix(file.Name(), "sdk_") {
 
-			wf, err := Compile_getWidgetFile(stName)
+			wf, err := Compile_getWidgetFile(stName, file_types)
 			if err != nil {
 				return nil, err
 			}
 			widgets = append(widgets, wf)
-
-			/*fileCode, err := os.ReadFile(filepath.Join("widgets", file.Name()))
-			if err != nil {
-				return nil, err
-			}
-
-			build_pos, input_pos, draw_pos, isFile, err := Compile_findFileProperties(file.Name(), string(fileCode), stName)
-			if err != nil {
-				return nil, err
-			}
-			if build_pos >= 0 || input_pos >= 0 || draw_pos >= 0 { //is widget
-				widgets = append(widgets, CompileWidgetFile{Name: stName, IsFile: isFile, Build: build_pos >= 0, Input: input_pos >= 0, Draw: draw_pos >= 0})
-			}*/
 		}
 	}
 
 	return widgets, nil
 }
 
-func Compile_getWidgetFile(stName string) (CompileWidgetFile, error) {
+func Compile_getWidgetFile(stName string, file_types []string) (CompileWidgetFile, error) {
 	path := stName + ".go"
 	fileCode, err := os.ReadFile(filepath.Join("widgets", path))
 	if err != nil {
@@ -314,7 +363,7 @@ func Compile_getWidgetFile(stName string) (CompileWidgetFile, error) {
 
 	code := string(fileCode)
 
-	build_pos, input_pos, draw_pos, isFile, err := Compile_findFileProperties(path, code, stName)
+	build_pos, input_pos, draw_pos, err := Compile_findFileProperties(path, code, stName)
 	if err != nil {
 		return CompileWidgetFile{}, err
 	}
@@ -332,16 +381,24 @@ func Compile_getWidgetFile(stName string) (CompileWidgetFile, error) {
 			draw_line = strings.Count(code[:draw_pos], "\n") + 1
 		}
 
+		isFile := false
+		for _, tp := range file_types {
+			if tp == stName {
+				isFile = true
+				break
+			}
+		}
+
 		return CompileWidgetFile{Name: stName, IsFile: isFile, Build: build_line, Input: input_line, Draw: draw_line}, nil
 	}
 	return CompileWidgetFile{}, nil
 }
 
-func Compile_findFileProperties(ghostPath string, code string, stName string) (int, int, int, bool, error) {
+func Compile_findFileProperties(ghostPath string, code string, stName string) (int, int, int, error) {
 
 	node, err := parser.ParseFile(token.NewFileSet(), ghostPath, code, parser.ParseComments)
 	if err != nil {
-		return -1, -1, -1, false, err
+		return -1, -1, -1, err
 	}
 
 	build_pos := -1
@@ -372,23 +429,5 @@ func Compile_findFileProperties(ghostPath string, code string, stName string) (i
 		return true
 	})
 
-	//global vars
-	isFile := false
-	for _, decl := range node.Decls {
-		if genDecl, ok := decl.(*ast.GenDecl); ok {
-			if genDecl.Tok == token.VAR {
-				for _, spec := range genDecl.Specs {
-					if valueSpec, ok := spec.(*ast.ValueSpec); ok {
-						for _, name := range valueSpec.Names {
-							if name.Name == "g_"+stName {
-								isFile = true
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return build_pos, input_pos, draw_pos, isFile, nil
+	return build_pos, input_pos, draw_pos, nil
 }

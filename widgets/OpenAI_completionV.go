@@ -11,7 +11,7 @@ type OpenAI_completionV struct {
 	Properties OpenAI_completionV_props
 
 	Out  string
-	done func()
+	done func(out string)
 }
 
 func (layout *Layout) AddOpenAI_completionV(x, y, w, h int, props *OpenAI_completionV) *OpenAI_completionV {
@@ -19,18 +19,10 @@ func (layout *Layout) AddOpenAI_completionV(x, y, w, h int, props *OpenAI_comple
 	return props
 }
 
-var g_global_OpenAI_completionV = make(map[string]*OpenAI_completionV)
-
-func NewGlobal_OpenAI_completionV(uid string) *OpenAI_completionV {
-	uid = fmt.Sprintf("OpenAI_completionV:%s", uid)
-
-	st, found := g_global_OpenAI_completionV[uid]
-	if !found {
-		st = &OpenAI_completionV{UID: uid}
-		st.Properties.Reset()
-		g_global_OpenAI_completionV[uid] = st
-	}
-	return st
+func OpenMemory_OpenAI_completionV(uid string) *OpenAI_completionV {
+	st := &OpenAI_completionV{UID: uid}
+	st.Properties.Reset()
+	return OpenMemory(uid, st)
 }
 
 func (st *OpenAI_completionV) Build(layout *Layout) {
@@ -95,6 +87,6 @@ func (st *OpenAI_completionV) Run(job *Job) {
 	}
 
 	if st.done != nil {
-		st.done()
+		st.done(st.Out)
 	}
 }

@@ -45,16 +45,6 @@ func (layout *Layout) AddEvents(x, y, w, h int, props *Events) *Events {
 	return props
 }
 
-var g_Events *Events
-
-func OpenFile_Events() *Events {
-	if g_Events == nil {
-		g_Events = &Events{Mode: "year"}
-		_read_file("Events-Events", g_Events)
-	}
-	return g_Events
-}
-
 func (st *Events) Build(layout *Layout) {
 
 	if st.Mode == "" {

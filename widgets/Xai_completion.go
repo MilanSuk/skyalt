@@ -19,19 +19,10 @@ func (layout *Layout) AddXai_completion(x, y, w, h int, props *Xai_completion) *
 	return props
 }
 
-var g_global_Xai_completion = make(map[string]*Xai_completion)
-
-func NewGlobal_Xai_completion(uid string) *Xai_completion {
-	uid = fmt.Sprintf("Xai_completion:%s", uid)
-
-	st, found := g_global_Xai_completion[uid]
-	if !found {
-		st = &Xai_completion{UID: uid}
-		st.Properties.Reset()
-
-		g_global_Xai_completion[uid] = st
-	}
-	return st
+func OpenMemory_Xai_completion(uid string) *Xai_completion {
+	st := &Xai_completion{UID: uid}
+	st.Properties.Reset()
+	return OpenMemory(uid, st)
 }
 
 func (st *Xai_completion) Build(layout *Layout) {

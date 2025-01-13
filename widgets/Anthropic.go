@@ -16,16 +16,6 @@ func (layout *Layout) AddAnthropic(x, y, w, h int, props *Anthropic) *Anthropic 
 	return props
 }
 
-var g_Anthropic *Anthropic
-
-func OpenFile_Anthropic() *Anthropic {
-	if g_Anthropic == nil {
-		g_Anthropic = &Anthropic{Enable: true, ChatModel: "claude-3-5-haiku-latest"}
-		_read_file("Anthropic-Anthropic", g_Anthropic)
-	}
-	return g_Anthropic
-}
-
 func (st *Anthropic) Build(layout *Layout) {
 
 	if st.ChatModel == "" {

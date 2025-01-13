@@ -9,6 +9,8 @@ type Search struct {
 	Cd    color.RGBA
 	Value *string
 	Ghost string
+
+	enter func()
 }
 
 func (layout *Layout) AddSearch(x, y, w, h int, value *string, ghost string) *Search {
@@ -30,6 +32,11 @@ func (st *Search) Build(layout *Layout) {
 	ed := layout.AddEditbox(1, 0, 1, 1, st.Value)
 	ed.Ghost = st.Ghost
 	ed.Refresh = true
+	ed.enter = func() {
+		if st.enter != nil {
+			st.enter()
+		}
+	}
 
 	bt := layout.AddButtonMenu(2, 0, 1, 1, "⌫", "", 0)
 	bt.Align = 1

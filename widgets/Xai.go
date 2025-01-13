@@ -16,16 +16,6 @@ func (layout *Layout) AddXai(x, y, w, h int, props *Xai) *Xai {
 	return props
 }
 
-var g_Xai *Xai
-
-func OpenFile_Xai() *Xai {
-	if g_Xai == nil {
-		g_Xai = &Xai{Enable: true, ChatModel: "grok-2-1212"}
-		_read_file("Xai-Xai", g_Xai)
-	}
-	return g_Xai
-}
-
 func (st *Xai) Build(layout *Layout) {
 
 	if st.ChatModel == "" {

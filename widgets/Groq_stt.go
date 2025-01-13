@@ -32,24 +32,23 @@ func (layout *Layout) AddGroq_stt(x, y, w, h int, props *Groq_stt) *Groq_stt {
 	return props
 }
 
-var g_global_Groq_stt = make(map[string]*Groq_stt)
+func OpenMemory_Groq_stt(uid string) *Groq_stt {
+	st := &Groq_stt{UID: uid}
+	st.Properties.Reset()
+	st.Input_Channels = OpenFile_Microphone().Channels
+	st.Input_SampleRate = OpenFile_Microphone().SampleRate
 
-func NewGlobal_Groq_stt(uid string) *Groq_stt {
-	uid = fmt.Sprintf("Groq_stt:%s", uid)
-
-	st, found := g_global_Groq_stt[uid]
-	if !found {
-		st = &Groq_stt{UID: uid}
-		st.Properties.Reset()
-		st.Input_Channels = OpenFile_Microphone().Channels
-		st.Input_SampleRate = OpenFile_Microphone().SampleRate
-
-		g_global_Groq_stt[uid] = st
-	}
-	return st
+	return OpenMemory(uid, st)
 }
 
 func (st *Groq_stt) Build(layout *Layout) {
+	if st.Input_Channels == 0 {
+		st.Input_Channels = OpenFile_Microphone().Channels
+	}
+	if st.Input_SampleRate == 0 {
+		st.Input_SampleRate = OpenFile_Microphone().SampleRate
+	}
+
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 1, 3)
 	layout.SetRowFromSub(0, 1, 100)

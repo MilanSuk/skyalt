@@ -3,19 +3,10 @@ package main
 type About struct {
 }
 
-func (layout *Layout) AddAbout(x, y, w, h int, props *About) *About {
+func (layout *Layout) AddAbout(x, y, w, h int) *About {
+	props := OpenFile_About()
 	layout._createDiv(x, y, w, h, "About", props.Build, nil, nil)
 	return props
-}
-
-var g_About *About
-
-func OpenFile_About() *About {
-	if g_About == nil {
-		g_About = &About{}
-		_read_file("About-About", g_About)
-	}
-	return g_About
 }
 
 func (st *About) Build(layout *Layout) {

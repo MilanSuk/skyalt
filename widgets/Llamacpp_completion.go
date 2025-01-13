@@ -28,18 +28,11 @@ func (layout *Layout) AddLlamacpp_completion(x, y, w, h int, props *Llamacpp_com
 	return props
 }
 
-var g_global_Llamacpp_completion = make(map[string]*Llamacpp_completion)
+func OpenMemory_Llamacpp_completion(uid string) *Llamacpp_completion {
+	st := &Llamacpp_completion{UID: uid}
+	st.Properties.Reset()
 
-func NewGlobal_Llamacpp_completion(uid string) *Llamacpp_completion {
-	uid = fmt.Sprintf("Llamacpp_completion:%s", uid)
-
-	st, found := g_global_Llamacpp_completion[uid]
-	if !found {
-		st = &Llamacpp_completion{UID: uid}
-		st.Properties.Reset()
-		g_global_Llamacpp_completion[uid] = st
-	}
-	return st
+	return OpenMemory(uid, st)
 }
 
 func (st *Llamacpp_completion) Build(layout *Layout) {

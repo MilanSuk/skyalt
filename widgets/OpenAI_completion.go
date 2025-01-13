@@ -24,18 +24,10 @@ func (layout *Layout) AddOpenAI_completion(x, y, w, h int, props *OpenAI_complet
 	return props
 }
 
-var g_global_OpenAI_completion = make(map[string]*OpenAI_completion)
-
-func NewGlobal_OpenAI_completion(uid string) *OpenAI_completion {
-	uid = fmt.Sprintf("OpenAI_completion:%s", uid)
-
-	st, found := g_global_OpenAI_completion[uid]
-	if !found {
-		st = &OpenAI_completion{UID: uid}
-		st.Properties.Reset()
-		g_global_OpenAI_completion[uid] = st
-	}
-	return st
+func OpenMemory_OpenAI_completion(uid string) *OpenAI_completion {
+	st := &OpenAI_completion{UID: uid}
+	st.Properties.Reset()
+	return OpenMemory(uid, st)
 }
 
 func (st *OpenAI_completion) Build(layout *Layout) {

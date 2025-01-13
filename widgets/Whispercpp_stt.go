@@ -36,21 +36,13 @@ func (layout *Layout) AddWhispercpp_stt(x, y, w, h int, props *Whispercpp_stt) *
 	return props
 }
 
-var g_global_Whispercpp_stt = make(map[string]*Whispercpp_stt)
+func OpenMemory_Whispercpp_stt(uid string) *Whispercpp_stt {
+	st := &Whispercpp_stt{UID: uid}
+	st.Properties = *NewWhispercpp_props()
+	st.Input_Channels = OpenFile_Microphone().Channels
+	st.Input_SampleRate = OpenFile_Microphone().SampleRate
 
-func NewGlobal_Whispercpp_stt(uid string) *Whispercpp_stt {
-	uid = fmt.Sprintf("Whispercpp_stt:%s", uid)
-
-	st, found := g_global_Whispercpp_stt[uid]
-	if !found {
-		st = &Whispercpp_stt{UID: uid}
-		st.Properties = *NewWhispercpp_props()
-		st.Input_Channels = OpenFile_Microphone().Channels
-		st.Input_SampleRate = OpenFile_Microphone().SampleRate
-
-		g_global_Whispercpp_stt[uid] = st
-	}
-	return st
+	return OpenMemory(uid, st)
 }
 
 func (st *Whispercpp_stt) Build(layout *Layout) {

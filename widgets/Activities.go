@@ -36,16 +36,6 @@ func (layout *Layout) AddActivities(x, y, w, h int, props *Activities) *Activiti
 	return props
 }
 
-var g_Activities *Activities
-
-func OpenFile_Activities() *Activities {
-	if g_Activities == nil {
-		g_Activities = &Activities{}
-		_read_file("Activities-Activities", g_Activities)
-	}
-	return g_Activities
-}
-
 func (actvs *Activities) Build(layout *Layout) {
 
 	actvs.checkActivities()

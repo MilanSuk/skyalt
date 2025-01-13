@@ -16,16 +16,6 @@ func (layout *Layout) AddCounter(x, y, w, h int, props *Counter) *Counter {
 	return props
 }
 
-var g_Counter *Counter
-
-func OpenFile_Counter() *Counter {
-	if g_Counter == nil {
-		g_Counter = &Counter{Count: 7, NumOfLines: 3}
-		_read_file("Counter-Counter", g_Counter)
-	}
-	return g_Counter
-}
-
 func (st *Counter) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 9)
 	layout.SetColumn(1, 1, 5)  // New empty column

@@ -132,8 +132,7 @@ func main() {
 		case NMSG_REFRESH:
 			//build
 			layout = _newLayoutRoot()
-			root := &Root{}
-			layout.fnBuild = root.Build
+			layout.fnBuild = OpenFile[Root]("Root-Root").Build
 			st := time.Now().UnixMilli()
 			_build(layout)
 			fmt.Println("_build()", float64(time.Now().UnixMilli()-st)/1000, "sec")

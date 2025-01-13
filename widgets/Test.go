@@ -9,16 +9,6 @@ func (layout *Layout) AddTest(x, y, w, h int, props *Test) *Test {
 	return props
 }
 
-var g_Test *Test
-
-func OpenFile_Test() *Test {
-	if g_Test == nil {
-		g_Test = &Test{}
-		_read_file("Test-Test", g_Test)
-	}
-	return g_Test
-}
-
 func (st *Test) Build(layout *Layout) {
 	layout.SetColumn(0, 0, 100)
 	layout.SetColumn(1, 0, 5)

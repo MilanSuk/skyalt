@@ -22,16 +22,6 @@ func (layout *Layout) AddLogs(x, y, w, h int, props *Logs) *Logs {
 	return props
 }
 
-var g_Logs *Logs
-
-func OpenFile_Logs() *Logs {
-	if g_Logs == nil {
-		g_Logs = &Logs{}
-		_read_file("Logs-Logs", g_Logs)
-	}
-	return g_Logs
-}
-
 func (st *Logs) Build(layout *Layout) {
 	st.lock.Lock()
 	defer st.lock.Unlock()

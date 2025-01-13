@@ -23,23 +23,12 @@ import (
 )
 
 type RootHeader struct {
-	ShowPromptList       bool
 	Last_error_time_unix int64
 }
 
 func (layout *Layout) AddRootHeader(x, y, w, h int, props *RootHeader) *RootHeader {
 	layout._createDiv(x, y, w, h, "RootHeader", props.Build, nil, nil)
 	return props
-}
-
-var g_RootHeader *RootHeader
-
-func OpenFile_RootHeader() *RootHeader {
-	if g_RootHeader == nil {
-		g_RootHeader = &RootHeader{}
-		_read_file("RootHeader-RootHeader", g_RootHeader)
-	}
-	return g_RootHeader
 }
 
 func (st *RootHeader) Build(layout *Layout) {
@@ -59,12 +48,15 @@ func (st *RootHeader) Build(layout *Layout) {
 
 	ast := OpenFile_AssistantChat()
 
-	logoBt := layout.AddButtonIcon(0, 0, 1, 1, "resources/logo_small.png", 0.1, "v0.1") //v0.1 .......
-	if !st.ShowPromptList {
+	logoBt, logoLay := layout.AddButtonIcon2(0, 0, 1, 1, "resources/logo_small.png", 0.1, "v0.1") //v0.1 .......
+	logoLay.Shortcut_key = 'o'
+	root := OpenFile_Root()
+	if root.AppPath != "RootApps-RootApps" {
 		logoBt.Background = 0
 	}
 	logoBt.clicked = func() {
-		st.ShowPromptList = !st.ShowPromptList
+		OpenFile_RootApps().Search = "" //reset
+		root.OpenApp("", "RootApps")
 	}
 
 	//microphone

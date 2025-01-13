@@ -1,6 +1,6 @@
 {
 "HideSide": false,
-"Mode": "month",
+"Mode": "year",
 "Events": [
 {
 "Title": "Meeting",
@@ -42,6 +42,6 @@
 "A": 255
 }
 },
-"Selected_date": 1736236045,
-"Selected_page": 1735717645
+"Selected_date": 1736794104,
+"Selected_page": 1735757304
 }

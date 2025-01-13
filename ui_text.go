@@ -405,7 +405,7 @@ func (ui *Ui) _UiText_TextEditKeys(dom *Layout3, text string, lines []WinGphLine
 		txt += "\t"
 	}
 
-	if keys.Enter && multi_line {
+	if keys.Enter && multi_line && !keys.Ctrl {
 		txt = "\n"
 	}
 

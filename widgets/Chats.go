@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+	"sort"
+	"strconv"
+	"time"
 )
 
 type Chats struct {
+	Folder     string
 	SearchChat string
 
-	Chats         []Chat
-	Selected_chat int
+	Selected_chat_id int64
 }
 
 func (layout *Layout) AddChats(x, y, w, h int, props *Chats) *Chats {
@@ -17,34 +19,16 @@ func (layout *Layout) AddChats(x, y, w, h int, props *Chats) *Chats {
 	return props
 }
 
-var g_Chats *Chats
-
-func OpenFile_Chats() *Chats {
-	if g_Chats == nil {
-		g_Chats = &Chats{}
-		_read_file("Chats-Chats", g_Chats)
-	}
-	return g_Chats
-}
-
 func (st *Chats) Build(layout *Layout) {
-
-	st.checkUIDs()
-	//st.saveJobs()
+	if st.Folder == "" {
+		st.Folder = "chats"
+	}
 
 	layout.SetColumnResizable(0, 2, 10, 5)
 	layout.SetColumn(1, 1, 100)
 	layout.SetRow(0, 1, 100)
 
-	if st.Selected_chat >= len(st.Chats) {
-		st.Selected_chat = len(st.Chats) - 1
-	}
-
-	//chat
-	var selChat *Chat
-	if st.Selected_chat >= 0 && st.Selected_chat < len(st.Chats) {
-		selChat = &st.Chats[st.Selected_chat]
-	}
+	found_selChat := false
 
 	//list of chats
 	ListDiv := layout.AddLayout(0, 0, 1, 1)
@@ -63,31 +47,50 @@ func (st *Chats) Build(layout *Layout) {
 
 			y := 0
 			searchWords := Search_Prepare(st.SearchChat)
-			for i, ch := range st.Chats {
-				chat_i := i
-				if !Search_Find(ch.Name, searchWords) {
+
+			files, _ := GetListOfFiles(st.Folder)
+
+			//sort
+			sort.Slice(files, func(i, j int) bool {
+				ival, _ := strconv.Atoi(files[i].Name)
+				jval, _ := strconv.Atoi(files[j].Name)
+				return ival < jval
+			})
+
+			for _, file := range files {
+				//for i := range st.Chats {
+				fid, _ := strconv.Atoi(file.Name)
+
+				if int64(fid) == st.Selected_chat_id {
+					found_selChat = true
+				}
+
+				chat := OpenFilePath_Chat(fmt.Sprintf("%s/Chat-%s", st.Folder, file.Name))
+				chat.file_name = file.Name //update!
+
+				if !Search_Find(chat.Label, searchWords) {
 					continue //skip
 				}
 
 				ListItem := ListChats.AddLayout(0, y, 1, 1)
 				ListItem.SetColumn(0, 1, 100)
-				ListItem.Drag_group = "chat"
+				/*ListItem.Drag_group = "chat"
 				ListItem.Drop_group = "chat"
 				ListItem.Drag_index = i
 				ListItem.Drop_v = true
 				ListItem.dropMove = func(src int, dst int) {
-					Layout_MoveElement(&st.Chats, &st.Chats, src, dst)
-					if st.Selected_chat == src {
-						st.Selected_chat = dst
+					if st.Selected_chat == st.Chats[src] {
+						st.Selected_chat = st.Chats[dst]
 					}
-				}
+					Layout_MoveElement(&st.Chats, &st.Chats, src, dst)
+				}*/
 
-				bt := ListItem.AddButtonMenu(0, 0, 1, 1, ch.Name, "", 0)
-				if st.Selected_chat == i {
+				bt := ListItem.AddButtonMenu(0, 0, 1, 1, chat.Label, "", 0)
+				if st.Selected_chat_id == int64(fid) {
 					bt.Background = 1
 				}
 				bt.clicked = func() {
-					st.Selected_chat = chat_i
+					st.Selected_chat_id = int64(fid)
 				}
 
 				y++
@@ -103,8 +106,11 @@ func (st *Chats) Build(layout *Layout) {
 	}
 
 	//chat
-	if selChat != nil {
-		layout.AddChat(1, 0, 1, 1, selChat)
+	if found_selChat {
+		path := fmt.Sprintf("%s/Chat-%d", st.Folder, st.Selected_chat_id)
+		layout.AddApp(1, 0, 1, 1, path)
+		layout.RenameLayout(1, 0, 1, 1, path) //change name(from Chat), so it remembers scroll, resize info
+
 	} else {
 		EmptyChat := layout.AddLayout(1, 0, 1, 1)
 		EmptyChat.SetColumn(0, 1, 100)
@@ -120,27 +126,11 @@ func (st *Chats) Build(layout *Layout) {
 	}
 }
 
-const g__chat_instructions_default = "You are an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests."
-
-func (st *Chats) checkUIDs() {
-	for i := range st.Chats {
-		if st.Chats[i].UID == "" {
-			st.Chats[i].UID = fmt.Sprintf("Chat:%d", rand.Int())
-		}
-	}
-}
-
 func (st *Chats) addNewChat() {
-	item := Chat{
-		UID:          "",
-		Name:         "New Chat",
-		Instructions: g__chat_instructions_default,
-	}
-	item.Properties.Reset()
+	id := time.Now().UnixMilli()
 
-	st.Chats = append(st.Chats, item)
+	item := OpenFilePath_Chat(fmt.Sprintf("%s/Chat-%d", st.Folder, id))
+	item.Reset()
 
-	st.Selected_chat = len(st.Chats) - 1
-
-	st.checkUIDs()
+	st.Selected_chat_id = id
 }

@@ -17,16 +17,6 @@ func (layout *Layout) AddGroq(x, y, w, h int, props *Groq) *Groq {
 	return props
 }
 
-var g_Groq *Groq
-
-func OpenFile_Groq() *Groq {
-	if g_Groq == nil {
-		g_Groq = &Groq{Enable: true, ChatModel: "llama-3.3-70b-versatile", STTModel: "whisper-large-v3"}
-		_read_file("Groq-Groq", g_Groq)
-	}
-	return g_Groq
-}
-
 func (st *Groq) Build(layout *Layout) {
 
 	if st.ChatModel == "" {

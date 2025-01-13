@@ -781,7 +781,7 @@ func (dom *Layout3) rebuildList() {
 		dom.props.UserCols = append(dom.props.UserCols, LayoutCR{Pos: x*2 + 0, Min: it_width, Max: it_width})
 		//dom.SetColumn(x*2+0, it_width, it_width)
 		if x+1 < nx {
-			dom.props.UserCols = append(dom.props.UserCols, LayoutCR{Pos: x*2 + 1, Min: 0, Max: space_between})
+			dom.props.UserCols = append(dom.props.UserCols, LayoutCR{Pos: x*2 + 1, Min: 0, Max: space_between}) //Min: space_between ... scroll bar
 			//dom.SetColumn(x*2+1, 0, space_between)
 		}
 	}
@@ -789,7 +789,7 @@ func (dom *Layout3) rebuildList() {
 		dom.props.UserRows = append(dom.props.UserRows, LayoutCR{Pos: y*2 + 0, Min: it_height, Max: it_height})
 		//dom.SetRow(y*2+0, it_height, it_height)
 		if y+1 < ny {
-			dom.props.UserRows = append(dom.props.UserRows, LayoutCR{Pos: y*2 + 1, Min: 0, Max: space_between})
+			dom.props.UserRows = append(dom.props.UserRows, LayoutCR{Pos: y*2 + 1, Min: 0, Max: space_between}) //Min: space_between ... scroll bar
 			//dom.SetRow(y*2+1, 0, space_between)
 		}
 	}
@@ -1222,12 +1222,6 @@ func (dom *Layout3) drawBuffers() {
 
 	dom.drawResizer()
 
-	//draw alpha rect = disable
-	if dom.drawEnableFade && !dom.touch && (dom.parent == nil || dom.parent.touch) {
-		buff.AddCrop(dom.crop)
-		buff.AddRect(dom.canvas, color.RGBA{255, 255, 255, 150}, 0)
-	}
-
 	//subs
 	for _, tx := range dom.childs {
 		if tx.IsShown() {
@@ -1236,6 +1230,12 @@ func (dom *Layout3) drawBuffers() {
 	}
 
 	dom.drawDragAndDrop()
+
+	//draw alpha rect = disable
+	if dom.drawEnableFade && !dom.touch && (dom.parent == nil || dom.parent.touch) {
+		buff.AddCrop(dom.crop)
+		buff.AddRect(dom.canvas, color.RGBA{255, 255, 255, 150}, 0)
+	}
 }
 
 func (dom *Layout3) drawGrid(cd color.RGBA, w float64, depth int) {

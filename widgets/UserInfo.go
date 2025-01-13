@@ -12,16 +12,6 @@ func (layout *Layout) AddUserInfo(x, y, w, h int, props *UserInfo) *UserInfo {
 	return props
 }
 
-var g_UserInfo *UserInfo
-
-func OpenFile_UserInfo() *UserInfo {
-	if g_UserInfo == nil {
-		g_UserInfo = &UserInfo{Born: 946681200, Gender: "male", Height: 1.7, Weight: 60}
-		_read_file("UserInfo-UserInfo", g_UserInfo)
-	}
-	return g_UserInfo
-}
-
 func (st *UserInfo) Build(layout *Layout) {
 	layout.SetColumn(0, 3, 3)
 	layout.SetColumn(1, 1, 100)
