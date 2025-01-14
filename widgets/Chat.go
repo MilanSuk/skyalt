@@ -245,28 +245,42 @@ func (st *Chat) buildOpenAIMsgs() []OpenAI_completion_msg {
 
 	for _, msg := range st.Msgs {
 		var userMsg OpenAI_completion_msg
+
+		//role
 		userMsg.Role = "user"
 		if msg.CreatedBy != "" {
 			userMsg.Role = "assistant"
 		}
+		//text
 		userMsg.AddText(msg.Text)
+
+		//image(s)
+		for _, file := range msg.Files {
+			err := userMsg.AddImageFile(file)
+			if err != nil {
+				Layout_WriteError(err)
+			}
+		}
+
 		Messages = append(Messages, userMsg)
 	}
 
-	//latest text
-	userMsg := OpenAI_completion_msg{Role: "user"}
-	userMsg.AddText(st.Input.Text)
-	Messages = append(Messages, userMsg)
-
-	//latest images
-	for _, file := range st.Input.Files {
+	//latest msg
+	{
 		userMsg := OpenAI_completion_msg{Role: "user"}
-		err := userMsg.AddImageFile(file)
-		if err != nil {
-			Layout_WriteError(err)
-		} else {
-			Messages = append(Messages, userMsg)
+
+		//text
+		userMsg.AddText(st.Input.Text)
+
+		//image(s)
+		for _, file := range st.Input.Files {
+			err := userMsg.AddImageFile(file)
+			if err != nil {
+				Layout_WriteError(err)
+			}
 		}
+
+		Messages = append(Messages, userMsg)
 	}
 
 	return Messages
