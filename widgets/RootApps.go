@@ -20,7 +20,11 @@ func (st *RootApps) Build(layout *Layout) {
 	layout.SetColumn(2, 1, 100)
 	layout.SetRow(1, 1, 100)
 
-	search := layout.AddSearch(1, 0, 1, 1, &st.Search, "")
+	searchDiv := layout.AddLayout(1, 0, 1, 1)
+	searchDiv.SetColumn(0, 1, 100)
+	searchDiv.SetColumn(1, 1, 10)
+	searchDiv.SetColumn(2, 1, 100)
+	search := searchDiv.AddSearch(1, 0, 1, 1, &st.Search, "")
 
 	appDiv := layout.AddLayout(1, 1, 1, 1)
 	appDiv.SetColumn(0, 1, 100)

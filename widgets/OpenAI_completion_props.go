@@ -1,39 +1,12 @@
 package main
 
-import "encoding/base64"
-
-type OpenAI_completion_msg struct {
-	Role    string `json:"role"` //"system", "user", "assistant"
-	Content string `json:"content"`
-}
-
-type OpenAI_completion_msgV_Content_Image_url struct {
-	Detail string `json:"detail,omitempty"` //"low", "high", "auto"
-	Url    string `json:"url,omitempty"`    //"data:image/jpeg;base64,<base64_image_string>"
-}
-type OpenAI_completion_msgV_Content struct {
-	Type      string                                    `json:"type"` //"image_url", "text"
-	Text      string                                    `json:"text,omitempty"`
-	Image_url *OpenAI_completion_msgV_Content_Image_url `json:"image_url,omitempty"`
-}
-type OpenAI_completion_msgV struct {
-	Role    string                           `json:"role"` //"system", "user", "assistant"
-	Content []OpenAI_completion_msgV_Content `json:"content"`
-}
-
-func (msg *OpenAI_completion_msgV) AddText(str string) {
-	msg.Content = append(msg.Content, OpenAI_completion_msgV_Content{Type: "text", Text: str})
-}
-func (msg *OpenAI_completion_msgV) AddImage(data []byte, ext string) { //ext="png","jpeg", "webp", "gif"(non-animated)
-	prefix := "data:image/" + ext + ";base64,"
-	bs64 := base64.StdEncoding.EncodeToString(data)
-	msg.Content = append(msg.Content, OpenAI_completion_msgV_Content{Type: "image_url", Image_url: &OpenAI_completion_msgV_Content_Image_url{Detail: "high", Url: prefix + bs64}})
-}
-
-type OpenAI_completion_format struct {
-	Type string `json:"type"` //json_object
-	//Json_schema ...
-}
+import (
+	"encoding/base64"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+)
 
 func (layout *Layout) AddOpenAI_completion_props(x, y, w, h int, props *OpenAI_completion_props) *OpenAI_completion_props {
 	layout._createDiv(x, y, w, h, "OpenAI_completion_props", props.Build, nil, nil)
@@ -52,6 +25,49 @@ type OpenAI_completion_props struct {
 	Presence_penalty  float64 `json:"presence_penalty"`  //0
 
 	Response_format *OpenAI_completion_format `json:"response_format"`
+}
+
+type OpenAI_completion_msg_Content_Image_url struct {
+	Detail string `json:"detail,omitempty"` //"low", "high", "auto"
+	Url    string `json:"url,omitempty"`    //"data:image/jpeg;base64,<base64_image_string>"
+}
+type OpenAI_completion_msg_Content struct {
+	Type      string                                   `json:"type"` //"image_url", "text"
+	Text      string                                   `json:"text,omitempty"`
+	Image_url *OpenAI_completion_msg_Content_Image_url `json:"image_url,omitempty"`
+}
+type OpenAI_completion_msg struct {
+	Role    string                          `json:"role"` //"system", "user", "assistant"
+	Content []OpenAI_completion_msg_Content `json:"content"`
+}
+
+func (msg *OpenAI_completion_msg) AddText(str string) {
+	msg.Content = append(msg.Content, OpenAI_completion_msg_Content{Type: "text", Text: str})
+}
+func (msg *OpenAI_completion_msg) AddImage(data []byte, ext string) { //ext="png","jpeg", "webp", "gif"(non-animated)
+	prefix := "data:image/" + ext + ";base64,"
+	bs64 := base64.StdEncoding.EncodeToString(data)
+	msg.Content = append(msg.Content, OpenAI_completion_msg_Content{Type: "image_url", Image_url: &OpenAI_completion_msg_Content_Image_url{Detail: "high", Url: prefix + bs64}})
+}
+func (msg *OpenAI_completion_msg) AddImageFile(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	ext := filepath.Ext(path)
+	ext, _ = strings.CutPrefix(ext, ".")
+	if ext == "" {
+		return fmt.Errorf("missing file type(.ext)")
+	}
+
+	msg.AddImage(data, ext)
+	return nil
+}
+
+type OpenAI_completion_format struct {
+	Type string `json:"type"` //json_object
+	//Json_schema ...
 }
 
 func (st *OpenAI_completion_props) Build(layout *Layout) {

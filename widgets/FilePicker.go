@@ -145,7 +145,7 @@ func (st *FilePicker) Build(layout *Layout) {
 	List := layout.AddLayout(0, 1, 6, 1)
 	List.SetColumn(0, 3, 100)
 	List.SetColumn(1, 2, 2)
-	List.SetColumn(2, 3, 3)
+	List.SetColumn(2, 3, 3.5)
 
 	{
 		folder := *st.Path

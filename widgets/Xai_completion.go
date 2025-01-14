@@ -11,7 +11,7 @@ type Xai_completion struct {
 	Properties Xai_completion_props
 
 	Out  string
-	done func(Out string)
+	done func(out string)
 }
 
 func (layout *Layout) AddXai_completion(x, y, w, h int, props *Xai_completion) *Xai_completion {

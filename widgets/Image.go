@@ -23,16 +23,14 @@ type Image struct {
 	orig_width, orig_height int
 }
 
-func (layout *Layout) AddImage(x, y, w, h int, path string) *Image {
-	props := &Image{Path: path, Align_h: 1, Align_v: 1, Margin: 0.1, Cd: color.RGBA{0, 0, 0, 255}}
+func (layout *Layout) AddImageCd(x, y, w, h int, path string, cd color.RGBA) *Image {
+	props := &Image{Path: path, Align_h: 1, Align_v: 1, Margin: 0.1, Cd: cd}
 	layout._createDiv(x, y, w, h, "Image", nil, props.Draw, props.Input)
 	return props
 }
 
-func (layout *Layout) AddImageCd(x, y, w, h int, path string, cd color.RGBA) *Image {
-	props := layout.AddImage(x, y, w, h, path)
-	props.Cd = cd
-	return props
+func (layout *Layout) AddImage(x, y, w, h int, path string) *Image {
+	return layout.AddImageCd(x, y, w, h, path, color.RGBA{255, 255, 255, 255})
 }
 
 func (st *Image) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {

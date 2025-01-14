@@ -17,10 +17,8 @@ type Chat struct {
 	Service              string
 	Llamacpp_Properties  Llamacpp_completion_props
 	OpenAI_Properties    OpenAI_completion_props
-	OpenAI_PropertiesV   OpenAI_completionV_props
 	Anthropic_Properties Anthropic_completion_props
 	Xai_Properties       Xai_completion_props
-	Xai_PropertiesV      Xai_completionV_props
 	Groq_Properties      Groq_completion_props
 }
 
@@ -36,14 +34,10 @@ func (st *Chat) Build(layout *Layout) {
 		job = OpenMemory_Llamacpp_completion(st.file_name).FindJob()
 	case "openai":
 		job = OpenMemory_OpenAI_completion(st.file_name).FindJob()
-	case "openaiV":
-		job = OpenMemory_OpenAI_completion(st.file_name).FindJob()
 	case "anthropic":
 		job = OpenMemory_Anthropic_completion(st.file_name).FindJob()
 	case "xai":
 		job = OpenMemory_Xai_completion(st.file_name).FindJob()
-	case "xaiV":
-		job = OpenMemory_Xai_completionV(st.file_name).FindJob()
 	case "groq":
 		job = OpenMemory_Groq_completion(st.file_name).FindJob()
 	}
@@ -77,7 +71,7 @@ func (st *Chat) Build(layout *Layout) {
 			if job != nil {
 				//user msg
 				MsgsDiv.SetRowFromSub(y, 1, 100)
-				MsgsDiv.AddChatMsg(0, y, 1, 1, &ChatMsg{Text: st.Input.UserMsg, CreatedTimeSec: job.start_time_sec, CreatedBy: ""})
+				MsgsDiv.AddChatMsg(0, y, 1, 1, &ChatMsg{Text: st.Input.Text, CreatedTimeSec: job.start_time_sec, CreatedBy: ""})
 				y++
 
 				MsgsDiv.SetRow(y, 0.5, 0.5) //space
@@ -91,14 +85,10 @@ func (st *Chat) Build(layout *Layout) {
 					MsgsDiv.AddLlamacpp_completion(0, y, 1, 1, OpenMemory_Llamacpp_completion(st.file_name))
 				case "openai":
 					MsgsDiv.AddOpenAI_completion(0, y, 1, 1, OpenMemory_OpenAI_completion(st.file_name))
-				case "openaiV":
-					MsgsDiv.AddOpenAI_completionV(0, y, 1, 1, OpenMemory_OpenAI_completionV(st.file_name))
 				case "anthropic":
 					MsgsDiv.AddAnthropic_completion(0, y, 1, 1, OpenMemory_Anthropic_completion(st.file_name))
 				case "xai":
 					MsgsDiv.AddXai_completion(0, y, 1, 1, OpenMemory_Xai_completion(st.file_name))
-				case "xaiV":
-					MsgsDiv.AddXai_completionV(0, y, 1, 1, OpenMemory_Xai_completionV(st.file_name))
 				case "groq":
 					MsgsDiv.AddGroq_completion(0, y, 1, 1, OpenMemory_Groq_completion(st.file_name))
 				}
@@ -124,7 +114,7 @@ func (st *Chat) Build(layout *Layout) {
 					return
 				}
 				chat.Properties = st.Llamacpp_Properties
-				chat.Properties.Messages = st.buildOpenAIMsgs(true)
+				chat.Properties.Messages = st.buildOpenAIMsgs()
 				chat.done = func(out string) {
 					st.addMsg(out, stTime, model, MsgsDiv)
 				}
@@ -137,20 +127,7 @@ func (st *Chat) Build(layout *Layout) {
 					return
 				}
 				chat.Properties = st.OpenAI_Properties
-				chat.Properties.Messages = st.buildOpenAIMsgs(true)
-				chat.done = func(out string) {
-					st.addMsg(out, stTime, model, MsgsDiv)
-				}
-				job = chat.Start()
-			case "openaiV":
-				chat := OpenMemory_OpenAI_completionV(st.file_name)
-				model = chat.Properties.Model
-				job := chat.FindJob()
-				if job != nil {
-					return
-				}
-				chat.Properties = st.OpenAI_PropertiesV
-				chat.Properties.Messages = st.buildOpenAIMsgsV(true)
+				chat.Properties.Messages = st.buildOpenAIMsgs()
 				chat.done = func(out string) {
 					st.addMsg(out, stTime, model, MsgsDiv)
 				}
@@ -164,7 +141,7 @@ func (st *Chat) Build(layout *Layout) {
 					return
 				}
 				chat.Properties = st.Anthropic_Properties
-				chat.Properties.Messages = st.buildOpenAIMsgs(true)
+				chat.Properties.Messages = st.buildOpenAIMsgs()
 				chat.done = func(out string) {
 					st.addMsg(out, stTime, model, MsgsDiv)
 				}
@@ -177,20 +154,7 @@ func (st *Chat) Build(layout *Layout) {
 					return
 				}
 				chat.Properties = st.Xai_Properties
-				chat.Properties.Messages = st.buildOpenAIMsgs(true)
-				chat.done = func(out string) {
-					st.addMsg(out, stTime, model, MsgsDiv)
-				}
-				job = chat.Start()
-			case "xaiV":
-				chat := OpenMemory_Xai_completionV(st.file_name)
-				model = chat.Properties.Model
-				job := chat.FindJob()
-				if job != nil {
-					return
-				}
-				chat.Properties = st.Xai_PropertiesV
-				chat.Properties.Messages = st.buildOpenAIMsgsV(true)
+				chat.Properties.Messages = st.buildOpenAIMsgs()
 				chat.done = func(out string) {
 					st.addMsg(out, stTime, model, MsgsDiv)
 				}
@@ -203,7 +167,7 @@ func (st *Chat) Build(layout *Layout) {
 					return
 				}
 				chat.Properties = st.Groq_Properties
-				chat.Properties.Messages = st.buildOpenAIMsgs(true)
+				chat.Properties.Messages = st.buildOpenAIMsgs()
 				chat.done = func(out string) {
 					st.addMsg(out, stTime, model, MsgsDiv)
 				}
@@ -229,22 +193,19 @@ func (st *Chat) Build(layout *Layout) {
 		}
 		PropertiesDiv.AddEditboxMultiline(0, 1, 2, 1, &st.Instructions)
 
-		opts := []string{"llamacpp", "openai", "openaiV", "anthropic", "xai", "xaiV", "groq"}
-		PropertiesDiv.AddCombo(0, 2, 2, 1, &st.Service, opts, opts)
+		labels := []string{"Llama.cpp", "OpenAI", "Anthropic", "xAI", "Groq"}
+		values := []string{"llamacpp", "openai", "anthropic", "xai", "groq"}
+		PropertiesDiv.AddCombo(0, 2, 2, 1, &st.Service, labels, values)
 
 		switch st.Service {
 		case "llamacpp":
 			PropertiesDiv.AddLlamacpp_completion_props(0, 3, 2, 1, &st.Llamacpp_Properties)
 		case "openai":
 			PropertiesDiv.AddOpenAI_completion_props(0, 3, 2, 1, &st.OpenAI_Properties)
-		case "openaiV":
-			PropertiesDiv.AddOpenAI_completionV_props(0, 3, 2, 1, &st.OpenAI_PropertiesV)
 		case "anthropic":
 			PropertiesDiv.AddAnthropic_completion_props(0, 3, 2, 1, &st.Anthropic_Properties)
 		case "xai":
 			PropertiesDiv.AddXai_completion_props(0, 3, 2, 1, &st.Xai_Properties)
-		case "xaiV":
-			PropertiesDiv.AddXai_completionV_props(0, 3, 2, 1, &st.Xai_PropertiesV)
 		case "groq":
 			PropertiesDiv.AddGroq_completion_props(0, 3, 2, 1, &st.Groq_Properties)
 		}
@@ -259,49 +220,31 @@ func (st *Chat) Reset() {
 	st.Instructions = g__chat_instructions_default
 	st.Llamacpp_Properties.Reset()
 	st.OpenAI_Properties.Reset()
-	st.OpenAI_PropertiesV.Reset()
+	//st.OpenAI_PropertiesV.Reset()
 	st.Anthropic_Properties.Reset()
 	st.Xai_Properties.Reset()
-	st.Xai_PropertiesV.Reset()
+	//st.Xai_PropertiesV.Reset()
 	st.Groq_Properties.Reset()
 }
 func (st *Chat) addMsg(out string, createdTimeSec float64, createdBy string, scrollLayout *Layout) {
 	if out != "" {
-		st.Msgs = append(st.Msgs, ChatMsg{Text: st.Input.UserMsg, CreatedTimeSec: createdTimeSec, CreatedBy: ""})
+		st.Msgs = append(st.Msgs, ChatMsg{Text: st.Input.Text, Files: st.Input.Files, CreatedTimeSec: createdTimeSec, CreatedBy: ""})
 		st.Msgs = append(st.Msgs, ChatMsg{Text: out, CreatedTimeSec: float64(time.Now().UnixMilli()) / 1000, CreatedBy: createdBy})
 
 		scrollLayout.VScrollToTheBottom()
-		st.Input.UserMsg = ""
+		st.Input.reset()
 	}
 }
 
-func (st *Chat) buildOpenAIMsgs(addTempMsg bool) []OpenAI_completion_msg {
+func (st *Chat) buildOpenAIMsgs() []OpenAI_completion_msg {
 	var Messages []OpenAI_completion_msg
-	Messages = append(Messages, OpenAI_completion_msg{Role: "system", Content: st.Instructions})
 
-	for _, msg := range st.Msgs {
-		role := "user"
-		if msg.CreatedBy != "" {
-			role = "assistant"
-		}
-		Messages = append(Messages, OpenAI_completion_msg{Role: role, Content: msg.Text})
-	}
-	if addTempMsg {
-		Messages = append(Messages, OpenAI_completion_msg{Role: "user", Content: st.Input.UserMsg})
-	}
-
-	return Messages
-}
-
-func (st *Chat) buildOpenAIMsgsV(addTempMsg bool) []OpenAI_completion_msgV {
-	var Messages []OpenAI_completion_msgV
-
-	sysMsg := OpenAI_completion_msgV{Role: "system"}
+	sysMsg := OpenAI_completion_msg{Role: "system"}
 	sysMsg.AddText(st.Instructions)
 	Messages = append(Messages, sysMsg)
 
 	for _, msg := range st.Msgs {
-		var userMsg OpenAI_completion_msgV
+		var userMsg OpenAI_completion_msg
 		userMsg.Role = "user"
 		if msg.CreatedBy != "" {
 			userMsg.Role = "assistant"
@@ -309,10 +252,21 @@ func (st *Chat) buildOpenAIMsgsV(addTempMsg bool) []OpenAI_completion_msgV {
 		userMsg.AddText(msg.Text)
 		Messages = append(Messages, userMsg)
 	}
-	if addTempMsg {
-		userMsg := OpenAI_completion_msgV{Role: "user"}
-		userMsg.AddText(st.Input.UserMsg)
-		Messages = append(Messages, userMsg)
+
+	//latest text
+	userMsg := OpenAI_completion_msg{Role: "user"}
+	userMsg.AddText(st.Input.Text)
+	Messages = append(Messages, userMsg)
+
+	//latest images
+	for _, file := range st.Input.Files {
+		userMsg := OpenAI_completion_msg{Role: "user"}
+		err := userMsg.AddImageFile(file)
+		if err != nil {
+			Layout_WriteError(err)
+		} else {
+			Messages = append(Messages, userMsg)
+		}
 	}
 
 	return Messages

@@ -124,10 +124,13 @@ func (ast *AssistantChat) Send() {
 
 	var msgs []OpenAI_completion_msg
 	{
-		msg_sys := OpenAI_completion_msg{Role: "system", Content: SystemPrompt}
-		msgs = append(msgs, msg_sys)
-		msg_usr := OpenAI_completion_msg{Role: "user", Content: UserPrompt}
-		msgs = append(msgs, msg_usr)
+		sysMsg := OpenAI_completion_msg{Role: "system"}
+		sysMsg.AddText(SystemPrompt)
+		msgs = append(msgs, sysMsg)
+
+		usrMsg := OpenAI_completion_msg{Role: "user"}
+		usrMsg.AddText(UserPrompt)
+		msgs = append(msgs, usrMsg)
 	}
 
 	done1 := func(Out string) {
@@ -151,10 +154,13 @@ func (ast *AssistantChat) Send() {
 
 		var msgs []OpenAI_completion_msg
 		{
-			msg_sys := OpenAI_completion_msg{Role: "system", Content: SystemPrompt}
-			msgs = append(msgs, msg_sys)
-			msg_usr := OpenAI_completion_msg{Role: "user", Content: UserPrompt}
-			msgs = append(msgs, msg_usr)
+			sysMsg := OpenAI_completion_msg{Role: "system"}
+			sysMsg.AddText(SystemPrompt)
+			msgs = append(msgs, sysMsg)
+
+			usrMsg := OpenAI_completion_msg{Role: "user"}
+			usrMsg.AddText(UserPrompt)
+			msgs = append(msgs, usrMsg)
 		}
 
 		done2 := func(Out string) {

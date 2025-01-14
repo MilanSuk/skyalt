@@ -27,7 +27,7 @@ func (st *Search) Build(layout *Layout) {
 	layout.SetColumn(1, 1, 100)
 	layout.SetColumn(2, 1, 0)
 
-	layout.AddImage(0, 0, 1, 1, "resources/search.png")
+	layout.AddImageCd(0, 0, 1, 1, "resources/search.png", color.RGBA{0, 0, 0, 255})
 
 	ed := layout.AddEditbox(1, 0, 1, 1, st.Value)
 	ed.Ghost = st.Ghost

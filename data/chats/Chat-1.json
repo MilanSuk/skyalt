@@ -4,19 +4,23 @@
 "Msgs": [
 {
 "Text": "Can you write list of top Japanese cars.\n",
+"Files": null,
 "CreatedTimeSec": 1736777291.746,
 "CreatedBy": ""
 },
 {
 "Text": "Here's a list of some popular and highly-regarded Japanese cars:\n\n**Luxury Cars:**\n\n1. **Lexus IS**: A compact luxury sedan known for its comfort, handling, and strong V6 engine.\n2. **Audi A4 Sportback**: A mid-size luxury hatchback offering impressive performance, features, and design.\n3. **BMW 5 Series Gran Turismo**: A high-performance variant of the BMW 5 Series, featuring exceptional driving dynamics.\n\n**Sports Cars:**\n\n1. **Nissan GT-R Nismo**: A high-performance sports car that combines power, agility, and advanced technology.\n2. **Toyota Supra**: A rear-wheel-drive sports coupe that has gained popularity worldwide for its all-aluminum construction and turbocharged inline-6 engine.\n3. **Honda NSX**: An iconic supercar produced by Honda from 1990 to 2005, re-released in limited numbers since then.\n\n**Compact Luxury Sedans:**\n\n1. **Mazda CX-5**: A stylish and feature-packed compact SUV that offers excellent fuel efficiency and handling.\n2. **Subaru Outback**: A rugged and reliable compact SUV with all-wheel drive capability and generous ground clearance.\n3. **Hyundai Santa Fe**: A spacious and comfortable compact SUV that provides a great balance between size, features, and price.\n\n**Electric and Hybrid Vehicles:**\n\n1. **Tesla Model S**: The flagship electric vehicle (EV) from Tesla, known for its range, performance, and luxurious interior.\n2. **Audi e-tron**: A fully-electric luxury SUV offering impressive acceleration, comfort, and sustainability.\n3. **Kia Niro EV**: A subcompact crossover with an impressive battery life, eco-friendly credentials, and modern tech features.\n\n**Performance Cars:**\n\n1. **Ryōko Kankai**: A high-performance sports car developed by Toyota, featuring advanced technology and exceptional driving dynamics.\n2. **Datsun ",
+"Files": null,
 "CreatedTimeSec": 1736777324.735,
 "CreatedBy": "llama-3.2-1b-instruct-q8_0"
 }
 ],
 "Input": {
-"UserMsg": "continue"
+"Text": "tell me more",
+"Files": null,
+"FilePickerPath": "/"
 },
-"Service": "xai",
+"Service": "llamacpp",
 "Llamacpp_Properties": {
 "model": "llama-3.2-1b-instruct-q8_0",
 "messages": null,
@@ -62,17 +66,6 @@
 "presence_penalty": 0,
 "response_format": null
 },
-"OpenAI_PropertiesV": {
-"model": "",
-"messages": null,
-"stream": false,
-"temperature": 0,
-"max_tokens": 0,
-"top_p": 0,
-"frequency_penalty": 0,
-"presence_penalty": 0,
-"response_format": null
-},
 "Anthropic_Properties": {
 "model": "",
 "system": "",
@@ -88,17 +81,6 @@
 "temperature": 1,
 "max_tokens": 4046,
 "top_p": 0.7,
-"frequency_penalty": 0,
-"presence_penalty": 0,
-"response_format": null
-},
-"Xai_PropertiesV": {
-"model": "",
-"messages": null,
-"stream": false,
-"temperature": 0,
-"max_tokens": 0,
-"top_p": 0,
 "frequency_penalty": 0,
 "presence_penalty": 0,
 "response_format": null

@@ -156,11 +156,6 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 		paint.Rect(rectLabel, cd, cdBack_over, cdBack_down, 0)
 	}
 
-	//draw border
-	if st.Border {
-		paint.Rect(rc, cdBack, cdBack_over, cdBack_down, 0.03)
-	}
-
 	//draw icon
 	if st.Icon != "" {
 		rectIcon := rectLabel
@@ -196,6 +191,11 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 			cdText, cdText_over, cdText_down,
 			false, false, uint8(st.Align), 1)
 		tx.Multiline = true
+	}
+
+	//draw border
+	if st.Border {
+		paint.Rect(rc, cdBack, cdBack_over, cdBack_down, 0.03)
 	}
 
 	return

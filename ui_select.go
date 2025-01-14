@@ -38,7 +38,8 @@ func (s *UiSelection) Reset() {
 }
 
 func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
-	if ui.parent.win.io.Keys.Ctrl {
+	keys := ui.parent.win.io.Keys
+	if keys.Ctrl && keys.Shift {
 		n := 0
 		ui.dom.postDraw(s.appName, 0, &n) //dialogs? ....
 	}
@@ -226,11 +227,9 @@ func Layout3_Get_prompt_color(i int) LayoutPromptColor {
 }
 
 func (dom *Layout3) postDraw(name string, depth int, num_cds *int) {
-
-	if dom.props.Name == name || (dom.props.Caller_file == name+".go" && dom.props.Name == "_layout") {
-
+	if dom.props.Name == name || (dom.props.Caller_file == name+".go" && (dom.props.Name == "_layout" || dom.props.Name == "_list")) {
 		cd := Layout3_Get_prompt_color(*num_cds)
-		cd.Cd.A = 200
+		cd.Cd.A = 150
 
 		dom.drawGrid(cd.Cd, 0.03, depth)
 

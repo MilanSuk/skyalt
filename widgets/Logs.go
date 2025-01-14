@@ -35,9 +35,10 @@ func (st *Logs) Build(layout *Layout) {
 	}
 
 	y := 1
-	for _, e := range st.Items {
-		layout.AddText(0, y, 1, 1, time.Unix(e.Time_unix, 0).Format("2006-01-02 15:04:05"))
-		layout.AddText(1, y, 1, 1, e.Error)
+	for i := len(st.Items) - 1; i >= 0; i-- {
+		it := st.Items[i]
+		layout.AddText(0, y, 1, 1, time.Unix(it.Time_unix, 0).Format("2006-01-02 15:04:05"))
+		layout.AddText(1, y, 1, 1, it.Error)
 		y++
 	}
 

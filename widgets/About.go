@@ -1,5 +1,7 @@
 package main
 
+import "image/color"
+
 type About struct {
 }
 
@@ -15,7 +17,7 @@ func (st *About) Build(layout *Layout) {
 	layout.SetColumn(2, 1, 100)
 	layout.SetRow(1, 2, 4)
 
-	layout.AddImage(1, 1, 1, 1, "resources/logo.png")
+	layout.AddImageCd(1, 1, 1, 1, "resources/logo.png", color.RGBA{0, 0, 0, 255})
 
 	Version := layout.AddText(1, 3, 1, 1, "v0.1")
 	Version.Align_h = 1

@@ -16,7 +16,7 @@ type OpenAI_completion struct {
 	Properties OpenAI_completion_props
 
 	Out  string
-	done func(Out string)
+	done func(out string)
 }
 
 func (layout *Layout) AddOpenAI_completion(x, y, w, h int, props *OpenAI_completion) *OpenAI_completion {
@@ -34,7 +34,7 @@ func (st *OpenAI_completion) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 1, 3)
-	layout.SetRowFromSub(0, 1, 100)
+	layout.SetRow(0, 1, 10)
 
 	job := FindJob(st.UID)
 
@@ -52,7 +52,6 @@ func (st *OpenAI_completion) Build(layout *Layout) {
 }
 
 func (st *OpenAI_completion) Start() *Job {
-
 	return StartJob(st.UID, "OpenAI chat completion", st.Run)
 }
 func (st *OpenAI_completion) Stop() {
@@ -88,7 +87,6 @@ func (st *OpenAI_completion) Run(job *Job) {
 
 	st.Out, err = OpenAI_completion_Run(jsProps, st.Properties.Stream, "https://api.openai.com/v1/chat/completions", OpenFile_OpenAI().Api_key, job)
 	if err != nil {
-		fmt.Println("--OpenAI_completion_Run error", err)
 		job.AddError(err)
 		return
 	}

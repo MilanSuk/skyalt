@@ -269,6 +269,21 @@
 "Time_unix": 1736778257,
 "Layout_hash": 0,
 "Error": "Complete() failed: user Canceled the job"
+},
+{
+"Time_unix": 1736861744,
+"Layout_hash": 0,
+"Error": "Missing answer in js: {\"code\":\"Some resource has been exhausted\",\"error\":\"Your team dd0a4c2d-7afb-47ff-a427-bf3c049fe3da has either used all available credits or reached its monthly spending limit. To continue making API requests, please purchase more credits or raise your spending limit.\"}"
+},
+{
+"Time_unix": 1736861864,
+"Layout_hash": 0,
+"Error": "Complete() failed: user Canceled the job"
+},
+{
+"Time_unix": 1736862302,
+"Layout_hash": 0,
+"Error": "statusCode 400 != 200, response: "
 }
 ]
 }
