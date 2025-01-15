@@ -18,6 +18,8 @@ type OpenAI_completion_props struct {
 	Messages []OpenAI_completion_msg `json:"messages"`
 	Stream   bool                    `json:"stream"`
 
+	Tools []*OpenAI_completion_tool `json:"tools,omitempty"`
+
 	Temperature       float64 `json:"temperature"`       //1.0
 	Max_tokens        int     `json:"max_tokens"`        //
 	Top_p             float64 `json:"top_p"`             //1.0
@@ -25,6 +27,56 @@ type OpenAI_completion_props struct {
 	Presence_penalty  float64 `json:"presence_penalty"`  //0
 
 	Response_format *OpenAI_completion_format `json:"response_format"`
+}
+
+type OpenAI_completion_tool_function_parameters_properties struct {
+	Type        string   `json:"type"` //"number", "string"
+	Description string   `json:"description"`
+	Enum        []string `json:"enum,omitempty"`
+	Default     string   `json:"default,omitempty"`
+}
+type OpenAI_completion_tool_function_parameters struct {
+	Type                 string
+	Properties           map[string]OpenAI_completion_tool_function_parameters_properties
+	Required             []string
+	AdditionalProperties bool
+}
+type OpenAI_completion_tool_function struct {
+	Name        string                                     `json:"name"`
+	Description string                                     `json:"description"`
+	Parameters  OpenAI_completion_tool_function_parameters `json:"parameters"`
+	Strict      bool                                       `json:"strict"`
+}
+
+func (prm *OpenAI_completion_tool_function) AddParam(name, typee, description string) {
+	prm.Parameters.Properties[name] = OpenAI_completion_tool_function_parameters_properties{Type: typee, Description: description}
+	prm.Parameters.Required = append(prm.Parameters.Required, name)
+}
+
+type OpenAI_completion_tool struct {
+	Type     string                          `json:"type"` //"object"
+	Function OpenAI_completion_tool_function `json:"function"`
+}
+
+func (props *OpenAI_completion_props) AddToolFunc(name, description string) *OpenAI_completion_tool_function {
+	tool := &OpenAI_completion_tool{Type: "function"}
+
+	tool.Function = OpenAI_completion_tool_function{Name: name, Description: description, Strict: true}
+	tool.Function.Parameters.Type = "object"
+	tool.Function.Parameters.AdditionalProperties = false
+
+	props.Tools = append(props.Tools, tool)
+	return &tool.Function
+}
+
+type OpenAI_completion_msg_Content_ToolCall_Function struct {
+	Name      string                 `json:"name,omitempty"`
+	Arguments map[string]interface{} `json:"arguments,omitempty"`
+}
+type OpenAI_completion_msg_Content_ToolCall struct {
+	Id       string                                          `json:"id,omitempty"`
+	Type     string                                          `json:"type,omitempty"`
+	Function OpenAI_completion_msg_Content_ToolCall_Function `json:"function,omitempty"`
 }
 
 type OpenAI_completion_msg_Content_Image_url struct {
@@ -35,6 +87,8 @@ type OpenAI_completion_msg_Content struct {
 	Type      string                                   `json:"type"` //"image_url", "text"
 	Text      string                                   `json:"text,omitempty"`
 	Image_url *OpenAI_completion_msg_Content_Image_url `json:"image_url,omitempty"`
+
+	Tool_calls []OpenAI_completion_msg_Content_ToolCall `json:"tool_calls,omitempty"`
 }
 type OpenAI_completion_msg struct {
 	Role    string                          `json:"role"` //"system", "user", "assistant"

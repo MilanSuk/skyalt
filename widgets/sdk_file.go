@@ -73,7 +73,7 @@ type _Struct struct {
 var g__files = make(map[string]_Struct)
 var g__files_lock sync.Mutex
 
-var g__temps = make(map[string]_Struct)
+var g__temps = make(map[string]_Struct) //maintenance(delete un-used) ...
 var g__temps_lock sync.Mutex
 
 func OpenFile[T any](path string) *T {
@@ -177,5 +177,5 @@ func _skyalt_save() {
 	for path, it := range g__files {
 		_write_file(path, it.data)
 	}
-	g__files = nil
+	g__files = make(map[string]_Struct)
 }

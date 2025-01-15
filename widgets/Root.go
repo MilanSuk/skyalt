@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -39,23 +40,39 @@ func (st *Root) Build(layout *Layout) {
 	appLay := layout.AddApp(0, 2, 1, 1, st.AppPath)
 	if appLay != nil {
 		appLay.App = true
+	} else {
+		tx := layout.AddText(0, 2, 1, 1, fmt.Sprintf("App '%s' not found", st.AppPath))
+		tx.Align_h = 1
+		tx.Cd = Paint_GetPalette().E
 	}
 }
 
-func (st *Root) OpenApp(folder string, name string) {
+func (st *Root) OpenApp(folder string, name string) bool {
+	name = strings.ToLower(name)
+
 	files, _ := GetListOfFiles(folder)
 
-	//exact
+	//find - exact
 	for _, file := range files {
-		if file.Name == name {
+		if strings.ToLower(file.Name) == name {
 			st.AppPath = file.GetPath()
+			return true
 		}
 	}
 
-	//contain
+	//find - contain
 	for _, file := range files {
-		if strings.Contains(file.Name, name) {
+		if strings.Contains(strings.ToLower(file.Name), name) {
 			st.AppPath = file.GetPath()
+			return true
 		}
 	}
+
+	Layout_WriteError(fmt.Errorf("App %s not found", name))
+	return false
+}
+
+func (st *Root) OpenAppForce(folder string, tp string, name string) {
+	f := _File{Folder: folder, Type: tp, Name: name}
+	st.AppPath = f.GetPath()
 }

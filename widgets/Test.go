@@ -23,7 +23,8 @@ func (st *Test) Build(layout *Layout) {
 		st.Count++
 	}
 
-	editbox := layout.AddEditbox(2, 0, 1, 1, &st.Count)
+	editbox, edLay := layout.AddEditbox2(2, 0, 1, 1, &st.Count)
+	edLay.LLMTip = "stored in OpenFile_Test().Count"
 	editbox.Align_h = 1 // Center the text horizontally
 
 	decrementButton := layout.AddButton(3, 0, 1, 1, "-")

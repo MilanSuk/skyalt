@@ -111,11 +111,22 @@ func (st *ChartLines) Build(layout *Layout) {
 					rcl.Y += rect.H * y
 					paint.Line(rcl, 0, 0, 1, 0, cdLine, 0.03)
 				}
-				separ := ""
-				if label != "" {
-					separ = ": "
+
+				{
+					separ := ""
+					if label != "" {
+						separ = ": "
+					}
+
+					rad := st.Point_rad
+					if rad < 0.25 {
+						rad = 0.25
+					}
+					rc := rect
+					rc.X += (rect.W * x) - rad
+					rc.W = 2 * rad
+					paint.TooltipEx(rc, fmt.Sprintf("%s%s%f, %f", label, separ, st.Lines[ln].Points[pt].X, st.Lines[ln].Points[pt].Y), false)
 				}
-				paint.TooltipEx(rect.Cut(-0.1), fmt.Sprintf("%s%s%f, %f", label, separ, st.Lines[ln].Points[pt].X, st.Lines[ln].Points[pt].Y), false)
 
 				last_x = x
 				last_y = y
