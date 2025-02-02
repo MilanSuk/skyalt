@@ -1,7 +1,0 @@
-{
-"Enable": true,
-"Tiles_url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-"Cache_path": "maps/osm.sqlite",
-"Copyright": "(c)OpenStreetMap contributors",
-"Copyright_url": "https://www.openstreetmap.org/copyright"
-}
