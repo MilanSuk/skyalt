@@ -1055,7 +1055,11 @@ const (
 	SA_Drop_H_RIGHT SA_Drop_POS = 4
 )
 
-func OsMoveElementIndex(src int, dst int, pos SA_Drop_POS) int {
+func OsMoveElementIndex(src int, dst int, pos SA_Drop_POS, diff_sources bool) int {
+	if diff_sources {
+		src = dst + 1000 //higher than dst
+	}
+
 	//check
 	if src < dst && (pos == SA_Drop_V_LEFT || pos == SA_Drop_H_LEFT) {
 		dst--

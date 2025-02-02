@@ -51,9 +51,12 @@ func main() {
 
 	//Main loop
 	pl := clients.GetPalette()
-	particles_cd := Color2_Aprox(pl.P, pl.B, 0.5)
+	particles_cd := Color_Aprox(pl.P, pl.B, 0.5)
 	num_sleeps := 0
 	run := true
+
+	Agent_initGlobal()
+	defer Agent_destroyGlobal()
 
 	for run {
 		//window

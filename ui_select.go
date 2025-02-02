@@ -113,7 +113,8 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 				//find line
 				if best_layout == appLay {
 					//get Build() pos
-					wf, err := Compile_getWidgetFile(s.appName, nil)
+					//....
+					/*wf, err := Compile_getWidgetFile(s.appName, nil)
 					if err != nil {
 						fmt.Println("Error:", err)
 						return
@@ -122,7 +123,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 						fmt.Println("Error 1456")
 						return
 					}
-					actBr.Line = wf.Build
+					actBr.Line = wf.Build*/
 
 				} else {
 					actBr.Line = best_layout.props.Caller_line

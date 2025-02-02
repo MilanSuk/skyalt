@@ -88,8 +88,9 @@ type LayoutInput struct {
 	EditValue string
 	EditEnter bool
 
-	SetDropMove      bool
-	DropSrc, DropDst int
+	SetDropMove                    bool
+	DragSrc_source, DragDst_source string
+	DropSrc_pos, DropDst_pos       int
 
 	Drop_path string
 
@@ -196,10 +197,11 @@ type Layout struct {
 
 	Drag_group              string
 	Drop_group              string
+	Drag_source             string
 	Drag_index              int
 	Drop_h, Drop_v, Drop_in bool
 
-	dropMove func(src, dst int)
+	dropMove func(src_i, dst_i int, src_source, dst_source string)
 
 	dropFile func(path string)
 
@@ -224,7 +226,7 @@ type Layout struct {
 func (layout *Layout) _getName() string {
 	return fmt.Sprintf("%s(%d,%d,%d,%d)", layout.Name, layout.X, layout.Y, layout.W, layout.H)
 }
-func (layout *Layout) _computeHash(parent *Layout) uint64 {
+func (layout *Layout) _recomputeHash(parent *Layout) {
 	h := sha256.New()
 
 	//parent
@@ -237,12 +239,11 @@ func (layout *Layout) _computeHash(parent *Layout) uint64 {
 	//this
 	h.Write([]byte(layout._getName()))
 
-	return binary.LittleEndian.Uint64(h.Sum(nil))
+	layout.Hash = binary.LittleEndian.Uint64(h.Sum(nil))
 }
-
 func _newLayout(x, y, w, h int, name string, parent *Layout) *Layout {
 	layout := &Layout{X: x, Y: y, W: w, H: h, Name: name, Enable: true, EnableTouch: true}
-	layout.Hash = layout._computeHash(parent)
+	layout._recomputeHash(parent)
 	return layout
 }
 
@@ -448,7 +449,7 @@ func (dom *Layout3) GetUis() *UiClients {
 func (dom *Layout3) GetIni() *WinIni {
 	return &dom.ui.GetWin().io.Ini
 }
-func (dom *Layout3) GetEnv() *UiEnv {
+func (dom *Layout3) GetEnv() *DeviceSettings {
 	return dom.ui.parent.GetEnv()
 }
 
@@ -820,7 +821,7 @@ func (dom *Layout3) GetCd(cd, cd_over, cd_down color.RGBA) color.RGBA {
 			if inside {
 				cd = cd_down
 			} else {
-				cd = Color2_Aprox(cd_down, cd_over, 0.3)
+				cd = Color_Aprox(cd_down, cd_over, 0.3)
 			}
 		} else {
 			if inside {
@@ -1420,9 +1421,9 @@ func (dom *Layout3) Touch() {
 
 				src_i := srcDom.props.Drag_index
 				dst_i := dstDom.props.Drag_index
-				dst_i = OsMoveElementIndex(src_i, dst_i, drag.pos)
+				dst_i = OsMoveElementIndex(src_i, dst_i, drag.pos, srcDom.props.Drag_source != dstDom.props.Drag_source)
 
-				in := LayoutInput{SetDropMove: true, DropSrc: src_i, DropDst: dst_i}
+				in := LayoutInput{SetDropMove: true, DropSrc_pos: src_i, DropDst_pos: dst_i, DragSrc_source: srcDom.props.Drag_source, DragDst_source: dstDom.props.Drag_source}
 				dom.ui.parent.CallInput(&dstDom.props, &in) //err ...
 			}
 		}

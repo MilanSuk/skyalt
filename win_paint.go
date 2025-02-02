@@ -199,13 +199,17 @@ func (b *WinPaintBuff) AddImage(path WinMedia, screen OsV4, cd color.RGBA, align
 				min_x -= (q.Size.X - screen.Size.X)
 				max_x += (q.Size.X - screen.Size.X)
 			} else {
-				q.Start.X = OsV4_centerFull(screen, q.Size).Start.X //smaller than screen => auto-center
+				if align.X == 1 {
+					q.Start.X = OsV4_centerFull(screen, q.Size).Start.X //smaller than screen => auto-center
+				}
 			}
 			if q.Size.Y > screen.Size.Y {
 				min_y -= (q.Size.Y - screen.Size.Y)
 				max_y += (q.Size.Y - screen.Size.Y)
 			} else {
-				q.Start.Y = OsV4_centerFull(screen, q.Size).Start.Y //smaller than screen => auto-center
+				if align.Y == 1 {
+					q.Start.Y = OsV4_centerFull(screen, q.Size).Start.Y //smaller than screen => auto-center
+				}
 			}
 
 			q.Start.X = OsClamp(q.Start.X, min_x, max_x)

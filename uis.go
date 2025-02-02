@@ -32,65 +32,6 @@ type UiErrors struct {
 	Items []UiError
 }
 
-type UiEnv struct {
-	DateFormat  string
-	Volume      float64
-	Dpi         int
-	Dpi_default int
-
-	Fullscreen bool
-	Stats      bool
-
-	Theme             string
-	ThemePalette      WinCdPalette
-	CustomPalette     WinCdPalette
-	UseDarkTheme      bool
-	UseDarkThemeStart int //hours from midnight
-	UseDarkThemeEnd   int
-}
-
-func (env *UiEnv) Check() bool {
-
-	backup := *env
-
-	//date
-	if env.DateFormat == "" {
-		_, zn := time.Now().Zone()
-		zn = zn / 3600
-
-		if zn <= -3 && zn >= -10 {
-			env.DateFormat = "us"
-		} else {
-			env.DateFormat = "eu"
-		}
-	}
-
-	//dpi
-	if env.Dpi <= 0 {
-		env.Dpi = GetDeviceDPI()
-	}
-	if env.Dpi < 30 {
-		env.Dpi = 30
-	}
-	if env.Dpi > 5000 {
-		env.Dpi = 5000
-	}
-
-	if env.Dpi_default != GetDeviceDPI() {
-		env.Dpi_default = GetDeviceDPI()
-	}
-
-	//theme
-	if env.Theme == "" {
-		env.Theme = "light"
-	}
-	if env.CustomPalette.P.A == 0 {
-		env.CustomPalette = InitWinCdPalette_light()
-	}
-
-	return *env == backup
-}
-
 type UiClients struct {
 	win *Win
 
@@ -100,59 +41,37 @@ type UiClients struct {
 	drag         UiLayoutDrag
 	backup_cell  int
 
-	refreshTicks int64
-
 	palette_light WinCdPalette
 	palette_dark  WinCdPalette
 
 	ui *Ui
-
-	env             UiEnv
-	env_initialized bool
-
-	server *NetServer
-	client *NerServerClient
-
-	compile *Compile
 }
 
 func NewUiClients(win *Win, port int) (*UiClients, error) {
 	rs := &UiClients{win: win}
 
-	rs.palette_light = InitWinCdPalette_light()
-	rs.palette_dark = InitWinCdPalette_dark()
+	rs.palette_light = g_theme_light
+	rs.palette_dark = g_theme_dark
 
 	rs.ui = NewUi(rs)
 	rs.ui.SetRefresh()
-
-	rs.server = NewNetServer(port)
-
-	rs.compile = NewCompile(rs)
 
 	return rs, nil
 }
 func (rs *UiClients) Destroy() {
 	rs.ExitWidgetsProcess()
-	rs.server.Destroy()
-
-	rs.compile.Destroy()
 
 	rs.ui.Destroy()
+
+	WgFiles_Save()
 }
 
 func (rs *UiClients) ExitWidgetsProcess() {
 	rs.Save()
-	if rs.client != nil {
-		rs.client.WriteInt(NMSG_EXIT)
-	}
 }
 
 func (rs *UiClients) Save() {
 	rs.ui.Save() //layouts
-
-	if rs.client != nil {
-		rs.client.WriteInt(NMSG_SAVE) //widgets
-	}
 }
 
 func (rs *UiClients) NeedRedraw() bool {
@@ -170,31 +89,49 @@ func (rs *UiClients) NeedRedraw() bool {
 }
 
 func (rs *UiClients) CallInput(props *Layout, in *LayoutInput) error {
-	err := rs.client.WriteInt(NMSG_INPUT)
-	if err != nil {
-		return err
+
+	if rs.ui.last_root_layout == nil {
+		return fmt.Errorf("last_root_layout == nil")
 	}
-	err = rs.client.WriteInt(props.Hash)
-	if err != nil {
-		return err
+
+	inLayout := rs.ui.last_root_layout._findHash(props.Hash)
+	if inLayout == nil {
+		log.Fatal(fmt.Errorf("layout %d not found", props.Hash))
 	}
-	err = rs.client.WriteArray(OsMarshal(in))
-	if err != nil {
-		return err
+
+	if in.Shortcut_key != 0 {
+		if inLayout.fnInput != nil {
+			inLayout.fnInput(*in, inLayout)
+		}
+
+	} else if in.Drop_path != "" {
+		if inLayout.dropFile != nil {
+			inLayout.dropFile(in.Drop_path)
+		}
+
+	} else if in.SetDropMove {
+		if inLayout.dropMove != nil {
+			inLayout.dropMove(in.DropSrc_pos, in.DropDst_pos, in.DragSrc_source, in.DragDst_source)
+		}
+
+	} else if in.SetEdit {
+		if inLayout.fnSetEditbox != nil {
+			inLayout.fnSetEditbox(in.EditValue, in.EditEnter)
+		}
+
+	} else if in.Pick.Line > 0 {
+		//in.Pick.time_sec = float64(time.Now().UnixMilli()) / 1000
+		//OpenFile_AssistantChat().findPickOrAdd(in.Pick)
+		//OpenFile_AssistantChat().AppName = in.PickApp
+
+	} else if inLayout.fnInput != nil {
+		inLayout.fnInput(*in, inLayout)
 	}
 
 	//recv cmds
 	{
-		var cmds []LayoutCmd
-		data, err := rs.client.ReadArray()
-		if err != nil {
-			log.Fatal(err)
-		}
-		OsUnmarshal(data, &cmds)
+		cmds := _getCmds()
 		rs.ui._executeCmds(cmds)
-
-		//fmt.Println("in", in)
-		//fmt.Println("cmds", cmds)
 	}
 
 	rs.ui.parent.CallGetEnv()
@@ -204,68 +141,13 @@ func (rs *UiClients) CallInput(props *Layout, in *LayoutInput) error {
 }
 
 func (rs *UiClients) CallGetEnv() error {
-	rs.client.WriteInt(NMSG_GET_ENV)
-
-	data, err := rs.client.ReadArray()
-	if err != nil {
-		return err
-	}
-	OsUnmarshal(data, &rs.env)
-
-	if !rs.env.Check() {
-		err = rs.CallSetEnv()
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 func (rs *UiClients) CallSetEnv() error {
-	err := rs.client.WriteInt(NMSG_SET_ENV)
-	if err != nil {
-		return err
-	}
-	err = rs.client.WriteArray(OsMarshal(rs.env))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (rs *UiClients) _check_env_init() error {
-	if !rs.env_initialized {
-
-		err := rs.CallGetEnv() //check inside
-		if err != nil {
-			return err
-		}
-
-		rs.env_initialized = true
-	}
 	return nil
 }
 
 func (rs *UiClients) Tick() {
-
-	err := rs.compile.Tick()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	if !rs.compile.running.Load() {
-		//show it's not running ...
-		return
-	}
-
-	err = rs._check_env_init()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
 	if rs.win.io.Touch.Start {
 		rs.ResetIO()
 	}
@@ -283,8 +165,8 @@ func (rs *UiClients) Draw() {
 	rs.ui.Draw()
 }
 
-func (rs *UiClients) GetEnv() *UiEnv {
-	return &rs.env
+func (rs *UiClients) GetEnv() *DeviceSettings {
+	return OpenFile_DeviceSettings()
 }
 
 func (rs *UiClients) Cell() int {
@@ -346,12 +228,6 @@ func (rs *UiClients) UpdateIO() {
 
 func (rs *UiClients) maintenance() {
 	rs.edit.Maintenance(rs)
-
-	//refresh
-	if !OsIsTicksIn(rs.refreshTicks, 1000) {
-		rs.refreshTicks = OsTicks()
-	}
-
 }
 
 func (rs *UiClients) ResetIO() {

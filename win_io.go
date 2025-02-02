@@ -100,42 +100,6 @@ type WinCursor struct {
 	cursor *sdl.Cursor
 }
 
-type WinIniMap struct {
-	Enable     bool
-	Tiles_url  string
-	Cache_path string
-
-	Copyright     string
-	Copyright_url string
-}
-
-type WinIniCloudChat struct {
-	Enable  bool
-	Api_key string
-
-	ChatCompletion_url string
-	STT_url            string
-	TTS_url            string
-}
-
-type WinIniLocalChat struct {
-	Folder string
-	Addr   string
-	Port   int
-}
-
-func (chat *WinIniCloudChat) Check() error {
-	if !chat.Enable {
-		return fmt.Errorf("service is disabled(goto Settings)")
-	}
-
-	if chat.Api_key == "" {
-		return fmt.Errorf("API key is empty")
-	}
-
-	return nil
-}
-
 type WinIni struct {
 	WinX, WinY, WinW, WinH int
 }
@@ -240,125 +204,10 @@ func GetDeviceDPI() int {
 }
 
 type WinCdPalette struct {
-	P, S, T, E, B           color.RGBA
-	OnP, OnS, OnT, OnE, OnB color.RGBA
-}
-
-const (
-	CdPalette_White = uint8(0)
-
-	CdPalette_P = uint8(1)
-	CdPalette_S = uint8(2)
-	CdPalette_T = uint8(3)
-	CdPalette_E = uint8(4)
-	CdPalette_B = uint8(5)
-)
-
-// light
-func InitWinCdPalette_light() WinCdPalette {
-	var pl WinCdPalette
-	//Primary
-	pl.P = color.RGBA{37, 100, 120, 255}
-	pl.OnP = color.RGBA{255, 255, 255, 255}
-	//Secondary
-	pl.S = color.RGBA{85, 95, 100, 255}
-	pl.OnS = color.RGBA{255, 255, 255, 255}
-	//Tertiary
-	pl.T = color.RGBA{90, 95, 115, 255}
-	pl.OnT = color.RGBA{255, 255, 255, 255}
-	//Err
-	pl.E = color.RGBA{180, 40, 30, 255}
-	pl.OnE = color.RGBA{255, 255, 255, 255}
-	//Surface(background)
-	pl.B = color.RGBA{250, 250, 250, 255}
-	pl.OnB = color.RGBA{25, 27, 30, 255}
-	return pl
-}
-
-// dark
-func InitWinCdPalette_dark() WinCdPalette {
-	var pl WinCdPalette
-	pl.P = color.RGBA{150, 205, 225, 255}
-	pl.OnP = color.RGBA{0, 50, 65, 255}
-
-	pl.S = color.RGBA{190, 200, 205, 255}
-	pl.OnS = color.RGBA{40, 50, 55, 255}
-
-	pl.T = color.RGBA{195, 200, 220, 255}
-	pl.OnT = color.RGBA{75, 35, 50, 255}
-
-	pl.E = color.RGBA{240, 185, 180, 255}
-	pl.OnE = color.RGBA{45, 45, 65, 255}
-
-	pl.B = color.RGBA{25, 30, 30, 255}
-	pl.OnB = color.RGBA{230, 230, 230, 255}
-	return pl
-}
-
-func Color2_Aprox(s color.RGBA, e color.RGBA, t float32) color.RGBA {
-	var self color.RGBA
-	self.R = byte(float32(s.R) + (float32(e.R)-float32(s.R))*t)
-	self.G = byte(float32(s.G) + (float32(e.G)-float32(s.G))*t)
-	self.B = byte(float32(s.B) + (float32(e.B)-float32(s.B))*t)
-	self.A = byte(float32(s.A) + (float32(e.A)-float32(s.A))*t)
-	return self
+	P, S, E, B         color.RGBA
+	OnP, OnS, OnE, OnB color.RGBA
 }
 
 func (pl *WinCdPalette) GetGrey(t float32) color.RGBA {
-	return Color2_Aprox(pl.S, pl.OnS, t)
-}
-
-func (pl *WinCdPalette) GetCdOver(cd color.RGBA, inside bool, active bool) color.RGBA {
-	if active {
-		if inside {
-			cd = Color2_Aprox(cd, pl.OnS, 0.4)
-		} else {
-			cd = Color2_Aprox(cd, pl.OnS, 0.3)
-		}
-	} else {
-		if inside {
-			cd = Color2_Aprox(cd, pl.S, 0.2)
-		}
-	}
-
-	return cd
-}
-
-func (pl *WinCdPalette) GetCd2(cd color.RGBA, fade, enable, inside, active bool) color.RGBA {
-	if fade || !enable {
-		cd.A = 100
-	}
-	if enable {
-		cd = pl.GetCdOver(cd, inside, active)
-	}
-	return cd
-}
-
-func (pl *WinCdPalette) GetCdI(i uint8) (color.RGBA, color.RGBA) {
-	switch i {
-	case CdPalette_White:
-		return color.RGBA{255, 255, 255, 255}, color.RGBA{0, 0, 0, 255}
-	case CdPalette_P:
-		return pl.P, pl.OnP
-	case CdPalette_S:
-		return pl.S, pl.OnS
-	case CdPalette_T:
-		return pl.T, pl.OnT
-	case CdPalette_E:
-		return pl.E, pl.OnE
-	case CdPalette_B:
-		return pl.B, pl.OnB
-	}
-
-	return pl.P, pl.OnP
-}
-
-func (pl *WinCdPalette) GetCd(i uint8, fade, enable, inside, active bool) (color.RGBA, color.RGBA) {
-
-	cd, onCd := pl.GetCdI(i)
-
-	cd = pl.GetCd2(cd, fade, enable, inside, active)
-	onCd = pl.GetCd2(onCd, fade, enable, inside, active)
-
-	return cd, onCd
+	return Color_Aprox(pl.B, pl.OnB, t)
 }

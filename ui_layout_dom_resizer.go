@@ -170,8 +170,7 @@ func (dom *Layout3) updateResizer() {
 }
 
 func (dom *Layout3) drawResizer() {
-
-	activeCd, _ := dom.GetPalette().GetCd(CdPalette_P, false, true, false, false)
+	activeCd := dom.GetPalette().P
 	activeCd.A = 150
 
 	defaultCd := dom.GetPalette().GetGrey(0.5)

@@ -2,8 +2,8 @@
 #prints number of lines
 
 echo " --- --- main --- ---"
-cloc --by-file --unix --include-ext=go --exclude-dir=fonts,temp,widgets,services .
+cloc --by-file --unix --include-ext=go --exclude-dir=fonts,temp,tools,widgets,services .
 
 echo " --- --- widgets --- ---"
-cloc --by-file --unix --include-ext=go widgets
+cloc --by-file --unix --include-ext=go tools
 

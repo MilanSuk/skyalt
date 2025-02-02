@@ -19,7 +19,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -62,6 +61,8 @@ type Ui struct { //put into UiClients(and rename it) ........
 	redrawHashes []UiLayoutDraw
 
 	maintenance_tick int64
+
+	last_root_layout *Layout
 }
 
 func NewUi(parent *UiClients) *Ui {
@@ -232,85 +233,62 @@ func (ui *Ui) SetRedrawBuffer() {
 	ui.redrawBuffer = true
 }
 
-func (dom *Layout3) _refreshLayout() {
-	err := dom.ui.parent.client.WriteInt(dom.props.Hash)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	found, err := dom.ui.parent.client.ReadInt()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if found == 0 {
+func (ui *Ui) _refreshLayout(newDia *Layout3) {
+	lay := ui.last_root_layout._findHash(newDia.props.Hash)
+	if lay == nil {
 		return
 	}
 
-	parent_hash, err := dom.ui.parent.client.ReadInt()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if parent_hash > 0 {
-		layParent := dom.ui.dom.FindHash(parent_hash)
-		if layParent != nil {
-			dom.parent = layParent
-			layParent.dialog = dom
+	//parent hash
+	{
+		lay_parent := ui.last_root_layout._findParent(lay)
+		if lay_parent != nil {
+			layParent := ui.dom.FindHash(lay_parent.Hash)
+			if layParent != nil {
+				newDia.parent = layParent
+				layParent.dialog = newDia
+			}
 		}
 	}
 
-	var layout Layout
-	data, err := dom.ui.parent.client.ReadArray()
-	if err != nil {
-		log.Fatal(err)
-	}
-	OsUnmarshal(data, &layout)
-
+	//client.WriteArray(OsMarshal(lay))
 	st := OsTime()
 	//project & clear buffers
-	dom.project(&layout)
+	newDia.project(lay)
 
 	//relayout
-	dom.relayout(true)
+	newDia.relayout(true)
 
-	fmt.Printf("project() + Relayout(): %.4fsec\n", (OsTime()-st)/1000)
+	fmt.Printf("project() + Relayout(): %.4fsec\n", (OsTime() - st))
 
-	//send rects
-	{
-		rects := make(map[uint64]Rect)
-		dom.extractRects(rects)
-		err := dom.ui.parent.client.WriteArray(OsMarshal(rects))
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
+	//draw
+	rects := make(map[uint64]Rect)
+	newDia.extractRects(rects)
+
+	out_buffs := make(map[uint64][]LayoutDrawPrim)
+
+	st = OsTime()
+	_draw(lay, rects, out_buffs)
+	fmt.Println("_draw()", (OsTime() - st), "sec")
 
 	//recv paint buffers
 	{
-		buffs := make(map[uint64][]LayoutDrawPrim)
-		data, err := dom.ui.parent.client.ReadArray()
-		if err != nil {
-			log.Fatal(err)
-		}
-		OsUnmarshal(data, &buffs)
-
-		if len(buffs) > 0 {
+		if len(out_buffs) > 0 {
 			//fmt.Println("buff back", len(buffs))
 
 			//set buffs
-			for hash, buff := range buffs {
-				it := dom.FindHash(hash)
+			for hash, buff := range out_buffs {
+				it := newDia.FindHash(hash)
 				if it != nil {
 					it.buffer = buff
 					//fmt.Println("-Buffer", it.props.Name, it.canvas.Size.Y)
-					dom.ui.SetRedrawBuffer()
+					ui.SetRedrawBuffer()
 				} else {
 					fmt.Println("never should happen: buffs")
 				}
 			}
 		}
 	}
-
-	//return parent_hash
 }
 
 func (ui *Ui) _refresh() {
@@ -322,26 +300,22 @@ func (ui *Ui) _refresh() {
 
 	ui.refresh_next_time = 0
 
-	ui.parent.client.WriteInt(NMSG_REFRESH)
+	ui.last_root_layout = _newLayoutRoot()
+	ui.last_root_layout.fnBuild = OpenFile_Root().Build
+	_build(ui.last_root_layout)
 
-	// get root
-	ui.dom._refreshLayout()
+	ui._refreshLayout(ui.dom)
 
-	// get dialogs
 	for _, dia := range ui.settings.Dialogs {
-		newLay := NewUiLayoutDOM(Layout{Hash: dia.Hash}, nil, ui)
-		newLay._refreshLayout()
+
+		newDia := NewUiLayoutDOM(Layout{Hash: dia.Hash}, nil, ui)
+
+		ui._refreshLayout(newDia)
 	}
-	ui.parent.client.WriteInt(0) //end
 
 	//recv cmds
 	{
-		var cmds []LayoutCmd
-		data, err := ui.parent.client.ReadArray()
-		if err != nil {
-			log.Fatal(err)
-		}
-		OsUnmarshal(data, &cmds)
+		cmds := _getCmds()
 		ui._executeCmds(cmds)
 	}
 
@@ -378,20 +352,16 @@ func (ui *Ui) _redrawHashes() {
 		}
 	}
 
-	//send
-	ui.parent.client.WriteInt(NMSG_REDRAW)
-	ui.parent.client.WriteArray(OsMarshal(ui.redrawHashes))
-
-	//recv
-	js, err := ui.parent.client.ReadArray()
-	if err != nil {
-		log.Fatal(err)
+	//redraw
+	for i, it := range ui.redrawHashes {
+		lay := ui.last_root_layout._findHash(it.Hash)
+		if lay != nil && lay.fnDraw != nil && it.Rect.Is() {
+			ui.redrawHashes[i].Buffer = lay.fnDraw(it.Rect, lay).buffer
+		}
 	}
-	var backs []UiLayoutDraw
-	OsUnmarshal(js, &backs)
 
 	//project
-	for _, it := range backs {
+	for _, it := range ui.redrawHashes {
 		lay := ui.dom.FindHash(it.Hash)
 		if lay != nil {
 			lay.buffer = it.Buffer
@@ -404,12 +374,7 @@ func (ui *Ui) _redrawHashes() {
 
 	//recv cmds
 	{
-		var cmds []LayoutCmd
-		data, err := ui.parent.client.ReadArray()
-		if err != nil {
-			log.Fatal(err)
-		}
-		OsUnmarshal(data, &cmds)
+		cmds := _getCmds()
 		ui._executeCmds(cmds)
 	}
 
@@ -481,8 +446,8 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 		case "RefreshDelayed":
 			ui.SetRefreshTime(OsTime() + 0.5)
 
-		case "Compile":
-			ui.parent.compile.recompile = true
+		//case "Compile":
+		//	ui.parent.compile.recompile = true
 
 		case "CopyText":
 			edit.KeyCopy = true
@@ -546,8 +511,9 @@ func (ui *Ui) Tick() {
 	}
 
 	ui._refresh()
-
-	ui._redrawHashes()
+	if ui.last_root_layout != nil {
+		ui._redrawHashes()
+	}
 
 	ui.dom.UpdateTouch()
 	ui.dom.TouchDialogs(ui.parent.edit.hash, ui.parent.touch.canvas)

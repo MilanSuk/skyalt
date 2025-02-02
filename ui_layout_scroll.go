@@ -143,7 +143,7 @@ func (scroll *UiLayoutScroll) _GetSlideCd(ui *Ui) color.RGBA {
 
 	cd_slide := ui.GetPalette().GetGrey(0.5)
 	if scroll.data_height <= scroll.screen_height {
-		cd_slide = Color2_Aprox(ui.GetPalette().OnB, cd_slide, 0.5) // disable
+		cd_slide = Color_Aprox(ui.GetPalette().OnB, cd_slide, 0.5) // disable
 	}
 
 	return cd_slide
