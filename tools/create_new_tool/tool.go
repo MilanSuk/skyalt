@@ -18,7 +18,7 @@ func (st *create_new_tool) run() string {
 
 	UserPrompt += "These are the APIs:\n"
 	UserPrompt += "//When you login to any service this function converts password_id into password.\n"
-	UserPrompt += "func SDK_GetPassword(id string) (string, error)	//returns password string.\n\n"
+	UserPrompt += "func SDK_GetPassword(id string) (string, error)	//accepts password_id or api_key_id and returns password as string.\n\n"
 	UserPrompt += "\n"
 
 	UserPrompt += "This is the file(code) template:"
