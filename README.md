@@ -37,7 +37,7 @@ go install golang.org/x/tools/cmd/goimports@latest
 </code></pre>
 
 Compile Skyalt:
-<pre><code>git clone github.com/milansuk/skyalt
+<pre><code>git clone https://github.com/milansuk/skyalt
 cd skyalt
 go mod tidy
 go build
