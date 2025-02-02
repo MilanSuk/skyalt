@@ -45,6 +45,8 @@ func WgFile_write_file(path string, st any) {
 
 	origJs, err := os.ReadFile(path)
 	if err != nil || !bytes.Equal(js, origJs) {
+		os.MkdirAll(filepath.Dir(path), os.ModePerm)
+
 		err = os.WriteFile(path, js, 0644)
 		if err != nil {
 			fmt.Println("warning: WriteFile(): ", err)
