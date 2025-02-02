@@ -1,0 +1,56 @@
+{
+"Label": "OpenAI",
+"Anthropic_completion_url": "",
+"OpenAI_completion_url": "https://api.openai.com/v1/chat/completions",
+"Api_key_id": "8bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
+"ChatModels": [
+{
+"Name": "gpt-3.5-turbo",
+"Input_price": 0.5,
+"Cached_price": 0.5,
+"Output_price": 1.5
+},
+{
+"Name": "gpt-4",
+"Input_price": 30,
+"Cached_price": 30,
+"Output_price": 60
+},
+{
+"Name": "gpt-4-turbo",
+"Input_price": 10,
+"Cached_price": 10,
+"Output_price": 30
+},
+{
+"Name": "gpt-4o",
+"Input_price": 2.5,
+"Cached_price": 1.25,
+"Output_price": 10
+},
+{
+"Name": "gpt-4o-mini",
+"Input_price": 0.15,
+"Cached_price": 0.075,
+"Output_price": 0.6
+},
+{
+"Name": "o1",
+"Input_price": 15,
+"Cached_price": 7.5,
+"Output_price": 60
+},
+{
+"Name": "o1-mini",
+"Input_price": 1.1,
+"Cached_price": 0.55,
+"Output_price": 4.4
+},
+{
+"Name": "o3-mini",
+"Input_price": 1.1,
+"Cached_price": 0.55,
+"Output_price": 4.4
+}
+]
+}

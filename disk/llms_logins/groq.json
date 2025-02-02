@@ -1,0 +1,38 @@
+{
+"Label": "Groq",
+"Anthropic_completion_url": "",
+"OpenAI_completion_url": "https://api.groq.com/openai/v1/chat/completions",
+"Api_key_id": "6bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
+"ChatModels": [
+{
+"Name": "llama-3.3-70b-versatile",
+"Input_price": 0.59,
+"Cached_price": 0.59,
+"Output_price": 0.79
+},
+{
+"Name": "llama-3.3-70b-specdec",
+"Input_price": 0.59,
+"Cached_price": 0.59,
+"Output_price": 0.99
+},
+{
+"Name": "llama-3.1-8b-instant",
+"Input_price": 0.05,
+"Cached_price": 0.05,
+"Output_price": 0.08
+},
+{
+"Name": "gemma2-9b-it",
+"Input_price": 0.2,
+"Cached_price": 0.2,
+"Output_price": 0.2
+},
+{
+"Name": "deepseek-r1-distill-llama-70b",
+"Input_price": 0.59,
+"Cached_price": 0.59,
+"Output_price": 0.79
+}
+]
+}

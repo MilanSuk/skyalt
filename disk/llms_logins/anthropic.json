@@ -1,0 +1,20 @@
+{
+"Label": "Anthropic",
+"Anthropic_completion_url": "https://api.anthropic.com/v1/messages",
+"OpenAI_completion_url": "",
+"Api_key_id": "1bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
+"ChatModels": [
+{
+"Name": "claude-3-5-haiku-latest",
+"Input_price": 0.8,
+"Cached_price": 0.08,
+"Output_price": 4
+},
+{
+"Name": "claude-3-5-sonnet-latest",
+"Input_price": 3,
+"Cached_price": 0.3,
+"Output_price": 15
+}
+]
+}

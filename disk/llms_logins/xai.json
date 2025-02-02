@@ -1,0 +1,32 @@
+{
+"Label": "xAI",
+"Anthropic_completion_url": "",
+"OpenAI_completion_url": "https://api.x.ai/v1/chat/completions",
+"Api_key_id": "0bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
+"ChatModels": [
+{
+"Name": "grok-2-vision",
+"Input_price": 2,
+"Cached_price": 2,
+"Output_price": 10
+},
+{
+"Name": "grok-2",
+"Input_price": 2,
+"Cached_price": 2,
+"Output_price": 10
+},
+{
+"Name": "grok-vision-beta",
+"Input_price": 2,
+"Cached_price": 2,
+"Output_price": 15
+},
+{
+"Name": "grok-beta",
+"Input_price": 2,
+"Cached_price": 2,
+"Output_price": 15
+}
+]
+}

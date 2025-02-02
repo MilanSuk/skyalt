@@ -1,0 +1,44 @@
+{
+"Label": "Mistral",
+"Anthropic_completion_url": "",
+"OpenAI_completion_url": "https://api.mistral.ai/v1/chat/completions",
+"Api_key_id": "7bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
+"ChatModels": [
+{
+"Name": "mistral-large-latest",
+"Input_price": 2,
+"Cached_price": 2,
+"Output_price": 6
+},
+{
+"Name": "pixtral-large-latest",
+"Input_price": 2,
+"Cached_price": 2,
+"Output_price": 6
+},
+{
+"Name": "mistral-small-latest",
+"Input_price": 0.2,
+"Cached_price": 0.2,
+"Output_price": 0.6
+},
+{
+"Name": "codestral-latest",
+"Input_price": 0.3,
+"Cached_price": 0.3,
+"Output_price": 0.9
+},
+{
+"Name": "pixtral-12b-2409",
+"Input_price": 0.15,
+"Cached_price": 0.15,
+"Output_price": 0.15
+},
+{
+"Name": "open-mistral-nemo",
+"Input_price": 0.15,
+"Cached_price": 0.15,
+"Output_price": 0.15
+}
+]
+}

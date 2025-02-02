@@ -1,0 +1,20 @@
+{
+"Label": "Google",
+"Anthropic_completion_url": "",
+"OpenAI_completion_url": "https://generativelanguage.googleapis.com/v1beta/chat/completions",
+"Api_key_id": "5bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
+"ChatModels": [
+{
+"Name": "gemini-1.5-flash",
+"Input_price": 0,
+"Cached_price": 0,
+"Output_price": 0
+},
+{
+"Name": "gemini-2.0-flash-exp",
+"Input_price": 0,
+"Cached_price": 0,
+"Output_price": 0
+}
+]
+}
