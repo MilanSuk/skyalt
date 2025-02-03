@@ -25,15 +25,6 @@ import (
 	"time"
 )
 
-/*type RootChat struct {
-	Label        string
-	Created_unix int64
-}
-
-func (chat *RootChat) Copy() RootChat {
-	return RootChat{Label: chat.Label, Created_unix: time.Now().Unix()}
-}*/
-
 type Root struct {
 	Chats      []string
 	TrashChats []string
@@ -49,12 +40,8 @@ type Root struct {
 }
 
 func (st *Root) Build(layout *Layout) {
-	//check boundary
-	if st.Selected >= len(st.Chats) {
-		st.Selected = len(st.Chats) - 1
-	}
 
-	//refresh .Chat, .TrashChats with new/delete files ...
+	st.refreshChats()
 
 	layout.SetColumnResizable(0, 4, 10, 6)
 	layout.SetColumn(1, 1, 100)
@@ -132,6 +119,7 @@ func (st *Root) Build(layout *Layout) {
 				}
 
 				createChatBt, chatLay := chatsDiv.AddButtonMenu2(0, yy, 1, 1, chat.Description, "", 0)
+				createChatBt.Tooltip = it
 				chatLay.Drag_group = "chat"
 				chatLay.Drop_group = "chat"
 				chatLay.Drag_index = i
@@ -416,6 +404,44 @@ func (st *Root) CopyChat(src_path string) string {
 	return dst_path
 }
 
-//refresh ...
+func Root_findInList(str string, items []string) bool {
+	for _, it := range items {
+		if it == str {
+			return true
+		}
+	}
+	return false
+}
 
-//delete(permanent) ...
+func (st *Root) refreshChats() {
+	files, _ := OpenDir_Chats() //err ...
+
+	//add new files
+	for _, path := range files {
+		found := Root_findInList(path, st.Chats)
+		if !found {
+			found = Root_findInList(path, st.TrashChats)
+		}
+
+		if !found {
+			st.Chats = append(st.Chats, path)
+		}
+	}
+
+	//remove if file doesn't exist
+	for i := len(st.Chats) - 1; i >= 0; i-- {
+		if !Root_findInList(st.Chats[i], files) {
+			st.Chats = slices.Delete(st.Chats, i, i+1)
+		}
+	}
+	for i := len(st.TrashChats) - 1; i >= 0; i-- {
+		if !Root_findInList(st.TrashChats[i], files) {
+			st.TrashChats = slices.Delete(st.TrashChats, i, i+1)
+		}
+	}
+
+	//check boundary
+	if st.Selected >= len(st.Chats) {
+		st.Selected = len(st.Chats) - 1
+	}
+}

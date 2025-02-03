@@ -152,9 +152,22 @@ func OpenFile_Root() *Root {
 	return WgFiles_Load("root", &Root{})
 }
 
+func OpenDir_Chats() ([]string, error) {
+	dir, err := os.ReadDir("disk/chats")
+	if err != nil {
+		return nil, err
+	}
+
+	var list []string
+	for _, it := range dir {
+		nm := strings.TrimSuffix(it.Name(), filepath.Ext(it.Name())) //name without .json
+		list = append(list, filepath.Join("chats", nm))
+	}
+
+	return list, nil
+}
 func OpenFile_Chat(path string) *Agent {
 	return WgFiles_Load(path, &Agent{})
-
 }
 
 func RemoveFile_Chat(path string) {
