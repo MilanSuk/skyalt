@@ -5,20 +5,6 @@ import (
 	"strconv"
 )
 
-/*type Chat struct {
-	file_name string
-
-	Label string
-	Input ChatInput
-
-	Agent Agent
-
-	//Instructions         string
-	//Msgs                 []ChatMsg
-	//OpenAI_Properties    OpenAI_completion_props
-	//Anthropic_Properties Anthropic_completion_props
-}*/
-
 type Chat struct {
 	file_name string
 	center    bool
