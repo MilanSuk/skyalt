@@ -142,8 +142,12 @@ func StartJob(uid string, title string, fnRun func(job *Job)) *Job {
 	job := &Job{title: title, uid: uid, start_time_sec: float64(time.Now().UnixMilli()) / 1000}
 	g__jobs.jobs = append(g__jobs.jobs, job)
 	go func() {
+		WgFiles_Save()
+
 		fnRun(job)
 		job.stop.Store(true) //done
+
+		WgFiles_Refresh()
 	}()
 	return job
 }

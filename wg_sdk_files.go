@@ -10,33 +10,30 @@ import (
 	"sync"
 )
 
-func WgFile_read_file(path string, st any) {
-	path += ".json"
-
+func WgFile_read_file(path string, st any) int64 {
 	js, err := os.ReadFile(path)
 	if err != nil {
 
 		if os.IsNotExist(err) {
 			//create file
-			WgFile_write_file(path, st)
-			return
+			return WgFile_write_file(path, st)
 		}
 
 		fmt.Println("warning: ReadFile(): ", err)
-		return
+		return -1
 	}
 
 	err = json.Unmarshal(js, st)
 	if err != nil {
 		fmt.Println("warning: Unmarshal(): ", err)
-		return
+		return -1
 	}
 
 	fmt.Println("File open:", path)
+	return OsFileTime(path)
 }
 
-func WgFile_write_file(path string, st any) {
-	path += ".json"
+func WgFile_write_file(path string, st any) int64 {
 
 	js, err := json.MarshalIndent(st, "", "")
 	if err != nil {
@@ -53,11 +50,13 @@ func WgFile_write_file(path string, st any) {
 		}
 		fmt.Println("File saved:", path)
 	}
+
+	return OsFileTime(path)
 }
 
 type WgFile struct {
-	data interface{}
-	//time_stamps int64
+	data        interface{}
+	time_stamps int64
 }
 
 type WgFiles struct {
@@ -92,9 +91,10 @@ func WgFiles_Load[T any](name string, def *T) *T {
 	}
 
 	//add
-	WgFile_read_file(path, def)
-
-	g_files.files[path] = &WgFile{data: def}
+	time_stamps := WgFile_read_file(path+".json", def)
+	if time_stamps > 0 {
+		g_files.files[path] = &WgFile{data: def, time_stamps: time_stamps}
+	}
 	return def
 }
 
@@ -105,7 +105,6 @@ func WgFiles_Delete(name string) {
 	defer g_files.lock.Unlock()
 
 	os.Remove(path + ".json")
-
 	delete(g_files.files, path)
 }
 
@@ -114,9 +113,21 @@ func WgFiles_Save() {
 	defer g_files.lock.Unlock()
 
 	for path, it := range g_files.files {
-		WgFile_write_file(path, it.data)
+		g_files.files[path].time_stamps = WgFile_write_file(path+".json", it.data)
 	}
-	g_files.files = nil
+	//g_files.files = nil	//some threads/jobs can have old pointer
+}
+
+func WgFiles_Refresh() {
+	g_files.lock.Lock()
+	defer g_files.lock.Unlock()
+
+	for path, it := range g_files.files {
+		if it.time_stamps != OsFileTime(path+".json") {
+			delete(g_files.files, path) //remove, so it's re-created from file
+		}
+	}
+
 }
 
 func OpenFile_OsmSettings() *Osm {
