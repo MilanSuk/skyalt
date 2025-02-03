@@ -41,7 +41,7 @@ func (st *ChatMsg) Build(layout *Layout) {
 		model := layout.AddText(0, 0, 1, 1, "<b>"+sender)
 		in, inCached, out := msg.GetPrice(st.agent)
 		model.Tooltip = fmt.Sprintf("%s tokens/sec\n$%s(%d toks) total</b>\n- $%s(%d toks) input\n- $%s(%d toks) cached\n- $%s(%d toks) output",
-			strconv.FormatFloat(msg.GetSpeed(), 'f', -1, 64),
+			strconv.FormatFloat(msg.GetSpeed(), 'f', 3, 64),
 			strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
 			msg.InputTokens+msg.InputCachedTokens+msg.OutputTokens,
 			strconv.FormatFloat(in, 'f', -1, 64),

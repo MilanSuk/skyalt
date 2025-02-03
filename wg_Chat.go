@@ -70,15 +70,19 @@ func (st *Chat) Build(layout *Layout) {
 		}
 
 		//total info
-		in, inCached, out := st.agent.GetTotalPrice()
-		info := MsgsDiv.AddText(x, y, 1, 1, fmt.Sprintf("$%s, %s tokens/sec",
-			strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
-			strconv.FormatFloat(st.agent.GetTotalSpeed(), 'f', -1, 64)))
-		info.Align_h = 2 //right
-		info.Tooltip = fmt.Sprintf("Input: $%s\nInput cached: $%s\nOutput: $%s",
-			strconv.FormatFloat(in, 'f', -1, 64),
-			strconv.FormatFloat(inCached, 'f', -1, 64),
-			strconv.FormatFloat(out, 'f', -1, 64))
+		if y >= 2 { //1st message is user
+			in, inCached, out := st.agent.GetTotalPrice()
+			info := MsgsDiv.AddText(x, y, 1, 1, fmt.Sprintf("$%s, %d tokens/sec",
+				strconv.FormatFloat(in+inCached+out, 'f', 3, 64),
+				int(st.agent.GetTotalSpeed())))
+			info.Align_h = 2 //right
+			info.Tooltip = fmt.Sprintf("%s tokens/sec\nTotal: $%s\n- Input: $%s\n- Input cached: $%s\n- Output: $%s",
+				strconv.FormatFloat(st.agent.GetTotalSpeed(), 'f', -1, 64),
+				strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
+				strconv.FormatFloat(in, 'f', -1, 64),
+				strconv.FormatFloat(inCached, 'f', -1, 64),
+				strconv.FormatFloat(out, 'f', -1, 64))
+		}
 	}
 
 	//stop button ......
@@ -116,7 +120,7 @@ func (st *Chat) Build(layout *Layout) {
 		headDiv.SetColumn(0, 1, 100)
 
 		msg_i, content_i := st.parent_agent.FindSubCallUseContent(st.agent.Call_id)
-		if content_i > 0 {
+		if content_i >= 0 {
 			ct := &st.parent_agent.Messages[msg_i].Content[content_i]
 			tx := headDiv.AddText(0, 0, 1, 1, fmt.Sprintf("<i>%s(%s)", ct.Name, ct.Id))
 			tx.Align_h = 1
@@ -140,8 +144,6 @@ func (st *Chat) Build(layout *Layout) {
 }
 
 func (st *Chat) Run(job *Job) {
-	WgFiles_Save()
-
 	st.agent.ExeLoop(20, 20000)
 
 	st.agent.Input.reset()
