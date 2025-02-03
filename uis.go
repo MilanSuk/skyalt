@@ -71,6 +71,11 @@ func (rs *UiClients) ExitWidgetsProcess() {
 }
 
 func (rs *UiClients) Save() {
+	//save editbox
+	if rs.edit.IsActive() {
+		rs.edit.send(true, rs.ui)
+	}
+
 	rs.ui.Save() //layouts
 }
 
