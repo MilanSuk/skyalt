@@ -228,6 +228,8 @@ func (rs *UiClients) UpdateIO() {
 
 func (rs *UiClients) maintenance() {
 	rs.edit.Maintenance(rs)
+
+	g__jobs.maintenance()
 }
 
 func (rs *UiClients) ResetIO() {
