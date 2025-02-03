@@ -59,22 +59,18 @@ func NewUiClients(win *Win, port int) (*UiClients, error) {
 	return rs, nil
 }
 func (rs *UiClients) Destroy() {
-	rs.ExitWidgetsProcess()
+	rs.Save()
 
 	rs.ui.Destroy()
-
-	WgFiles_Save()
-}
-
-func (rs *UiClients) ExitWidgetsProcess() {
-	rs.Save()
 }
 
 func (rs *UiClients) Save() {
 	//save editbox
 	if rs.edit.IsActive() {
-		rs.edit.send(true, rs.ui)
+		rs.edit.send(false, rs.ui)
 	}
+
+	WgFiles_Save()
 
 	rs.ui.Save() //layouts
 }
