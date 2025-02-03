@@ -35,6 +35,8 @@ import (
 var _sdk_client *SDK_NetClient
 
 func main() {
+	log.SetFlags(log.Llongfile) //log.LstdFlags | log.Lshortfile
+
 	if len(os.Args) < 2 {
 		log.Fatal("missing 'port' argument: ", os.Args)
 	}

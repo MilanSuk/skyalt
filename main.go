@@ -19,10 +19,12 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"log"
 	"time"
 )
 
 func main() {
+	log.SetFlags(log.Llongfile) //log.LstdFlags | log.Lshortfile
 
 	InitImageGlobal()
 
