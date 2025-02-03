@@ -48,12 +48,11 @@ type Anthropic_completion_msg_Content struct {
 	Type string `json:"type"` //"image", "text", "tool_use", "tool_result"
 	Text string `json:"text,omitempty"`
 
-	//tool result
+	//"tool_result"
 	Tool_use_id string `json:"tool_use_id,omitempty"`
 	Content     string `json:"content,omitempty"`
-	//'Name' is also set - OpenAI Mistral wants it
 
-	//tool call
+	//"tool_use"
 	Id    string          `json:"id,omitempty"`
 	Name  string          `json:"name,omitempty"`  //"get_weather"
 	Input json.RawMessage `json:"input,omitempty"` //{"location": "San Francisco, CA", "unit": "celsius"}
@@ -92,7 +91,7 @@ func (msg *Anthropic_completion_msg) AddImageFile(path string) error {
 }
 
 func (msg *Anthropic_completion_msg) AddToolResult(tool_name string, tool_use_id string, result string) {
-	msg.Content = append(msg.Content, Anthropic_completion_msg_Content{Type: "tool_result", Tool_use_id: tool_use_id, Content: result, Name: tool_name})
+	msg.Content = append(msg.Content, Anthropic_completion_msg_Content{Type: "tool_result", Tool_use_id: tool_use_id, Content: result})
 }
 
 type Anthropic_completion_tool struct {

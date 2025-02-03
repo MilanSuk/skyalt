@@ -44,7 +44,7 @@ type AnthropicOut struct {
 }
 
 func Anthropic_completion_Run(input Anthropic_completion_props, Completion_url string, api_key string) (AnthropicOut, error) {
-	jsProps, err := json.MarshalIndent(input, "", "") //...json.Marshal(input)
+	jsProps, err := json.Marshal(input)
 	if err != nil {
 		return AnthropicOut{}, err
 	}

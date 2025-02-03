@@ -48,6 +48,7 @@ type AgentMsg struct {
 	Role    string
 	Content []Anthropic_completion_msg_Content
 
+	//stats
 	InputTokens       int
 	InputCachedTokens int
 	OutputTokens      int
@@ -259,8 +260,7 @@ func (agent *Agent) buildOpenAI() (OpenAI_completion_props, string, string) {
 				case "tool_result":
 					mResult.Tool_call_id = it.Tool_use_id
 					mResult.Content = it.Content
-					mResult.Name = it.Name
-
+					mResult.Name = agent.FindToolName(it.Tool_use_id)
 				}
 			}
 
@@ -355,6 +355,17 @@ func (agent *Agent) FindSubCallResultContent(call_id string) *Anthropic_completi
 	return nil
 }
 
+func (agent *Agent) FindToolName(call_id string) string {
+	for _, m := range agent.Messages {
+		for _, t := range m.Content {
+			if t.Type == "tool_use" && t.Id == call_id {
+				return t.Name
+			}
+		}
+	}
+	return ""
+}
+
 func (agent *Agent) IsShowToolParameters(call_id string) bool {
 	for _, it := range agent.ShowToolParams {
 		if it == call_id {
@@ -435,7 +446,7 @@ func (msg *AgentMsg) GetPrice(agent *Agent) (float64, float64, float64) {
 }
 
 func (msg *AgentMsg) GetSpeed() float64 {
-	toks := msg.InputTokens + msg.InputCachedTokens + msg.OutputTokens
+	toks := msg.OutputTokens
 	if msg.Time == 0 {
 		return 0
 	}
@@ -478,7 +489,7 @@ func (agent *Agent) GetTotalPrice() (in, inCached, out float64) {
 }
 
 func (agent *Agent) GetTotalSpeed() float64 {
-	toks := agent.GetTotalTokens()
+	toks := agent.GetTotalOutputTokens()
 	dt := agent.GetTotalTime()
 	if dt == 0 {
 		return 0
@@ -503,17 +514,17 @@ func (agent *Agent) GetTotalTime() float64 {
 	return dt
 }
 
-func (agent *Agent) GetTotalTokens() int {
+func (agent *Agent) GetTotalOutputTokens() int {
 	tokens := 0
 
 	//messages
 	for _, m := range agent.Messages {
-		tokens += m.InputTokens + m.InputCachedTokens + m.OutputTokens
+		tokens += m.OutputTokens
 	}
 
 	//sub-agents
 	for _, a := range agent.SubAgents {
-		tokens += a.GetTotalTokens()
+		tokens += a.GetTotalOutputTokens()
 	}
 
 	return tokens
@@ -616,7 +627,7 @@ func (agent *Agent) ExeLoop(max_iters int, max_tokens int) {
 			return
 		}
 
-		if agent.GetTotalTokens() >= max_tokens {
+		if agent.GetTotalOutputTokens() >= max_tokens {
 			fmt.Printf("Warning: Agent reached max tokens(%d)\n", orig_max_tokens)
 			return
 		}
