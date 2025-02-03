@@ -1,7 +1,8 @@
 package main
 
 type ButtonConfirm struct {
-	Value string //label
+	Enable bool
+	Value  string //label
 
 	Tooltip string
 	Align   int
@@ -19,18 +20,20 @@ type ButtonConfirm struct {
 }
 
 func (layout *Layout) AddButtonConfirm(x, y, w, h int, label string, question string) *ButtonConfirm {
-	props := &ButtonConfirm{Value: label, Align: 1, Draw_back: 1, Question: question}
+	props := &ButtonConfirm{Value: label, Align: 1, Draw_back: 1, Question: question, Enable: true}
 	layout._createDiv(x, y, w, h, "ButtonConfirm", props.Build, nil, nil)
 	return props
 }
 
 func (layout *Layout) AddButtonConfirmMenu(x, y, w, h int, label string, icon_path string, icon_margin float64, question string) *ButtonConfirm {
-	props := &ButtonConfirm{Value: label, Icon: icon_path, Icon_margin: icon_margin, Align: 0, Draw_back: 0.25, Question: question}
+	props := &ButtonConfirm{Value: label, Icon: icon_path, Icon_margin: icon_margin, Align: 0, Draw_back: 0.25, Question: question, Enable: true}
 	layout._createDiv(x, y, w, h, "ButtonConfirm", props.Build, nil, nil)
 	return props
 }
 
 func (st *ButtonConfirm) Build(layout *Layout) {
+
+	layout.Enable = st.Enable
 
 	layout.SetColumn(0, 1, 100)
 	layout.SetRow(0, 1, 100)
