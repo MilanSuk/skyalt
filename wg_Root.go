@@ -204,6 +204,7 @@ func (st *Root) Build(layout *Layout) {
 		TrashDiv.SetColumn(1, 1, 15)
 		TrashDiv.SetColumn(2, 1, 100)
 		TrashDiv.SetRow(4, 1, 100)
+		TrashDiv.SetRow(7, 1, 1)
 
 		title := TrashDiv.AddText(1, 0, 1, 1, "Deleted chats")
 		title.Align_h = 1
@@ -252,6 +253,15 @@ func (st *Root) Build(layout *Layout) {
 			}
 
 			yy++
+		}
+
+		EmptyBt := TrashDiv.AddButtonConfirm(1, 6, 1, 1, "Empty trash", "Are you sure, you wanna delete all chats permanently?")
+		EmptyBt.Enable = len(st.TrashChats) > 0
+		EmptyBt.confirmed = func() {
+			for _, it := range st.TrashChats {
+				RemoveFile_Chat(it)
+			}
+			st.TrashChats = nil
 		}
 
 	} else if st.ShowSettings {
