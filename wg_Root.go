@@ -32,9 +32,8 @@ type Root struct {
 	Search      string
 	TrashSearch string
 
-	Selected     int
-	ShowTrash    bool
-	ShowSettings bool
+	Selected int
+	Show     string
 
 	AgentSelected string
 }
@@ -43,7 +42,7 @@ func (st *Root) Build(layout *Layout) {
 
 	st.refreshChats()
 
-	layout.SetColumnResizable(0, 4, 10, 6)
+	layout.SetColumnResizable(0, 5, 10, 7)
 	layout.SetColumn(1, 1, 100)
 	layout.SetRow(0, 1, 100)
 
@@ -55,45 +54,17 @@ func (st *Root) Build(layout *Layout) {
 		{
 			headDiv := sideDiv.AddLayout(0, y, 1, 1)
 			y++
-			headDiv.SetColumn(0, 1, 100)
+			headDiv.SetColumn(0, 2, 2)
+			headDiv.SetColumn(1, 1, 100)
+
 			logo := headDiv.AddImageCd(0, 0, 1, 1, "resources/logo_small.png", color.RGBA{0, 0, 0, 255})
 			logo.Align_h = 0
 			logo.Margin = 0.2
 			logo.Tooltip = "v0.1" //....
 
-			setBt := headDiv.AddButtonIcon(1, 0, 1, 1, "resources/settings.png", 0.2, "Settings")
-			setBt.Background = 0.25
-			if st.ShowSettings {
-				setBt.Background = 1
-			}
-			setBt.Align = 0
-			setBt.clicked = func() {
-				st.ShowSettings = !st.ShowSettings
-				if st.ShowSettings {
-					st.ShowTrash = false
-				}
-			}
-
-			trashBt := headDiv.AddButtonIcon(2, 0, 1, 1, "resources/delete.png", 0.15, "Recover deleted chats")
-			trashBt.Background = 0.25
-			if st.ShowTrash {
-				trashBt.Background = 1
-			}
-			trashBt.Align = 0
-			trashBt.clicked = func() {
-				st.ShowTrash = !st.ShowTrash
-				if st.ShowTrash {
-					st.ShowSettings = false
-				}
-			}
-
-		}
-
-		{
-			createChatBt := sideDiv.AddButtonMenu(0, y, 1, 1, "New chat", "resources/chat.png", 0.2)
-			y++
+			createChatBt := headDiv.AddButton(1, 0, 1, 1, "New chat")
 			createChatBt.Background = 0.5
-			createChatBt.Align = 0
+			//createChatBt.Align = 0
 			createChatBt.clicked = func() {
 				st.AddNewChat()
 			}
@@ -129,7 +100,7 @@ func (st *Root) Build(layout *Layout) {
 					st.MoveChat(src_i, dst_i, src_source, dst_source)
 				}
 				if i == st.Selected {
-					if st.ShowSettings || st.ShowTrash {
+					if st.Show != "" {
 						createChatBt.Border = true
 						createChatBt.Background = 0.25 //highlight light
 					} else {
@@ -183,9 +154,87 @@ func (st *Root) Build(layout *Layout) {
 				yy++
 			}
 		}
+
+		sideDiv.SetRow(y, 0.1, 0.1)
+		sideDiv.AddDivider(0, y, 1, 1, true)
+		y++
+
+		{
+			bottomDiv := sideDiv.AddLayout(0, y, 1, 1)
+
+			st.addIconButton(0, "disk", "resources/folders.png", "Disk", bottomDiv)
+			st.addIconButton(1, "tools", "resources/tools.png", "Tools", bottomDiv)
+			st.addIconButton(2, "passwords", "resources/key.png", "Passwords", bottomDiv)
+			st.addIconButton(3, "settings", "resources/settings.png", "Settings", bottomDiv)
+			st.addIconButton(4, "trash", "resources/delete.png", "Recover deleted chats", bottomDiv)
+		}
 	}
 
-	if st.ShowTrash {
+	if st.Show == "disk" {
+		//....
+
+	} else if st.Show == "tools" {
+		//....
+
+	} else if st.Show == "passwords" {
+		//....
+
+	} else if st.Show == "settings" {
+		//settings
+		setDiv := layout.AddLayout(1, 0, 1, 1)
+		setDiv.SetColumn(0, 1, 100)
+		setDiv.SetColumn(1, 10, 16)
+		setDiv.SetColumn(2, 1, 100)
+
+		//device settings
+		setDiv.SetRowFromSub(0, 0, 100)
+		setDiv.AddSettings(1, 0, 1, 1, OpenFile_DeviceSettings())
+
+		setDiv.AddDivider(1, 1, 1, 1, true)
+
+		//agents
+		{
+			agentPathes, _ := OpenDir_agents_properties() //err ....
+			var agents []string
+			for _, ag := range agentPathes {
+				agents = append(agents, filepath.Base(ag))
+			}
+			if st.AgentSelected == "" && len(agentPathes) > 0 {
+				st.AgentSelected = agentPathes[0]
+			}
+			setDiv.AddTabs(1, 2, 1, 1, &st.AgentSelected, agents, agentPathes)
+			setDiv.SetRowFromSub(3, 0, 100)
+			setDiv.AddAgents_properties(1, 3, 1, 1, OpenFile_Agent_properties(st.AgentSelected))
+		}
+
+		setDiv.AddDivider(1, 4, 1, 1, true)
+
+		//about
+		setDiv.SetRowFromSub(5, 0, 100)
+		AboutDiv := setDiv.AddLayout(1, 5, 1, 1)
+		{
+			AboutDiv.SetColumn(0, 1, 100)
+			AboutDiv.SetRow(0, 2, 4)
+
+			AboutDiv.AddImageCd(0, 0, 1, 1, "resources/logo.png", color.RGBA{0, 0, 0, 255})
+
+			Version := AboutDiv.AddText(0, 1, 1, 1, "v0.1")
+			Version.Align_h = 1
+
+			Url := AboutDiv.AddButton(0, 2, 1, 1, "github.com/milansuk/skyalt/")
+			Url.Background = 0
+			Url.BrowserUrl = "https://github.com/milansuk/skyalt/"
+
+			License := AboutDiv.AddText(0, 3, 1, 1, "This program is distributed under the terms of Apache License, Version 2.0.")
+			License.Align_h = 1
+
+			Copyright := AboutDiv.AddText(0, 4, 1, 1, "This program comes with absolutely no warranty.")
+			Copyright.Align_h = 1
+
+			Warranty := AboutDiv.AddText(0, 5, 1, 1, "Copyright © 2025 - SkyAlt team")
+			Warranty.Align_h = 1
+		}
+	} else if st.Show == "trash" {
 		//trash
 		TrashDiv := layout.AddLayout(1, 0, 1, 1)
 		TrashDiv.SetColumn(0, 1, 100)
@@ -252,62 +301,6 @@ func (st *Root) Build(layout *Layout) {
 			st.TrashChats = nil
 		}
 
-	} else if st.ShowSettings {
-		//settings
-		setDiv := layout.AddLayout(1, 0, 1, 1)
-		setDiv.SetColumn(0, 1, 100)
-		setDiv.SetColumn(1, 10, 16)
-		setDiv.SetColumn(2, 1, 100)
-
-		//device settings
-		setDiv.SetRowFromSub(0, 0, 100)
-		setDiv.AddSettings(1, 0, 1, 1, OpenFile_DeviceSettings())
-
-		setDiv.AddDivider(1, 1, 1, 1, true)
-
-		//agents
-		{
-			agentPathes, _ := OpenDir_agents_properties() //err ....
-			var agents []string
-			for _, ag := range agentPathes {
-				agents = append(agents, filepath.Base(ag))
-			}
-			if st.AgentSelected == "" && len(agentPathes) > 0 {
-				st.AgentSelected = agentPathes[0]
-			}
-			setDiv.AddTabs(1, 2, 1, 1, &st.AgentSelected, agents, agentPathes)
-			setDiv.SetRowFromSub(3, 0, 100)
-			setDiv.AddAgents_properties(1, 3, 1, 1, OpenFile_Agent_properties(st.AgentSelected))
-		}
-
-		setDiv.AddDivider(1, 4, 1, 1, true)
-
-		//about
-		setDiv.SetRowFromSub(5, 0, 100)
-		AboutDiv := setDiv.AddLayout(1, 5, 1, 1)
-		{
-			AboutDiv.SetColumn(0, 1, 100)
-			AboutDiv.SetRow(0, 2, 4)
-
-			AboutDiv.AddImageCd(0, 0, 1, 1, "resources/logo.png", color.RGBA{0, 0, 0, 255})
-
-			Version := AboutDiv.AddText(0, 1, 1, 1, "v0.1")
-			Version.Align_h = 1
-
-			Url := AboutDiv.AddButton(0, 2, 1, 1, "github.com/milansuk/skyalt/")
-			Url.Background = 0
-			Url.BrowserUrl = "https://github.com/milansuk/skyalt/"
-
-			License := AboutDiv.AddText(0, 3, 1, 1, "This program is distributed under the terms of Apache License, Version 2.0.")
-			License.Align_h = 1
-
-			Copyright := AboutDiv.AddText(0, 4, 1, 1, "This program comes with absolutely no warranty.")
-			Copyright.Align_h = 1
-
-			Warranty := AboutDiv.AddText(0, 5, 1, 1, "Copyright © 2025 - SkyAlt team")
-			Warranty.Align_h = 1
-		}
-
 	} else if len(st.Chats) == 0 {
 		//create first chat
 		EmptyDiv := layout.AddLayout(1, 0, 1, 1)
@@ -356,6 +349,24 @@ func (st *Root) Build(layout *Layout) {
 	}
 }
 
+func (st *Root) addIconButton(x int, show string, icon string, label string, layout *Layout) {
+	layout.SetColumn(x, 0.5, 100)
+
+	trashBt := layout.AddButtonIcon(x, 0, 1, 1, icon, 0.15, label)
+	trashBt.Background = 0.5
+	if st.Show == show {
+		trashBt.Background = 1
+	}
+	x++
+	trashBt.clicked = func() {
+		if st.Show == show {
+			st.Show = ""
+		} else {
+			st.Show = show
+		}
+	}
+}
+
 func (st *Root) MoveChat(src_i, dst_i int, src_source, dst_source string) {
 	src := &st.Chats
 	dst := &st.Chats
@@ -376,8 +387,7 @@ func (st *Root) MoveChat(src_i, dst_i int, src_source, dst_source string) {
 
 func (st *Root) SelectChat(i int) {
 	st.Selected = i
-	st.ShowSettings = false
-	st.ShowTrash = false
+	st.Show = ""
 }
 
 func (st *Root) AddNewChat() {
