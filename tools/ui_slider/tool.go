@@ -6,12 +6,10 @@ import "strconv"
 type ui_slider struct {
 	Min   float64 //Minimum range
 	Max   float64 //Maximum range
+	Step  float64 //Step size
 	Value float64 //Current value
 }
 
 func (st *ui_slider) run() string {
-
-	v := st.Value + 5 //....
-
-	return strconv.FormatFloat(v, 'f', -1, 64)
+	return strconv.FormatFloat(st.Value, 'f', -1, 64)
 }

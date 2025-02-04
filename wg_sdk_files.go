@@ -226,6 +226,3 @@ func OpenDir_agents_properties() ([]string, error) {
 func OpenFile_Agent_properties(path string) *Agent_properties {
 	return WgFiles_Load(path, &Agent_properties{})
 }
-
-//ui_slider, ui_settings - user must confirm and then it's written ......
-//- change again = re-run chat from that point

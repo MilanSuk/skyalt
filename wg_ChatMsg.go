@@ -12,6 +12,9 @@ import (
 type ChatMsg struct {
 	agent *Agent
 	msg_i int
+
+	isRunning func() bool
+	uiChanged func()
 }
 
 func (layout *Layout) AddChatMsg(x, y, w, h int, props *ChatMsg) *ChatMsg {
@@ -56,7 +59,7 @@ func (st *ChatMsg) Build(layout *Layout) {
 	date.Align_h = 2
 
 	y := 1
-	for _, it := range msg.Content {
+	for content_i, it := range msg.Content {
 
 		switch it.Type {
 		case "text":
@@ -67,107 +70,31 @@ func (st *ChatMsg) Build(layout *Layout) {
 				y++
 			}
 		case "tool_use":
-			//if open, highlight it
-			if st.agent.Selected_sub_call_id == it.Id {
-				layout.Back_cd = Paint_GetPalette().S
-				//layout.Border_cd = Paint_GetPalette().OnB
-			}
 
-			args, err := it.Input.MarshalJSON()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			showParams := st.agent.IsShowToolParameters(it.Id)
-
-			//open sub-agent
-			ShowParamsBt := layout.AddButton(0, y, 1, 1, fmt.Sprintf("<i>%s(%s)", it.Name, it.Id))
-			ShowParamsBt.Background = 0.5
-			ShowParamsBt.Align = 0
-			ShowParamsBt.Icon_align = 0
-			ShowParamsBt.Icon_margin = 0.1
-			//ShowParamsBt.Border = true
-			if showParams {
-				ShowParamsBt.Icon = "resources/arrow_down.png"
-				ShowParamsBt.Tooltip = "Hide tool call's parameters"
-			} else {
-				ShowParamsBt.Icon = "resources/arrow_right.png"
-				ShowParamsBt.Tooltip = "Show tool call's parameters"
-			}
-			ShowParamsBt.clicked = func() {
-				st.agent.SetShowToolParameters(it.Id, !showParams)
-			}
-
-			if st.agent.FindSubAgent(it.Id) != nil {
-				if st.agent.Selected_sub_call_id != it.Id {
-					bt := layout.AddButton(1, y, 1, 1, "Open")
-					bt.Background = 0.5
-					bt.clicked = func() {
-						st.agent.Selected_sub_call_id = it.Id
-					}
-				} else {
-					bt := layout.AddButton(1, y, 1, 1, "Close")
-					bt.Background = 0.5
-					bt.clicked = func() {
-						st.agent.Selected_sub_call_id = ""
-					}
+			switch it.Name {
+			case "ui_slider":
+				type ui_slider struct {
+					Min   float64 //Minimum range
+					Max   float64 //Maximum range
+					Step  float64 //Step size
+					Value float64 //Current value
 				}
-			}
-			y++
+				var ui ui_slider
+				js, _ := it.Input.MarshalJSON()
+				_ = json.Unmarshal(js, &ui)
 
-			//parameters
-			if showParams {
-				layout.SetRowFromSub(y, 1, 100)
-				CallDiv := layout.AddLayout(0, y, 2, 1)
-				CallDiv.SetColumn(0, 1, 1)
-				CallDiv.SetColumnFromSub(1, 1, 10)
-				CallDiv.SetColumn(2, 1, 100)
-				//CallDiv.Border_cd = Paint_GetPalette().OnB
-				CallDiv.Back_cd = Color_Aprox(Paint_GetPalette().P, Paint_GetPalette().B, 0.8)
-				y++
-
-				yy := 0
-				CallDiv.AddText(0, yy, 3, 1, "Inputs:")
-				yy++
-
-				//render tool
-				attrs := make(map[string]interface{})
-				err = json.Unmarshal(args, &attrs)
-				if err == nil {
-
-					//sort map by key
-					// Extract keys from map
-					var keys []string
-					for k := range attrs {
-						keys = append(keys, k)
-					}
-					sort.Strings(keys)
-
-					for _, key := range keys {
-						val := attrs[key]
-						CallDiv.SetRowFromSub(yy, 1, 100)
-						/*tx :=*/ CallDiv.AddText(1, yy, 1, 1, "<i>"+key) //name
-						//tx.Tooltip = //description from agent tool ..............
-
-						varStr := fmt.Sprintf("%v", val)
-						if strings.Count(varStr, "\n") > 0 {
-							CallDiv.AddTextMultiline(2, yy, 1, 1, varStr)
-						} else {
-							CallDiv.AddText(2, yy, 1, 1, varStr)
-						}
-						yy++
-					}
+				gui := layout.AddSlider(0, y, 2, 1, &ui.Value, ui.Min, ui.Max, ui.Step)
+				layout.FindLayout(0, y, 2, 1).Enable = (st.isRunning == nil || !st.isRunning())
+				gui.changed = func() {
+					args, _ := json.Marshal(ui)
+					st.sendChange(content_i, string(args), it)
 				}
 
-				result := st.agent.FindSubCallResultContent(it.Id)
-				if result != nil {
-					CallDiv.AddText(0, yy, 3, 1, "Output:")
-					yy++
-					CallDiv.SetRowFromSub(yy, 1, 100)
-					CallDiv.AddTextMultiline(1, yy, 2, 1, result.Content)
-					yy++
-				}
+			case "ui_map":
+				//....
 
+			default:
+				y = st.toolUse(it, layout, y)
 			}
 
 		//case "tool_result":
@@ -176,7 +103,7 @@ func (st *ChatMsg) Build(layout *Layout) {
 		//	y++
 
 		case "image":
-			//inside /disk ... but don't save them into chat(anthropic messages) ....
+			//inside /disk - but don't save them into chat(anthropic messages) ....
 			//every chat 45645123165.json has folder with same name ...
 			//+pemanent delete folder as well ...
 
@@ -206,4 +133,132 @@ func (st *ChatMsg) Build(layout *Layout) {
 			y++
 		}
 	}
+}
+
+func (st *ChatMsg) sendChange(content_i int, new_args string, it Anthropic_completion_msg_Content) {
+	if st.isRunning != nil && st.isRunning() {
+		return
+	}
+
+	// remove follow ups
+	st.agent.Messages = st.agent.Messages[:st.msg_i+1]
+	st.agent.Messages[st.msg_i].Content = st.agent.Messages[st.msg_i].Content[:content_i+1]
+
+	// call
+	answerJs := st.agent.callTool(it.Id, it.Name, new_args, nil)
+
+	// save answer
+	st.agent.AddCallResult(it.Name, it.Id, answerJs)
+
+	// run
+	if st.uiChanged != nil {
+		st.uiChanged()
+	}
+}
+
+func (st *ChatMsg) toolUse(it Anthropic_completion_msg_Content, layout *Layout, y int) int {
+
+	// if open, highlight it
+	if st.agent.Selected_sub_call_id == it.Id {
+		layout.Back_cd = Paint_GetPalette().S
+		//layout.Border_cd = Paint_GetPalette().OnB
+	}
+
+	args, err := it.Input.MarshalJSON()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	showParams := st.agent.IsShowToolParameters(it.Id)
+
+	// open sub-agent
+	ShowParamsBt := layout.AddButton(0, y, 1, 1, fmt.Sprintf("<i>%s(%s)", it.Name, it.Id))
+	ShowParamsBt.Background = 0.5
+	ShowParamsBt.Align = 0
+	ShowParamsBt.Icon_align = 0
+	ShowParamsBt.Icon_margin = 0.1
+	// ShowParamsBt.Border = true
+	if showParams {
+		ShowParamsBt.Icon = "resources/arrow_down.png"
+		ShowParamsBt.Tooltip = "Hide tool call's parameters"
+	} else {
+		ShowParamsBt.Icon = "resources/arrow_right.png"
+		ShowParamsBt.Tooltip = "Show tool call's parameters"
+	}
+	ShowParamsBt.clicked = func() {
+		st.agent.SetShowToolParameters(it.Id, !showParams)
+	}
+
+	if st.agent.FindSubAgent(it.Id) != nil {
+		if st.agent.Selected_sub_call_id != it.Id {
+			bt := layout.AddButton(1, y, 1, 1, "Open")
+			bt.Background = 0.5
+			bt.clicked = func() {
+				st.agent.Selected_sub_call_id = it.Id
+			}
+		} else {
+			bt := layout.AddButton(1, y, 1, 1, "Close")
+			bt.Background = 0.5
+			bt.clicked = func() {
+				st.agent.Selected_sub_call_id = ""
+			}
+		}
+	}
+	y++
+
+	// parameters
+	if showParams {
+		layout.SetRowFromSub(y, 1, 100)
+		CallDiv := layout.AddLayout(0, y, 2, 1)
+		CallDiv.SetColumn(0, 1, 1)
+		CallDiv.SetColumnFromSub(1, 1, 10)
+		CallDiv.SetColumn(2, 1, 100)
+		//CallDiv.Border_cd = Paint_GetPalette().OnB
+		CallDiv.Back_cd = Color_Aprox(Paint_GetPalette().P, Paint_GetPalette().B, 0.8)
+		y++
+
+		yy := 0
+		CallDiv.AddText(0, yy, 3, 1, "Inputs:")
+		yy++
+
+		//render tool
+		attrs := make(map[string]interface{})
+		err = json.Unmarshal(args, &attrs)
+		if err == nil {
+
+			//sort map by key
+			// Extract keys from map
+			var keys []string
+			for k := range attrs {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+
+			for _, key := range keys {
+				val := attrs[key]
+				CallDiv.SetRowFromSub(yy, 1, 100)
+				/*tx :=*/ CallDiv.AddText(1, yy, 1, 1, "<i>"+key) //name
+				//tx.Tooltip = //description from agent tool ....
+
+				varStr := fmt.Sprintf("%v", val)
+				if strings.Count(varStr, "\n") > 0 {
+					CallDiv.AddTextMultiline(2, yy, 1, 1, varStr)
+				} else {
+					CallDiv.AddText(2, yy, 1, 1, varStr)
+				}
+				yy++
+			}
+		}
+
+		result := st.agent.FindSubCallResultContent(it.Id)
+		if result != nil {
+			CallDiv.AddText(0, yy, 3, 1, "Output:")
+			yy++
+			CallDiv.SetRowFromSub(yy, 1, 100)
+			CallDiv.AddTextMultiline(1, yy, 2, 1, result.Content)
+			yy++
+		}
+	}
+
+	return y
 }

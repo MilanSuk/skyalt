@@ -34,19 +34,24 @@ func (st *Chat) Build(layout *Layout) {
 			x = 1
 		}
 
-		//maybe add Button "Show System prompt" ....
-
 		y := 0
 		for i := range st.agent.Messages {
-
 			if len(st.agent.Messages[i].Content) > 0 && st.agent.Messages[i].Content[0].Type == "tool_result" {
 				continue //skip
 			}
 
 			//previous message
 			MsgsDiv.SetRowFromSub(y, 1, 100)
-			MsgsDiv.AddChatMsg(x, y, 1, 1, &ChatMsg{agent: st.agent, msg_i: i})
+			msg := MsgsDiv.AddChatMsg(x, y, 1, 1, &ChatMsg{agent: st.agent, msg_i: i})
 			y++
+			msg.isRunning = func() bool {
+				return st.Find() != nil
+			}
+			msg.uiChanged = func() {
+				if st.Find() == nil {
+					st.Start()
+				}
+			}
 
 			//space
 			MsgsDiv.SetRow(y, 0.5, 0.5)

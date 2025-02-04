@@ -673,6 +673,10 @@ func (agent *Agent) callTools(tool_calls []Anthropic_completion_msg_Content, ant
 			continue
 		}
 
+		if strings.HasPrefix(it.Name, "ui") {
+			return false //stop
+		}
+
 		args, err := it.Input.MarshalJSON()
 		if err != nil {
 			log.Fatal(err)
