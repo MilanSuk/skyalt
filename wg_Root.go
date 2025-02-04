@@ -36,6 +36,8 @@ type Root struct {
 	Show     string
 
 	AgentSelected string
+
+	Tools Tools
 }
 
 func (st *Root) Build(layout *Layout) {
@@ -174,10 +176,13 @@ func (st *Root) Build(layout *Layout) {
 		//....
 
 	} else if st.Show == "tools" {
-		//....
+
+		layout.AddTools(1, 0, 1, 1, &st.Tools)
 
 	} else if st.Show == "passwords" {
-		//....
+		wip := layout.AddText(1, 0, 1, 1, "//Work in progress ...")
+		wip.Align_h = 1
+		wip.Align_v = 1
 
 	} else if st.Show == "settings" {
 		//settings
