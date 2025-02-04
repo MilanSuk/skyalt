@@ -83,6 +83,10 @@ func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 		cqT.W = rad * 2
 		cqT.H = rad * 2
 		paint.Circle(cqT, cdThumb, cdThumb_over, cdThumb_down, 0)
+
+		//label
+		str := strconv.FormatFloat(value, 'f', 2, 64)
+		paint.TooltipEx(cqT.Cut(-rad/2), str, true)
 	}
 
 	//legend
@@ -99,15 +103,6 @@ func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	}
 
-	//label
-	{
-		cqB.Y -= rad //move up
-		cqB.W = rad * 2
-		cqB.H = rad * 2
-
-		str := strconv.FormatFloat(value, 'f', 2, 64)
-		paint.TooltipEx(cqB, str, true)
-	}
 	return
 }
 
