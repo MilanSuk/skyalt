@@ -75,6 +75,8 @@ type Agent struct {
 	Sandbox_violations []string
 
 	Stopped string
+
+	NoTools bool
 }
 
 func NewAgent(folder string, use_case string, systemPrompt string) *Agent {
@@ -423,6 +425,18 @@ func (agent *Agent) IsModelAnthropic() bool {
 	return login.Anthropic_completion_url != ""
 }
 
+func (agent *Agent) GetFirstMessage() string {
+	for _, msg := range agent.Messages {
+		if msg.Role == "user" {
+			for _, ct := range msg.Content {
+				if ct.Type == "text" {
+					return ct.Text
+				}
+			}
+		}
+	}
+	return ""
+}
 func (agent *Agent) GetFinalMessage() string {
 	if len(agent.Messages) == 0 {
 		return ""
@@ -550,6 +564,9 @@ func (agent *Agent) GetTotalOutputTokens() int {
 func (agent *Agent) Exe(job *Job) bool {
 	if agent.IsModelAnthropic() {
 		props, completion_url, api_key := agent.buildAnthropic()
+		if agent.NoTools {
+			props.Tools = nil
+		}
 
 		startTime := float64(time.Now().UnixMilli()) / 1000
 
@@ -576,6 +593,9 @@ func (agent *Agent) Exe(job *Job) bool {
 		return agent.callTools(out.Content, &props, nil, job)
 	} else {
 		props, completion_url, api_key := agent.buildOpenAI()
+		if agent.NoTools {
+			props.Tools = nil
+		}
 
 		startTime := float64(time.Now().UnixMilli()) / 1000
 

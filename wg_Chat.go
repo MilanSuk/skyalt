@@ -164,6 +164,20 @@ func (st *Chat) Run(job *Job) {
 	st.agent.Input.reset()
 }
 
+func (st *Chat) RunSummary(job *Job) {
+
+	//prepare
+	ag := NewAgent("", "", "You are an AI assistant. You summarize long text to clear short description.")
+	ag.NoTools = true
+	ag.AddUserPromptText("Summarize this text to maximum 10 words:\n" + st.agent.GetFirstMessage())
+
+	//run
+	ag.ExeLoop(1, 100, job)
+
+	//save
+	st.agent.Description = ag.GetFinalMessage()
+}
+
 func (st *Chat) getUID() string {
 	return "chat_" + st.file_name
 }
@@ -172,6 +186,12 @@ func (st *Chat) Find() *Job {
 	return FindJob(st.getUID())
 }
 func (st *Chat) Start() *Job {
+
+	if len(st.agent.Messages) == 1 {
+		//summarize
+		StartJob("summarize_"+st.getUID(), fmt.Sprintf("Summary %s", st.file_name), st.RunSummary)
+	}
+
 	return StartJob(st.getUID(), fmt.Sprintf("Agent %s", st.file_name), st.Run)
 }
 func (st *Chat) Stop() {
