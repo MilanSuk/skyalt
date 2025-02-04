@@ -42,17 +42,20 @@ func (st *ChatMsg) Build(layout *Layout) {
 	//model name
 	{
 		model := layout.AddText(0, 0, 1, 1, "<b>"+sender)
-		in, inCached, out := msg.GetPrice(st.agent)
-		model.Tooltip = fmt.Sprintf("%s tokens/sec\n$%s(%d toks) total</b>\n- $%s(%d toks) input\n- $%s(%d toks) cached\n- $%s(%d toks) output",
-			strconv.FormatFloat(msg.GetSpeed(), 'f', 3, 64),
-			strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
-			msg.InputTokens+msg.InputCachedTokens+msg.OutputTokens,
-			strconv.FormatFloat(in, 'f', -1, 64),
-			msg.InputTokens,
-			strconv.FormatFloat(inCached, 'f', -1, 64),
-			msg.InputCachedTokens,
-			strconv.FormatFloat(out, 'f', -1, 64),
-			msg.OutputTokens)
+		if msg.CreatedBy != "" {
+			in, inCached, out := msg.GetPrice(st.agent)
+			model.Tooltip = fmt.Sprintf("%s sec\n%s tokens/sec\nTotal: $%s(%d toks)\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d toks)",
+				strconv.FormatFloat(msg.Time, 'f', 3, 64),
+				strconv.FormatFloat(msg.GetSpeed(), 'f', 3, 64),
+				strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
+				msg.InputTokens+msg.InputCachedTokens+msg.OutputTokens,
+				strconv.FormatFloat(in, 'f', -1, 64),
+				msg.InputTokens,
+				strconv.FormatFloat(inCached, 'f', -1, 64),
+				msg.InputCachedTokens,
+				strconv.FormatFloat(out, 'f', -1, 64),
+				msg.OutputTokens)
+		}
 	}
 
 	date := layout.AddText(1, 0, 1, 1, "<small>"+Layout_ConvertTextDateTime(int64(msg.CreatedTimeSec)))
@@ -180,10 +183,10 @@ func (st *ChatMsg) toolUse(it Anthropic_completion_msg_Content, layout *Layout, 
 	// ShowParamsBt.Border = true
 	if showParams {
 		ShowParamsBt.Icon = "resources/arrow_down.png"
-		ShowParamsBt.Tooltip = "Hide tool call's parameters"
+		//ShowParamsBt.Tooltip = "Hide tool call's parameters"
 	} else {
 		ShowParamsBt.Icon = "resources/arrow_right.png"
-		ShowParamsBt.Tooltip = "Show tool call's parameters"
+		//ShowParamsBt.Tooltip = "Show tool call's parameters"
 	}
 	ShowParamsBt.clicked = func() {
 		st.agent.SetShowToolParameters(it.Id, !showParams)
@@ -227,7 +230,6 @@ func (st *ChatMsg) toolUse(it Anthropic_completion_msg_Content, layout *Layout, 
 		if err == nil {
 
 			//sort map by key
-			// Extract keys from map
 			var keys []string
 			for k := range attrs {
 				keys = append(keys, k)

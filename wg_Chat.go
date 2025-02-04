@@ -61,12 +61,14 @@ func (st *Chat) Build(layout *Layout) {
 		//total info
 		if y >= 2 { //1st message is user
 			in, inCached, out := st.agent.GetTotalPrice()
-			info := MsgsDiv.AddText(x, y, 1, 1, fmt.Sprintf("$%s, %d tokens/sec",
+			info := MsgsDiv.AddText(x, y, 1, 1, fmt.Sprintf("$%s, %s sec, %d tokens/sec",
 				strconv.FormatFloat(in+inCached+out, 'f', 3, 64),
+				strconv.FormatFloat(st.agent.GetTotalTime(), 'f', 3, 64),
 				int(st.agent.GetTotalSpeed())))
 			y++
 			info.Align_h = 2 //right
-			info.Tooltip = fmt.Sprintf("%s tokens/sec\nTotal: $%s\n- Input: $%s\n- Input cached: $%s\n- Output: $%s",
+			info.Tooltip = fmt.Sprintf("%s sec\n%s tokens/sec\nTotal: $%s\n- Input: $%s\n- Input cached: $%s\n- Output: $%s",
+				strconv.FormatFloat(st.agent.GetTotalTime(), 'f', -1, 64),
 				strconv.FormatFloat(st.agent.GetTotalSpeed(), 'f', -1, 64),
 				strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
 				strconv.FormatFloat(in, 'f', -1, 64),
