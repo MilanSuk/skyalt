@@ -73,6 +73,8 @@ type Agent struct {
 	ShowToolParams []string //Call_id
 
 	Sandbox_violations []string
+
+	Stopped string
 }
 
 func NewAgent(folder string, use_case string, systemPrompt string) *Agent {
@@ -392,6 +394,21 @@ func (agent *Agent) SetShowToolParameters(call_id string, show bool) {
 	}
 }
 
+func (agent *Agent) RemoveUnfinishedMsg() {
+
+	if agent.Stopped != "" {
+		//if last agent is un-finished than delete message which call it and all later messages
+		last_agent := len(agent.SubAgents) - 1
+		if last_agent >= 0 && agent.SubAgents[last_agent].Stopped != "" {
+			msg_i, _ := agent.FindSubCallUseContent(agent.SubAgents[last_agent].Call_id)
+			if msg_i >= 0 {
+				agent.Messages = slices.Delete(agent.Messages, msg_i, len(agent.Messages))
+			}
+		}
+		agent.Stopped = "" //reset
+	}
+}
+
 func (agent *Agent) IsModelAnthropic() bool {
 
 	props := Agent_findAgentProperties(agent.getUseCase())
@@ -530,7 +547,7 @@ func (agent *Agent) GetTotalOutputTokens() int {
 	return tokens
 }
 
-func (agent *Agent) Exe() bool {
+func (agent *Agent) Exe(job *Job) bool {
 	if agent.IsModelAnthropic() {
 		props, completion_url, api_key := agent.buildAnthropic()
 
@@ -556,7 +573,7 @@ func (agent *Agent) Exe() bool {
 
 		agent.Messages = append(agent.Messages, msg)
 
-		return agent.callTools(out.Content, &props, nil)
+		return agent.callTools(out.Content, &props, nil, job)
 	} else {
 		props, completion_url, api_key := agent.buildOpenAI()
 
@@ -607,11 +624,11 @@ func (agent *Agent) Exe() bool {
 		msg.Time = dt
 
 		agent.Messages = append(agent.Messages, msg)
-		return agent.callTools(outContent, nil, &props)
+		return agent.callTools(outContent, nil, &props, job)
 	}
 }
 
-func (agent *Agent) ExeLoop(max_iters int, max_tokens int) {
+func (agent *Agent) ExeLoop(max_iters int, max_tokens int, job *Job) {
 	orig_max_iters := max_iters
 	orig_max_tokens := max_tokens
 
@@ -622,13 +639,22 @@ func (agent *Agent) ExeLoop(max_iters int, max_tokens int) {
 		max_tokens = 1000000000 //1B
 	}
 
+	agent.Stopped = "" //reset
+
 	for max_iters > 0 {
-		if !agent.Exe() {
+		if !agent.Exe(job) {
+			return //0 tool calls = natural end
+		}
+
+		if !job.IsRunning() {
+			fmt.Printf("Warning: Agent was stopped by user\n")
+			agent.Stopped = "Agent was stopped by user"
 			return
 		}
 
 		if agent.GetTotalOutputTokens() >= max_tokens {
 			fmt.Printf("Warning: Agent reached max tokens(%d)\n", orig_max_tokens)
+			agent.Stopped = fmt.Sprintf("Agent reached max tokens(%d)\n", orig_max_tokens)
 			return
 		}
 
@@ -636,9 +662,10 @@ func (agent *Agent) ExeLoop(max_iters int, max_tokens int) {
 	}
 
 	fmt.Printf("Warning: Agent reached max iters(%d)\n", orig_max_iters)
+	agent.Stopped = fmt.Sprintf("Agent reached max iters(%d)\n", orig_max_tokens)
 }
 
-func (agent *Agent) callTools(tool_calls []Anthropic_completion_msg_Content, ant *Anthropic_completion_props, oai *OpenAI_completion_props) bool {
+func (agent *Agent) callTools(tool_calls []Anthropic_completion_msg_Content, ant *Anthropic_completion_props, oai *OpenAI_completion_props, job *Job) bool {
 	num_calles := 0
 
 	for _, it := range tool_calls {
@@ -655,7 +682,7 @@ func (agent *Agent) callTools(tool_calls []Anthropic_completion_msg_Content, ant
 			for _, tool := range ant.Tools {
 				if tool.Name == it.Name {
 					//call
-					answerJs := agent.callTool(it.Id, it.Name, string(args))
+					answerJs := agent.callTool(it.Id, it.Name, string(args), job)
 
 					//save answer
 					agent.AddCallResult(it.Name, it.Id, answerJs)
@@ -666,7 +693,7 @@ func (agent *Agent) callTools(tool_calls []Anthropic_completion_msg_Content, ant
 			for _, tool := range oai.Tools {
 				if tool.Function.Name == it.Name {
 					//call
-					answerJs := agent.callTool(it.Id, it.Name, string(args))
+					answerJs := agent.callTool(it.Id, it.Name, string(args), job)
 
 					//save answer
 					agent.AddCallResult(it.Name, it.Id, answerJs)
@@ -680,7 +707,7 @@ func (agent *Agent) callTools(tool_calls []Anthropic_completion_msg_Content, ant
 	return num_calles > 0
 }
 
-func (agent *Agent) callTool(call_id string, toolName string, arguments string) string {
+func (agent *Agent) callTool(call_id string, toolName string, arguments string, job *Job) string {
 	tool := filepath.Join(agent.getFolder(), toolName)
 
 	//call
@@ -731,7 +758,7 @@ func (agent *Agent) callTool(call_id string, toolName string, arguments string) 
 			agent.Selected_sub_call_id = call_id //show
 
 			//run
-			sub_agent.ExeLoop(int(max_iters), int(max_tokens))
+			sub_agent.ExeLoop(int(max_iters), int(max_tokens), job)
 
 			//send result back
 			cl.WriteArray([]byte(sub_agent.GetFinalMessage()))

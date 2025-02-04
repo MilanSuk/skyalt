@@ -19,8 +19,6 @@ func (layout *Layout) AddChat(x, y, w, h int, props *Chat) *Chat {
 }
 
 func (st *Chat) Build(layout *Layout) {
-	job := st.Find()
-
 	layout.SetColumn(0, 1, 100)
 	layout.SetRow(0, 0, 100)
 	layout.SetRowFromSub(1, 1, 100)
@@ -61,6 +59,7 @@ func (st *Chat) Build(layout *Layout) {
 			info := MsgsDiv.AddText(x, y, 1, 1, fmt.Sprintf("$%s, %d tokens/sec",
 				strconv.FormatFloat(in+inCached+out, 'f', 3, 64),
 				int(st.agent.GetTotalSpeed())))
+			y++
 			info.Align_h = 2 //right
 			info.Tooltip = fmt.Sprintf("%s tokens/sec\nTotal: $%s\n- Input: $%s\n- Input cached: $%s\n- Output: $%s",
 				strconv.FormatFloat(st.agent.GetTotalSpeed(), 'f', -1, 64),
@@ -69,9 +68,30 @@ func (st *Chat) Build(layout *Layout) {
 				strconv.FormatFloat(inCached, 'f', -1, 64),
 				strconv.FormatFloat(out, 'f', -1, 64))
 		}
-	}
 
-	//stop button ......
+		//stopped
+		if st.agent.Call_id == "" {
+			stopped := st.agent.Stopped
+			if stopped != "" {
+				MsgsDiv.AddText(x, y, 1, 1, "("+stopped+")").Align_h = 1
+				y++
+
+				{
+					ContDiv := MsgsDiv.AddLayout(x, y, 1, 1)
+					ContDiv.SetColumn(0, 1, 100)
+					ContDiv.SetColumn(1, 1, 7)
+					ContDiv.SetColumn(2, 1, 100)
+					ContinueBt := ContDiv.AddButton(1, 0, 1, 1, "Continue ...")
+					ContinueBt.Background = 0.5
+					y++
+					ContinueBt.clicked = func() {
+						st.agent.RemoveUnfinishedMsg()
+						st.Start()
+					}
+				}
+			}
+		}
+	}
 
 	if st.agent.Call_id == "" {
 		InputDiv := layout.AddLayout(0, 1, 1, 1)
@@ -87,8 +107,12 @@ func (st *Chat) Build(layout *Layout) {
 			x = 1
 		}
 		Input := InputDiv.AddChatInput(x, 0, 1, 1, &st.agent.Input)
-		InputDiv.FindLayout(x, 0, 1, 1).Enable = (job == nil)
-
+		Input.isRunning = func() bool {
+			return st.Find() != nil
+		}
+		Input.stop = func() {
+			st.Stop()
+		}
 		Input.sended = func() {
 			st.agent.AddUserPromptTextAndImages(st.agent.Input.Text, st.agent.Input.Files)
 
@@ -130,7 +154,7 @@ func (st *Chat) Build(layout *Layout) {
 }
 
 func (st *Chat) Run(job *Job) {
-	st.agent.ExeLoop(20, 20000)
+	st.agent.ExeLoop(20, 20000, job)
 
 	st.agent.Input.reset()
 }
