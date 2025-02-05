@@ -738,9 +738,10 @@ func (agent *Agent) callTool(call_id string, toolName string, arguments string, 
 	binPath := filepath.Join(filepath.Join("temp", tool), "bin")
 	cmd := exec.Command("./"+binPath, strconv.Itoa(g_agent_server.port))
 	cmd.Dir = ""
-	cmd.Stdin = os.Stdin //remove later ....
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	OutStr := new(strings.Builder)
+	ErrStr := new(strings.Builder)
+	cmd.Stdout = OutStr
+	cmd.Stderr = ErrStr
 	err := cmd.Start()
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -836,7 +837,13 @@ func (agent *Agent) callTool(call_id string, toolName string, arguments string, 
 	err = cmd.Wait()
 	if err != nil {
 		//tool crashed
-		js = []byte(fmt.Sprintf("Tool '%s' crashed with log.Fatal: %s", tool, err.Error()))
+
+		fmt.Println("OutStr", OutStr.String())
+		fmt.Println("ErrStr", ErrStr.String())
+		fmt.Println("Err", err.Error())
+
+		wd, _ := os.Getwd()
+		js = []byte(fmt.Sprintf("Tool '%s' crashed: %s", tool, strings.ReplaceAll(ErrStr.String(), wd, "")))
 	}
 
 	return string(js)
