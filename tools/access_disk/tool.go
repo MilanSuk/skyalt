@@ -31,8 +31,8 @@ func (st *access_disk) run() string {
 	UserPrompt += "This is the prompt from user:\n"
 	UserPrompt += st.Description
 	UserPrompt += "\n\n"
-	UserPrompt += "Locate file which you want to work with. If you need, you can look into file with 'read_file' tool. If you want to update or create new file use 'write_file' tool.\n"
-	UserPrompt += "After you finished, create answer which reflects success or fail. If value was read, return the value and describe place from which value(s) was selected."
+	UserPrompt += "Look into file with 'read_file' tool. For updating or creating new file use 'write_file' tool.\n"
+	UserPrompt += "If file doesn't have data you looking for, try another file. After you finished, create answer which reflects success or fail. If value was read, return the value and describe place from which value(s) was selected."
 
 	fmt.Println("UserPrompt:", UserPrompt)
 

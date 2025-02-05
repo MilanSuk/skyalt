@@ -18,7 +18,7 @@ func (st *create_new_tool) run() string {
 
 	UserPrompt += "These are the APIs:\n"
 	UserPrompt += "//When you login to any service this function converts password_id into password.\n"
-	UserPrompt += "func SDK_GetPassword(id string) (string, error)	//accepts password_id or api_key_id and returns password as string.\n\n"
+	UserPrompt += "func SDK_GetPassword(id string) (string, error)	//accepts password_id or api_key_id and returns plain password as string.\n\n"
 	UserPrompt += "\n"
 
 	UserPrompt += "This is the file(code) template:"
@@ -43,6 +43,8 @@ func (st *%s) run() <tool_return_type> {
 	UserPrompt += "<tool_return_type> must be only one. If you are not sure what it should be, use string and return \"success\"."
 	UserPrompt += "\n"
 	UserPrompt += "You can add more input attributes(more than what is mention in the user prompt). It's very important that the code don't have any placeholders or constants which should programmer changed later(example.com, etc.). Write production ready code only!"
+	UserPrompt += "\n"
+	UserPrompt += "Never use plain password and api_key as tool_input_parameter, always user password_id or api_key_id and convert them with SDK_GetPassword."
 	UserPrompt += "\n"
 	UserPrompt += "If an error occurs, use log.Fatalf. Output only modified template above. Implement everything, no placeholders! Don't add main() function to the code."
 
