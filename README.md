@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://raw.githubusercontent.com/MilanSuk/skyalt/refs/heads/main/screenshots/screenshot_1.png" />
+<img src="https://raw.githubusercontent.com/MilanSuk/skyalt/refs/heads/main/screenshots/screenshot_2.png" />
 </p>
 
 
