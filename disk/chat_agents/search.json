@@ -1,8 +1,8 @@
 {
-"Model": "llama-3.1-sonar-large-128k-online",
+"Model": "sonar",
 "Stream": false,
 "Temperature": 0.2,
-"Max_tokens": 4046,
+"Max_tokens": 4096,
 "Top_p": 0.7,
 "Frequency_penalty": 1,
 "Presence_penalty": 0

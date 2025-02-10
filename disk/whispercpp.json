@@ -1,0 +1,6 @@
+{
+"Folder": "services/whisper.cpp",
+"Address": "http://localhost",
+"Port": 8080,
+"Model": "ggml-tiny"
+}

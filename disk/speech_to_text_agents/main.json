@@ -1,0 +1,5 @@
+{
+"model": "base.en",
+"temperature": 0,
+"response_format": "verbose_json"
+}

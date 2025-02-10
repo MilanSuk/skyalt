@@ -1,26 +1,32 @@
 {
 "Label": "Perplexity",
 "Anthropic_completion_url": "",
-"OpenAI_completion_url": "https://api.perplexity.ai/chat/completions",
+"OpenAI_completion_url": "https://api.perplexity.ai",
 "Api_key_id": "9bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
 "ChatModels": [
 {
-"Name": "llama-3.1-sonar-small-128k-online",
-"Input_price": 0.2,
-"Cached_price": 0.2,
-"Output_price": 0.2
-},
-{
-"Name": "llama-3.1-sonar-large-128k-online",
+"Name": "sonar",
 "Input_price": 1,
-"Cached_price": 1,
+"Cached_price": 0,
 "Output_price": 1
 },
 {
-"Name": "llama-3.1-sonar-huge-128k-online",
-"Input_price": 5,
-"Cached_price": 5,
+"Name": "sonar-pro",
+"Input_price": 3,
+"Cached_price": 0,
+"Output_price": 15
+},
+{
+"Name": "sonar-reasoning",
+"Input_price": 1,
+"Cached_price": 0,
 "Output_price": 5
+},
+{
+"Name": "sonar-reasoning-pro",
+"Input_price": 2,
+"Cached_price": 0,
+"Output_price": 8
 }
 ]
 }

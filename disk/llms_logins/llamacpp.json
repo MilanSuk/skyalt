@@ -1,6 +1,0 @@
-{
-"Label": "LLama.cpp",
-"Anthropic_completion_url": "",
-"OpenAI_completion_url": "http://localhost:8090/v1/chat/completions",
-"Api_key_id": ""
-}

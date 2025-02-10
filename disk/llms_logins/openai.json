@@ -1,7 +1,7 @@
 {
 "Label": "OpenAI",
 "Anthropic_completion_url": "",
-"OpenAI_completion_url": "https://api.openai.com/v1/chat/completions",
+"OpenAI_completion_url": "https://api.openai.com/v1",
 "Api_key_id": "8bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
 "ChatModels": [
 {
@@ -51,6 +51,38 @@
 "Input_price": 1.1,
 "Cached_price": 0.55,
 "Output_price": 4.4
+}
+],
+"STTModels": [
+{
+"Name": "whisper-1",
+"Price": 0.36
+}
+],
+"TTSModels": [
+{
+"Name": "tts-1",
+"Price": 15,
+"Voices": [
+"alloy",
+"echo",
+"fable",
+"onyx",
+"nova",
+"shimmer"
+]
+},
+{
+"Name": "tts-1-hd",
+"Price": 30,
+"Voices": [
+"alloy",
+"echo",
+"fable",
+"onyx",
+"nova",
+"shimmer"
+]
 }
 ]
 }

@@ -1,6 +1,6 @@
 {
 "Label": "Anthropic",
-"Anthropic_completion_url": "https://api.anthropic.com/v1/messages",
+"Anthropic_completion_url": "https://api.anthropic.com/v1",
 "OpenAI_completion_url": "",
 "Api_key_id": "1bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
 "ChatModels": [

@@ -1,7 +1,7 @@
 {
 "Label": "Mistral",
 "Anthropic_completion_url": "",
-"OpenAI_completion_url": "https://api.mistral.ai/v1/chat/completions",
+"OpenAI_completion_url": "https://api.mistral.ai/v1",
 "Api_key_id": "7bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
 "ChatModels": [
 {

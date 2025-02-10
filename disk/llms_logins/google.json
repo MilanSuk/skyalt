@@ -1,7 +1,7 @@
 {
 "Label": "Google",
 "Anthropic_completion_url": "",
-"OpenAI_completion_url": "https://generativelanguage.googleapis.com/v1beta/chat/completions",
+"OpenAI_completion_url": "https://generativelanguage.googleapis.com/v1beta",
 "Api_key_id": "5bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
 "ChatModels": [
 {

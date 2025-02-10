@@ -1,7 +1,7 @@
 {
 "Label": "Groq",
 "Anthropic_completion_url": "",
-"OpenAI_completion_url": "https://api.groq.com/openai/v1/chat/completions",
+"OpenAI_completion_url": "https://api.groq.com/openai/v1",
 "Api_key_id": "6bb5bb95aa4c20050c3a5fbd909025d9edcca34b",
 "ChatModels": [
 {
@@ -33,6 +33,20 @@
 "Input_price": 0.59,
 "Cached_price": 0.59,
 "Output_price": 0.79
+}
+],
+"STTModels": [
+{
+"Name": "whisper-large-v3",
+"Price": 0.111
+},
+{
+"Name": "whisper-large-v3-turbo",
+"Price": 0.04
+},
+{
+"Name": "distil-whisper-large-v3-en",
+"Price": 0.02
 }
 ]
 }

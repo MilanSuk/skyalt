@@ -1,8 +1,8 @@
 {
-"Model": "grok-2",
+"Model": "claude-3-5-sonnet-latest",
 "Stream": false,
 "Temperature": 0.2,
-"Max_tokens": 4046,
+"Max_tokens": 4096,
 "Top_p": 0.7,
 "Frequency_penalty": 0,
 "Presence_penalty": 0
