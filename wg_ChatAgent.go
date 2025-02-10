@@ -1,8 +1,6 @@
 package main
 
-import "fmt"
-
-type Agent_properties struct {
+type ChatAgent struct {
 	Model             string
 	Stream            bool
 	Temperature       float64 //1.0
@@ -12,12 +10,12 @@ type Agent_properties struct {
 	Presence_penalty  float64 //0
 }
 
-func (layout *Layout) AddAgents_properties(x, y, w, h int, props *Agent_properties) *Agent_properties {
-	layout._createDiv(x, y, w, h, "Agent_properties", props.Build, nil, nil)
+/*func (layout *Layout) AddAgents_properties(x, y, w, h int, props *ChatAgent) *ChatAgent {
+	layout._createDiv(x, y, w, h, "ChatAgent", props.Build, nil, nil)
 	return props
 }
 
-func (st *Agent_properties) Build(layout *Layout) {
+func (st *ChatAgent) Build(layout *Layout) {
 
 	layout.SetColumn(0, 2, 3.5)
 	layout.SetColumn(1, 1, 100)
@@ -129,3 +127,4 @@ func (st *Agent_properties) Build(layout *Layout) {
 	}
 	y++
 }
+*/

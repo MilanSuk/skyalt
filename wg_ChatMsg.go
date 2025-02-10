@@ -12,9 +12,6 @@ import (
 type ChatMsg struct {
 	agent *Agent
 	msg_i int
-
-	isRunning func() bool
-	uiChanged func()
 }
 
 func (layout *Layout) AddChatMsg(x, y, w, h int, props *ChatMsg) *ChatMsg {
@@ -29,21 +26,20 @@ func (st *ChatMsg) Build(layout *Layout) {
 	msg := st.agent.Messages[st.msg_i]
 
 	sender := "User"
-	if msg.CreatedBy != "" {
+
+	if msg.CreatedBy == "guide" {
+		layout.Border_cd = Paint_GetPalette().GetGrey(0.5)
+		sender = "Guide"
+	} else if msg.CreatedBy != "" {
 		sender = msg.CreatedBy
 		layout.Back_cd = Paint_GetPalette().GetGrey(0.1)
-	} else {
-		//tool result
-		//if len(st.Content) > 0 && st.Content[0].Type == "tool_result" {
-		//	sender = fmt.Sprintf("User's %s result", st.Content[0].Tool_use_id)
-		//}
 	}
 
 	//model name
 	{
 		model := layout.AddText(0, 0, 1, 1, "<b>"+sender)
 		if msg.CreatedBy != "" {
-			in, inCached, out := msg.GetPrice(st.agent)
+			in, inCached, out := msg.GetChatPrice(st.agent)
 			model.Tooltip = fmt.Sprintf("%s sec\n%s tokens/sec\nTotal: $%s(%d toks)\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d toks)",
 				strconv.FormatFloat(msg.Time, 'f', 3, 64),
 				strconv.FormatFloat(msg.GetSpeed(), 'f', 3, 64),
@@ -62,7 +58,7 @@ func (st *ChatMsg) Build(layout *Layout) {
 	date.Align_h = 2
 
 	y := 1
-	for content_i, it := range msg.Content {
+	for _, it := range msg.Content {
 
 		switch it.Type {
 		case "text":
@@ -73,32 +69,8 @@ func (st *ChatMsg) Build(layout *Layout) {
 				y++
 			}
 		case "tool_use":
-
-			switch it.Name {
-			case "ui_slider":
-				type ui_slider struct {
-					Min   float64 //Minimum range
-					Max   float64 //Maximum range
-					Step  float64 //Step size
-					Value float64 //Current value
-				}
-				var ui ui_slider
-				js, _ := it.Input.MarshalJSON()
-				_ = json.Unmarshal(js, &ui)
-
-				gui := layout.AddSlider(0, y, 2, 1, &ui.Value, ui.Min, ui.Max, ui.Step)
-				layout.FindLayout(0, y, 2, 1).Enable = (st.isRunning == nil || !st.isRunning())
-				gui.changed = func() {
-					args, _ := json.Marshal(ui)
-					st.sendChange(content_i, string(args), it)
-				}
-
-			case "ui_map":
-				//....
-
-			default:
-				y = st.toolUse(it, layout, y)
-			}
+			y = st.toolUse(it, layout, y)
+			y++
 
 		//case "tool_result":
 		//	layout.SetRowFromSub(y, 1, 100)
@@ -135,27 +107,6 @@ func (st *ChatMsg) Build(layout *Layout) {
 			}*/
 			y++
 		}
-	}
-}
-
-func (st *ChatMsg) sendChange(content_i int, new_args string, it Anthropic_completion_msg_Content) {
-	if st.isRunning != nil && st.isRunning() {
-		return
-	}
-
-	// remove follow ups
-	st.agent.Messages = st.agent.Messages[:st.msg_i+1]
-	st.agent.Messages[st.msg_i].Content = st.agent.Messages[st.msg_i].Content[:content_i+1]
-
-	// call
-	answerJs := st.agent.callTool(it.Id, it.Name, new_args, nil)
-
-	// save answer
-	st.agent.AddCallResult(it.Name, it.Id, answerJs)
-
-	// run
-	if st.uiChanged != nil {
-		st.uiChanged()
 	}
 }
 
@@ -252,7 +203,7 @@ func (st *ChatMsg) toolUse(it Anthropic_completion_msg_Content, layout *Layout, 
 			}
 		}
 
-		result := st.agent.FindSubCallResultContent(it.Id)
+		result, _ := st.agent.FindSubCallResultContent(it.Id)
 		if result != nil {
 			CallDiv.AddText(0, yy, 3, 1, "Output:")
 			yy++

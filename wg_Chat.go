@@ -34,35 +34,28 @@ func (st *Chat) Build(layout *Layout) {
 			x = 1
 		}
 
+		//Messages
 		y := 0
 		for i := range st.agent.Messages {
 			if len(st.agent.Messages[i].Content) > 0 && st.agent.Messages[i].Content[0].Type == "tool_result" {
 				continue //skip
 			}
 
-			//previous message
 			MsgsDiv.SetRowFromSub(y, 1, 100)
-			msg := MsgsDiv.AddChatMsg(x, y, 1, 1, &ChatMsg{agent: st.agent, msg_i: i})
+			MsgsDiv.AddChatMsg(x, y, 1, 1, &ChatMsg{agent: st.agent, msg_i: i})
 			y++
-			msg.isRunning = func() bool {
-				return st.Find() != nil
-			}
-			msg.uiChanged = func() {
-				if st.Find() == nil {
-					st.Start()
-				}
-			}
 
 			//space
 			MsgsDiv.SetRow(y, 0.5, 0.5)
 			y++
 		}
 
-		//total info
+		//Statistics - total
 		if y >= 2 { //1st message is user
-			in, inCached, out := st.agent.GetTotalPrice()
-			info := MsgsDiv.AddText(x, y, 1, 1, fmt.Sprintf("$%s, %s sec, %d tokens/sec",
+			in, inCached, out := st.agent.GetTotalChatPrice()
+			info := MsgsDiv.AddText(x, y, 1, 1, fmt.Sprintf("$%s, %d tokens, %s sec, %d tokens/sec",
 				strconv.FormatFloat(in+inCached+out, 'f', 3, 64),
+				st.agent.GetTotalOutputTokens(),
 				strconv.FormatFloat(st.agent.GetTotalTime(), 'f', 3, 64),
 				int(st.agent.GetTotalSpeed())))
 			y++
@@ -76,7 +69,11 @@ func (st *Chat) Build(layout *Layout) {
 				strconv.FormatFloat(out, 'f', -1, 64))
 		}
 
-		//stopped
+		//space
+		MsgsDiv.SetRow(y, 0.5, 0.5)
+		y++
+
+		//Stop
 		if st.agent.Call_id == "" {
 			stopped := st.agent.Stopped
 			if stopped != "" {
@@ -96,11 +93,48 @@ func (st *Chat) Build(layout *Layout) {
 						st.Start()
 					}
 				}
+
+				//space
+				MsgsDiv.SetRow(y, 0.5, 0.5)
+				y++
+			}
+		}
+
+		for i := len(st.agent.SubAgents) - 1; i >= 0; i-- {
+			dashAgent := st.agent.SubAgents[i]
+			if dashAgent.HashUiCalls() {
+
+				MsgsDiv.SetRowFromSub(y, 1, 100)
+				DashDiv := MsgsDiv.AddLayout(x, y, 1, 1)
+				y++
+				DashDiv.Border_cd = Paint_GetPalette().P //Paint_GetPalette().GetGrey(0.2)
+				DashDiv.SetColumn(0, 0.5, 0.5)
+				DashDiv.SetColumn(1, 1, 100)
+				DashDiv.SetColumn(2, 0.5, 0.5)
+				DashDiv.SetRow(0, 0.5, 0.5)
+				DashDiv.SetRow(1, 1, 100)
+				DashDiv.SetRow(2, 0.5, 0.5)
+
+				//Dashboard
+				DashDiv.SetRowFromSub(1, 1, 100)
+				dash := DashDiv.AddChatDashboard(1, 1, 1, 1, &ChatDashboard{agent: dashAgent})
+				y++
+				dash.isRunning = func() bool {
+					return st.Find() != nil
+				}
+				dash.uiChanged = func() {
+					if st.Find() == nil {
+						st.StartDash(dashAgent)
+					}
+				}
+
+				break
 			}
 		}
 	}
 
 	if st.agent.Call_id == "" {
+		//Input
 		InputDiv := layout.AddLayout(0, 1, 1, 1)
 		InputDiv.SetColumn(0, 1, 100)
 		if st.center {
@@ -113,6 +147,7 @@ func (st *Chat) Build(layout *Layout) {
 		if st.center {
 			x = 1
 		}
+		st.agent.Input.file_name = st.file_name
 		Input := InputDiv.AddChatInput(x, 0, 1, 1, &st.agent.Input)
 		Input.isRunning = func() bool {
 			return st.Find() != nil
@@ -132,6 +167,7 @@ func (st *Chat) Build(layout *Layout) {
 			InputDiv.VScrollToTheBottom()
 		}
 	} else {
+		//Agent info
 
 		headDiv := layout.AddLayout(0, 1, 1, 2)
 		headDiv.SetColumn(0, 1, 100)
@@ -160,26 +196,6 @@ func (st *Chat) Build(layout *Layout) {
 	}
 }
 
-func (st *Chat) Run(job *Job) {
-	st.agent.ExeLoop(20, 20000, job)
-
-	st.agent.Input.reset()
-}
-
-func (st *Chat) RunSummary(job *Job) {
-
-	//prepare
-	ag := NewAgent("", "", "You are an AI assistant. You summarize long text to clear short description.")
-	ag.NoTools = true
-	ag.AddUserPromptText("Summarize this text to maximum 10 words:\n" + st.agent.GetFirstMessage())
-
-	//run
-	ag.ExeLoop(1, 100, job)
-
-	//save
-	st.agent.Description = ag.GetFinalMessage()
-}
-
 func (st *Chat) getUID() string {
 	return "chat_" + st.file_name
 }
@@ -190,12 +206,45 @@ func (st *Chat) Find() *Job {
 func (st *Chat) Start() *Job {
 
 	if len(st.agent.Messages) == 1 {
-		//summarize
-		StartJob("summarize_"+st.getUID(), fmt.Sprintf("Summary %s", st.file_name), st.RunSummary)
+		summarize := func(job *Job) {
+			//prepare
+			ag := NewAgent("", "", "You are an AI assistant. You summarize long text to clear short description.")
+			ag.NoTools = true
+			ag.AddUserPromptText("Summarize this text to maximum 10 words:\n"+st.agent.GetFirstMessage(), "")
+
+			//run
+			ag.ExeLoop(1, 100, job)
+
+			//save
+			st.agent.Description = ag.GetFinalMessage()
+		}
+		StartJob("summarize_"+st.getUID(), fmt.Sprintf("Summary %s", st.file_name), summarize)
 	}
 
-	return StartJob(st.getUID(), fmt.Sprintf("Agent %s", st.file_name), st.Run)
+	run := func(job *Job) {
+		st.agent.ExeLoop(0, 0, job)
+		st.agent.Input.reset()
+	}
+	return StartJob(st.getUID(), fmt.Sprintf("Agent %s", st.file_name), run)
 }
+
+func (st *Chat) StartDash(dashAgent *Agent) *Job {
+	run := func(job *Job) {
+		dashAgent.ExeLoop(0, 0, job)
+
+		//save previous chat ......
+
+		st.agent.Messages = st.agent.Messages[:1]
+		st.agent.SubAgents = nil
+
+		//re-run whole chat
+		st.agent.ExeLoop(0, 0, job)
+		st.agent.Input.reset()
+	}
+
+	return StartJob(st.getUID(), fmt.Sprintf("Dash %s", st.file_name), run)
+}
+
 func (st *Chat) Stop() {
 	job := FindJob(st.getUID())
 	if job != nil {

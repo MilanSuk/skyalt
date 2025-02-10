@@ -48,6 +48,8 @@ type OpenAI_completion_tool_function_parameters_properties struct {
 	Description string   `json:"description,omitempty"`
 	Enum        []string `json:"enum,omitempty"`
 	Default     string   `json:"default,omitempty"`
+
+	Items *OpenAI_completion_tool_function_parameters_properties `json:"items,omitempty"` //for arrays
 }
 type OpenAI_completion_tool_schema struct {
 	Type                 string   `json:"type"` //"object"
@@ -65,14 +67,31 @@ type OpenAI_completion_tool_function struct {
 	Strict      bool                          `json:"strict"`
 }
 
+func OpenAI_convertTypeToSchemaType(tp string) string {
+	if strings.Contains(strings.ToLower(tp), "float") || strings.Contains(strings.ToLower(tp), "int") {
+		tp = "number"
+	}
+
+	if strings.Contains(strings.ToLower(tp), "bool") {
+		tp = "boolean"
+	}
+
+	return tp
+}
+
 func (prm *OpenAI_completion_tool_schema) AddParam(name, typee, description string) *OpenAI_completion_tool_function_parameters_properties {
-	if strings.Contains(strings.ToLower(typee), "float") || strings.Contains(strings.ToLower(typee), "int") {
-		typee = "number"
+	//array
+	var items *OpenAI_completion_tool_function_parameters_properties
+	if strings.Contains(strings.ToLower(typee), "[]") {
+		subType := strings.ReplaceAll(typee, "[]", "")
+
+		typee = "array"
+		items = &OpenAI_completion_tool_function_parameters_properties{Type: OpenAI_convertTypeToSchemaType(subType)}
 	}
 
 	prm.Required = append(prm.Required, name)
 
-	p := &OpenAI_completion_tool_function_parameters_properties{Type: typee, Description: description}
+	p := &OpenAI_completion_tool_function_parameters_properties{Type: OpenAI_convertTypeToSchemaType(typee), Description: description, Items: items}
 	prm.Properties[name] = p
 
 	//dirty hack - Xai(anthropic api) wants attribute .Properties as string, not map ...

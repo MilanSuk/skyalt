@@ -23,7 +23,7 @@ import (
 )
 
 type Tools struct {
-	Search   string
+	//Search   string
 	Selected string
 }
 
@@ -34,7 +34,7 @@ func (layout *Layout) AddTools(x, y, w, h int, props *Tools) *Tools {
 
 func (st *Tools) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
-	layout.SetColumnResizable(1, 3, 6, 5)
+	layout.SetColumnResizable(1, 3, 10, 5)
 	layout.SetRow(0, 1, 100)
 
 	//code
@@ -68,6 +68,7 @@ func (st *Tools) getToolList(folder string) []string {
 
 }
 func (st *Tools) showTool(folder string, tools []string, layout *Layout) {
+	layout.SetColumn(0, 0.5, 0.5)
 	layout.SetColumn(1, 1, 100)
 
 	y := 0

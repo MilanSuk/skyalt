@@ -19,7 +19,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"image/color"
 	"path/filepath"
 	"slices"
 	"time"
@@ -35,7 +34,7 @@ type Root struct {
 	Selected int
 	Show     string
 
-	AgentSelected string
+	//AgentSelected string
 
 	Tools Tools
 }
@@ -59,16 +58,39 @@ func (st *Root) Build(layout *Layout) {
 			headDiv.SetColumn(0, 2, 2)
 			headDiv.SetColumn(1, 1, 100)
 
-			logo := headDiv.AddImageCd(0, 0, 1, 1, "resources/logo_small.png", color.RGBA{0, 0, 0, 255})
-			logo.Align_h = 0
-			logo.Margin = 0.2
-			logo.Tooltip = "v0.1" //....
+			//Logo
+			logoBt := headDiv.AddButtonIcon(0, 0, 1, 1, "resources/logo_small.png", 0.15, "Show settings")
+			logoBt.Background = 0.25
+			if st.Show == "settings" {
+				logoBt.Background = 1
+			}
+			logoBt.clicked = func() {
+				if st.Show == "settings" {
+					st.Show = ""
+				} else {
+					st.Show = "settings"
+				}
+			}
 
+			//Create new chat
 			createChatBt := headDiv.AddButton(1, 0, 1, 1, "New chat")
 			createChatBt.Background = 0.5
-			//createChatBt.Align = 0
 			createChatBt.clicked = func() {
 				st.AddNewChat()
+			}
+
+			//Trash
+			trashBt := headDiv.AddButtonIcon(2, 0, 1, 1, "resources/delete.png", 0.15, "Recover deleted chats")
+			trashBt.Background = 0.25
+			if st.Show == "trash" {
+				trashBt.Background = 1
+			}
+			trashBt.clicked = func() {
+				if st.Show == "trash" {
+					st.Show = ""
+				} else {
+					st.Show = "trash"
+				}
 			}
 		}
 
@@ -92,7 +114,7 @@ func (st *Root) Build(layout *Layout) {
 				}
 
 				createChatBt, chatLay := chatsDiv.AddButtonMenu2(0, yy, 1, 1, chat.Description, "", 0)
-				createChatBt.Tooltip = it
+				createChatBt.Tooltip = chat.Description + "(" + it + ")"
 				chatLay.Drag_group = "chat"
 				chatLay.Drop_group = "chat"
 				chatLay.Drag_index = i
@@ -160,31 +182,9 @@ func (st *Root) Build(layout *Layout) {
 		sideDiv.SetRow(y, 0.1, 0.1)
 		sideDiv.AddDivider(0, y, 1, 1, true)
 		y++
-
-		{
-			bottomDiv := sideDiv.AddLayout(0, y, 1, 1)
-
-			st.addIconButton(0, "disk", "resources/folders.png", "Disk", bottomDiv)
-			st.addIconButton(1, "tools", "resources/tools.png", "Tools", bottomDiv)
-			st.addIconButton(2, "passwords", "resources/key.png", "Passwords", bottomDiv)
-			st.addIconButton(3, "settings", "resources/settings.png", "Settings", bottomDiv)
-			st.addIconButton(4, "trash", "resources/delete.png", "Recover deleted chats", bottomDiv)
-		}
 	}
 
-	if st.Show == "disk" {
-		//....
-
-	} else if st.Show == "tools" {
-
-		layout.AddTools(1, 0, 1, 1, &st.Tools)
-
-	} else if st.Show == "passwords" {
-		wip := layout.AddText(1, 0, 1, 1, "//Work in progress ...")
-		wip.Align_h = 1
-		wip.Align_v = 1
-
-	} else if st.Show == "settings" {
+	if st.Show == "settings" {
 		//settings
 		setDiv := layout.AddLayout(1, 0, 1, 1)
 		setDiv.SetColumn(0, 1, 100)
@@ -192,52 +192,143 @@ func (st *Root) Build(layout *Layout) {
 		setDiv.SetColumn(2, 1, 100)
 
 		//device settings
-		setDiv.SetRowFromSub(0, 0, 100)
-		setDiv.AddSettings(1, 0, 1, 1, OpenFile_DeviceSettings())
+		y := 0
+		setDiv.SetRowFromSub(y, 0, 100)
+		setDiv.AddSettings(1, y, 1, 1, OpenFile_DeviceSettings())
+		y++
 
-		setDiv.AddDivider(1, 1, 1, 1, true)
+		setDiv.AddDivider(1, y, 1, 1, true)
+		y++
 
-		//agents
+		//chat agents
 		{
-			agentPathes, _ := OpenDir_agents_properties() //err ....
-			var agents []string
-			for _, ag := range agentPathes {
-				agents = append(agents, filepath.Base(ag))
+			setDiv.AddText(1, y, 1, 1, "Chat agents").Align_h = 1
+			y++
+
+			pathes, _ := OpenDir_ChatAgents() //err ....
+
+			setDiv.SetRowFromSub(y, 0, 100)
+			AgentsDiv := setDiv.AddLayout(1, y, 1, 1)
+			AgentsDiv.SetColumn(0, 2, 3)
+			AgentsDiv.SetColumn(1, 1, 100)
+			AgentsDiv.SetColumn(2, 1, 100)
+			y++
+
+			yy := 0
+			for _, ag := range pathes {
+				agg := OpenFile_AgentProperties(ag)
+				st.buildAgentLine(yy, AgentsDiv, ag, &agg.Model, "text")
+				yy++
 			}
-			if st.AgentSelected == "" && len(agentPathes) > 0 {
-				st.AgentSelected = agentPathes[0]
-			}
-			setDiv.AddTabs(1, 2, 1, 1, &st.AgentSelected, agents, agentPathes)
-			setDiv.SetRowFromSub(3, 0, 100)
-			setDiv.AddAgents_properties(1, 3, 1, 1, OpenFile_Agent_properties(st.AgentSelected))
 		}
 
-		setDiv.AddDivider(1, 4, 1, 1, true)
+		y++ //space
+
+		//Speech to text
+		{
+			setDiv.AddText(1, y, 1, 1, "Speech to text").Align_h = 1
+			y++
+
+			pathes, _ := OpenDir_STTAgents() //err ....
+
+			setDiv.SetRowFromSub(y, 0, 100)
+			AgentsDiv := setDiv.AddLayout(1, y, 1, 1)
+			AgentsDiv.SetColumn(0, 2, 3)
+			AgentsDiv.SetColumn(1, 1, 100)
+			AgentsDiv.SetColumn(2, 1, 100)
+			y++
+
+			yy := 0
+			for _, ag := range pathes {
+				agg := OpenFile_STTAgent(ag)
+
+				st.buildAgentLine(yy, AgentsDiv, ag, &agg.Model, "stt")
+				yy++
+			}
+		}
+
+		y++ //space
+
+		//Text to speech
+		{
+			setDiv.AddText(1, y, 1, 1, "Text to speech").Align_h = 1
+			y++
+
+			pathes, _ := OpenDir_TTSAgents() //err ....
+
+			setDiv.SetRowFromSub(y, 0, 100)
+			AgentsDiv := setDiv.AddLayout(1, y, 1, 1)
+			AgentsDiv.SetColumn(0, 2, 3)
+			AgentsDiv.SetColumn(1, 1, 100)
+			AgentsDiv.SetColumn(2, 1, 100)
+			y++
+
+			yy := 0
+			for _, ag := range pathes {
+				agg := OpenFile_TTSAgent(ag)
+
+				st.buildAgentLine(yy, AgentsDiv, ag, &agg.Model, "tts")
+				yy++
+			}
+		}
+
+		y++ //space
+
+		//Local services
+		{
+			setDiv.AddText(1, y, 1, 1, "Local services").Align_h = 1
+			y++
+
+			//whisper.cpp
+			{
+				//dialog
+				ServiceDia, ServiceDiaLay := setDiv.AddDialogBorder("service_settings_whisper", "Whisper.cpp", 22)
+				ServiceDiaLay.SetColumn(0, 1, 100)
+				ServiceDiaLay.SetRowFromSub(0, 1, 100)
+				srv := ServiceDiaLay.AddWhispercpp(0, 0, 1, 1, OpenFile_Whispercpp())
+
+				//button
+				bt := setDiv.AddButtonMenu(1, y, 1, 1, "Whisper.cpp", "resources/settings.png", 0.2)
+				y++
+				bt.Background = 0.5
+				if srv.Address == "" {
+					bt.Cd = Paint_GetPalette().E
+				}
+				bt.clicked = func() {
+					ServiceDia.OpenCentered()
+				}
+			}
+		}
+
+		setDiv.AddDivider(1, y, 1, 1, true)
+		y++
 
 		//about
-		setDiv.SetRowFromSub(5, 0, 100)
-		AboutDiv := setDiv.AddLayout(1, 5, 1, 1)
+		setDiv.SetRowFromSub(y, 0, 100)
+		AboutDiv := setDiv.AddLayout(1, y, 1, 1)
+		y++
 		{
 			AboutDiv.SetColumn(0, 1, 100)
-			AboutDiv.SetRow(0, 2, 4)
 
-			AboutDiv.AddImageCd(0, 0, 1, 1, "resources/logo.png", color.RGBA{0, 0, 0, 255})
+			y := 0
+			License := AboutDiv.AddText(0, y, 1, 1, "This program is distributed under the terms of Apache License, Version 2.0.")
+			License.Align_h = 1
+			y++
 
-			Version := AboutDiv.AddText(0, 1, 1, 1, "v0.1")
-			Version.Align_h = 1
+			Copyright := AboutDiv.AddText(0, y, 1, 1, "This program comes with absolutely no warranty.")
+			Copyright.Align_h = 1
+			y++
 
-			Url := AboutDiv.AddButton(0, 2, 1, 1, "github.com/milansuk/skyalt/")
+			Url := AboutDiv.AddButton(0, y, 1, 1, "github.com/milansuk/skyalt/")
 			Url.Background = 0
 			Url.BrowserUrl = "https://github.com/milansuk/skyalt/"
+			y++
 
-			License := AboutDiv.AddText(0, 3, 1, 1, "This program is distributed under the terms of Apache License, Version 2.0.")
-			License.Align_h = 1
+			Version := AboutDiv.AddText(0, y, 1, 1, "v0.1") //....
+			Version.Align_h = 1
+			y++
 
-			Copyright := AboutDiv.AddText(0, 4, 1, 1, "This program comes with absolutely no warranty.")
-			Copyright.Align_h = 1
-
-			Warranty := AboutDiv.AddText(0, 5, 1, 1, "Copyright © 2025 - SkyAlt team")
-			Warranty.Align_h = 1
+			AboutDiv.SetRow(y, 1, 1) //empty line
 		}
 	} else if st.Show == "trash" {
 		//trash
@@ -354,21 +445,77 @@ func (st *Root) Build(layout *Layout) {
 	}
 }
 
-func (st *Root) addIconButton(x int, show string, icon string, label string, layout *Layout) {
-	layout.SetColumn(x, 0.5, 100)
+func (st *Root) buildAgentLine(yy int, AgentsDiv *Layout, ag string, aggModel *string, modelType string) {
+	AgentsDiv.AddText(0, yy, 1, 1, filepath.Base(ag))
 
-	trashBt := layout.AddButtonIcon(x, 0, 1, 1, icon, 0.15, label)
-	trashBt.Background = 0.5
-	if st.Show == show {
-		trashBt.Background = 1
-	}
-	x++
-	trashBt.clicked = func() {
-		if st.Show == show {
-			st.Show = ""
-		} else {
-			st.Show = show
+	{
+		ModelsDia := AgentsDiv.AddDialog("agent_" + ag)
+		ModelsDia.Layout.SetColumn(0, 1, 8)
+		ModelsDia.Layout.SetRowFromSub(0, 1, 100)
+		dd := ModelsDia.Layout.AddLLMList(0, 0, 1, 1, aggModel, modelType)
+		dd.done = func() {
+			ModelsDia.Close()
 		}
+
+		modelBt, modelBtLay := AgentsDiv.AddButton2(1, yy, 1, 1, *aggModel)
+		modelBt.Background = 0
+		modelBt.Align = 0
+		modelBt.Icon = "resources/arrow_down.png"
+		modelBt.Icon_align = 2
+		modelBt.Icon_margin = 0.1
+		modelBt.Border = true
+		modelBt.clicked = func() {
+			ModelsDia.OpenRelative(modelBtLay)
+		}
+
+	}
+
+	if *aggModel != "" {
+		var whispercpp *Whispercpp
+		login, _ := FindLoginChatModel(*aggModel)
+		if login == nil {
+			login, whispercpp, _ = FindLoginSTTModel(*aggModel)
+		}
+		if login == nil {
+			login, _ = FindLoginTTSModel(*aggModel)
+		}
+
+		if login != nil {
+			//settings
+			ServiceDia, ServiceDiaLay := AgentsDiv.AddDialogBorder("service_settings"+ag, login.Label, 22)
+			ServiceDiaLay.SetColumn(0, 1, 100)
+			ServiceDiaLay.SetRowFromSub(0, 1, 100)
+			srv := ServiceDiaLay.AddLLmLogin(0, 0, 1, 1, login)
+
+			//service
+			bt := AgentsDiv.AddButtonMenu(2, yy, 1, 1, login.Label, "resources/settings.png", 0.2)
+			bt.Background = 0.5
+			if srv.Api_key_id == "" {
+				bt.Cd = Paint_GetPalette().E
+			}
+			bt.clicked = func() {
+				ServiceDia.OpenCentered()
+			}
+		}
+
+		if whispercpp != nil {
+			//dialog
+			ServiceDia, ServiceDiaLay := AgentsDiv.AddDialogBorder("service_settings_whisper", "Whisper.cpp", 22)
+			ServiceDiaLay.SetColumn(0, 1, 100)
+			ServiceDiaLay.SetRowFromSub(0, 1, 100)
+			srv := ServiceDiaLay.AddWhispercpp(0, 0, 1, 1, OpenFile_Whispercpp())
+
+			//button
+			bt := AgentsDiv.AddButtonMenu(2, yy, 1, 1, "Whisper.cpp", "resources/settings.png", 0.2)
+			bt.Background = 0.5
+			if srv.Address == "" {
+				bt.Cd = Paint_GetPalette().E
+			}
+			bt.clicked = func() {
+				ServiceDia.OpenCentered()
+			}
+		}
+
 	}
 }
 

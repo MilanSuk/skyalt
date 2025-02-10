@@ -27,22 +27,26 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
 
-func GetToolsList(tool string) ([]string, error) {
+func GetToolsList(tool string) ([]string, []string, error) {
 	files, err := os.ReadDir(tool)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	var list []string
+	var tools []string
+	var scripts []string
 	for _, file := range files {
 		if file.IsDir() {
-			list = append(list, file.Name())
+			tools = append(tools, file.Name())
+		} else if strings.HasSuffix(file.Name(), ".sky") {
+			scripts = append(scripts, file.Name())
 		}
 	}
-	return list, nil
+	return tools, scripts, nil
 }
 
 func NeedCompileTool(tool string) bool {
@@ -203,10 +207,10 @@ func ApplySandbox(code string, reverse bool) string {
 	return code
 }
 
-func ConvertFileIntoTool(tool string) (*OpenAI_completion_tool, *Anthropic_completion_tool, error) {
-	stName := filepath.Base(tool)
+func ConvertCodeIntoTool(folder string) (*OpenAI_completion_tool, *Anthropic_completion_tool, error) {
+	stName := OsFileGetNameWithoutExt(folder)
 
-	toolPath := filepath.Join(tool, "tool.go")
+	toolPath := filepath.Join(folder, "tool.go")
 
 	node, err := parser.ParseFile(token.NewFileSet(), toolPath, nil, parser.ParseComments)
 	if err != nil {
@@ -278,6 +282,8 @@ func _exprToString(expr ast.Expr) string {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		return t.Name
+	//case *ast.InterfaceType:
+	//	return "any" // "oneOf": [{ "type": "string" }, { "type": "number" }]
 	case *ast.StarExpr:
 		return "*" + _exprToString(t.X)
 	case *ast.ArrayType:
@@ -290,4 +296,90 @@ func _exprToString(expr ast.Expr) string {
 	default:
 		return fmt.Sprintf("%T", expr)
 	}
+}
+
+type ScriptItem struct {
+	Name        string
+	Type        string
+	Description string
+
+	Exps []string
+}
+
+func GetScriptFileInfo(toolPath string) (string, string, []string, map[string]ScriptItem, error) {
+	stName := OsFileGetNameWithoutExt(toolPath)
+
+	fl, err := os.ReadFile(toolPath)
+	if err != nil {
+		return "", "", nil, nil, err
+	}
+
+	parts := strings.Split(string(fl), "[user]")
+
+	if len(parts) < 2 {
+		return "", "", nil, nil, fmt.Errorf("No [user] tag found")
+	}
+
+	doc := strings.TrimSpace(parts[0])
+	if doc == "" {
+		return "", "", nil, nil, fmt.Errorf("Documentation not found")
+
+	}
+
+	var msgs []string
+	for i := 1; i < len(parts); i++ {
+		msgs = append(msgs, strings.TrimSpace(parts[i]))
+	}
+
+	variables := make(map[string]ScriptItem)
+
+	for _, msg := range msgs {
+		pattern := regexp.MustCompile(`\{\{[^{}]*\}\}`)
+		matches := pattern.FindAllString(msg, -1)
+
+		for _, match := range matches {
+			var dst ScriptItem
+			err := json.Unmarshal([]byte(match[1:len(match)-1]), &dst)
+			if err == nil {
+				src := variables[dst.Name]
+				if dst.Type != "" {
+					if src.Type != "" && src.Type != dst.Type {
+						fmt.Println("Warning: Type already set", match)
+					}
+					src.Type = dst.Type
+				}
+				if dst.Description != "" {
+					if src.Description != "" && src.Description != dst.Description {
+						fmt.Println("Warning: Description already set", match)
+					}
+					src.Description = dst.Description
+				}
+				src.Name = dst.Name
+				src.Exps = append(src.Exps, match)
+				variables[dst.Name] = src
+			} else {
+				fmt.Println("Warning:", err, match)
+			}
+		}
+	}
+
+	return stName, doc, msgs, variables, nil
+}
+
+func ConvertScriptIntoTool(toolPath string) (*OpenAI_completion_tool, *Anthropic_completion_tool, error) {
+
+	stName, doc, _, variables, err := GetScriptFileInfo(toolPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	oai := NewOpenAI_completion_tool(stName, doc)
+	ant := NewAnthropic_completion_tool(stName, doc)
+
+	for name, it := range variables {
+		oai.Function.Parameters.AddParam(name, it.Type, it.Description)
+		ant.Input_schema.AddParam(name, it.Type, it.Description)
+	}
+
+	return oai, ant, nil
 }

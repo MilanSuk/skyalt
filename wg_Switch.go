@@ -32,7 +32,7 @@ func (st *Switch) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 		cd = P
 		cd2 = B
 	} else {
-		cd = Paint_GetPalette().GetGrey(0.2)
+		cd = Paint_GetPalette().GetGrey(0.3)
 		cd2 = B
 	}
 
@@ -87,8 +87,8 @@ func (st *Switch) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 		//0
 		rc = rc.Cut(0.1)
-		paint.Line(rc, 0, 0, 1, 1, cd, 0.05)
-		paint.Line(rc, 0, 1, 1, 0, cd, 0.05)
+		paint.Line(rc, 0, 0, 1, 1, Paint_GetPalette().GetGrey(0.6), 0.05)
+		paint.Line(rc, 0, 1, 1, 0, Paint_GetPalette().GetGrey(0.6), 0.05)
 
 	} else {
 		rc.X += rc.W

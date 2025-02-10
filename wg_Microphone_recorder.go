@@ -17,11 +17,11 @@ type Microphone_recorder struct {
 	Shortcut_key byte
 	Background   float64
 
-	cancel            bool
-	start             func()
-	Out_buffer        audio.IntBuffer
-	Out_startUnixTime float64
-	done              func(out audio.IntBuffer)
+	cancel bool
+	start  func()
+	//Out_buffer        audio.IntBuffer
+	//Out_startUnixTime float64
+	done func(out audio.IntBuffer, startUnix float64)
 }
 
 func (layout *Layout) AddMicrophone_recorder(x, y, w, h int, props *Microphone_recorder) *Microphone_recorder {
@@ -69,8 +69,34 @@ func (st *Microphone_recorder) Build(layout *Layout) {
 
 func (st *Microphone_recorder) Start() *Job {
 
+	record := func(job *Job) {
+
+		err := g_microphone_malgo.Start(st.UID)
+		if err != nil {
+			job.AddError(err)
+			return
+		}
+
+		if st.start != nil {
+			st.start()
+		}
+
+		for job.IsRunning() {
+			time.Sleep(10 * time.Millisecond)
+		}
+
+		out, startTime, err := g_microphone_malgo.Stop(st.UID)
+		if err != nil {
+			job.AddError(err)
+			return
+		}
+		if !st.cancel && st.done != nil {
+			st.done(out, startTime)
+		}
+	}
+
 	st.cancel = false
-	return StartJob(st.UID, "Recording from microphone", st.Run)
+	return StartJob(st.UID, "Recording from microphone", record)
 }
 func (st *Microphone_recorder) Cancel() {
 	job := FindJob(st.UID)
@@ -81,32 +107,6 @@ func (st *Microphone_recorder) Cancel() {
 }
 func (st *Microphone_recorder) FindJob() *Job {
 	return FindJob(st.UID)
-}
-
-func (st *Microphone_recorder) Run(job *Job) {
-
-	err := g_microphone_malgo.Start(st.UID)
-	if err != nil {
-		job.AddError(err)
-		return
-	}
-
-	if st.start != nil {
-		st.start()
-	}
-
-	for job.IsRunning() {
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	st.Out_buffer, st.Out_startUnixTime, err = g_microphone_malgo.Stop(st.UID)
-	if err != nil {
-		job.AddError(err)
-		return
-	}
-	if !st.cancel && st.done != nil {
-		st.done(st.Out_buffer)
-	}
 }
 
 type MicMalgoRecord struct {
@@ -144,7 +144,7 @@ func (mlg *MicMalgo) _checkDevice() error {
 	deviceConfig.Capture.Channels = uint32(mic.Channels)
 	deviceConfig.Playback.Format = malgo.FormatS16
 	deviceConfig.Playback.Channels = uint32(mic.Channels)
-	deviceConfig.SampleRate = uint32(mic.SampleRate)
+	deviceConfig.SampleRate = uint32(mic.Sample_rate)
 	deviceConfig.Alsa.NoMMap = 1
 
 	onRecvFrames := func(pSample2, pSample []byte, framecount uint32) {
@@ -218,7 +218,7 @@ func (mlg *MicMalgo) Stop(uid string) (audio.IntBuffer, float64, error) {
 	rec := mlg.mics[uid]
 	delete(mlg.mics, uid)
 
-	SampleRate := int(mlg.device.SampleRate())
+	Sample_rate := int(mlg.device.SampleRate())
 	NumChannels := int(mlg.device.CaptureChannels())
 
 	//stop device
@@ -234,5 +234,5 @@ func (mlg *MicMalgo) Stop(uid string) (audio.IntBuffer, float64, error) {
 	}
 
 	//fmt.Printf("Mic recording stoped: %d\n", hash)
-	return audio.IntBuffer{Data: intData, Format: &audio.Format{SampleRate: SampleRate, NumChannels: NumChannels}}, rec.startUnixTime, nil
+	return audio.IntBuffer{Data: intData, Format: &audio.Format{SampleRate: Sample_rate, NumChannels: NumChannels}}, rec.startUnixTime, nil
 }

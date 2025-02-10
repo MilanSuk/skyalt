@@ -13,3 +13,6 @@ prompt_json2.json
 prompt_json1.json
 prompt_code.txt
 TODO.md
+secrets.json
+tools/send_email
+

@@ -89,7 +89,7 @@ func (st *ButtonDownload) getUID() string {
 }
 
 func (st *ButtonDownload) Start() *Job {
-	return StartJob(st.getUID(), fmt.Sprintf("Downloading into %s", st.Path), st.Run)
+	return StartJob(st.getUID(), fmt.Sprintf("Downloading into %s", st.Path), st.download)
 }
 func (st *ButtonDownload) Stop() {
 	job := FindJob(st.getUID())
@@ -100,7 +100,7 @@ func (st *ButtonDownload) Stop() {
 
 var g_SAServiceNet_flagTimeout = flag.Duration("timeout", 30*time.Minute, "HTTP timeout")
 
-func (st *ButtonDownload) Run(job *Job) {
+func (st *ButtonDownload) download(job *Job) {
 	//loop
 	temp_path := st.Path + ".download"
 

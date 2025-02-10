@@ -1,10 +1,18 @@
 package main
 
+import (
+	"encoding/json"
+
+	"github.com/go-audio/audio"
+)
+
 type ChatInput struct {
 	Text string
 
 	Files          []string
 	FilePickerPath string
+
+	file_name string
 
 	isRunning func() bool
 	stop      func()
@@ -32,13 +40,56 @@ func (st *ChatInput) Build(layout *Layout) {
 
 	{
 		layoutIn := layout.AddLayout(0, 0, 1, 1)
-		layoutIn.SetColumn(0, 1, 100)
+		layoutIn.SetColumn(1, 1, 100)
 		layoutIn.SetRowFromSub(0, 1, 5)
 		layoutIn.SetRowFromSub(1, 1, 2)
 		layoutIn.Enable = !isRunning
 
-		NewMsg := layoutIn.AddEditboxMultiline(0, 0, 2, 1, &st.Text)
-		NewMsg.enter = sendIt
+		{
+			mic := layoutIn.AddMicrophone_recorder(0, 0, 1, 1, &Microphone_recorder{UID: "chat_mic_" + st.file_name})
+			mic.done = func(out audio.IntBuffer, startUnix float64) {
+
+				props := Agent_findSTTAgentProperties("main")
+				if props != nil {
+					login, whispercpp, _ := FindLoginSTTModel(props.Model)
+
+					blob, err := Whispercpp_convertIntoFile(&out, login != nil)
+					if err != nil {
+						//.....
+						return
+					}
+
+					var js []byte
+					if login != nil {
+						api_key, err := g_agent_passwords.Find(login.Api_key_id)
+						if err != nil {
+							//...
+							return
+						}
+
+						js, _, err = OpenAI_stt_Run(props.Model, "blob.mp3", blob, props.Temperature, props.Response_format, login.OpenAI_completion_url, api_key)
+						if err != nil {
+							//...
+							return
+						}
+					}
+
+					if whispercpp != nil {
+						js, _, err = Whispercpp_Transcribe(blob, Whispercpp_props{Model: props.Model, Temperature: props.Temperature, Response_format: props.Response_format}, OpenFile_Whispercpp())
+						if err != nil {
+							//...
+							return
+						}
+					}
+
+					st.SetVoice(js, startUnix)
+					Layout_RefreshDelayed()
+				}
+			}
+
+			text := layoutIn.AddEditboxMultiline(1, 0, 1, 1, &st.Text)
+			text.enter = sendIt
+		}
 
 		//image(s)
 		{
@@ -54,7 +105,7 @@ func (st *ChatInput) Build(layout *Layout) {
 				}
 			}
 
-			ImgsList := layoutIn.AddLayoutList(0, 1, 1, 1, true)
+			ImgsList := layoutIn.AddLayoutList(0, 1, 2, 1, true)
 			ImgsList.dropFile = func(path string) {
 				st.Files = append(st.Files, path)
 			}
@@ -103,10 +154,61 @@ func (st *ChatInput) Build(layout *Layout) {
 			}
 		}
 	}
-
 }
 
 func (st *ChatInput) reset() {
 	st.Text = ""
 	st.Files = nil
+}
+
+func (st *ChatInput) SetVoice(js []byte, voiceStart_sec float64) {
+	type VerboseJsonWord struct {
+		Start, End float64
+		Word       string
+	}
+	type VerboseJsonSegment struct {
+		Start, End float64
+		Text       string
+		Words      []*VerboseJsonWord
+	}
+	type VerboseJson struct {
+		Segments []*VerboseJsonSegment //later are projected to .Words
+	}
+
+	var verb VerboseJson
+	err := json.Unmarshal(js, &verb)
+	if err != nil {
+		return
+	}
+	for _, seg := range verb.Segments {
+		if len(seg.Words) == 0 {
+			//copy whole segment .Text as single word, because Groq doesn't support timestamp_granularities[]
+			seg.Words = append(seg.Words, &VerboseJsonWord{Start: seg.Start, End: seg.End, Word: seg.Text})
+		}
+	}
+
+	//jump over older picks
+	/*pick_i := 0
+	for _, pk := range ast.Picks {
+		if pk.Time_sec < voiceStart_sec {
+			pick_i++
+		}
+	}*/
+
+	//build prompt
+	prompt := ""
+	for _, seg := range verb.Segments {
+		for _, w := range seg.Words {
+			/*for pick_i < len(ast.Picks) && ast.Picks[pick_i].Time_sec < (voiceStart_sec+w.Start) { //for(!)
+				prompt += _getMark(pick_i)
+				//st.chatVoice_items = st.chatVoice_items[1:]
+				pick_i++
+			}*/
+			prompt += w.Word
+		}
+	}
+
+	//ast.Prompt = prompt
+
+	st.Text += prompt
 }

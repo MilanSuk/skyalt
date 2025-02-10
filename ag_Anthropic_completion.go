@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
+	"sync"
 )
 
 type AnthropicOut_Error struct {
@@ -43,16 +45,26 @@ type AnthropicOut struct {
 	Usage   AnthropicOut_Usage
 }
 
-func Anthropic_completion_Run(input Anthropic_completion_props, Completion_url string, api_key string) (AnthropicOut, error) {
+var g_globa_Anthropic_completion_lock sync.Mutex
+
+func Anthropic_completion_Run(input Anthropic_completion_props, Completion_url string, api_key string) (AnthropicOut, int, error) {
+	g_globa_Anthropic_completion_lock.Lock()
+	defer g_globa_Anthropic_completion_lock.Unlock()
+
+	if !strings.HasSuffix(Completion_url, "/") {
+		Completion_url += "/"
+	}
+	Completion_url += "messages"
+
 	jsProps, err := json.Marshal(input)
 	if err != nil {
-		return AnthropicOut{}, err
+		return AnthropicOut{}, -1, err
 	}
 	body := bytes.NewReader(jsProps)
 
 	req, err := http.NewRequest(http.MethodPost, Completion_url, body)
 	if err != nil {
-		return AnthropicOut{}, fmt.Errorf("NewRequest() failed: %w", err)
+		return AnthropicOut{}, -1, fmt.Errorf("NewRequest() failed: %w", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("x-api-key", api_key)
@@ -61,25 +73,25 @@ func Anthropic_completion_Run(input Anthropic_completion_props, Completion_url s
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		return AnthropicOut{}, fmt.Errorf("Do() failed: %w", err)
+		return AnthropicOut{}, -1, fmt.Errorf("Do() failed: %w", err)
 	}
 	defer res.Body.Close()
 
 	js, err := io.ReadAll(res.Body)
 	if err != nil {
-		return AnthropicOut{}, err
+		return AnthropicOut{}, res.StatusCode, err
 	}
 
 	var out AnthropicOut
 	err = json.Unmarshal(js, &out)
 	if err != nil {
-		return AnthropicOut{}, err
+		return AnthropicOut{}, res.StatusCode, err
 	}
 	if out.Error != nil && out.Error.Message != "" {
-		return AnthropicOut{}, errors.New(out.Error.Message)
+		return AnthropicOut{}, res.StatusCode, errors.New(out.Error.Message)
 	}
 	if res.StatusCode != 200 {
-		return AnthropicOut{}, fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, string(js))
+		return AnthropicOut{}, res.StatusCode, fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, string(js))
 	}
-	return out, nil
+	return out, res.StatusCode, nil
 }

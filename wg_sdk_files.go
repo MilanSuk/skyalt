@@ -135,7 +135,10 @@ func OpenFile_OsmSettings() *Osm {
 }
 
 func OpenFile_Microphone() *Microphone {
-	return WgFiles_Load("microphone", &Microphone{Enable: true, SampleRate: 44100, Channels: 1})
+	return WgFiles_Load("microphone", &Microphone{Enable: true, Sample_rate: 44100, Channels: 1})
+}
+func OpenFile_Whispercpp() *Whispercpp {
+	return WgFiles_Load("whispercpp", &Whispercpp{Folder: "services/whisper.cpp", Address: "http://localhost", Port: 8091, Model: ""})
 }
 
 func OpenFile_DeviceSettings() *DeviceSettings {
@@ -192,7 +195,7 @@ func OpenFile_LLMLogin(path string) *LLMLogin {
 	return WgFiles_Load(path, &LLMLogin{})
 }
 
-func FindLoginChatModel(chat_model string) (*LLMLogin, string) {
+func FindLoginChatModel(model string) (*LLMLogin, string) {
 	logins, err := OpenDir_llms_logins()
 	if err != nil {
 		return nil, "" //err ....
@@ -201,16 +204,59 @@ func FindLoginChatModel(chat_model string) (*LLMLogin, string) {
 	for _, login_path := range logins {
 		login := OpenFile_LLMLogin(login_path)
 		for _, m := range login.ChatModels {
-			if m.Name == chat_model {
+			if m.Name == model {
 				return login, login_path
 			}
 		}
 	}
+
+	return nil, ""
+}
+func FindLoginSTTModel(model string) (*LLMLogin, *Whispercpp, string) {
+	logins, err := OpenDir_llms_logins()
+	if err != nil {
+		return nil, nil, "" //err ....
+	}
+
+	for _, login_path := range logins {
+		login := OpenFile_LLMLogin(login_path)
+		for _, m := range login.STTModels {
+			if m.Name == model {
+				return login, nil, login_path
+			}
+		}
+	}
+
+	whispercpp_models, _ := OpenFile_Whispercpp().GetModelList()
+	for _, m := range whispercpp_models {
+		if m == model {
+			return nil, OpenFile_Whispercpp(), "whispercpp"
+		}
+	}
+
+	return nil, nil, ""
+}
+
+func FindLoginTTSModel(model string) (*LLMLogin, string) {
+	logins, err := OpenDir_llms_logins()
+	if err != nil {
+		return nil, "" //err ....
+	}
+
+	for _, login_path := range logins {
+		login := OpenFile_LLMLogin(login_path)
+		for _, m := range login.TTSModels {
+			if m.Name == model {
+				return login, login_path
+			}
+		}
+	}
+
 	return nil, ""
 }
 
-func OpenDir_agents_properties() ([]string, error) {
-	dir, err := os.ReadDir("disk/agents_properties")
+func OpenDir_ChatAgents() ([]string, error) {
+	dir, err := os.ReadDir("disk/chat_agents")
 	if err != nil {
 		return nil, err
 	}
@@ -218,11 +264,47 @@ func OpenDir_agents_properties() ([]string, error) {
 	var list []string
 	for _, it := range dir {
 		nm := strings.TrimSuffix(it.Name(), filepath.Ext(it.Name())) //name without .json
-		list = append(list, filepath.Join("agents_properties", nm))
+		list = append(list, filepath.Join("chat_agents", nm))
 	}
 
 	return list, nil
 }
-func OpenFile_Agent_properties(path string) *Agent_properties {
-	return WgFiles_Load(path, &Agent_properties{})
+func OpenFile_AgentProperties(path string) *ChatAgent {
+	return WgFiles_Load(path, &ChatAgent{})
+}
+
+func OpenDir_STTAgents() ([]string, error) {
+	dir, err := os.ReadDir("disk/speech_to_text_agents")
+	if err != nil {
+		return nil, err
+	}
+
+	var list []string
+	for _, it := range dir {
+		nm := strings.TrimSuffix(it.Name(), filepath.Ext(it.Name())) //name without .json
+		list = append(list, filepath.Join("speech_to_text_agents", nm))
+	}
+
+	return list, nil
+}
+func OpenFile_STTAgent(path string) *STTAgent {
+	return WgFiles_Load(path, &STTAgent{Temperature: 0, Response_format: "verbose_json"})
+}
+
+func OpenDir_TTSAgents() ([]string, error) {
+	dir, err := os.ReadDir("disk/text_to_speech_agents")
+	if err != nil {
+		return nil, err
+	}
+
+	var list []string
+	for _, it := range dir {
+		nm := strings.TrimSuffix(it.Name(), filepath.Ext(it.Name())) //name without .json
+		list = append(list, filepath.Join("text_to_speech_agents", nm))
+	}
+
+	return list, nil
+}
+func OpenFile_TTSAgent(path string) *TTSAgent {
+	return WgFiles_Load(path, &TTSAgent{})
 }

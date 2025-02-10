@@ -110,14 +110,75 @@ Don't ask to use, change, or create a tool, just do it! Call tools sequentially.
 User informations, device settings and files are store on the disk, read them with 'access_disk' tool.
 If the variable was read from disk and it's changed, you should probably write it back with 'access_disk' tool.
 
+If user want to visualize something, use the tools starting with 'ui_'.
+
 Tool parameter values must be real, don't use placeholder(aka example.com) and don't make up numbers or strings! Use 'access_disk' tool to search for the value.
 `
+		//avoid script recursion ...............
+		//- add attr .ScriptFile into Agent
+		//   - if it not empty, add it to system prompt
+
 	}
 	return prompt
 }
 
+func (agent *Agent) addTools(antTools *[]*Anthropic_completion_tool, oaiTools *[]*OpenAI_completion_tool) error {
+
+	toolList, scriptList, err := GetToolsList(agent.getFolder())
+	if err != nil {
+		return err
+	}
+
+	//tools
+	for _, toolName := range toolList {
+		path := filepath.Join(agent.getFolder(), toolName)
+		if NeedCompileTool(path) {
+			err := CompileTool(path)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+		}
+
+		//add tool
+		{
+			openAIAPI_, anthropicAPI, err := ConvertCodeIntoTool(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if antTools != nil {
+				*antTools = append(*antTools, anthropicAPI)
+			}
+			if oaiTools != nil {
+				*oaiTools = append(*oaiTools, openAIAPI_)
+			}
+		}
+	}
+
+	//scripts
+	for _, scriptName := range scriptList {
+		path := filepath.Join(agent.getFolder(), scriptName)
+
+		//add tool
+		{
+			openAIAPI_, anthropicAPI, err := ConvertScriptIntoTool(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if antTools != nil {
+				*antTools = append(*antTools, anthropicAPI)
+			}
+			if oaiTools != nil {
+				*oaiTools = append(*oaiTools, openAIAPI_)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (agent *Agent) buildAnthropic() (Anthropic_completion_props, string, string) {
-	ag_props := Agent_findAgentProperties(agent.getUseCase())
+	ag_props := Agent_findChatAgentProperties(agent.getUseCase())
 	if ag_props == nil {
 		log.Fatalf("use_case %s not found.", agent.getUseCase())
 	}
@@ -129,10 +190,6 @@ func (agent *Agent) buildAnthropic() (Anthropic_completion_props, string, string
 		log.Fatal(fmt.Errorf("no api_key for service '%s'", ag_props.Model))
 	}
 	api_key, err := g_agent_passwords.Find(login.Api_key_id)
-	if err != nil {
-		log.Fatal(err)
-	}
-	toolList, err := GetToolsList(agent.getFolder())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -148,24 +205,9 @@ func (agent *Agent) buildAnthropic() (Anthropic_completion_props, string, string
 	props.Max_tokens = ag_props.Max_tokens
 
 	//tools
-	for _, toolName := range toolList {
-		path := filepath.Join(agent.getFolder(), toolName)
-		if NeedCompileTool(path) {
-			err := CompileTool(path)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-		}
-
-		//add tool
-		{
-			_, anthropicAPI, err := ConvertFileIntoTool(path)
-			if err != nil {
-				log.Fatal(err)
-			}
-			props.Tools = append(props.Tools, anthropicAPI)
-		}
+	err = agent.addTools(&props.Tools, nil)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	//messages
@@ -176,7 +218,7 @@ func (agent *Agent) buildAnthropic() (Anthropic_completion_props, string, string
 	return props, login.Anthropic_completion_url, api_key
 }
 func (agent *Agent) buildOpenAI() (OpenAI_completion_props, string, string) {
-	ag_props := Agent_findAgentProperties(agent.getUseCase())
+	ag_props := Agent_findChatAgentProperties(agent.getUseCase())
 	if ag_props == nil {
 		log.Fatalf("use_case %s not found.", agent.getUseCase())
 	}
@@ -188,11 +230,6 @@ func (agent *Agent) buildOpenAI() (OpenAI_completion_props, string, string) {
 		log.Fatal(fmt.Errorf("no api_key for service '%s'", ag_props.Model))
 	}
 	api_key, err := g_agent_passwords.Find(login.Api_key_id)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	toolList, err := GetToolsList(agent.getFolder())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -214,24 +251,9 @@ func (agent *Agent) buildOpenAI() (OpenAI_completion_props, string, string) {
 	props.Presence_penalty = ag_props.Presence_penalty
 
 	//tools
-	for _, toolName := range toolList {
-		path := filepath.Join(agent.getFolder(), toolName)
-		if NeedCompileTool(path) {
-			err := CompileTool(path)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-		}
-
-		//add tool
-		{
-			openAIAPI_, _, err := ConvertFileIntoTool(path)
-			if err != nil {
-				log.Fatal(err)
-			}
-			props.Tools = append(props.Tools, openAIAPI_)
-		}
+	err = agent.addTools(nil, &props.Tools)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	//messages
@@ -283,11 +305,11 @@ func (agent *Agent) buildOpenAI() (OpenAI_completion_props, string, string) {
 	return props, login.OpenAI_completion_url, api_key
 }
 
-func (agent *Agent) AddUserPromptText(userPrompt string) {
+func (agent *Agent) AddUserPromptText(userPrompt string, createdBy string) {
 	msg := Anthropic_completion_msg{}
 	msg.AddText(userPrompt)
 
-	agent.Messages = append(agent.Messages, AgentMsg{CreatedBy: "", CreatedTimeSec: OsTime(), Role: "user", Content: msg.Content})
+	agent.Messages = append(agent.Messages, AgentMsg{CreatedBy: createdBy, CreatedTimeSec: OsTime(), Role: "user", Content: msg.Content})
 }
 func (agent *Agent) AddUserPromptTextAndImages(text string, ImageFiles []string) {
 	msg := Anthropic_completion_msg{}
@@ -303,19 +325,39 @@ func (agent *Agent) AddUserPromptTextAndImages(text string, ImageFiles []string)
 	agent.Messages = append(agent.Messages, AgentMsg{CreatedBy: "", CreatedTimeSec: OsTime(), Role: "user", Content: msg.Content})
 }
 
-func (agent *Agent) AddCallResult(tool_name string, tool_use_id string, result string) {
+func (agent *Agent) AddCallResult(tool_name string, tool_use_id string, result string, createdBy string) {
 	msg := Anthropic_completion_msg{}
 	msg.AddToolResult(tool_name, tool_use_id, result)
 
-	agent.Messages = append(agent.Messages, AgentMsg{CreatedBy: "", CreatedTimeSec: OsTime(), Role: "user", Content: msg.Content})
+	agent.Messages = append(agent.Messages, AgentMsg{CreatedBy: createdBy, CreatedTimeSec: OsTime(), Role: "user", Content: msg.Content})
 }
 
-func Agent_findAgentProperties(use_case string) *Agent_properties {
-	var main_agent *Agent_properties
-	agentPathes, _ := OpenDir_agents_properties() //err ....
+func Agent_findChatAgentProperties(use_case string) *ChatAgent {
+	var main_agent *ChatAgent
+	agentPathes, _ := OpenDir_ChatAgents() //err ....
 	for _, ag := range agentPathes {
 
-		agent := OpenFile_Agent_properties(ag)
+		agent := OpenFile_AgentProperties(ag)
+
+		nm := strings.ToLower(filepath.Base(ag))
+		if nm == use_case {
+			return agent
+		}
+
+		if nm == "main" {
+			main_agent = agent
+		}
+	}
+
+	return main_agent
+}
+
+func Agent_findSTTAgentProperties(use_case string) *STTAgent {
+	var main_agent *STTAgent
+	agentPathes, _ := OpenDir_STTAgents() //err ....
+	for _, ag := range agentPathes {
+
+		agent := OpenFile_STTAgent(ag)
 
 		nm := strings.ToLower(filepath.Base(ag))
 		if nm == use_case {
@@ -348,15 +390,15 @@ func (agent *Agent) FindSubCallUseContent(call_id string) (int, int) {
 	}
 	return -1, -1
 }
-func (agent *Agent) FindSubCallResultContent(call_id string) *Anthropic_completion_msg_Content {
+func (agent *Agent) FindSubCallResultContent(call_id string) (*Anthropic_completion_msg_Content, int) {
 	for i, m := range agent.Messages {
 		for j, t := range m.Content {
 			if t.Type == "tool_result" && t.Tool_use_id == call_id {
-				return &agent.Messages[i].Content[j]
+				return &agent.Messages[i].Content[j], i
 			}
 		}
 	}
-	return nil
+	return nil, -1
 }
 
 func (agent *Agent) FindToolName(call_id string) string {
@@ -411,9 +453,22 @@ func (agent *Agent) RemoveUnfinishedMsg() {
 	}
 }
 
+func (agent *Agent) HashUiCalls() bool {
+	for _, msg := range agent.Messages {
+		for _, it := range msg.Content {
+			if it.Type == "tool_use" {
+				if strings.HasPrefix(it.Name, "ui_") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func (agent *Agent) IsModelAnthropic() bool {
 
-	props := Agent_findAgentProperties(agent.getUseCase())
+	props := Agent_findChatAgentProperties(agent.getUseCase())
 	if props == nil {
 		log.Fatalf("use_case %s not found.", agent.getUseCase())
 	}
@@ -451,8 +506,9 @@ func (agent *Agent) GetFinalMessage() string {
 	return ""
 }
 
-func (msg *AgentMsg) _getPrice(ag_props *Agent_properties, login *LLMLogin) (float64, float64, float64) {
+func (msg *AgentMsg) _getPrice(ag_props *ChatAgent, login *LLMLogin) (float64, float64, float64) {
 	var input_price, cached_price, output_price float64
+
 	for _, m := range login.ChatModels {
 		if m.Name == ag_props.Model {
 			input_price = m.Input_price / 1000000
@@ -461,11 +517,23 @@ func (msg *AgentMsg) _getPrice(ag_props *Agent_properties, login *LLMLogin) (flo
 		}
 	}
 
+	for _, m := range login.STTModels {
+		if m.Name == ag_props.Model {
+			output_price = m.Price / 1000000
+		}
+	}
+
+	for _, m := range login.TTSModels {
+		if m.Name == ag_props.Model {
+			output_price = m.Price / 1000000
+		}
+	}
+
 	return float64(msg.InputTokens) * input_price, float64(msg.InputCachedTokens) * cached_price, float64(msg.OutputTokens) * output_price
 }
 
-func (msg *AgentMsg) GetPrice(agent *Agent) (float64, float64, float64) {
-	ag_props := Agent_findAgentProperties(agent.getUseCase())
+func (msg *AgentMsg) GetChatPrice(agent *Agent) (float64, float64, float64) {
+	ag_props := Agent_findChatAgentProperties(agent.getUseCase())
 	if ag_props == nil {
 		log.Fatalf("use_case %s not found.", agent.getUseCase())
 	}
@@ -484,7 +552,7 @@ func (msg *AgentMsg) GetSpeed() float64 {
 	return float64(toks) / msg.Time
 }
 
-func (agent *Agent) _getTotalPrice(ag_props *Agent_properties, login *LLMLogin) (in, inCached, out float64) {
+func (agent *Agent) _getTotalPrice(ag_props *ChatAgent, login *LLMLogin) (in, inCached, out float64) {
 	//messages
 	for _, m := range agent.Messages {
 		i, ic, o := m._getPrice(ag_props, login)
@@ -506,8 +574,8 @@ func (agent *Agent) _getTotalPrice(ag_props *Agent_properties, login *LLMLogin) 
 	return
 }
 
-func (agent *Agent) GetTotalPrice() (in, inCached, out float64) {
-	ag_props := Agent_findAgentProperties(agent.getUseCase())
+func (agent *Agent) GetTotalChatPrice() (in, inCached, out float64) {
+	ag_props := Agent_findChatAgentProperties(agent.getUseCase())
 	if ag_props == nil {
 		log.Fatalf("use_case %s not found.", agent.getUseCase())
 	}
@@ -570,7 +638,7 @@ func (agent *Agent) Exe(job *Job) bool {
 
 		startTime := float64(time.Now().UnixMilli()) / 1000
 
-		out, err := Anthropic_completion_Run(props, completion_url, api_key)
+		out, _, err := Anthropic_completion_Run(props, completion_url, api_key)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -599,9 +667,21 @@ func (agent *Agent) Exe(job *Job) bool {
 
 		startTime := float64(time.Now().UnixMilli()) / 1000
 
-		out, err := OpenAI_completion_Run(props, completion_url, api_key)
-		if err != nil {
-			log.Fatal(err)
+		var out OpenAIOut
+		for {
+			var statuCode int
+			var err error
+			out, statuCode, err = OpenAI_completion_Run(props, completion_url, api_key)
+			if err == nil {
+				break //done
+			}
+			if statuCode == 429 {
+				time.Sleep(2000 * time.Millisecond)
+				continue //again
+			}
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 
 		dt := (float64(time.Now().UnixMilli()) / 1000) - startTime
@@ -616,6 +696,11 @@ func (agent *Agent) Exe(job *Job) bool {
 		fmt.Printf("+LLM(%s) generated %dtoks which took %.1fsec = %.1f toks/sec\n", agent.getFolder(), out.Usage.Completion_tokens, dt, float64(out.Usage.Completion_tokens)/dt)
 		fmt.Printf("+LLM(%s) returns content: %s\n", agent.getFolder(), content)
 		fmt.Printf("+LLM(%s) returns tool_calls: %v\n", agent.getFolder(), tool_calls)
+
+		content = strings.ReplaceAll(content, "<|separator|>", "")
+		//if content == "<|separator|>" {
+		//	return false
+		//}
 
 		var outContent []Anthropic_completion_msg_Content
 		{
@@ -649,6 +734,13 @@ func (agent *Agent) Exe(job *Job) bool {
 }
 
 func (agent *Agent) ExeLoop(max_iters int, max_tokens int, job *Job) {
+	if max_iters <= 0 {
+		max_iters = 20
+	}
+	if max_tokens <= 0 {
+		max_tokens = 20000
+	}
+
 	orig_max_iters := max_iters
 	orig_max_tokens := max_tokens
 
@@ -689,12 +781,12 @@ func (agent *Agent) callTools(tool_calls []Anthropic_completion_msg_Content, ant
 	num_calles := 0
 
 	for _, it := range tool_calls {
-		if it.Type != "tool_use" {
-			continue
+		if !job.IsRunning() {
+			break
 		}
 
-		if strings.HasPrefix(it.Name, "ui") {
-			return false //stop
+		if it.Type != "tool_use" {
+			continue
 		}
 
 		args, err := it.Input.MarshalJSON()
@@ -704,25 +796,45 @@ func (agent *Agent) callTools(tool_calls []Anthropic_completion_msg_Content, ant
 
 		if ant != nil {
 			for _, tool := range ant.Tools {
-				if tool.Name == it.Name {
-					//call
-					answerJs := agent.callTool(it.Id, it.Name, string(args), job)
+				if !job.IsRunning() {
+					break
+				}
 
+				if tool.Name == it.Name {
+					var answerJs string
+					//call
+					if agent.isScript(it.Name) {
+						answerJs = agent.callScript(it.Id, it.Name, string(args), job)
+					} else {
+						answerJs = agent.callTool(it.Id, it.Name, string(args), job)
+					}
 					//save answer
-					agent.AddCallResult(it.Name, it.Id, answerJs)
+					agent.AddCallResult(it.Name, it.Id, answerJs, "")
 				}
 			}
 		}
 		if oai != nil {
 			for _, tool := range oai.Tools {
-				if tool.Function.Name == it.Name {
-					//call
-					answerJs := agent.callTool(it.Id, it.Name, string(args), job)
+				if !job.IsRunning() {
+					break
+				}
 
+				if tool.Function.Name == it.Name {
+					var answerJs string
+					//call
+					if agent.isScript(it.Name) {
+						answerJs = agent.callScript(it.Id, it.Name, string(args), job)
+					} else {
+						answerJs = agent.callTool(it.Id, it.Name, string(args), job)
+					}
 					//save answer
-					agent.AddCallResult(it.Name, it.Id, answerJs)
+					agent.AddCallResult(it.Name, it.Id, answerJs, "")
 				}
 			}
+		}
+
+		if strings.HasPrefix(it.Name, "ui") {
+			return false //stop
 		}
 
 		num_calles++
@@ -731,11 +843,68 @@ func (agent *Agent) callTools(tool_calls []Anthropic_completion_msg_Content, ant
 	return num_calles > 0
 }
 
-func (agent *Agent) callTool(call_id string, toolName string, arguments string, job *Job) string {
+func (agent *Agent) isScript(toolName string) bool {
 	tool := filepath.Join(agent.getFolder(), toolName)
+	return OsFileExists(tool + ".sky")
+}
+
+func (agent *Agent) callScript(call_id string, toolName string, arguments string, job *Job) string {
+	toolPath := filepath.Join(agent.getFolder(), toolName+".sky")
+
+	_, _, msgs, variables, err := GetScriptFileInfo(toolPath)
+	if err != nil {
+		return "" //...
+	}
+
+	//replace arguments in 'msgs'
+	var args map[string]interface{}
+	err = json.Unmarshal([]byte(arguments), &args)
+	if err != nil {
+		return "" //...
+	}
+	for i := range msgs {
+		for name, vr := range variables {
+			valInterface, found := args[name]
+			if found {
+				for _, exp := range vr.Exps {
+					js, err := json.Marshal(valInterface)
+					if err == nil {
+						msgs[i] = strings.ReplaceAll(msgs[i], exp, string(js))
+					}
+				}
+			}
+		}
+	}
+
+	//new sub-agent
+	sub_agent := NewAgent("", "", "")
+	sub_agent.Call_id = call_id
+	agent.SubAgents = append(agent.SubAgents, sub_agent)
+	agent.Selected_sub_call_id = call_id //show
+
+	//add description of the tool as the first message .................
+
+	//call every message
+	for _, msg := range msgs {
+		if !job.IsRunning() {
+			break
+		}
+
+		sub_agent.AddUserPromptText(msg, "guide")
+		sub_agent.ExeLoop(0, 0, job)
+
+		msg := AgentMsg{Role: "assistant", Content: []Anthropic_completion_msg_Content{{Type: "text", Text: "got it"}}, CreatedTimeSec: OsTime(), CreatedBy: "assistant"}
+		sub_agent.Messages = append(sub_agent.Messages, msg)
+	}
+
+	return sub_agent.GetFinalMessage()
+}
+
+func (agent *Agent) callTool(call_id string, toolName string, arguments string, job *Job) string {
+	toolPath := filepath.Join(agent.getFolder(), toolName)
 
 	//call
-	binPath := filepath.Join(filepath.Join("temp", tool), "bin")
+	binPath := filepath.Join(filepath.Join("temp", toolPath), "bin")
 	cmd := exec.Command("./"+binPath, strconv.Itoa(g_agent_server.port))
 	cmd.Dir = ""
 	OutStr := new(strings.Builder)
@@ -776,8 +945,8 @@ func (agent *Agent) callTool(call_id string, toolName string, arguments string, 
 			userPrompt, _ := cl.ReadArray()
 
 			//init
-			sub_agent := NewAgent(tool, string(use_cases), string(systemPrompt))
-			sub_agent.AddUserPromptText(string(userPrompt))
+			sub_agent := NewAgent(toolPath, string(use_cases), string(systemPrompt))
+			sub_agent.AddUserPromptText(string(userPrompt), "")
 			sub_agent.Call_id = call_id
 			agent.SubAgents = append(agent.SubAgents, sub_agent)
 			agent.Selected_sub_call_id = call_id //show
@@ -843,7 +1012,7 @@ func (agent *Agent) callTool(call_id string, toolName string, arguments string, 
 		fmt.Println("Err", err.Error())
 
 		wd, _ := os.Getwd()
-		js = []byte(fmt.Sprintf("Tool '%s' crashed: %s", tool, strings.ReplaceAll(ErrStr.String(), wd, "")))
+		js = []byte(fmt.Sprintf("Tool '%s' crashed: %s", toolPath, strings.ReplaceAll(ErrStr.String(), wd, "")))
 	}
 
 	return string(js)

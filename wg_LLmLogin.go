@@ -1,10 +1,20 @@
 package main
 
-type Model struct {
+type ModelText struct {
 	Name         string
 	Input_price  float64
 	Cached_price float64
 	Output_price float64
+}
+
+type ModelSTT struct {
+	Name  string
+	Price float64 //per hour
+}
+type ModelTTS struct {
+	Name   string
+	Price  float64 //per 1M characters
+	Voices []string
 }
 
 type LLMLogin struct {
@@ -15,10 +25,9 @@ type LLMLogin struct {
 
 	Api_key_id string
 
-	ChatModels []Model `json:",omitempty"`
-	STTModels  []Model `json:",omitempty"`
-	TTSModels  []Model `json:",omitempty"`
-	TTSVoices  []Model `json:",omitempty"`
+	ChatModels []ModelText `json:",omitempty"`
+	STTModels  []ModelSTT  `json:",omitempty"`
+	TTSModels  []ModelTTS  `json:",omitempty"`
 }
 
 func (layout *Layout) AddLLmLogin(x, y, w, h int, props *LLMLogin) *LLMLogin {
@@ -54,9 +63,28 @@ func (st *LLMLogin) Build(layout *Layout) {
 	KeyBt.BrowserUrl = "https://console.x.ai"
 	y++
 
-	layout.AddText(0, y, 1, 1, "Chat Models")
-	for _, md := range st.ChatModels {
-		layout.AddText(1, y, 1, 1, md.Name) //price? ....
-		y++
+	if len(st.ChatModels) > 0 {
+		layout.AddText(0, y, 1, 1, "Chat")
+		for _, md := range st.ChatModels {
+			layout.AddText(1, y, 1, 1, md.Name) //price? ....
+			y++
+		}
 	}
+
+	if len(st.STTModels) > 0 {
+		layout.AddText(0, y, 1, 1, "Speech to text")
+		for _, md := range st.STTModels {
+			layout.AddText(1, y, 1, 1, md.Name) //price? ....
+			y++
+		}
+	}
+
+	if len(st.TTSModels) > 0 {
+		layout.AddText(0, y, 1, 1, "Text to speech")
+		for _, md := range st.TTSModels {
+			layout.AddText(1, y, 1, 1, md.Name) //price? ....
+			y++
+		}
+	}
+
 }

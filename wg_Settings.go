@@ -29,64 +29,82 @@ func (layout *Layout) AddSettings(x, y, w, h int, props *DeviceSettings) *Device
 }
 
 func (st *DeviceSettings) Build(layout *Layout) {
-	layout.SetColumn(0, 4, 4)
+	layout.SetColumn(0, 3, 3)
 	layout.SetColumn(1, 5, 100)
 
-	layout.SetRowFromSub(5, 1, 100)
-
-	//Date format
-	{
-		layout.AddText(0, 1, 1, 1, "Date format")
-		df_labels := []string{"EU(31/5/2019)", "US(5/31/2019)", "ISO(2019-5-31)", "Text(May 31 2019)"}
-		df_values := []string{"eu", "us", "iso", "text"} //"2base"
-		layout.AddCombo(1, 1, 1, 1, &st.DateFormat, df_labels, df_values)
-	}
+	y := 1
 
 	//DPI, Zoom
 	{
-		layout.AddText(0, 3, 1, 1, "Zoom(Dots per inch)")
-
-		ZoomDiv := layout.AddLayout(1, 3, 1, 1)
-		ZoomDiv.SetColumn(0, 2, 2)
-		ZoomDiv.SetColumn(3, 1.5, 1.5)
-		ZoomDiv.SetColumn(6, 2, 2)
-
-		//dpi
-		DPI := ZoomDiv.AddEditbox(0, 0, 1, 1, &st.Dpi)
-		DPI.Tooltip = "DPI(Dots per inch)"
+		layout.AddText(0, y, 1, 1, "Zoom")
+		ZoomDiv := layout.AddLayout(1, y, 1, 1)
+		y++
 
 		//+
-		Add := ZoomDiv.AddButton(2, 0, 1, 1, "+")
+		x := 0
+		Add := ZoomDiv.AddButton(x, 0, 1, 1, "+")
 		Add.Background = 0.5
 		Add.clicked = func() {
 			st.Dpi += 3
 		}
+		x++
 
 		//%
 		procV := int(float64(st.Dpi) / float64(st.Dpi_default) * 100)
-		Info := ZoomDiv.AddText(3, 0, 1, 1, strconv.Itoa(procV)+"%")
+		ZoomDiv.SetColumn(x, 1.5, 1.5)
+		Info := ZoomDiv.AddText(x, 0, 1, 1, strconv.Itoa(procV)+"%")
 		Info.Align_h = 1
+		x++
 
 		//-
-		Sub := ZoomDiv.AddButton(4, 0, 1, 1, "-")
+		Sub := ZoomDiv.AddButton(x, 0, 1, 1, "-")
 		Sub.Background = 0.5
 		Sub.clicked = func() {
 			st.Dpi -= 3
 		}
+		x++
+
+		x++ //space
 
 		//Reset
-		Reset := ZoomDiv.AddButton(6, 0, 1, 1, "Reset")
+		ZoomDiv.SetColumn(x, 2, 3)
+		Reset := ZoomDiv.AddButton(x, 0, 1, 1, "Reset")
 		Reset.Background = 0.5
 		Reset.clicked = func() {
 			st.Dpi = st.Dpi_default
 		}
+		x++
+
+		x++ //space
+
+		//dpi
+		ZoomDiv.SetColumn(x, 1, 1)
+		ZoomDiv.AddEditbox(x, 0, 1, 1, &st.Dpi)
+		x++
+
+		ZoomDiv.AddText(x, 0, 1, 1, "DPI")
+		x++
 	}
+
+	y++
+
+	//Date format
+	{
+		layout.AddText(0, y, 1, 1, "Date format")
+		df_labels := []string{"EU(31/5/2019)", "US(5/31/2019)", "ISO(2019-5-31)", "Text(May 31 2019)"}
+		df_values := []string{"eu", "us", "iso", "text"} //"2base"
+		layout.AddCombo(1, y, 1, 1, &st.DateFormat, df_labels, df_values)
+		y++
+	}
+
+	y++
 
 	// Theme
 	{
-		layout.AddText(0, 5, 1, 1, "Theme")
-
-		ThemeDiv := layout.AddLayout(1, 5, 1, 1)
+		layout.SetRowFromSub(5, 1, 100)
+		layout.AddText(0, y, 1, 1, "Theme")
+		ThemeDiv := layout.AddLayout(1, y, 1, 1)
+		y++
 		{
 			ThemeDiv.SetColumn(0, 1, 100)
 
@@ -120,19 +138,25 @@ func (st *DeviceSettings) Build(layout *Layout) {
 		}
 	}
 
+	y++
+
 	//Volume
 	{
-		layout.AddText(0, 7, 1, 1, "Volume")
+		layout.AddText(0, y, 1, 1, "Volume")
 		volume := st.Volume * 100
-		sl := layout.AddSlider(1, 7, 1, 1, &volume, 0, 100, 5)
+		sl := layout.AddSlider(1, y, 1, 1, &volume, 0, 100, 5)
 		sl.changed = func() {
 			st.Volume = volume / 100
 		}
+		y++
 	}
 
-	layout.AddSwitch(0, 9, 2, 1, "FullScreen(F11)", &st.Fullscreen)
+	y++
 
-	layout.AddSwitch(0, 10, 2, 1, "Show statistics(F2)", &st.Stats)
+	layout.AddSwitch(0, y, 2, 1, "FullScreen(F11)", &st.Fullscreen)
+	y++
+	layout.AddSwitch(0, y, 2, 1, "Show statistics(F2)", &st.Stats)
+	y++
 }
 
 func (env *DeviceSettings) Check() bool {

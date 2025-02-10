@@ -133,6 +133,11 @@ func (layout *Layout) RenameLayout(x, y, w, h int, name string) *Layout {
 	}
 	return lay
 }
+func (layout *Layout) Repos(new_x, new_y int) {
+	layout.X = new_x
+	layout.Y = new_y
+	layout._recomputeHash(layout)
+}
 
 func (layout *Layout) _findHash(hash uint64) *Layout {
 	if layout.Hash == hash {
