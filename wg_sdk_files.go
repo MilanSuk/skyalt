@@ -152,7 +152,7 @@ func OpenFile_DeviceSettings() *DeviceSettings {
 }*/
 
 func OpenFile_Root() *Root {
-	return WgFiles_Load("root", &Root{})
+	return WgFiles_Load("root", &Root{Show: "settings"})
 }
 
 func OpenDir_Chats() ([]string, error) {
