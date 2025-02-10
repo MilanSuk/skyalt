@@ -24,22 +24,6 @@ import (
 	"math"
 )
 
-type LayoutPick struct {
-	Line       int
-	X, Y, W, H int
-	Label      string
-	Cd         color.RGBA //paintbrush color
-	Points     []OsV2
-}
-
-func (a *LayoutPick) Cmp(b *LayoutPick) bool {
-	return a.Line == b.Line &&
-		a.X == b.X &&
-		a.Y == b.Y &&
-		a.W == b.W &&
-		a.H == b.H
-}
-
 type Rect struct {
 	X, Y, W, H float64
 }
@@ -96,8 +80,8 @@ type LayoutInput struct {
 
 	Shortcut_key byte
 
-	Pick    LayoutPick
-	PickApp string
+	Pick LayoutPick
+	//PickApp string
 }
 type LayoutCR struct {
 	Pos int     `json:",omitempty"`
@@ -160,6 +144,15 @@ type LayoutDrawTooltip struct {
 	Description string
 	Force       bool
 }
+
+type LayoutDrawBrush struct {
+	Cd     color.RGBA
+	Points []OsV2
+}
+type LayoutDrawBrushes struct {
+	Items []LayoutDrawBrush
+}
+
 type LayoutDrawPrim struct {
 	Rect Rect
 
@@ -170,6 +163,7 @@ type LayoutDrawPrim struct {
 	Text      *LayoutDrawText
 	Cursor    *LayoutDrawCursor
 	Tooltip   *LayoutDrawTooltip
+	Brushes   *LayoutDrawBrushes
 }
 type LayoutPaint struct {
 	buffer []LayoutDrawPrim
@@ -929,6 +923,18 @@ func (dom *Layout3) renderBuffer(buffer []LayoutDrawPrim) {
 				}
 			}
 		}
+
+		if it.Brushes != nil {
+			backup := buff.crop
+			buff.AddCrop(dom.ui.dom.crop)
+
+			for _, br := range it.Brushes.Items {
+				buff.AddLines(br.Points, br.Cd, UiSelection_Thick(dom.ui), true)
+			}
+
+			buff.crop = backup
+		}
+
 	}
 }
 
@@ -1199,6 +1205,30 @@ func (dom *Layout3) Draw() {
 	//selection
 	dom.ui.selection.Draw(buff, dom.ui)
 
+	keys := dom.ui.parent.win.io.Keys
+	if keys.Ctrl && keys.Shift {
+		n := 0
+		dom.postDraw(0, &n) //dialogs? ....
+	}
+}
+
+func (dom *Layout3) postDraw(depth int, num_cds *int) {
+	if /*dom.props.Name == name || (dom.props.Caller_file == name+".go" &&*/ dom.props.Name == "_layout" || dom.props.Name == "_list" /*)*/ {
+		cd := Layout3_Get_prompt_color(*num_cds)
+		cd.Cd.A = 150
+
+		dom.drawGrid(cd.Cd, 0.03, depth)
+
+		(*num_cds)++
+		depth++
+	}
+
+	//subs
+	for _, it := range dom.childs {
+		if it.IsShown() {
+			it.postDraw(depth, num_cds)
+		}
+	}
 }
 
 func (dom *Layout3) drawBuffers() {

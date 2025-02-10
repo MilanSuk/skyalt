@@ -18,10 +18,12 @@ type ChatInput struct {
 	stop      func()
 
 	sended func()
+
+	Picks []LayoutPick
 }
 
 func (layout *Layout) AddChatInput(x, y, w, h int, props *ChatInput) *ChatInput {
-	layout._createDiv(x, y, w, h, "ChatInput", props.Build, nil, nil)
+	layout._createDiv(x, y, w, h, "ChatInput", props.Build, props.Draw, nil)
 	return props
 }
 
@@ -159,6 +161,7 @@ func (st *ChatInput) Build(layout *Layout) {
 func (st *ChatInput) reset() {
 	st.Text = ""
 	st.Files = nil
+	st.Picks = nil
 }
 
 func (st *ChatInput) SetVoice(js []byte, voiceStart_sec float64) {
@@ -211,4 +214,18 @@ func (st *ChatInput) SetVoice(js []byte, voiceStart_sec float64) {
 	//ast.Prompt = prompt
 
 	st.Text += prompt
+}
+
+func (st *ChatInput) MergePick(in LayoutPick) {
+	//found if already exists ...........
+	st.Picks = append(st.Picks, in)
+}
+
+func (st *ChatInput) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
+	var brs []LayoutDrawBrush
+	for _, br := range st.Picks {
+		brs = append(brs, LayoutDrawBrush{Cd: br.Cd, Points: br.Points})
+	}
+	paint.Brushes(brs)
+	return
 }

@@ -33,10 +33,6 @@ type Root struct {
 
 	Selected int
 	Show     string
-
-	//AgentSelected string
-
-	Tools Tools
 }
 
 func (st *Root) Build(layout *Layout) {
@@ -605,5 +601,18 @@ func (st *Root) refreshChats() {
 	//check boundary
 	if st.Selected >= len(st.Chats) {
 		st.Selected = len(st.Chats) - 1
+	}
+}
+
+func (st *Root) Input(in LayoutInput, layout *Layout) {
+	if len(st.Chats) == 0 || st.Show != "" {
+		return
+	}
+
+	file := st.Chats[st.Selected]
+	agent := OpenFile_Chat(file)
+
+	if agent != nil && in.Pick.Hash > 0 {
+		agent.Input.MergePick(in.Pick)
 	}
 }

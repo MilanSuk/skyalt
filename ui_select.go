@@ -21,40 +21,45 @@ import (
 	"image/color"
 )
 
+type LayoutPick struct {
+	//Line       int
+	X, Y, W, H int
+	Hash       uint64
+
+	LLMTip string
+
+	Label string     //color
+	Cd    color.RGBA //paintbrush color
+
+	Points []OsV2
+}
+
+func (a *LayoutPick) Cmp(b *LayoutPick) bool {
+	return a.LLMTip == b.LLMTip
+}
+
 type UiSelection struct {
 	active *LayoutPick
 
-	appName          string
-	brushes          []*LayoutPick
 	backup_edit_hash uint64
+
+	num int
 }
 
 func (s *UiSelection) IsActive() bool {
 	return s.active != nil
 }
 
-func (s *UiSelection) Reset() {
-	s.brushes = nil
+func UiSelection_Thick(ui *Ui) int {
+	return ui.CellWidth(0.3)
 }
 
 func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
-	keys := ui.parent.win.io.Keys
-	if keys.Ctrl && keys.Shift {
-		n := 0
-		ui.dom.postDraw(s.appName, 0, &n) //dialogs? ....
-	}
-
 	buff.AddCrop(ui.dom.CropWithScroll())
 
-	thick := ui.CellWidth(0.3)
-	for _, it := range s.brushes {
-		buff.AddLines(it.Points, it.Cd, thick, true)
-	}
-
 	if s.active != nil {
-		buff.AddLines(s.active.Points, s.active.Cd, thick, true)
+		buff.AddLines(s.active.Points, s.active.Cd, UiSelection_Thick(ui), true)
 	}
-
 }
 
 func (s *UiSelection) UpdateComp(ui *Ui) {
@@ -62,7 +67,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 	//start
 	if ui.GetWin().io.Keys.Ctrl {
 		if ui.GetWin().io.Touch.Start {
-			pcd := Layout3_Get_prompt_color(len(s.brushes))
+			pcd := Layout3_Get_prompt_color(s.num)
 			s.active = &LayoutPick{Cd: pcd.Cd, Label: pcd.Label}
 			s.backup_edit_hash = ui.parent.edit.hash
 		}
@@ -77,7 +82,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 
 	//end
 	if ui.GetWin().io.Touch.End {
-		appLay := ui.dom.FindFirstName(s.appName)
+		appLay := ui.dom //.FindFirstName(s.appName)
 		if appLay != nil {
 
 			cq := s.getRect()
@@ -88,7 +93,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 
 				best_layout := appLay
 				best_area := 0.0
-				appLay.findSelection(cq, cqArea, &best_area, &best_layout, s.appName)
+				appLay.findSelection(cq, cqArea, &best_area, &best_layout) //, s.appName)
 
 				st_rel := cq.Start.Sub(best_layout.canvas.Start)
 				en_rel := cq.End().Sub(best_layout.canvas.Start)
@@ -107,14 +112,15 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 				actBr.Y = grid.Start.Y
 				actBr.W = grid.Size.X
 				actBr.H = grid.Size.Y
-
 				fmt.Println("--pick", actBr.X, actBr.Y, actBr.W, actBr.H)
 
+				actBr.Hash = best_layout.props.Hash
+
 				//find line
-				if best_layout == appLay {
+				/*if best_layout == appLay {
 					//get Build() pos
 					//....
-					/*wf, err := Compile_getWidgetFile(s.appName, nil)
+					wf, err := Compile_getWidgetFile(s.appName, nil)
 					if err != nil {
 						fmt.Println("Error:", err)
 						return
@@ -123,32 +129,34 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 						fmt.Println("Error 1456")
 						return
 					}
-					actBr.Line = wf.Build*/
+					actBr.Line = wf.Build
 
 				} else {
 					actBr.Line = best_layout.props.Caller_line
-				}
+				}*/
+				actBr.LLMTip = best_layout.props.LLMTip
 
 				//find if pick(line & grid) already exist
-				for _, it := range s.brushes {
+				/*for _, it := range s.brushes {
 					if it.Cmp(actBr) {
 						//rewrite color
 						actBr.Cd = it.Cd
 						actBr.Label = it.Label
 						break
 					}
-				}
+				}*/
 
 				//add
-				s.brushes = append(s.brushes, actBr)
+				//s.brushes = append(s.brushes, actBr)
 
 				//call
-				in := LayoutInput{Pick: *actBr, PickApp: s.appName}
+				in := LayoutInput{Pick: *actBr /*, PickApp: s.appName*/}
 				ui.parent.CallInput(&ui.dom.props, &in)
 			}
 		}
 
 		s.active = nil
+		s.num++
 
 		//recover editbox
 		ui.SetRefresh()
@@ -181,8 +189,9 @@ func (s *UiSelection) getRect() OsV4 {
 	return InitOsV4ab(min, max)
 }
 
-func (dom *Layout3) findSelection(cq OsV4, cqArea float64, best_area *float64, best_layout **Layout3, appName string) {
-	if dom.touchDia && /*dom.props.Caller_file == appName+".go" &&*/ (dom.props.Name == appName || dom.props.Name == "_layout") {
+func (dom *Layout3) findSelection(cq OsV4, cqArea float64, best_area *float64, best_layout **Layout3 /*, appName string*/) {
+	//if dom.touchDia && dom.props.Caller_file == appName+".go" && (dom.props.Name == appName || dom.props.Name == "_layout") {
+	if dom.touchDia {
 		inArea := float64(dom.crop.GetIntersect(cq).Area()) / cqArea
 		if inArea >= *best_area {
 			*best_area = inArea
@@ -192,12 +201,12 @@ func (dom *Layout3) findSelection(cq OsV4, cqArea float64, best_area *float64, b
 
 	for _, it := range dom.childs {
 		if it.IsShown() {
-			it.findSelection(cq, cqArea, best_area, best_layout, appName)
+			it.findSelection(cq, cqArea, best_area, best_layout)
 		}
 	}
 
 	if dom.dialog != nil {
-		dom.dialog.findSelection(cq, cqArea, best_area, best_layout, appName)
+		dom.dialog.findSelection(cq, cqArea, best_area, best_layout)
 	}
 }
 
@@ -225,23 +234,4 @@ var g_prompt_colors = []LayoutPromptColor{
 
 func Layout3_Get_prompt_color(i int) LayoutPromptColor {
 	return g_prompt_colors[i%len(g_prompt_colors)]
-}
-
-func (dom *Layout3) postDraw(name string, depth int, num_cds *int) {
-	if dom.props.Name == name || (dom.props.Caller_file == name+".go" && (dom.props.Name == "_layout" || dom.props.Name == "_list")) {
-		cd := Layout3_Get_prompt_color(*num_cds)
-		cd.Cd.A = 150
-
-		dom.drawGrid(cd.Cd, 0.03, depth)
-
-		(*num_cds)++
-		depth++
-	}
-
-	//subs
-	for _, it := range dom.childs {
-		if it.IsShown() {
-			it.postDraw(name, depth, num_cds)
-		}
-	}
 }

@@ -570,6 +570,10 @@ func (paint *LayoutPaint) Tooltip(text string, rect Rect) {
 	paint.TooltipEx(rect, text, false)
 }
 
+func (paint *LayoutPaint) Brushes(brushes []LayoutDrawBrush) {
+	paint.buffer = append(paint.buffer, LayoutDrawPrim{Brushes: &LayoutDrawBrushes{Items: brushes}})
+}
+
 func Layout_GetMonthText(month int) string {
 	switch month {
 	case 1:

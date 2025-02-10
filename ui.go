@@ -302,6 +302,7 @@ func (ui *Ui) _refresh() {
 
 	ui.last_root_layout = _newLayoutRoot()
 	ui.last_root_layout.fnBuild = OpenFile_Root().Build
+	ui.last_root_layout.fnInput = OpenFile_Root().Input
 	_build(ui.last_root_layout)
 
 	ui._refreshLayout(ui.dom)
@@ -322,17 +323,6 @@ func (ui *Ui) _refresh() {
 	ui.parent.CallGetEnv()
 
 	ui.dom.SetTouchAll()
-
-	//update appName
-	{
-		rootLay := ui.dom.FindFirstName("Root")
-		if rootLay != nil {
-			lay := rootLay.FindChildMaxArea()
-			if lay != nil {
-				ui.selection.appName = lay.props.Name
-			}
-		}
-	}
 
 	fmt.Printf("Refreshed: %.4fsec\n", OsTime()-st)
 }
@@ -460,16 +450,6 @@ func (ui *Ui) _executeCmds(cmds []LayoutCmd) {
 
 		case "PasteText":
 			edit.KeyPaste = true
-
-		case "ResetBrushes":
-			ui.selection.Reset()
-
-		case "SetBrushes":
-			var picks []*LayoutPick
-			err := json.Unmarshal([]byte(cmd.Param1), &picks)
-			if err == nil {
-				ui.selection.brushes = picks
-			}
 		}
 	}
 }

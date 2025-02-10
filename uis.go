@@ -120,11 +120,10 @@ func (rs *UiClients) CallInput(props *Layout, in *LayoutInput) error {
 			inLayout.fnSetEditbox(in.EditValue, in.EditEnter)
 		}
 
-	} else if in.Pick.Line > 0 {
-		//in.Pick.time_sec = float64(time.Now().UnixMilli()) / 1000
-		//OpenFile_AssistantChat().findPickOrAdd(in.Pick)
-		//OpenFile_AssistantChat().AppName = in.PickApp
-
+	} else if in.Pick.Hash > 0 {
+		if inLayout.fnInput != nil {
+			inLayout.fnInput(*in, inLayout)
+		}
 	} else if inLayout.fnInput != nil {
 		inLayout.fnInput(*in, inLayout)
 	}
