@@ -18,18 +18,15 @@ package main
 
 import (
 	"fmt"
-	"image/color"
 )
 
 type LayoutPick struct {
-	//Line       int
 	X, Y, W, H int
 	Hash       uint64
 
 	LLMTip string
 
-	Label string     //color
-	Cd    color.RGBA //paintbrush color
+	Time_sec float64
 
 	Points []OsV2
 }
@@ -43,7 +40,7 @@ type UiSelection struct {
 
 	backup_edit_hash uint64
 
-	num int
+	//num int
 }
 
 func (s *UiSelection) IsActive() bool {
@@ -58,7 +55,7 @@ func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
 	buff.AddCrop(ui.dom.CropWithScroll())
 
 	if s.active != nil {
-		buff.AddLines(s.active.Points, s.active.Cd, UiSelection_Thick(ui), true)
+		buff.AddLines(s.active.Points, Paint_GetPalette().OnB, UiSelection_Thick(ui), true)
 	}
 }
 
@@ -67,8 +64,8 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 	//start
 	if ui.GetWin().io.Keys.Ctrl {
 		if ui.GetWin().io.Touch.Start {
-			pcd := Layout3_Get_prompt_color(s.num)
-			s.active = &LayoutPick{Cd: pcd.Cd, Label: pcd.Label}
+			//pcd := Layout3_Get_prompt_color(s.num)
+			s.active = &LayoutPick{ /*Cd: pcd.Cd, Label: pcd.Label*/ }
 			s.backup_edit_hash = ui.parent.edit.hash
 		}
 	}
@@ -156,7 +153,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) {
 		}
 
 		s.active = nil
-		s.num++
+		//s.num++
 
 		//recover editbox
 		ui.SetRefresh()
@@ -208,30 +205,4 @@ func (dom *Layout3) findSelection(cq OsV4, cqArea float64, best_area *float64, b
 	if dom.dialog != nil {
 		dom.dialog.findSelection(cq, cqArea, best_area, best_layout)
 	}
-}
-
-type LayoutPromptColor struct {
-	Label string
-	Cd    color.RGBA
-}
-
-var g_prompt_colors = []LayoutPromptColor{
-	{Label: "red", Cd: color.RGBA{255, 0, 0, 255}},
-	{Label: "green", Cd: color.RGBA{0, 255, 0, 255}},
-	{Label: "blue", Cd: color.RGBA{0, 0, 255, 255}},
-
-	{Label: "yellow", Cd: color.RGBA{200, 200, 0, 255}},
-	{Label: "aqua", Cd: color.RGBA{0, 255, 255, 255}},
-	{Label: "fuchsia", Cd: color.RGBA{255, 0, 255, 255}},
-
-	{Label: "olive", Cd: color.RGBA{128, 128, 0, 255}},
-	{Label: "teal", Cd: color.RGBA{0, 128, 128, 255}},
-	{Label: "purple", Cd: color.RGBA{128, 0, 128, 255}},
-
-	{Label: "navy", Cd: color.RGBA{0, 0, 128, 255}},
-	{Label: "marron", Cd: color.RGBA{128, 0, 0, 255}},
-}
-
-func Layout3_Get_prompt_color(i int) LayoutPromptColor {
-	return g_prompt_colors[i%len(g_prompt_colors)]
 }

@@ -2,6 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"image/color"
+	"strings"
+	"time"
 
 	"github.com/go-audio/audio"
 )
@@ -19,7 +23,8 @@ type ChatInput struct {
 
 	sended func()
 
-	Picks []LayoutPick
+	Picks    []LayoutPick
+	Text_mic string //copy of .Text before mic starts recording
 }
 
 func (layout *Layout) AddChatInput(x, y, w, h int, props *ChatInput) *ChatInput {
@@ -49,8 +54,10 @@ func (st *ChatInput) Build(layout *Layout) {
 
 		{
 			mic := layoutIn.AddMicrophone_recorder(0, 0, 1, 1, &Microphone_recorder{UID: "chat_mic_" + st.file_name})
+			mic.start = func() {
+				st.Text_mic = st.Text
+			}
 			mic.done = func(out audio.IntBuffer, startUnix float64) {
-
 				props := Agent_findSTTAgentProperties("main")
 				if props != nil {
 					login, whispercpp, _ := FindLoginSTTModel(props.Model)
@@ -191,41 +198,93 @@ func (st *ChatInput) SetVoice(js []byte, voiceStart_sec float64) {
 	}
 
 	//jump over older picks
-	/*pick_i := 0
-	for _, pk := range ast.Picks {
+	pick_i := 0
+	for _, pk := range st.Picks {
 		if pk.Time_sec < voiceStart_sec {
 			pick_i++
 		}
-	}*/
+	}
 
 	//build prompt
 	prompt := ""
 	for _, seg := range verb.Segments {
 		for _, w := range seg.Words {
-			/*for pick_i < len(ast.Picks) && ast.Picks[pick_i].Time_sec < (voiceStart_sec+w.Start) { //for(!)
-				prompt += _getMark(pick_i)
+			for pick_i < len(st.Picks) && st.Picks[pick_i].Time_sec < (voiceStart_sec+w.Start) { //for(!)
+				prompt += Layout3_Get_prompt_label(pick_i)
 				//st.chatVoice_items = st.chatVoice_items[1:]
 				pick_i++
-			}*/
+			}
 			prompt += w.Word
 		}
 	}
 
-	//ast.Prompt = prompt
+	prompt = strings.ReplaceAll(prompt, "[BLANK_AUDIO]", "")
+	prompt = strings.ReplaceAll(prompt, "[NO_SPEECH]", "")
+	prompt = strings.ReplaceAll(prompt, "[MUSIC]", "")
+	prompt = strings.ReplaceAll(prompt, "[NOISE]", "")
+	prompt = strings.ReplaceAll(prompt, "[LAUGHTER]", "")
+	prompt = strings.ReplaceAll(prompt, "[APPLAUSE]", "")
+	prompt = strings.ReplaceAll(prompt, "[UNKNOWN]", "")
+	prompt = strings.ReplaceAll(prompt, "[INAUDIBLE]", "")
 
-	st.Text += prompt
+	st.Text = st.Text_mic + prompt
 }
 
 func (st *ChatInput) MergePick(in LayoutPick) {
-	//found if already exists ...........
-	st.Picks = append(st.Picks, in)
+	//find
+	found_i := -1
+	for i, it := range st.Picks {
+		if it.Hash == in.Hash {
+			found_i = i
+			break
+		}
+	}
+
+	//add
+	if found_i < 0 {
+		in.Time_sec = float64(time.Now().UnixMilli()) / 1000
+		st.Picks = append(st.Picks, in)
+		found_i = len(st.Picks) - 1
+	}
+
+	st.Text += Layout3_Get_prompt_label(found_i)
 }
 
 func (st *ChatInput) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	var brs []LayoutDrawBrush
-	for _, br := range st.Picks {
-		brs = append(brs, LayoutDrawBrush{Cd: br.Cd, Points: br.Points})
+	for i, br := range st.Picks {
+		brs = append(brs, LayoutDrawBrush{Cd: Layout3_Get_prompt_color(i).Cd, Points: br.Points})
 	}
 	paint.Brushes(brs)
 	return
+}
+
+type LayoutPromptColor struct {
+	Label string
+	Cd    color.RGBA
+}
+
+var g_prompt_colors = []LayoutPromptColor{
+	{Label: "red", Cd: color.RGBA{255, 0, 0, 255}},
+	{Label: "green", Cd: color.RGBA{0, 255, 0, 255}},
+	{Label: "blue", Cd: color.RGBA{0, 0, 255, 255}},
+
+	{Label: "yellow", Cd: color.RGBA{200, 200, 0, 255}},
+	{Label: "aqua", Cd: color.RGBA{0, 255, 255, 255}},
+	{Label: "fuchsia", Cd: color.RGBA{255, 0, 255, 255}},
+
+	{Label: "olive", Cd: color.RGBA{128, 128, 0, 255}},
+	{Label: "teal", Cd: color.RGBA{0, 128, 128, 255}},
+	{Label: "purple", Cd: color.RGBA{128, 0, 128, 255}},
+
+	{Label: "navy", Cd: color.RGBA{0, 0, 128, 255}},
+	{Label: "marron", Cd: color.RGBA{128, 0, 0, 255}},
+}
+
+func Layout3_Get_prompt_color(i int) LayoutPromptColor {
+	return g_prompt_colors[i%len(g_prompt_colors)]
+}
+func Layout3_Get_prompt_label(i int) string {
+	cd := Layout3_Get_prompt_color(i)
+	return fmt.Sprintf("<rgba%d,%d,%d,%d>{%s}</rgba>", cd.Cd.R, cd.Cd.G, cd.Cd.B, cd.Cd.A, cd.Label)
 }
