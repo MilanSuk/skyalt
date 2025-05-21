@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#prints number of lines
+
+echo " --- --- main --- ---"
+cloc --by-file --unix --include-ext=go --exclude-dir=resources,fonts,temp,gates,tools,services .
+
+echo " --- --- tools --- ---"
+cloc --by-file --unix --include-ext=go --not-match-f="main.go" tools
+

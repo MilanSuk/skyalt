@@ -1,0 +1,23 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "go",
+			"label": "go: build workspace",
+			"command": "build",
+			"args": [
+				"./..."
+			],
+			"problemMatcher": [
+				"$go"
+			],
+			"group": "build",
+			"environment": [
+				{
+				"name": "LD_LIBRARY_PATH",
+				"value": "${LD_LIBRARY_PATH}:${workspaceFolder}/libs"
+				}
+				],
+		}
+	]
+}
