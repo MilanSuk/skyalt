@@ -1150,7 +1150,12 @@ func (layout *Layout) textComp() {
 			prop := InitWinFontPropsDef(layout.Cell())
 			prop.formating = tx.Formating
 
-			coordText := layout.getCanvasPx(rect.Cut(tx.Margin))
+			var coordText OsV4
+			if layout.UserCRFromText != nil {
+				coordText = layout.UserCRFromText.coordText
+			} else {
+				coordText = layout.getCanvasPx(rect.Cut(tx.Margin))
+			}
 			align := OsV2{int(tx.Align_h), int(tx.Align_v)}
 
 			layout.ui._Text_update(layout, coordText, tx.Margin, tx.Text, prop, align, tx.Selection, tx.Editable, true, tx.Multiline, tx.Linewrapping, tx.Refresh)
