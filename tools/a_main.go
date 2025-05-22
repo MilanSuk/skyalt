@@ -788,18 +788,6 @@ func CallToolByName(funcName string, jsParams []byte, caller *ToolCaller) (*UI, 
 	return ui, st, err
 }
 
-func (ui *UI) AddText(x, y, w, h int, label string) *UIText {
-	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(x, y, w, h)}
-	item.layout.Text = item
-	ui._addUISub(item.layout, "")
-	return item
-}
-func (ui *UI) AddTextLabel(x, y, w, h int, value string) *UIText {
-	txt := ui.AddText(x, y, w, h, "<b>"+value+"</b>")
-	txt.Align_h = 1
-	return txt
-}
-
 func (ui *UI) _findUID(uid uint64) *UI {
 	if ui.UID == uid {
 		return ui

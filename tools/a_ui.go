@@ -475,6 +475,18 @@ func (ui *UI) SetRowFromSub(grid_y int, min_size, max_size float64) {
 	ui.Rows = append(ui.Rows, newItem)
 }
 
+func (ui *UI) AddText(x, y, w, h int, label string) *UIText {
+	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(x, y, w, h)}
+	item.layout.Text = item
+	ui._addUISub(item.layout, "")
+	return item
+}
+func (ui *UI) AddTextLabel(x, y, w, h int, value string) *UIText {
+	txt := ui.AddText(x, y, w, h, "<b>"+value+"</b>")
+	txt.Align_h = 1
+	return txt
+}
+
 func (ui *UI) AddEditboxString(x, y, w, h int, value *string) *UIEditbox {
 	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(x, y, w, h)}
 	item.layout.Editbox = item
