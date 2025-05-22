@@ -971,6 +971,9 @@ func (layout *Layout) numBrushes() int {
 }
 
 func (layout *Layout) RedrawThis() {
+	if len(layout.ui.redrawLayouts) > 0 && layout.ui.redrawLayouts[len(layout.ui.redrawLayouts)-1] == layout.UID {
+		return //already added
+	}
 	layout.ui.redrawLayouts = append(layout.ui.redrawLayouts, layout.UID)
 }
 
