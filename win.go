@@ -183,6 +183,28 @@ func (win *Win) Destroy() error {
 	return nil
 }
 
+func (win *Win) GetWindowID() (uint64, error) {
+	info, err := win.window.GetWMInfo()
+	if err != nil {
+		return 0, err
+	}
+
+	switch info.Subsystem {
+	case sdl.SYSWM_WINDOWS:
+		//return uint64(info.GetWindowsInfo().Window), nil
+	case sdl.SYSWM_X11:
+		return uint64(info.GetX11Info().Window), nil
+	case sdl.SYSWM_DIRECTFB:
+		//return uint64(info.GetDFBInfo().Window), nil
+	case sdl.SYSWM_COCOA:
+		//return uint64(info.GetCocoaInfo().Window), nil
+	case sdl.SYSWM_UIKIT:
+		//return uint64(info.GetUIKitInfo().Window), nil
+	}
+
+	return 0, fmt.Errorf("unknown sub-system")
+}
+
 func IsSpaceActive() bool {
 	state := sdl.GetKeyboardState()
 	return state[sdl.SCANCODE_SPACE] != 0
