@@ -197,6 +197,18 @@ type WinGphItemText struct {
 	text string
 
 	letters []int //aggregated!	Represent every byte(multi_byte character = same number for each byte)
+	skips   []bool
+}
+
+func (txt *WinGphItemText) GetRangePx(st, en int) int {
+	if st >= en {
+		return 0
+	}
+	stPx := 0
+	if st > 0 {
+		stPx = txt.letters[st-1]
+	}
+	return txt.letters[en-1] - stPx
 }
 
 type WinGphLine struct {
@@ -409,61 +421,57 @@ func (gph *WinGph) GetText(prop WinFontProps, text string) *WinGphItemText {
 	return it
 }
 
-func (gph *WinGph) GetTextMax(text string, const_max_line_px int, prop WinFontProps) *WinGphItemTextMax {
-	if text == "" {
+func (gph *WinGph) GetTextMax(str string, const_max_line_px int, prop WinFontProps) *WinGphItemTextMax {
+	if str == "" {
 		return nil
 	}
 
 	//find
 	for _, it := range gph.textMaxs {
-		if it.prop.Cmp(&prop) && it.text == text && it.const_max_line_px == const_max_line_px {
-			//it.item.UpdateTick()
+		if it.prop.Cmp(&prop) && it.text == str && it.const_max_line_px == const_max_line_px {
 			return it
 		}
 	}
 
 	//build lines
-	max_size_x := 0
-	startLinePx := 0
-	txt := gph.GetText(prop, text)
-
+	txt := gph.GetText(prop, str)
 	var lines []WinGphLine
-	lines = append(lines, WinGphLine{s: 0, e: 0})
-	for p, ch := range text {
-		_, l := utf8.DecodeRuneInString(string(ch))
-
-		//word wrapping
-		word_start := 0
-		var next_ch rune
-		if len(text) > p+l {
-			next_ch = rune(text[p+l])
-		}
-		if OsIsTextWord(ch) || (ch == ' ' && OsIsTextWord(next_ch)) { //word OR <space>+word
-			for _, ch2 := range text[p+l:] {
-				if !OsIsTextWord(ch2) {
-					if word_start > 0 && (ch2 == ' ' || ch2 == '\t') {
-						word_start++ //add space at the end of line
-					}
-					break
-				}
-				word_start++
-			}
-		}
-
-		px := txt.letters[p+word_start] - startLinePx
-
-		if ch == '\n' || (const_max_line_px > 0 && px > const_max_line_px) { //>=
-			s := OsTrn(ch == '\n' || ch == ' ' || ch == '\t', p+1, p) //+1 = skip '/n' or ' '
-			lines = append(lines, WinGphLine{s: s, e: s})
-
-			startLinePx = txt.letters[p]
+	start_p := 0
+	for p, ch := range str {
+		if ch == '\n' {
+			lines = append(lines, WinGphLine{s: start_p, e: p})
+			start_p = p + 1
 		} else {
-			lines[len(lines)-1].e = p + l //shift last
-			max_size_x = OsMax(max_size_x, px)
+			px := txt.GetRangePx(start_p, p+1)
+
+			if const_max_line_px > 0 && px >= const_max_line_px {
+				s, _ := _UiText_CursorWordRange(str, p-1)
+				for s > 0 && txt.skips[s-1] {
+					s--
+				}
+				if start_p < s {
+					lines = append(lines, WinGphLine{s: start_p, e: s})
+					start_p = s
+				}
+			}
 		}
 	}
 
-	it := &WinGphItemTextMax{text: text, const_max_line_px: const_max_line_px, prop: prop, lines: lines, max_size_x: max_size_x}
+	if len(lines) == 0 || start_p < len(str) {
+		lines = append(lines, WinGphLine{s: start_p, e: len(str)})
+	}
+
+	//compute max width
+	max_size_x := 0
+	for _, ln := range lines {
+		max_size_x = OsMax(max_size_x, txt.GetRangePx(ln.s, ln.e))
+	}
+
+	if const_max_line_px > 0 && max_size_x < const_max_line_px {
+		max_size_x++ //extra pixel
+	}
+
+	it := &WinGphItemTextMax{text: str, const_max_line_px: const_max_line_px, prop: prop, lines: lines, max_size_x: max_size_x}
 	gph.textMaxs = append(gph.textMaxs, it)
 
 	return it
@@ -730,6 +738,7 @@ func (gph *WinGph) drawString(prop WinFontProps, str string) *WinGphItemText {
 	a := image.NewAlpha(image.Rect(0, 0, w, h)) //[alpha]
 
 	var letters []int
+	var skips []bool
 	d := &font.Drawer{
 		Dst: a,                                                 //[alpha]
 		Src: image.NewUniform(color.NRGBA{255, 255, 255, 255}), //[alpha]
@@ -741,6 +750,7 @@ func (gph *WinGph) drawString(prop WinFontProps, str string) *WinGphItemText {
 	var cd color.RGBA
 	var cds []WinGphItemTextCd
 
+	word_count := 1
 	skip := 0
 	act_prop := prop
 	i := 0
@@ -748,7 +758,12 @@ func (gph *WinGph) drawString(prop WinFontProps, str string) *WinGphItemText {
 		if prop.formating && !prop.processLetter(str[p:], &act_prop, &cd, &skip) {
 			i++
 			letters = append(letters, int(d.Dot.X>>6)) //same
+			skips = append(skips, true)
 			continue
+		}
+
+		if !OsIsTextWord(ch) && ch != ' ' && ch != '\t' {
+			word_count++
 		}
 
 		if len(cds) == 0 || cds[len(cds)-1].cd != cd {
@@ -764,13 +779,6 @@ func (gph *WinGph) drawString(prop WinFontProps, str string) *WinGphItemText {
 
 		if prevCh >= 0 {
 			d.Dot.X += d.Face.Kern(prevCh, ch)
-			letters = append(letters, int(d.Dot.X>>6))
-
-			//other bytes
-			_, n := utf8.DecodeRuneInString(string(prevCh))
-			for ii := 1; ii < n; ii++ {
-				letters = append(letters, int(d.Dot.X>>6)) //same
-			}
 		}
 		dr, mask, maskp, advance, _ := d.Face.Glyph(d.Dot, ch)
 		if !dr.Empty() {
@@ -781,18 +789,21 @@ func (gph *WinGph) drawString(prop WinFontProps, str string) *WinGphItemText {
 		}
 
 		d.Dot.X += advance
+
+		//add letter and skip
+		{
+			letters = append(letters, int(d.Dot.X>>6))
+			skips = append(skips, false)
+			//other bytes
+			_, n := utf8.DecodeRuneInString(string(ch))
+			for ii := 1; ii < n; ii++ {
+				letters = append(letters, int(d.Dot.X>>6)) //same
+				skips = append(skips, false)
+			}
+		}
+
 		prevCh = ch
 	}
 
-	if prevCh >= 0 {
-		letters = append(letters, int(d.Dot.X>>6))
-
-		//other bytes
-		_, n := utf8.DecodeRuneInString(string(prevCh))
-		for ii := 1; ii < n; ii++ {
-			letters = append(letters, int(d.Dot.X>>6)) //same
-		}
-	}
-
-	return &WinGphItemText{item: NewWinGphItemAlpha(a, size), size: size, prop: prop, text: str, letters: letters, cds: cds} //[alpha]
+	return &WinGphItemText{item: NewWinGphItemAlpha(a, size), size: size, prop: prop, text: str, letters: letters, skips: skips, cds: cds} //[alpha]
 }
