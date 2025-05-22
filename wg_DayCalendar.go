@@ -138,7 +138,7 @@ func _DayCalendar_showDaysView_DayEvent(Events []CalendarEvent, dayStart int64, 
 
 		//find column
 		fcol := 0
-		for c := 0; c < len(cols); c++ {
+		for c := range cols {
 			found := false
 			for _, it := range cols[c] {
 				if _DayCalendar_showDaysView_HasCover(Events, it, item) {

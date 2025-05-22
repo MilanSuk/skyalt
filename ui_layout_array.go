@@ -103,7 +103,7 @@ func (arr *UiLayoutArray) Convert(cell int, start int, end int) OsV2 {
 
 	var ret OsV2
 
-	for i := 0; i < end; i++ {
+	for i := range end {
 		ok := (i < len(arr.outputs))
 
 		if i < start {
@@ -157,7 +157,7 @@ func (arr *UiLayoutArray) GetCellPos(rel_px_pos int, cell int) int {
 	}
 	allPixels := 0
 	allPixelsLast := 0
-	for i := 0; i < len(arr.outputs); i++ {
+	for i := range arr.outputs {
 		allPixels += int(arr.outputs[i])
 
 		if rel_px_pos >= allPixelsLast && rel_px_pos < allPixels {
@@ -176,7 +176,7 @@ func (arr *UiLayoutArray) GetCloseCellPos(rel_px_pos int) int {
 	}
 	allPixels := 0
 	allPixelsLast := 0
-	for i := 0; i < len(arr.outputs); i++ {
+	for i := range arr.outputs {
 		allPixels += int(arr.outputs[i])
 
 		if rel_px_pos >= allPixelsLast && rel_px_pos < allPixels {
@@ -218,7 +218,7 @@ func (arr *UiLayoutArray) IsResizerTouch(touchPos int, cell int) int {
 
 func (arr *UiLayoutArray) OutputAll() int {
 	sum := 0
-	for i := 0; i < len(arr.outputs); i++ {
+	for i := range arr.outputs {
 		sum += int(arr.outputs[i])
 	}
 	return sum
@@ -289,7 +289,7 @@ func (arr *UiLayoutArray) Update(cell int, window int) {
 
 	//sum
 	allPixels := 0
-	for i := 0; i < len(arr.outputs); i++ {
+	for i := range arr.outputs {
 		arr.outputs[i] = int(arr.inputs[i].min * float64(cell))
 		allPixels += int(arr.outputs[i])
 	}

@@ -734,8 +734,7 @@ func (layout *Layout) rebuildList() {
 	//set cols/rows
 	layout.UserCols = nil
 	layout.UserRows = nil
-	for x := 0; x < nx; x++ {
-
+	for x := range nx {
 		if space_between_x > 0 {
 			layout.UserCols = append(layout.UserCols, LayoutCR{Pos: x*2 + 0, Min: 0, Max: space_between_x}) //space
 
