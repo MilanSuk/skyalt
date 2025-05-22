@@ -559,22 +559,17 @@ func (win *Win) UpdateIO() (bool, bool, error) {
 
 	if win.needRedraw(redraw) {
 		win.SetRedraw()
-		redraw = true
 	}
 
 	//one more time
 	if win.redraw {
 		redraw = true
+		win.redraw = false //reset
 	}
 
 	if win.redraw_new_image.Load() != 0 {
 		win.redraw_new_image.Store(0)
 		redraw = true
-	}
-
-	//draw one more time after click start/end
-	if !win.io.Touch.Start && !win.io.Touch.End && !win.io.Touch.Rm {
-		win.redraw = true
 	}
 
 	// update Win
@@ -588,8 +583,6 @@ func (win *Win) UpdateIO() (bool, bool, error) {
 		io.Ini.WinW = size.X
 		io.Ini.WinH = size.Y
 	}
-
-	//io.SetDeviceDPI()
 
 	if !io.Touch.Start && !io.Touch.End && !io.Touch.Rm {
 		var inside bool
@@ -625,7 +618,6 @@ func (win *Win) UpdateIO() (bool, bool, error) {
 }
 
 func (win *Win) RenderProgress(desc string, cd color.RGBA, depth int, cell int) {
-
 	ANIM_TIME := 7.0
 	done := 0.0
 	if win.particles != nil {
