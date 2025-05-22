@@ -122,13 +122,19 @@ func (st *OsmMap) Build(layout *Layout) {
 		btS.Background = 0.5
 		btT.Background = 0.5
 		btA.clicked = func() {
-			st.Cam.Zoom = _CompOsmMap_zoomClamp(st.Cam.Zoom + 1)
+			newZoom := _CompOsmMap_zoomClamp(st.Cam.Zoom + 1)
+
+			st.activateCam(st.Cam.Lon, st.Cam.Lat, newZoom, layout)
+
 			if st.changed != nil {
 				st.changed()
 			}
 		}
 		btS.clicked = func() {
-			st.Cam.Zoom = _CompOsmMap_zoomClamp(st.Cam.Zoom - 1)
+			newZoom := _CompOsmMap_zoomClamp(st.Cam.Zoom - 1)
+
+			st.activateCam(st.Cam.Lon, st.Cam.Lat, newZoom, layout)
+
 			if st.changed != nil {
 				st.changed()
 			}
@@ -136,7 +142,10 @@ func (st *OsmMap) Build(layout *Layout) {
 		btT.clicked = func() {
 			canvas_size := OsV2f{float32(st.rect.W), float32(st.rect.H)}
 			tile := 256 / float64(layout.Cell()) * 1
-			*st.Cam = st.GetDefaultCam(canvas_size, tile)
+			newCam := st.GetDefaultCam(canvas_size, tile)
+
+			st.activateCam(newCam.Lon, newCam.Lat, newCam.Zoom, layout)
+
 			if st.changed != nil {
 				st.changed()
 			}
@@ -278,15 +287,29 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	return
 }
 
-func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
-	redrawNow := false
+func (st *OsmMap) activateCam(lonNew, latNew, zoomNew float64, layout *Layout) {
+	g_map.dom_uid = layout.UID
 
+	g_map.lonOld = st.Cam.Lon
+	g_map.latOld = st.Cam.Lat
+	g_map.zoomOld = st.Cam.Zoom
+
+	st.Cam.Lon = lonNew
+	st.Cam.Lat = latNew
+	st.Cam.Zoom = zoomNew
+
+	g_map.zoom_start_time = _CompOsmMap_getTime()
+	g_map.zoom_active = true
+	layout.RedrawThis()
+}
+
+func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 	st.Cam.Zoom = _CompOsmMap_zoomClamp(st.Cam.Zoom) //check
 
 	canvas_size := OsV2f{float32(in.Rect.W), float32(in.Rect.H)}
 	lon, lat, zoom, scale, isZooming := g_map.GetAnim(layout, st.Cam.Lon, st.Cam.Lat, st.Cam.Zoom)
 	if isZooming {
-		redrawNow = true
+		layout.RedrawThis()
 	}
 	tile := 256 / float64(layout.Cell()) * scale
 
@@ -310,15 +333,9 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 	}
 
 	if wheel != 0 && inside && !isZooming {
-
 		g_map.zoomOld = st.Cam.Zoom
 		zoomNew := _CompOsmMap_zoomClamp(g_map.zoomOld - float64(wheel))
 		if g_map.zoomOld != zoomNew {
-			g_map.dom_uid = layout.UID
-
-			g_map.lonOld = st.Cam.Lon
-			g_map.latOld = st.Cam.Lat
-
 			//get touch lon and lat
 			touch_lon, touch_lat := _CompOsmMap_posToLonLat(OsV2f{bbStart.X + bbSize.X*touch_x, bbStart.Y + bbSize.Y*touch_y}, g_map.zoomOld)
 			//get new zoom touch pos
@@ -328,13 +345,8 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 			pos.Y -= bbSize.Y * (touch_y - 0.5)
 			//get new zoom lon and lat
 			lonNew, latNew := _CompOsmMap_posToLonLat(pos, zoomNew)
-			st.Cam.Lon = lonNew
-			st.Cam.Lat = latNew
-			st.Cam.Zoom = zoomNew
 
-			g_map.zoom_start_time = _CompOsmMap_getTime()
-			g_map.zoom_active = true
-			redrawNow = true
+			st.activateCam(lonNew, latNew, zoomNew, layout)
 		}
 	}
 
@@ -355,7 +367,8 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 		lonNew, latNew := _CompOsmMap_posToLonLat(OsV2f{tileX, tileY}, st.Cam.Zoom)
 
 		if st.Cam.Lon != lonNew || st.Cam.Lat != latNew {
-			redrawNow = true
+			layout.RedrawThis()
+			//redrawNow = true
 		}
 
 		st.Cam.Lon = lonNew
@@ -373,10 +386,6 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 		zoomNew := _CompOsmMap_zoomClamp(g_map.zoomOld + z)
 
 		if g_map.zoomOld != zoomNew {
-			g_map.dom_uid = layout.UID
-			g_map.lonOld = st.Cam.Lon
-			g_map.latOld = st.Cam.Lat
-
 			//get touch lon and lat
 			touch_lon, touch_lat := _CompOsmMap_posToLonLat(OsV2f{bbStart.X + bbSize.X*touch_x, bbStart.Y + bbSize.Y*touch_y}, g_map.zoomOld)
 			//get new zoom touch pos
@@ -386,19 +395,9 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 			pos.Y -= bbSize.Y * (touch_y - 0.5)
 			//get new zoom lon and lat
 			lonNew, latNew := _CompOsmMap_posToLonLat(pos, zoomNew)
-			st.Cam.Lon = lonNew
-			st.Cam.Lat = latNew
-			st.Cam.Zoom = zoomNew
 
-			g_map.zoom_start_time = _CompOsmMap_getTime()
-			g_map.zoom_active = true
-
-			redrawNow = true
+			st.activateCam(lonNew, latNew, zoomNew, layout)
 		}
-	}
-
-	if redrawNow {
-		layout.RedrawThis()
 	}
 
 	//locators
@@ -702,8 +701,10 @@ func (mp *OsmMapActive) GetAnim(layout *Layout, lon float64, lat float64, zoom f
 		t := dt / ANIM_TIME
 		if zoom > mp.zoomOld {
 			scale = 1 + t
-		} else {
+		} else if zoom < mp.zoomOld {
 			scale = 1 - t/2
+		} else {
+			scale = 1
 		}
 		zoom = mp.zoomOld
 		lon = mp.lonOld + (lon-mp.lonOld)*t
