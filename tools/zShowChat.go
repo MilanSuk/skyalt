@@ -750,7 +750,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 	layout.SetColumn(2, 1, 100)
 
 	if msg.Provider != "" {
-		layout.Border_cd = caller.GetPalette().GetGrey(0.2)
+		layout.Back_cd = caller.GetPalette().GetGrey(0.09)
 		layout.Back_rounding = true
 	}
 
@@ -1050,7 +1050,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 	if msg.ShowParameters {
 		layout.SetRowFromSub(y, 1, 100)
 		CallDiv := layout.AddLayout(0, y, 3, 1)
-		CallDiv.SetColumnFromSub(1, 1, 10)
+		CallDiv.SetColumnFromSub(1, 0, 100)
 		CallDiv.SetColumn(2, 1, 100)
 		CallDiv.Back_cd = Color_Aprox(caller.GetPalette().P, caller.GetPalette().B, 0.8)
 		y++
