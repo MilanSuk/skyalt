@@ -116,7 +116,7 @@ func (p *UiTooltip) touch(ui *Ui) bool {
 			if !strings.HasPrefix(p.contentShow.text, "http") {
 				max_width_cells = OsMin(max_width_cells, 10)
 			}
-			mx, my := ui.GetTextSizeMax(p.contentShow.text, ui.Cell()*max_width_cells, prop)
+			mx, my := ui.win.GetTextSizeMax(p.contentShow.text, ui.Cell()*max_width_cells, prop)
 
 			var final OsV4
 			final.Start = ui.GetWin().io.Touch.Pos

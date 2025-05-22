@@ -1089,9 +1089,9 @@ func (layout *Layout) resizeFromPaintText() (changed bool) {
 		if tx.Multiline {
 			max_line_px := layout.ui._UiText_getMaxLinePx(tx.coordText.Size.X, tx.Multiline, tx.Linewrapping)
 
-			mx, my = layout.ui.GetTextSizeMax(value, max_line_px, prop)
+			mx, my = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
 		} else {
-			mx = layout.ui.GetTextSize(-1, value, prop).X
+			mx = layout.ui.win.GetTextSize(-1, value, prop).X
 			my = 1
 		}
 		sizePx := OsV2{mx, my * prop.lineH}

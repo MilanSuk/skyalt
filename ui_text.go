@@ -47,8 +47,8 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 	}
 
 	max_line_px := ui._UiText_getMaxLinePx(coord.Size.X, multi_line, line_wrapping)
-	lines := ui.GetTextLines(value, max_line_px, prop)
-	startY := ui.GetTextStart(value, prop, coord, align.X, align.Y, len(lines)).Y
+	lines := ui.win.GetTextLines(value, max_line_px, prop)
+	startY := ui.win.GetTextStart(value, prop, coord, align.X, align.Y, len(lines)).Y
 
 	oldCursor := edit.end
 	cursorPos := -1
@@ -167,8 +167,8 @@ func (ui *Ui) _Text_update(layout *Layout,
 	//wasActive := active
 
 	max_line_px := ui._UiText_getMaxLinePx(coord.Size.X, multi_line, line_wrapping)
-	lines := ui.GetTextLines(value, max_line_px, prop)
-	startY := ui.GetTextStart(value, prop, coord, align.X, align.Y, len(lines)).Y
+	lines := ui.win.GetTextLines(value, max_line_px, prop)
+	startY := ui.win.GetTextStart(value, prop, coord, align.X, align.Y, len(lines)).Y
 
 	if selection || editable {
 		if edit.Is(layout) && prop.switch_formating_when_edit {
@@ -184,12 +184,12 @@ func (ui *Ui) _Text_update(layout *Layout,
 				y = OsClamp(y, 0, len(lines)-1)
 
 				st, en := WinGph_PosLineRange(lines, y)
-				touchCursor = st + ui.GetTextPos(ui.GetWin().io.Touch.Pos.X, value[st:en], prop, coord, align)
+				touchCursor = st + ui.win.GetTextPos(ui.GetWin().io.Touch.Pos.X, value[st:en], prop, coord, align)
 			} else {
-				touchCursor = ui.GetTextPos(ui.GetWin().io.Touch.Pos.X, value, prop, coord, align)
+				touchCursor = ui.win.GetTextPos(ui.GetWin().io.Touch.Pos.X, value, prop, coord, align)
 			}
 
-			ui._UiText_TextSelectTouch(layout, editable, orig_value, value, margin, lines, touchCursor, prop)
+			ui._UiText_Touch(layout, editable, orig_value, value, margin, lines, touchCursor, prop)
 		}
 
 		if edit.Is(layout) {
@@ -222,10 +222,10 @@ func (ui *Ui) _Text_update(layout *Layout,
 
 				//old_value := value
 				var tryMoveScroll bool
-				value, tryMoveScroll = ui._UiText_TextEditKeys(layout, edit.temp, lines, tabIsChar, prop, multi_line) //rewrite 'str' with temp value
+				value, tryMoveScroll = ui._UiText_Keys(layout, edit.temp, lines, tabIsChar, prop, multi_line) //rewrite 'str' with temp value
 
 				num_old_lines := len(lines)
-				lines = ui.GetTextLines(value, max_line_px, prop) //refresh
+				lines = ui.win.GetTextLines(value, max_line_px, prop) //refresh
 
 				if num_old_lines != len(lines) {
 					layout.ui.SetRelayout()
@@ -271,7 +271,7 @@ func (ui *Ui) _Text_update(layout *Layout,
 	}
 }
 
-func (ui *Ui) _UiText_TextSelectTouch(layout *Layout, editable bool, orig_text string, text string, tx_margin float64, lines []WinGphLine, cursor int, prop WinFontProps) {
+func (ui *Ui) _UiText_Touch(layout *Layout, editable bool, orig_text string, text string, tx_margin float64, lines []WinGphLine, cursor int, prop WinFontProps) {
 	if !layout.CanTouch() {
 		return
 	}
@@ -285,7 +285,6 @@ func (ui *Ui) _UiText_TextSelectTouch(layout *Layout, editable bool, orig_text s
 	}
 
 	if !ui.touch.IsScrollOrResizeActive() && (!edit.Is(layout) && editable && edit.IsActivateNext()) {
-
 		if edit.activate_next_uid != 0 {
 			if edit.activate_next_uid == layout.UID {
 				edit.Set(layout.UID, editable, orig_text, text, false, false, true, false, ui)
@@ -338,7 +337,7 @@ func (ui *Ui) _UiText_TextSelectTouch(layout *Layout, editable bool, orig_text s
 	}
 }
 
-func (ui *Ui) _UiText_TextEditKeys(layout *Layout, text string, lines []WinGphLine, tabIsChar bool, prop WinFontProps, multi_line bool) (string, bool) {
+func (ui *Ui) _UiText_Keys(layout *Layout, text string, lines []WinGphLine, tabIsChar bool, prop WinFontProps, multi_line bool) (string, bool) {
 	edit := layout.ui.edit
 	keys := &ui.GetWin().io.Keys
 
@@ -716,7 +715,7 @@ func (ui *Ui) _UiText_Text_VScrollInto(layout *Layout, lines []WinGphLine, tx_ma
 func (ui *Ui) _UiText_Text_HScrollInto(layout *Layout, text string, tx_margin float64, lines []WinGphLine, cursor int, prop WinFontProps) {
 	margin := layout.ui.CellWidth(tx_margin)
 	ln, curr := WinGph_CursorLine(text, lines, cursor)
-	h_pos := ui.GetTextSize(curr, ln, prop).X + margin
+	h_pos := ui.win.GetTextSize(curr, ln, prop).X + margin
 
 	cursor_space := WinPaintBuff_GetCursorWidth(layout.ui.Cell())
 	extra_space := margin //set 0 for cursor being exactly at the border(side)
@@ -909,59 +908,4 @@ func _UiText_CursorMoveD(text string, lines []WinGphLine, cursor int) int {
 		cursor = st + OsMin(pos, en-st)
 	}
 	return cursor
-}
-
-func (ui *Ui) GetTextSize(cur int, ln string, prop WinFontProps) OsV2 {
-	return ui.GetWin().gph.GetTextSize(prop, cur, ln)
-}
-func (ui *Ui) GetTextSizeMax(text string, max_line_px int, prop WinFontProps) (int, int) {
-	tx := ui.GetWin().gph.GetTextMax(text, max_line_px, prop)
-	if tx == nil {
-		return 0, 1
-	}
-
-	return tx.max_size_x, len(tx.lines)
-}
-func (ui *Ui) GetTextLines(text string, max_line_px int, prop WinFontProps) []WinGphLine {
-	tx := ui.GetWin().gph.GetTextMax(text, max_line_px, prop)
-	if tx == nil {
-		return []WinGphLine{{s: 0, e: len(text)}}
-	}
-
-	return tx.lines
-}
-func (ui *Ui) GetTextNumLines(text string, max_line_px int, prop WinFontProps) int {
-	tx := ui.GetWin().gph.GetTextMax(text, max_line_px, prop)
-	if tx == nil {
-		return 1
-	}
-
-	return len(tx.lines)
-}
-
-func (ui *Ui) GetTextPos(touchPx int, ln string, prop WinFontProps, coord OsV4, align OsV2) int {
-	start := ui.GetTextStart(ln, prop, coord, align.X, align.Y, 1)
-
-	return ui.GetWin().gph.GetTextPos(prop, (touchPx - start.X), ln)
-}
-
-func (ui *Ui) GetTextStartLine(ln string, prop WinFontProps, coord OsV4, align OsV2, numLines int) OsV2 {
-	lnSize := ui.GetTextSize(-1, ln, prop)
-	size := OsV2{lnSize.X, numLines * prop.lineH}
-	return coord.Align(size, align)
-}
-
-func (ui *Ui) GetTextStart(ln string, prop WinFontProps, coord OsV4, align_h, align_v int, numLines int) OsV2 {
-	//lineH
-	lnSize := ui.GetTextSize(-1, ln, prop)
-	size := OsV2{lnSize.X, numLines * prop.lineH}
-	start := coord.Align(size, OsV2{align_h, align_v})
-
-	//letters
-	coord.Start = start
-	coord.Size.X = size.X
-	coord.Size.Y = prop.lineH
-	start = coord.Align(lnSize, OsV2{align_h, 1}) //letters must be always in the middle of line
-
-	return start
 }
