@@ -828,12 +828,12 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 		}
 	}
 
+	txt := ""
+	rsp_txt := ""
 	if msg.Content.Calls != nil {
-
-		txt := msg.Content.Calls.Content
+		txt = msg.Content.Calls.Content
 		{
-			rsp_txt := ""
-			rsp_intro := ChatMsg_GetReasoningTextIntro()
+			rsp_intro := "" //ChatMsg_GetReasoningTextIntro()
 			if msg.FinalTextSize >= 0 && len(txt) >= (msg.FinalTextSize+len(rsp_intro)) {
 				rsp_txt = txt[msg.FinalTextSize+len(rsp_intro):]
 				txt = txt[:msg.FinalTextSize]
@@ -848,44 +848,58 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				y++
 			}
 
-			if rsp_txt != "" {
-				// show/hide reasoning
-				ShowRspBt := layout.AddButton(0, y, 1, 1, "Reasoning")
-				ShowRspBt.Background = 0.5
-				ShowRspBt.Align = 0
-				ShowRspBt.Icon_align = 0
-				ShowRspBt.Icon_margin = 0.1
-				if msg.ShowReasoning {
-					ShowRspBt.IconPath = "resources/arrow_down.png"
-				} else {
-					ShowRspBt.IconPath = "resources/arrow_right.png"
-				}
-				ShowRspBt.clicked = func() error {
-					msg.ShowReasoning = !msg.ShowReasoning
-					return nil
-				}
-				y++
-			}
 			if rsp_txt != "" && msg.ShowReasoning {
+				//divider
+				if txt != "" {
+					layout.SetRow(y, 0.2, 0.2)
+					layout.AddDivider(0, y, 3, 1, true)
+					y++
+				}
+
+				//text
 				layout.SetRowFromSub(y, 1, 100)
 				tx := layout.AddText(0, y, 3, 1, rsp_txt)
 				tx.Multiline = true
 				y++
 			}
+		}
 
-		}
-		for _, call := range msg.Content.Calls.Tool_calls {
-			y = st.toolUse(call, layout, y, msg, chat, caller)
-			//y++
-		}
 	}
 
 	{
 		DivIcons := layout.AddLayout(0, y, 3, 1)
-		DivIcons.SetColumn(0, 0, 100)
+
 		iconsCd := caller.GetPalette().GetGrey(0.5)
 
-		x := 1
+		x := 0
+
+		if msg.Provider != "" {
+			// show/hide reasoning
+			if rsp_txt != "" {
+				ShowRspBt := DivIcons.AddButton(x, 0, 1, 1, "")
+				ShowRspBt.Background = 0.2
+				if msg.ShowReasoning {
+					ShowRspBt.Background = 1
+				}
+				ShowRspBt.Tooltip = "Show reasoning"
+				if msg.ShowReasoning {
+					ShowRspBt.Tooltip = "Hide reasoning"
+				}
+				ShowRspBt.Align = 0
+				ShowRspBt.Icon_align = 0
+				ShowRspBt.Icon_margin = 0.25
+				ShowRspBt.IconPath = "resources/think.png"
+				ShowRspBt.clicked = func() error {
+					msg.ShowReasoning = !msg.ShowReasoning
+					return nil
+				}
+				x++
+			}
+		}
+
+		//long space
+		DivIcons.SetColumn(x, 0, 100)
+		x++
 
 		if msg.Provider == "" {
 			{
@@ -979,18 +993,29 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 			CopyBt.Icon_margin = 0.3
 			CopyBt.IconPath = "resources/copy.png"
 			CopyBt.Background = 0.2
-			CopyBt.Tooltip = "Copy into clipboard"
+			CopyBt.Tooltip = "Copy into clipboard" + fmt.Sprintf("%.20s", txt)
 			CopyBt.clicked = func() error {
 				if msg.Content.Msg != nil && len(msg.Content.Msg.Content) > 0 {
 					caller.SetClipboardText(msg.Content.Msg.Content[0].Text)
+				} else if msg.Content.Calls != nil {
+					if msg.ShowReasoning {
+						caller.SetClipboardText(msg.Content.Calls.Content)
+					} else {
+						caller.SetClipboardText(txt)
+					}
 				}
 
-				if msg.Content.Calls != nil {
-					caller.SetClipboardText(msg.Content.Calls.Content)
-				}
 				return nil
 			}
 			x++
+		}
+		y++
+	}
+
+	//list of tool calls
+	if msg.Content.Calls != nil {
+		for _, call := range msg.Content.Calls.Tool_calls {
+			y = st.toolUse(call, layout, y, msg, chat, caller)
 		}
 	}
 
