@@ -634,6 +634,51 @@ func callFuncGetToolsShemas() []byte {
 	return nil
 }
 
+func callFuncGetToolsShemasBySource(source string) []byte {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("get_tools_shemas_by_source"))
+		if Tool_Error(err) == nil {
+			err = cl.WriteArray([]byte(source))
+			if Tool_Error(err) == nil {
+				js, err := cl.ReadArray()
+				if Tool_Error(err) == nil {
+					return js
+				}
+			}
+		}
+	}
+	return nil
+}
+
+type _ToolSource struct {
+	FileTime    int64
+	Description string
+	Tools       []string
+}
+
+func callFuncGetSources(source string) map[string]*_ToolSource {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("get_sources"))
+		if Tool_Error(err) == nil {
+			js, err := cl.ReadArray()
+			if Tool_Error(err) == nil {
+				var sources map[string]*_ToolSource
+				err = json.Unmarshal(js, &sources)
+				if Tool_Error(err) == nil {
+					return sources
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func callFuncPrint(str string) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {

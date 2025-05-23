@@ -263,12 +263,29 @@ func NewToolsRouter(FolderTools string, FolderFiles string, start_port int) *Too
 						}
 
 					case "get_tools_shemas":
-						oai_list := router.tools.GetAllSchemas()
-
-						oaiJs, err := json.Marshal(oai_list)
+						schemas := router.tools.GetAllSchemas()
+						oaiJs, err := json.Marshal(schemas)
 						router.log.Error(err)
 
 						err = cl.WriteArray(oaiJs)
+						router.log.Error(err)
+
+					case "get_tools_shemas_by_source":
+						sourceName, err := cl.ReadArray()
+						if router.log.Error(err) == nil {
+							schemas := router.tools.GetSchemasForSource(string(sourceName))
+							js, err := json.Marshal(schemas)
+							router.log.Error(err)
+
+							err = cl.WriteArray(js)
+							router.log.Error(err)
+						}
+
+					case "get_sources":
+						js, err := json.Marshal(router.tools.Sources)
+						router.log.Error(err)
+
+						err = cl.WriteArray(js)
 						router.log.Error(err)
 					}
 				}
