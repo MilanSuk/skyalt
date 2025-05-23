@@ -354,9 +354,10 @@ func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, funcName string, chang
 
 	//call tool change()
 	go func() {
+		defer msg.Done()
+
 		msg.out_cmds, msg.out_error = _ToolsCaller_CallChange(router.tools.port, msg_id, ui_uid, change, router.log.Error)
 		router.log.Error(msg.out_error)
-		msg.Done()
 	}()
 }
 
@@ -375,6 +376,8 @@ func (router *ToolsRouter) CallAsync(ui_uid uint64, funcName string, params inte
 
 	//call tool
 	go func() {
+		defer msg.Done()
+
 		//start it
 		err = router.tools.CheckRun()
 		if router.log.Error(err) != nil {
@@ -385,7 +388,6 @@ func (router *ToolsRouter) CallAsync(ui_uid uint64, funcName string, params inte
 		//call it
 		msg.out_bytes, msg.out_ui, msg.out_cmds, msg.out_error = _ToolsCaller_CallTool(router.tools.port, msg_id, ui_uid, funcName, jsParams, router.log.Error)
 		router.log.Error(msg.out_error)
-		msg.Done()
 	}()
 
 	return msg, nil
