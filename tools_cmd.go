@@ -63,6 +63,7 @@ func NewToolsCmd(folderCode string, router *ToolsRouter) *ToolsCmd {
 	tools := &ToolsCmd{folderCode: folderCode, router: router}
 	tools.Tools = make(map[string]*ToolsCmdItem)
 	tools.Sources = make(map[string]*ToolsCmdSource)
+	tools.Sources["_default_"] = &ToolsCmdSource{}
 
 	fl, err := os.ReadFile(tools.GetToolsJsonPath())
 	if err == nil {
@@ -145,15 +146,19 @@ func (tools *ToolsCmd) IsRunning() bool {
 	return tools.cmd != nil && !tools.cmd_exited
 }
 
-func (tools *ToolsCmd) GetAllSchemas() []*ToolsOpenAI_completion_tool {
+func (tools *ToolsCmd) GetSchemas(toolNames []string) []*ToolsOpenAI_completion_tool {
 	tools.lock.Lock()
 	defer tools.lock.Unlock()
 
 	var schemas []*ToolsOpenAI_completion_tool
 
-	for _, tool := range tools.Tools {
-		schemas = append(schemas, tool.Schema)
+	for _, toolName := range toolNames {
+		tool, found := tools.Tools[toolName]
+		if found {
+			schemas = append(schemas, tool.Schema)
+		}
 	}
+
 	return schemas
 }
 func (tools *ToolsCmd) GetSchemasForSource(sourceName string) []*ToolsOpenAI_completion_tool {
@@ -205,7 +210,6 @@ func (tools *ToolsCmd) _hotReload() error {
 
 			item, found := tools.Sources[sourceName]
 			if !found {
-
 				description, err := tools.GetSourceDescription(sourceName)
 				if err != nil {
 					return err
@@ -231,12 +235,15 @@ func (tools *ToolsCmd) _hotReload() error {
 
 					saveIt = true
 				}
-
 			}
 		}
 
 		//remove deleted sources
 		for sourceName := range tools.Sources {
+			if sourceName == "_default_" {
+				continue //skip
+			}
+
 			found := false
 			for _, file := range files {
 				if !file.IsDir() && file.Name() == tools.getSourceFileName(sourceName) {

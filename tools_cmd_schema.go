@@ -294,12 +294,16 @@ func (tools *ToolsCmd) UpdateSources(toolName string) error {
 
 	//remove
 	for sourceName, source := range tools.Sources {
-		if slices.Index(sourcesNames, sourceName) < 0 {
+		if slices.Index(sourcesNames, sourceName) < 0 { //not found
 			ind := slices.Index(source.Tools, toolName)
-			if ind >= 0 {
+			if ind >= 0 { //found
 				source.Tools = slices.Delete(source.Tools, ind, ind+1)
 			}
 		}
+	}
+
+	if len(sourcesNames) == 0 {
+		tools.Sources["_default_"].Tools = append(tools.Sources["_default_"].Tools, toolName)
 	}
 
 	return nil

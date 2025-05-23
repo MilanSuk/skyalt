@@ -148,6 +148,8 @@ type Chat struct {
 	Error string
 
 	TempMessages ChatMsgs
+
+	Sources []string
 }
 
 func NewChat(file string, caller *ToolCaller) (*Chat, error) {

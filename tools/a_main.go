@@ -618,23 +618,31 @@ func (caller *ToolCaller) SetMsgName(name string) {
 	}
 }
 
-func callFuncGetToolsShemas() []byte {
+func callFuncGetToolsShemas(tools []string) []byte {
+	jsTools, err := json.Marshal(tools)
+	if err != nil {
+		return nil
+	}
+
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
 		err = cl.WriteArray([]byte("get_tools_shemas"))
 		if Tool_Error(err) == nil {
-			oaiJs, err := cl.ReadArray()
+			err = cl.WriteArray(jsTools)
 			if Tool_Error(err) == nil {
-				return oaiJs
+				oaiJs, err := cl.ReadArray()
+				if Tool_Error(err) == nil {
+					return oaiJs
+				}
 			}
 		}
 	}
 	return nil
 }
 
-func callFuncGetToolsShemasBySource(source string) []byte {
+/*func callFuncGetToolsShemasBySource(source string) []byte {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
@@ -651,15 +659,14 @@ func callFuncGetToolsShemasBySource(source string) []byte {
 		}
 	}
 	return nil
-}
+}*/
 
 type _ToolSource struct {
-	FileTime    int64
 	Description string
 	Tools       []string
 }
 
-func callFuncGetSources(source string) map[string]*_ToolSource {
+func callFuncGetSources() map[string]*_ToolSource {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()

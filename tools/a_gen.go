@@ -186,6 +186,13 @@ func FindToolRunFunc(funcName string, jsParams []byte) (func(caller *ToolCaller,
 			return nil, nil
 		}
 		return st.run, &st
+	case "InstallDataSource":
+		st := InstallDataSource{}
+		err := json.Unmarshal(jsParams, &st)
+		if err != nil {
+			return nil, nil
+		}
+		return st.run, &st
 	case "LLMxAICompleteChat":
 		st := LLMxAICompleteChat{}
 		err := json.Unmarshal(jsParams, &st)

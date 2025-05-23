@@ -30,6 +30,8 @@ type LLMxAICompleteChat struct {
 	UserMessage      string
 	UserFiles        []string
 
+	Tools []string
+
 	Response_format string
 
 	Max_iteration int
@@ -85,9 +87,12 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 	//Tools
 	var tools []*OpenAI_completion_tool
 	{
-		oaiJs := callFuncGetToolsShemas()
-		if len(oaiJs) > 0 {
-			err := json.Unmarshal(oaiJs, &tools)
+		slices.Sort(st.Tools)
+		st.Tools = slices.Compact(st.Tools) //remove duplicities
+
+		js := callFuncGetToolsShemas(st.Tools)
+		if len(js) > 0 {
+			err := json.Unmarshal(js, &tools)
 			if err != nil {
 				return err
 			}
@@ -175,6 +180,14 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 			st.delta(msg)
 
 			return caller.Progress(0, "completing")
+		}
+
+		//print
+		{
+			js, err := json.MarshalIndent(props, "", "  ")
+			if err == nil {
+				callFuncPrint("---\n" + string(js) + "---\n")
+			}
 		}
 
 		jsProps, err := json.Marshal(props)

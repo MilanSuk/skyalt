@@ -543,6 +543,7 @@ func (st *ShowChat) stop(chat *Chat) {
 }
 
 func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continuee bool) error {
+	sources := callFuncGetSources()
 
 	needSummary := (len(chat.Messages.Messages) == 0 /*|| len(chat.Label) < 8*/)
 
@@ -557,6 +558,23 @@ func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continu
 	comp.Presence_penalty = 0
 	comp.Reasoning_effort = "" //low, high
 
+	//add default(without source) tools
+	{
+		defSource := sources["_default_"]
+		if defSource != nil {
+			comp.Tools = append(comp.Tools, defSource.Tools...)
+		}
+		comp.Tools = append(comp.Tools, "InstallDataSource")
+
+		//add 'installed' tools
+		for _, sourceName := range chat.Sources {
+			source := sources[sourceName]
+			if source != nil {
+				comp.Tools = append(comp.Tools, source.Tools...)
+			}
+		}
+	}
+
 	old_num_msgs := len(chat.Messages.Messages)
 	var err error
 	comp.PreviousMessages, err = json.Marshal(chat.Messages)
@@ -568,12 +586,26 @@ func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continu
 	{
 		system_prompt := `You are an AI assistant, who enjoys precision and carefully follows the user's requirements.
 If you need, you can use tool calling. Tools gives you precision and output data which you wouldn't know otherwise. Don't ask to call a tool, just do it! Call tools sequentially. Avoid tool call as parameter value.`
-		system_prompt += fmt.Sprintf("\nCurrent time is %s\n", time.Now().Format("Mon, 02 Jan 2006 15:04"))
-		//If you can not find the right tool, use the tool 'create_new_tool'. If there is some problem with a tool(for example, a bug), use the tool 'update_tool'.
 
+		//sources
+		system_prompt += "Here is the list of data sources in form of '<name> //<description>':\n"
+		for sourceName, source := range sources {
+			system_prompt += fmt.Sprintf("%s //%s", sourceName, source.Description)
+			if slices.Index(chat.Sources, sourceName) >= 0 {
+				system_prompt += " [installed]"
+			}
+			system_prompt += "\n"
+		}
+		system_prompt += fmt.Sprintf("Based on what you need you can install new tools by calling InstallDataSource with ChatID=%d. This will give you access to new tools.\n", st.ChatID)
+
+		//Date time
+		system_prompt += fmt.Sprintf("\nCurrent time is %s\n", time.Now().Format("Mon, 02 Jan 2006 15:04"))
+
+		//Memory
 		if root.Memory != "" {
 			system_prompt += "\n" + root.Memory
 		}
+
 		comp.SystemMessage = system_prompt
 	}
 
