@@ -25,6 +25,8 @@ type EventsGroup struct {
 	Label string
 	Color color.RGBA
 }
+
+// List of events and groups. Every event has title, description, files, start, duration and GroupID. Every Group has label and color.
 type Events struct {
 	Events map[int64]*EventsItem
 	Groups map[int64]*EventsGroup

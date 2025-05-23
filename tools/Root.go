@@ -7,6 +7,7 @@ type RootTab struct {
 	Use_sources []string
 }
 
+// Root
 type Root struct {
 	Show   string
 	Memory string

@@ -34,6 +34,7 @@ type LLMxAIImageModel struct {
 	Aliases []string
 }
 
+// xAI LLM settings.
 type LLMxAI struct {
 	Provider   string
 	OpenAI_url string

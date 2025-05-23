@@ -17,6 +17,7 @@ type ActivitiesItem struct {
 	Distance float64 //meters
 }
 
+// All users activities. Every activity has type, description, date, duration and distance.
 type Activities struct {
 	Activities map[string]*ActivitiesItem
 }

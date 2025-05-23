@@ -132,6 +132,7 @@ type ChatInput struct {
 	Text_mic string //copy of .Text before mic starts recording
 }
 
+// Chat has label, messages.
 type Chat struct {
 	file string
 

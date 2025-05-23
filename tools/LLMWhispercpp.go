@@ -12,6 +12,8 @@ type LLMWhispercppModel struct {
 	Label string
 	Path  string
 }
+
+// Whisper.cpp settings.
 type LLMWhispercpp struct {
 	lock sync.Mutex
 

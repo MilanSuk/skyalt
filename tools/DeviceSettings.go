@@ -11,6 +11,7 @@ type DeviceSettingsMicrophone struct {
 	Channels    int
 }
 
+// All device settings, this include date format, volume, dpi, fullscreen mode, theme.
 type DeviceSettings struct {
 	DateFormat string
 	Rounding   float64

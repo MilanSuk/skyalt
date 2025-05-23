@@ -20,6 +20,8 @@ type Track struct {
 	Name    string    `xml:"name"`
 	Segment []Segment `xml:"trkseg"`
 }
+
+// GPX with recorded activity.
 type Gpx struct {
 	XMLName xml.Name `xml:"gpx"`
 	Trk     []Track  `xml:"trk"`

@@ -1,5 +1,6 @@
 package main
 
+// Map settings.
 type MapSettings struct {
 	Enable    bool
 	Tiles_url string

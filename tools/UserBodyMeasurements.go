@@ -1,5 +1,6 @@
 package main
 
+// User gender, born year, height, weight
 type UserBodyMeasurements struct {
 	Female   bool
 	BornYear int

@@ -6,6 +6,7 @@ type EmailsLogin struct {
 	Port     int
 }
 
+// List of e-mails login credentials.
 type Emails struct {
 	Logins map[string]*EmailsLogin
 }
