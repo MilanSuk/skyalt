@@ -24,6 +24,84 @@ import (
 	"sync/atomic"
 )
 
+type ToolsClient struct {
+	conn *net.TCPConn
+}
+
+func NewToolsClient(addr string, port int) (*ToolsClient, error) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ToolsClient{conn: conn}, nil
+}
+func (client *ToolsClient) Destroy() {
+	client.conn.Close()
+}
+
+func (client *ToolsClient) ReadInt() (uint64, error) {
+	var sz [8]byte
+	_, err := client.conn.Read(sz[:])
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(sz[:]), nil
+}
+
+func (client *ToolsClient) WriteInt(value uint64) error {
+	var val [8]byte
+	binary.LittleEndian.PutUint64(val[:], value)
+	_, err := client.conn.Write(val[:])
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (client *ToolsClient) ReadArray() ([]byte, error) {
+	//recv size
+	size, err := client.ReadInt()
+	if err != nil {
+		return nil, err
+	}
+
+	//recv data
+	data := make([]byte, size)
+	p := 0
+	for p < int(size) {
+		n, err := client.conn.Read(data[p:])
+		if err != nil {
+			return nil, err
+		}
+		p += n
+	}
+
+	return data, nil
+}
+
+func (client *ToolsClient) WriteArray(data []byte) error {
+	//send size
+	err := client.WriteInt(uint64(len(data)))
+	if err != nil {
+		return err
+	}
+
+	//send data
+	_, err = client.conn.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type ToolsServerInfo struct {
 	bytes_written atomic.Int64
 	bytes_read    atomic.Int64
