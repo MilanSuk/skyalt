@@ -21,6 +21,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
 	"strings"
 	"unicode"
 )
@@ -122,8 +123,7 @@ func ToolsOpenAI_convertTypeToSchemaType(tp string) string {
 }
 
 func (tool *ToolsCmd) GetSchema(toolName string) (*ToolsOpenAI_completion_tool, error) {
-
-	node, err := parser.ParseFile(token.NewFileSet(), tool.getFilePath(toolName), nil, parser.ParseComments)
+	node, err := parser.ParseFile(token.NewFileSet(), tool.getToolFilePath(toolName), nil, parser.ParseComments)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing file: %v", err)
 	}
@@ -225,4 +225,23 @@ func _exprToString(expr ast.Expr) string {
 	default:
 		return fmt.Sprintf("%T", expr)
 	}
+}
+
+func (tool *ToolsCmd) GetSources(toolName string, sources []string) ([]string, error) {
+
+	fl, err := os.ReadFile(tool.getToolFilePath(toolName))
+	if err != nil {
+		return nil, err
+	}
+
+	var found_sources []string
+
+	str := string(fl)
+	for _, source := range sources {
+		if strings.Contains(str, fmt.Sprintf("New%s(", source)) {
+			found_sources = append(found_sources, source)
+		}
+	}
+
+	return found_sources, nil
 }

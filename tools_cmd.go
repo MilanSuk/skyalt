@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,6 +34,7 @@ import (
 type ToolsCmdItem struct {
 	Schema   *ToolsOpenAI_completion_tool
 	FileTime int64
+	Sources  []string
 }
 
 type ToolsCmd struct {
@@ -113,8 +115,11 @@ func (totoolsl *ToolsCmd) GetGenGoFileName() string {
 func (tools *ToolsCmd) getFileName(toolName string) string {
 	return "z" + toolName + ".go"
 }
-func (tools *ToolsCmd) getFilePath(toolName string) string {
+func (tools *ToolsCmd) getToolFilePath(toolName string) string {
 	return filepath.Join(tools.folderCode, tools.getFileName(toolName))
+}
+func (tools *ToolsCmd) getSourceFilePath(structName string) string {
+	return filepath.Join(tools.folderCode, structName+".go")
 }
 
 func (tools *ToolsCmd) WaitUntilExited() string {
@@ -130,16 +135,29 @@ func (tools *ToolsCmd) IsRunning() bool {
 	return tools.cmd != nil && !tools.cmd_exited
 }
 
-func (tools *ToolsCmd) GetSchemas() []*ToolsOpenAI_completion_tool {
+func (tools *ToolsCmd) GetAllSchemas() []*ToolsOpenAI_completion_tool {
 	tools.lock.Lock()
 	defer tools.lock.Unlock()
 
-	var oai_list []*ToolsOpenAI_completion_tool
+	var schemas []*ToolsOpenAI_completion_tool
 
-	for _, it := range tools.Tools {
-		oai_list = append(oai_list, it.Schema)
+	for _, tool := range tools.Tools {
+		schemas = append(schemas, tool.Schema)
 	}
-	return oai_list
+	return schemas
+}
+func (tools *ToolsCmd) GetSchemaForSource(source string) []*ToolsOpenAI_completion_tool {
+	tools.lock.Lock()
+	defer tools.lock.Unlock()
+
+	var schemas []*ToolsOpenAI_completion_tool
+
+	for _, tool := range tools.Tools {
+		if slices.Index(tool.Sources, source) >= 0 {
+			schemas = append(schemas, tool.Schema)
+		}
+	}
+	return schemas
 }
 
 func (tools *ToolsCmd) _hotReload() error {
@@ -151,11 +169,22 @@ func (tools *ToolsCmd) _hotReload() error {
 		return err
 	}
 
+	//create list of sources
+	var sources []string
+	for _, info := range files {
+		if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name()[0] != strings.ToUpper(info.Name())[0] {
+			continue
+		}
+
+		nm := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
+		sources = append(sources, nm)
+	}
+
 	//add new tools
 	codeHash := int64(0)
 	for _, info := range files {
 
-		if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == tools.GetGenGoFileName() {
+		if info.IsDir() || filepath.Ext(info.Name()) != ".go" || strings.HasPrefix(info.Name(), "a_") {
 			continue
 		}
 
@@ -182,9 +211,14 @@ func (tools *ToolsCmd) _hotReload() error {
 				return err
 			}
 
+			toolSources, err := tools.GetSources(toolName, sources)
+			if err != nil {
+				return err
+			}
+
 			if schema != nil { //not ignored
 				tools.lock.Lock()
-				tools.Tools[toolName] = &ToolsCmdItem{Schema: schema, FileTime: fileTime}
+				tools.Tools[toolName] = &ToolsCmdItem{Schema: schema, FileTime: fileTime, Sources: toolSources}
 				tools.lock.Unlock()
 				saveIt = true
 			}
@@ -197,10 +231,16 @@ func (tools *ToolsCmd) _hotReload() error {
 					return err
 				}
 
+				toolSources, err := tools.GetSources(toolName, sources)
+				if err != nil {
+					return err
+				}
+
 				if schema != nil { //not ignored
 					tools.lock.Lock()
 					item.Schema = schema
 					item.FileTime = fileTime
+					item.Sources = toolSources
 					tools.lock.Unlock()
 					saveIt = true
 				}
