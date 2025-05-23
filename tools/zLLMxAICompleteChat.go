@@ -520,7 +520,7 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 					ret.Choices = append(ret.Choices, OpenAIOutChoice{})
 				}
 
-				if time_to_first_token < 0 && choice.Delta.Content != "" {
+				if time_to_first_token < 0 && (choice.Delta.Content != "" || choice.Delta.Reasoning_content != "") {
 					time_to_first_token = float64(time.Now().UnixMicro()-st) / 1000000
 				}
 
