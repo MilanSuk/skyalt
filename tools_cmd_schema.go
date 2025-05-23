@@ -22,6 +22,7 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -122,8 +123,49 @@ func ToolsOpenAI_convertTypeToSchemaType(tp string) string {
 	return tp
 }
 
-func (tool *ToolsCmd) GetSchema(toolName string) (*ToolsOpenAI_completion_tool, error) {
-	node, err := parser.ParseFile(token.NewFileSet(), tool.getToolFilePath(toolName), nil, parser.ParseComments)
+func (tools *ToolsCmd) GetSourceDescription(sourceName string) (string, error) {
+	node, err := parser.ParseFile(token.NewFileSet(), tools.getSourceFilePath(sourceName), nil, parser.ParseComments)
+	if err != nil {
+		return "", fmt.Errorf("error parsing file: %v", err)
+	}
+
+	description := ""
+
+	for _, decl := range node.Decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok || genDecl.Tok != token.TYPE {
+			continue
+		}
+
+		for _, spec := range genDecl.Specs {
+			typeSpec, ok := spec.(*ast.TypeSpec)
+			if !ok {
+				continue
+			}
+
+			_, ok = typeSpec.Type.(*ast.StructType)
+			if !ok {
+				continue
+			}
+
+			structDoc := ""
+			if genDecl.Doc != nil {
+				structDoc = strings.TrimSpace(genDecl.Doc.Text())
+			}
+
+			if sourceName != typeSpec.Name.Name {
+				continue
+			}
+
+			description = structDoc
+		}
+	}
+
+	return description, nil
+}
+
+func (tools *ToolsCmd) GetToolSchema(toolName string) (*ToolsOpenAI_completion_tool, error) {
+	node, err := parser.ParseFile(token.NewFileSet(), tools.getToolFilePath(toolName), nil, parser.ParseComments)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing file: %v", err)
 	}
@@ -227,21 +269,38 @@ func _exprToString(expr ast.Expr) string {
 	}
 }
 
-func (tool *ToolsCmd) GetSources(toolName string, sources []string) ([]string, error) {
-
-	fl, err := os.ReadFile(tool.getToolFilePath(toolName))
+func (tools *ToolsCmd) UpdateSources(toolName string) error {
+	fl, err := os.ReadFile(tools.getToolFilePath(toolName))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var found_sources []string
-
-	str := string(fl)
-	for _, source := range sources {
-		if strings.Contains(str, fmt.Sprintf("New%s(", source)) {
-			found_sources = append(found_sources, source)
+	var sourcesNames []string
+	for sourceName := range tools.Sources {
+		if strings.Contains(string(fl), fmt.Sprintf("New%s(", sourceName)) {
+			sourcesNames = append(sourcesNames, sourceName)
 		}
 	}
 
-	return found_sources, nil
+	tools.lock.Lock()
+	defer tools.lock.Unlock()
+
+	//add
+	for _, sourceName := range sourcesNames {
+		if slices.Index(tools.Sources[sourceName].Tools, toolName) < 0 {
+			tools.Sources[sourceName].Tools = append(tools.Sources[sourceName].Tools, toolName)
+		}
+	}
+
+	//remove
+	for sourceName, source := range tools.Sources {
+		if slices.Index(sourcesNames, sourceName) < 0 {
+			ind := slices.Index(source.Tools, toolName)
+			if ind >= 0 {
+				source.Tools = slices.Delete(source.Tools, ind, ind+1)
+			}
+		}
+	}
+
+	return nil
 }

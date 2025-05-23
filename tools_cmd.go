@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,9 +31,14 @@ import (
 )
 
 type ToolsCmdItem struct {
-	Schema   *ToolsOpenAI_completion_tool
 	FileTime int64
-	Sources  []string
+	Schema   *ToolsOpenAI_completion_tool
+}
+
+type ToolsCmdSource struct {
+	FileTime    int64
+	Description string
+	Tools       []string
 }
 
 type ToolsCmd struct {
@@ -52,11 +56,13 @@ type ToolsCmd struct {
 	Compile_error string
 	CodeHash      int64
 	Tools         map[string]*ToolsCmdItem
+	Sources       map[string]*ToolsCmdSource
 }
 
 func NewToolsCmd(folderCode string, router *ToolsRouter) *ToolsCmd {
 	tools := &ToolsCmd{folderCode: folderCode, router: router}
 	tools.Tools = make(map[string]*ToolsCmdItem)
+	tools.Sources = make(map[string]*ToolsCmdSource)
 
 	fl, err := os.ReadFile(tools.GetToolsJsonPath())
 	if err == nil {
@@ -112,14 +118,18 @@ func (totoolsl *ToolsCmd) GetGenGoFileName() string {
 	return "a_gen.go"
 }
 
-func (tools *ToolsCmd) getFileName(toolName string) string {
+func (tools *ToolsCmd) getToolFileName(toolName string) string {
 	return "z" + toolName + ".go"
 }
-func (tools *ToolsCmd) getToolFilePath(toolName string) string {
-	return filepath.Join(tools.folderCode, tools.getFileName(toolName))
+func (tools *ToolsCmd) getSourceFileName(sourceName string) string {
+	return sourceName + ".go"
 }
-func (tools *ToolsCmd) getSourceFilePath(structName string) string {
-	return filepath.Join(tools.folderCode, structName+".go")
+
+func (tools *ToolsCmd) getToolFilePath(toolName string) string {
+	return filepath.Join(tools.folderCode, tools.getToolFileName(toolName))
+}
+func (tools *ToolsCmd) getSourceFilePath(sourceName string) string {
+	return filepath.Join(tools.folderCode, tools.getSourceFileName(sourceName))
 }
 
 func (tools *ToolsCmd) WaitUntilExited() string {
@@ -146,17 +156,22 @@ func (tools *ToolsCmd) GetAllSchemas() []*ToolsOpenAI_completion_tool {
 	}
 	return schemas
 }
-func (tools *ToolsCmd) GetSchemaForSource(source string) []*ToolsOpenAI_completion_tool {
+func (tools *ToolsCmd) GetSchemasForSource(sourceName string) []*ToolsOpenAI_completion_tool {
 	tools.lock.Lock()
 	defer tools.lock.Unlock()
 
 	var schemas []*ToolsOpenAI_completion_tool
 
-	for _, tool := range tools.Tools {
-		if slices.Index(tool.Sources, source) >= 0 {
-			schemas = append(schemas, tool.Schema)
+	source, found := tools.Sources[sourceName]
+	if found {
+		for _, toolName := range source.Tools {
+			tool, found := tools.Tools[toolName]
+			if found {
+				schemas = append(schemas, tool.Schema)
+			}
 		}
 	}
+
 	return schemas
 }
 
@@ -170,14 +185,72 @@ func (tools *ToolsCmd) _hotReload() error {
 	}
 
 	//create list of sources
-	var sources []string
-	for _, info := range files {
-		if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name()[0] != strings.ToUpper(info.Name())[0] {
-			continue
+	{
+		//add new sources
+		for _, info := range files {
+			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "" || info.Name()[0] != strings.ToUpper(info.Name())[0] {
+				continue
+			}
+
+			var fileTime int64
+			inf, err := os.Stat(filepath.Join(tools.folderCode, info.Name()))
+			if err != nil {
+				return err
+			}
+			if inf != nil {
+				fileTime = inf.ModTime().UnixNano()
+			}
+
+			sourceName := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
+
+			item, found := tools.Sources[sourceName]
+			if !found {
+
+				description, err := tools.GetSourceDescription(sourceName)
+				if err != nil {
+					return err
+				}
+
+				tools.lock.Lock()
+				tools.Sources[sourceName] = &ToolsCmdSource{Description: description, FileTime: fileTime}
+				tools.lock.Unlock()
+
+				saveIt = true
+			} else {
+				if item.FileTime != fileTime {
+					//update
+					description, err := tools.GetSourceDescription(sourceName)
+					if err != nil {
+						return err
+					}
+
+					tools.lock.Lock()
+					item.Description = description
+					item.FileTime = fileTime
+					tools.lock.Unlock()
+
+					saveIt = true
+				}
+
+			}
 		}
 
-		nm := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
-		sources = append(sources, nm)
+		//remove deleted sources
+		for sourceName := range tools.Sources {
+			found := false
+			for _, file := range files {
+				if !file.IsDir() && file.Name() == tools.getSourceFileName(sourceName) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				tools.lock.Lock()
+				delete(tools.Sources, sourceName)
+				tools.lock.Unlock()
+				saveIt = true
+			}
+		}
 	}
 
 	//add new tools
@@ -206,32 +279,28 @@ func (tools *ToolsCmd) _hotReload() error {
 		item, found := tools.Tools[toolName]
 		if !found {
 			//add
-			schema, err := tools.GetSchema(toolName)
-			if err != nil {
-				return err
-			}
-
-			toolSources, err := tools.GetSources(toolName, sources)
+			schema, err := tools.GetToolSchema(toolName)
 			if err != nil {
 				return err
 			}
 
 			if schema != nil { //not ignored
 				tools.lock.Lock()
-				tools.Tools[toolName] = &ToolsCmdItem{Schema: schema, FileTime: fileTime, Sources: toolSources}
+				tools.Tools[toolName] = &ToolsCmdItem{Schema: schema, FileTime: fileTime}
 				tools.lock.Unlock()
+
+				err := tools.UpdateSources(toolName)
+				if err != nil {
+					return err
+				}
+
 				saveIt = true
 			}
 
 		} else {
 			if item.FileTime != fileTime {
 				//update
-				schema, err := tools.GetSchema(toolName)
-				if err != nil {
-					return err
-				}
-
-				toolSources, err := tools.GetSources(toolName, sources)
+				schema, err := tools.GetToolSchema(toolName)
 				if err != nil {
 					return err
 				}
@@ -240,8 +309,13 @@ func (tools *ToolsCmd) _hotReload() error {
 					tools.lock.Lock()
 					item.Schema = schema
 					item.FileTime = fileTime
-					item.Sources = toolSources
 					tools.lock.Unlock()
+
+					err := tools.UpdateSources(toolName)
+					if err != nil {
+						return err
+					}
+
 					saveIt = true
 				}
 			}
@@ -252,7 +326,7 @@ func (tools *ToolsCmd) _hotReload() error {
 	for toolName := range tools.Tools {
 		found := false
 		for _, file := range files {
-			if !file.IsDir() && file.Name() == tools.getFileName(toolName) {
+			if !file.IsDir() && file.Name() == tools.getToolFileName(toolName) {
 				found = true
 				break
 			}
