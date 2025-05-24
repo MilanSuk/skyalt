@@ -24,7 +24,7 @@ func NewLLMWhispercpp_wsp(file string, caller *ToolCaller) (*LLMWhispercpp, erro
 	st := &LLMWhispercpp{}
 
 	st.Address = "http://localhost"
-	st.Port = 8091
+	st.Port = 8090
 
 	return _loadInstance(file, "LLMWhispercpp", "json", st, true, caller)
 }
