@@ -1234,6 +1234,14 @@ func (layout *Layout) Draw() {
 	if keys.Ctrl && keys.Shift {
 		n := 0
 		layout.postDraw(0, &n)
+
+		//dialogs
+		for _, dia := range layout.ui.settings.Dialogs {
+			layDia := layout.FindUID(dia.UID)
+			if layDia != nil {
+				layDia.postDraw(0, &n)
+			}
+		}
 	}
 }
 
