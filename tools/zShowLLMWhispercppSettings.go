@@ -32,11 +32,6 @@ func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
 		return nil
 	}
 
-	ui.AddText(0, y, 1, 1, "Folder")
-	fd := ui.AddFilePickerButton(1, y, 1, 1, &source_wsp.Folder, true, true)
-	fd.changed = wChanged
-	y++
-
 	ui.AddText(0, y, 1, 1, "Address")
 	AddrDiv := ui.AddLayout(1, y, 1, 1)
 	{
@@ -55,18 +50,18 @@ func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
 
 		TestOKDia := ui.AddDialog("test_ok")
 		TestOKDia.UI.SetColumn(0, 5, 7)
-		tx := TestOKDia.UI.AddText(0, 0, 1, 1, "OK - server is running")
+		tx := TestOKDia.UI.AddText(0, 0, 1, 1, "OK - Server is running!")
 		tx.Align_h = 1
 
 		TestErrDia := ui.AddDialog("test_err")
 		TestErrDia.UI.SetColumn(0, 5, 5)
-		tx = TestErrDia.UI.AddText(0, 0, 1, 1, "Not found")
+		tx = TestErrDia.UI.AddText(0, 0, 1, 1, "Error - Server not found")
 		tx.Align_h = 1
 		tx.Cd = caller.GetPalette().E
 
 		TestBt := AddrDiv.AddButton(2, 0, 1, 1, "Test")
 		TestBt.clicked = func() error {
-			status, err := st.SetModel(source_wsp.ModelName, source_wsp)
+			status, err := st.SetModel("", source_wsp)
 			if err == nil && status == 200 {
 				TestOKDia.OpenCentered(caller)
 			} else {
@@ -77,25 +72,9 @@ func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
 	}
 	y++
 
-	//Models
-	ui.SetRowFromSub(y, 1, 100)
-	ModelsDiv := ui.AddLayout(0, y, 2, 1)
+	ui.AddText(0, y, 1, 1, "Command")
+	ui.AddText(1, y, 1, 1, fmt.Sprintf("./server --port %d -m models/ggml-base.en.bin", source_wsp.Port))
 	y++
-	ModelsDiv.SetColumn(0, 5, 5)
-	ModelsDiv.SetColumn(1, 1, 100)
-	ModelsDiv.SetColumn(2, 1, 100)
-	my := 0
-
-	ModelsDiv.AddText(0, my, 2, 1, "Text to Speech")
-	for _, it := range source_wsp.Models {
-		ModelsDiv.AddText(1, my, 1, 1, it.Label)
-		my++
-	}
-
-	btReload := ui.AddButton(1, y, 1, 1, "Reload list")
-	btReload.clicked = func() error {
-		return source_wsp.ReloadModels()
-	}
 
 	return nil
 }

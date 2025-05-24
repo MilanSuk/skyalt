@@ -331,11 +331,6 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 
 		//Mic
 		{
-			wsp, err := NewLLMWhispercpp_wsp("", caller)
-			if err != nil {
-				return err
-			}
-
 			IsLocal := true //(llms_settings.STT.Provider == "whispercpp")
 
 			mic_msg_id := "mic_" + chat.GetChatID()
@@ -380,7 +375,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 						BlobFileName = "blob.wav"
 					}
 					transcribe := WhispercppTranscribe{
-						Model:           wsp.ModelName,
+						Model:           "",
 						AudioBlob:       micRec.Out_bytes,
 						BlobFileName:    BlobFileName,
 						Temperature:     0,
@@ -1001,7 +996,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 
 				InfoDia := DivIcons.AddDialog("info")
 				InfoDia.UI.SetColumn(0, 5, 10)
-				InfoDia.UI.SetRowFromSub(0, 1, 100)
+				InfoDia.UI.SetRowFromSub(0, 1, 20)
 				InfoDia.UI.AddText(0, 0, 1, 1, inf)
 
 				InfoBt := DivIcons.AddButton(x, 0, 1, 1, "")
