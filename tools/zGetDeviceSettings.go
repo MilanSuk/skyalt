@@ -4,6 +4,7 @@ package main
 type GetDeviceSettings struct {
 	Out_DateFormat  string
 	Out_Rounding    float64
+	Out_ScrollThick float64
 	Out_Volume      float64
 	Out_Dpi         int
 	Out_Dpi_default int
@@ -25,6 +26,7 @@ func (st *GetDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 
 	st.Out_DateFormat = source_dev.DateFormat
 	st.Out_Rounding = source_dev.Rounding
+	st.Out_ScrollThick = source_dev.ScrollThick
 	st.Out_Volume = source_dev.Volume
 	st.Out_Dpi = source_dev.Dpi
 	st.Out_Dpi_default = source_dev.Dpi_default

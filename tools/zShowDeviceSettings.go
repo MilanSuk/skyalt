@@ -14,7 +14,7 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 		return err
 	}
 
-	ui.SetColumn(0, 3, 3)
+	ui.SetColumn(0, 4, 4)
 	ui.SetColumn(1, 5, 100)
 
 	y := 0
@@ -134,7 +134,6 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 	}
-
 	y++
 
 	//UI rounding
@@ -148,7 +147,19 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 		}
 		y++
 	}
+	y++
 
+	//UI Scroll width
+	{
+		ui.AddText(0, y, 1, 1, "UI scroll thickness")
+		scroll := source_dev.ScrollThick * 100
+		sl := ui.AddSlider(1, y, 1, 1, &scroll, 20, 100, 10)
+		sl.changed = func() error {
+			source_dev.ScrollThick = scroll / 100
+			return nil
+		}
+		y++
+	}
 	y++
 
 	//Volume
@@ -162,7 +173,6 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 		}
 		y++
 	}
-
 	y++
 
 	ui.AddSwitch(0, y, 2, 1, "Fullscreen(F11)", &source_dev.Fullscreen)

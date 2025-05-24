@@ -94,10 +94,12 @@ func (scroll *UiLayoutScroll) GetScrollBackCoordH(view OsV4, ui *Ui) OsV4 {
 }
 
 func (scroll *UiLayoutScroll) _GetWidth(ui *Ui) int {
-	widthWin := ui.Cell() / 2
+	widthWin := ui.GetScrollThickness()
 	if scroll.Narrow {
-		return OsMax(4, widthWin/10)
+		widthWin /= 10
 	}
+
+	widthWin = OsMax(4, widthWin)
 	return widthWin
 }
 

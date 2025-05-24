@@ -31,6 +31,7 @@ type UiSyncDeviceSettingsMicrophone struct {
 type UiSyncDeviceSettings struct {
 	DateFormat  string
 	Rounding    float64
+	ScrollThick float64
 	Volume      float64
 	Dpi         int
 	Dpi_default int

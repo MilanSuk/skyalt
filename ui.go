@@ -215,6 +215,9 @@ func (ui *Ui) CellWidth(width float64) int {
 	}
 	return t
 }
+func (ui *Ui) GetScrollThickness() int {
+	return int(float64(ui.Cell()) * float64(ui.sync.device_settings.ScrollThick))
+}
 
 func _draw(layout *Layout) {
 	layout.buffer = nil

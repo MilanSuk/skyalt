@@ -13,9 +13,10 @@ type DeviceSettingsMicrophone struct {
 
 // All device settings, this include date format, volume, dpi, fullscreen mode, theme.
 type DeviceSettings struct {
-	DateFormat string
-	Rounding   float64
-	Volume     float64
+	DateFormat  string
+	Rounding    float64
+	ScrollThick float64
+	Volume      float64
 
 	Microphone DeviceSettingsMicrophone
 
@@ -41,6 +42,9 @@ func NewDeviceSettings(file string, caller *ToolCaller) (*DeviceSettings, error)
 
 	//UI rounding
 	st.Rounding = 0.2
+
+	//Scroll
+	st.ScrollThick = 0.5
 
 	//Speaker
 	st.Volume = 0.5
