@@ -68,7 +68,7 @@ type UiSync struct {
 }
 
 func NewUiSync(router *ToolsRouter) (*UiSync, error) {
-	snc := &UiSync{}
+	snc := &UiSync{last_dev_storage_change: -1}
 
 	//"pre-init"
 	snc.Device = UiSyncDeviceSettings{
