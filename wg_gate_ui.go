@@ -177,6 +177,7 @@ type UIImage struct {
 type UIList struct {
 	AutoSpacing bool
 }
+
 type UIPaint_Rect struct {
 	Cd, Cd_over, Cd_down color.RGBA
 	Width                float64
@@ -286,10 +287,10 @@ type UI struct {
 	Paint []UIPaint
 }
 
-func (ui *UI) addDialogs(layout *Layout, gateName string, parent_UID uint64, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, uii *UI, cmds []ToolCmd, err error, start_time float64)) {
+func (ui *UI) addDialogs(layout *Layout, appName string, funcName string, parent_UID uint64, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, uii *UI, cmds []ToolCmd, err error, start_time float64)) {
 	for _, dia := range ui.Dialogs {
 		d := layout.AddDialog(dia.UID)
-		dia.UI.addLayout(d.Layout, gateName, parent_UID, fnProgress, fnDone)
+		dia.UI.addLayout(d.Layout, appName, funcName, parent_UID, fnProgress, fnDone)
 	}
 }
 
@@ -394,7 +395,7 @@ type SdkChange struct {
 	ValueBool   bool
 }
 
-func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, uii *UI, cmds []ToolCmd, err error, start_time float64)) {
+func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_UID uint64, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, uii *UI, cmds []ToolCmd, err error, start_time float64)) {
 
 	if layout.UID != parent_UID {
 		layout.setLayoutFromUI(ui)
@@ -437,7 +438,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 			list := layout.AddLayoutList(it.X, it.Y, it.W, it.H, it.List.AutoSpacing)
 			for _, itt := range it.Items {
 				listItem := list.AddListSubItem()
-				itt.addLayout(listItem, funcName, parent_UID, fnProgress, fnDone)
+				itt.addLayout(listItem, appName, funcName, parent_UID, fnProgress, fnDone)
 			}
 		} else if it.Text != nil {
 			tx := layout.AddText(it.X, it.Y, it.W, it.H, it.Text.Label)
@@ -456,7 +457,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 					pathes := []string{path}
 					pathesJs, err := json.Marshal(pathes)
 					if err == nil {
-						layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID, ValueBytes: pathesJs}, fnProgress, fnDone)
+						layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueBytes: pathesJs}, fnProgress, fnDone)
 					}
 				}
 			}
@@ -520,13 +521,13 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 
 			ed.changed = func() {
 				change := createChange()
-				layout.ui.router.CallChangeAsync(parent_UID, funcName, change, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, change, fnProgress, fnDone)
 			}
 
 			ed.enter = func() {
 				change := createChange()
 				change.ValueBool = true
-				layout.ui.router.CallChangeAsync(parent_UID, funcName, change, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, change, fnProgress, fnDone)
 			}
 
 			edLay.Editbox_name = it.Editbox.Name
@@ -550,7 +551,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 			}
 			itemLLMTip = strconv.FormatFloat(*it.Slider.Value, 'f', -1, 64)
 			sl.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID, ValueFloat: *it.Slider.Value}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueFloat: *it.Slider.Value}, fnProgress, fnDone)
 			}
 
 		} else if it.FilePickerButton != nil {
@@ -574,7 +575,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 				itemLLMTip = "File: " + *it.FilePickerButton.Path
 			}
 			bt.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID, ValueString: *it.FilePickerButton.Path}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueString: *it.FilePickerButton.Path}, fnProgress, fnDone)
 			}
 		} else if it.DatePickerButton != nil {
 			var bt *DatePickerButton
@@ -597,7 +598,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 				itemLLMTip = "Date(YY-MM-DD HH:MM): " + time.Unix(*it.DatePickerButton.Date, 0).Format("01-02-2006 15:04")
 			}
 			bt.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID, ValueInt: *it.DatePickerButton.Date}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueInt: *it.DatePickerButton.Date}, fnProgress, fnDone)
 			}
 
 		} else if it.ColorPickerButton != nil {
@@ -619,7 +620,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 			}
 			itemLLMTip = fmt.Sprintf("Color: R:%d, G:%d, B:%d, A:%d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)
 			bt.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %d %d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %d %d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)}, fnProgress, fnDone)
 			}
 
 		} else if it.Combo != nil {
@@ -643,7 +644,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 				cb.DialogWidth = it.Combo.DialogWidth
 			}
 			cb.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID, ValueString: *it.Combo.Value}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueString: *it.Combo.Value}, fnProgress, fnDone)
 			}
 
 			if it.Combo.Value != nil {
@@ -670,7 +671,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 				sw.Tooltip = it.Switch.Tooltip
 			}
 			sw.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID, ValueBool: *it.Switch.Value}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueBool: *it.Switch.Value}, fnProgress, fnDone)
 			}
 
 			if it.Switch.Value != nil {
@@ -697,7 +698,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 				che.Tooltip = it.Checkbox.Tooltip
 			}
 			che.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID, ValueFloat: *it.Checkbox.Value}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueFloat: *it.Checkbox.Value}, fnProgress, fnDone)
 			}
 
 			if it.Checkbox.Value != nil {
@@ -712,7 +713,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 			mp.Routes = it.OsmMap.Routes
 
 			mp.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID, ValueString: fmt.Sprintf("%f %f %f", mp.Cam.Lon, mp.Cam.Lat, mp.Cam.Zoom)}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueString: fmt.Sprintf("%f %f %f", mp.Cam.Lon, mp.Cam.Lat, mp.Cam.Zoom)}, fnProgress, fnDone)
 			}
 
 			//itemLLMTip ....
@@ -757,7 +758,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 			if it.Button.ConfirmQuestion != "" {
 				bt := layout.AddButtonConfirm(it.X, it.Y, it.W, it.H, it.Button.Label, it.Button.ConfirmQuestion)
 				bt.confirmed = func() {
-					layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID}, fnProgress, fnDone)
+					layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID}, fnProgress, fnDone)
 				}
 				bt.Tooltip = it.Button.Tooltip
 				bt.Align = it.Button.Align
@@ -772,7 +773,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 			} else {
 				bt := layout.AddButton(it.X, it.Y, it.W, it.H, it.Button.Label)
 				bt.clicked = func() {
-					layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID}, fnProgress, fnDone)
+					layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID}, fnProgress, fnDone)
 				}
 				bt.Tooltip = it.Button.Tooltip
 				bt.Align = it.Button.Align
@@ -797,7 +798,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 			btLay.Drop_v = it.Button.Drop_v
 			btLay.Drop_in = it.Button.Drop_in
 			btLay.dropMove = func(src_i, dst_i int, src_source, dst_source string) {
-				layout.ui.router.CallChangeAsync(parent_UID, funcName, SdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %s %s", src_i, dst_i, src_source, dst_source)}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %s %s", src_i, dst_i, src_source, dst_source)}, fnProgress, fnDone)
 			}
 
 			itemLLMTip = "Button with label: " + it.Button.Label
@@ -820,7 +821,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 			it2.LLMTip = _UiText_RemoveFormating(itemLLMTip)
 		}
 
-		it.addLayout(it2, funcName, parent_UID, fnProgress, fnDone)
+		it.addLayout(it2, appName, funcName, parent_UID, fnProgress, fnDone)
 	}
 
 	if len(ui.Paint) > 0 {
@@ -860,7 +861,7 @@ func (ui *UI) addLayout(layout *Layout, funcName string, parent_UID uint64, fnPr
 	}
 
 	//must be after subs, because of relative!
-	ui.addDialogs(layout, funcName, parent_UID, fnProgress, fnDone)
+	ui.addDialogs(layout, appName, funcName, parent_UID, fnProgress, fnDone)
 }
 
 func (layout *Layout) setLayoutFromUI(item *UI) {

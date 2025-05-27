@@ -19,14 +19,18 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type ToolsRouterMsg struct {
 	user_uid string
 	ui_uid   uint64
+	appName  string
 	funcName string
 
 	start_time float64
@@ -67,28 +71,35 @@ type ToolsRouter struct {
 	msgs         map[uint64]*ToolsRouterMsg
 	msgs_counter atomic.Uint64 //to create unique msg_id
 
-	tools *ToolsCmd
-	files *ToolsFiles
+	folderApps string
+	apps       map[string]*ToolsApp
 
 	refresh_progress_time float64
 }
 
-func NewToolsRouter(FolderTools string, FolderFiles string, start_port int) *ToolsRouter {
-	router := &ToolsRouter{}
+func NewToolsRouter(folderApps string, start_port int) *ToolsRouter {
+	router := &ToolsRouter{folderApps: folderApps}
 	router.server = NewToolsServer(start_port)
 	router.msgs = make(map[uint64]*ToolsRouterMsg)
+	router.apps = make(map[string]*ToolsApp)
 	router.log.Name = "ToolsRouter"
-
-	router.files = NewToolsFiles(FolderFiles)
-	router.tools = NewToolsCmd(FolderTools, router)
 
 	type SdkMsg struct {
 		Id             string
+		AppName        string
 		FuncName       string
 		Progress_label string
 		Progress_done  float64
 		Start_time     float64
 	}
+
+	//hot reload
+	go func() {
+		for {
+			router._hotReload()
+			time.Sleep(1000 * time.Millisecond)
+		}
+	}()
 
 	//communicate with tools
 	go func() {
@@ -115,39 +126,16 @@ func NewToolsRouter(FolderTools string, FolderFiles string, start_port int) *Too
 							fmt.Println("Router's print:", string(str))
 						}
 
-					case "read_file":
-						path, err := cl.ReadArray()
-						if router.log.Error(err) == nil {
-							file, file_data := router.files.GetFile(string(path))
-							if file != nil {
-								err = cl.WriteInt(1)
-								if router.log.Error(err) == nil {
-									err = cl.WriteArray(file_data)
-									router.log.Error(err)
-								}
-							} else {
-								//file not exist
-								err = cl.WriteInt(0)
-								router.log.Error(err)
-							}
-						}
-					case "write_file":
-						file, err := cl.ReadArray()
-						if router.log.Error(err) == nil {
-							file_data, err := cl.ReadArray()
-							if router.log.Error(err) == nil {
-								router.files.SetFile(string(file), file_data)
-							}
-						}
-
 					case "register":
-						port, err := cl.ReadInt()
+						appName, err := cl.ReadArray()
 						if router.log.Error(err) == nil {
-							router.lock.Lock()
-							{
-								router.tools.port = int(port)
+							port, err := cl.ReadInt()
+							if router.log.Error(err) == nil {
+								app := router.FindApp(string(appName))
+								if app != nil {
+									app.port = int(port)
+								}
 							}
-							router.lock.Unlock()
 						}
 					case "progress":
 						msg_id, err := cl.ReadInt()
@@ -205,7 +193,7 @@ func NewToolsRouter(FolderTools string, FolderFiles string, start_port int) *Too
 						rmsgs := router.GetSortedMsgs()
 						for _, m := range rmsgs {
 							if m.drawit {
-								msgs = append(msgs, SdkMsg{Id: m.user_uid, FuncName: m.funcName, Progress_label: m.progress_label, Progress_done: m.progress_done, Start_time: m.start_time})
+								msgs = append(msgs, SdkMsg{Id: m.user_uid, AppName: m.appName, FuncName: m.funcName, Progress_label: m.progress_label, Progress_done: m.progress_done, Start_time: m.start_time})
 							}
 						}
 
@@ -240,7 +228,7 @@ func NewToolsRouter(FolderTools string, FolderFiles string, start_port int) *Too
 								err := cl.WriteInt(1) //exist
 								router.log.Error(err)
 
-								msg := SdkMsg{Id: string(msg_id), FuncName: msg.funcName, Progress_label: msg.progress_label, Progress_done: msg.progress_done, Start_time: msg.start_time}
+								msg := SdkMsg{Id: string(msg_id), AppName: msg.appName, FuncName: msg.funcName, Progress_label: msg.progress_label, Progress_done: msg.progress_done, Start_time: msg.start_time}
 								msgJs, err := json.Marshal(msg)
 								if router.log.Error(err) == nil {
 									err = cl.WriteArray(msgJs)
@@ -263,13 +251,15 @@ func NewToolsRouter(FolderTools string, FolderFiles string, start_port int) *Too
 						}
 
 					case "get_tools_shemas":
-						toolsJs, err := cl.ReadArray()
+						appName, err := cl.ReadArray()
 						if router.log.Error(err) == nil {
-							var tools []string
-							err := json.Unmarshal(toolsJs, &tools)
-							router.log.Error(err)
 
-							schemas := router.tools.GetSchemas(tools)
+							var schemas []*ToolsOpenAI_completion_tool
+							app := router.FindApp(string(appName))
+							if app != nil {
+								schemas = app.GetAllSchemas()
+							}
+
 							oaiJs, err := json.Marshal(schemas)
 							router.log.Error(err)
 
@@ -277,12 +267,14 @@ func NewToolsRouter(FolderTools string, FolderFiles string, start_port int) *Too
 							router.log.Error(err)
 						}
 
-					case "get_sources":
-						js, err := json.Marshal(router.tools.Sources)
-						router.log.Error(err)
-
-						err = cl.WriteArray(js)
-						router.log.Error(err)
+					case "storage_changed":
+						appName, err := cl.ReadArray()
+						if router.log.Error(err) == nil {
+							app := router.FindApp(string(appName))
+							if app != nil {
+								app.storage_changes++
+							}
+						}
 					}
 				}
 			}()
@@ -293,12 +285,11 @@ func NewToolsRouter(FolderTools string, FolderFiles string, start_port int) *Too
 }
 
 func (router *ToolsRouter) Destroy() {
-
-	router.tools.Destroy() //send exit
+	for _, app := range router.apps {
+		app.Destroy() //send exit
+	}
 
 	router.server.Destroy()
-
-	router.files.Destroy()
 
 	router.Save()
 }
@@ -306,12 +297,23 @@ func (router *ToolsRouter) Destroy() {
 func (router *ToolsRouter) Save() {
 	router.lock.Lock()
 	defer router.lock.Unlock()
-
-	//files
-	err := router.files.Save()
-	router.log.Error(err)
-
 }
+
+func (router *ToolsRouter) FindApp(appName string) *ToolsApp {
+	router.lock.Lock()
+	defer router.lock.Unlock()
+
+	app, _ := router.apps[appName]
+	if app == nil {
+		router.log.Error(fmt.Errorf("app '%s' not found", appName))
+	}
+	return app
+}
+
+func (router *ToolsRouter) GetRootApp() *ToolsApp {
+	return router.FindApp("Root")
+}
+
 func (router *ToolsRouter) GetSortedMsgs() []*ToolsRouterMsg {
 	router.lock.Lock()
 	defer router.lock.Unlock()
@@ -342,8 +344,24 @@ func _ToolsRouter_getJSON(params interface{}) ([]byte, error) {
 	return jsParams, nil
 }
 
-func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, funcName string, change SdkChange, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, uii *UI, cmds []ToolCmd, err error, start_time float64)) {
-	msg := &ToolsRouterMsg{user_uid: "", funcName: "_change_" + funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: OsTime()}
+func (router *ToolsRouter) CallUpdateDev() {
+	router.lock.Lock()
+	defer router.lock.Unlock()
+
+	for _, app := range router.apps {
+		if app.IsRunning() {
+			_ToolsCaller_UpdateDev(app.port, router.log.Error)
+		}
+	}
+}
+
+func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, appName string, funcName string, change SdkChange, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, uii *UI, cmds []ToolCmd, err error, start_time float64)) {
+	app := router.FindApp(appName)
+	if app == nil {
+		return
+	}
+
+	msg := &ToolsRouterMsg{user_uid: "", appName: appName, funcName: "_change_" + funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: OsTime()}
 	msg_id := router.msgs_counter.Add(1)
 
 	msg.drawit = true
@@ -356,13 +374,18 @@ func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, funcName string, chang
 	go func() {
 		defer msg.Done()
 
-		msg.out_cmds, msg.out_error = _ToolsCaller_CallChange(router.tools.port, msg_id, ui_uid, change, router.log.Error)
+		msg.out_cmds, msg.out_error = _ToolsCaller_CallChange(app.port, msg_id, ui_uid, change, router.log.Error)
 		router.log.Error(msg.out_error)
 	}()
 }
 
-func (router *ToolsRouter) CallAsync(ui_uid uint64, funcName string, params interface{}, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, ui *UI, cmds []ToolCmd, err error, start_time float64)) (*ToolsRouterMsg, error) {
-	msg := &ToolsRouterMsg{user_uid: "", ui_uid: ui_uid, funcName: funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: OsTime()}
+func (router *ToolsRouter) CallAsync(ui_uid uint64, appName string, funcName string, params interface{}, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, ui *UI, cmds []ToolCmd, err error, start_time float64)) *ToolsRouterMsg {
+	app := router.FindApp(appName)
+	if app == nil {
+		return nil
+	}
+
+	msg := &ToolsRouterMsg{user_uid: "", ui_uid: ui_uid, appName: appName, funcName: funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: OsTime()}
 	msg_id := router.msgs_counter.Add(1)
 
 	router.lock.Lock()
@@ -371,7 +394,7 @@ func (router *ToolsRouter) CallAsync(ui_uid uint64, funcName string, params inte
 
 	jsParams, err := _ToolsRouter_getJSON(params)
 	if router.log.Error(err) != nil {
-		return nil, err
+		return nil
 	}
 
 	//call tool
@@ -379,22 +402,22 @@ func (router *ToolsRouter) CallAsync(ui_uid uint64, funcName string, params inte
 		defer msg.Done()
 
 		//start it
-		err = router.tools.CheckRun()
+		err = app.CheckRun()
 		if router.log.Error(err) != nil {
 			msg.out_error = err
 			return
 		}
 
 		//call it
-		msg.out_bytes, msg.out_ui, msg.out_cmds, msg.out_error = _ToolsCaller_CallTool(router.tools.port, msg_id, ui_uid, funcName, jsParams, router.log.Error)
+		msg.out_bytes, msg.out_ui, msg.out_cmds, msg.out_error = _ToolsCaller_CallTool(app.port, msg_id, ui_uid, funcName, jsParams, router.log.Error)
 		router.log.Error(msg.out_error)
 	}()
 
-	return msg, nil
+	return msg
 }
 
-func (router *ToolsRouter) AddRecompileMsg() *ToolsRouterMsg {
-	msg := &ToolsRouterMsg{user_uid: "_compile_", ui_uid: 0, funcName: "_compile_", fnDone: nil, start_time: OsTime()}
+func (router *ToolsRouter) AddRecompileMsg(appName string) *ToolsRouterMsg {
+	msg := &ToolsRouterMsg{user_uid: "_compile_", ui_uid: 0, appName: appName, funcName: "_compile_", fnDone: nil, start_time: OsTime()}
 	msg_id := router.msgs_counter.Add(1)
 
 	router.lock.Lock()
@@ -404,8 +427,16 @@ func (router *ToolsRouter) AddRecompileMsg() *ToolsRouterMsg {
 	return msg
 }
 
-func (router *ToolsRouter) FindRecompileMsg() *ToolsRouterMsg {
-	return router.FindMessage("_compile_")
+func (router *ToolsRouter) FindRecompileMsg(appName string) *ToolsRouterMsg {
+	router.lock.Lock()
+	defer router.lock.Unlock()
+
+	for _, msg := range router.msgs {
+		if msg != nil && msg.user_uid == "_compile_" && msg.appName == appName {
+			return msg
+		}
+	}
+	return nil
 }
 
 func (router *ToolsRouter) FindMessage(user_uid string) *ToolsRouterMsg {
@@ -489,7 +520,49 @@ func (router *ToolsRouter) Flush() bool {
 		msg.fnDone(msg.out_bytes, msg.out_ui, msg.out_cmds, msg.out_error, msg.start_time)
 	}
 
-	router.files.Tick()
-
 	return redraw
+}
+
+func (router *ToolsRouter) _hotReload() {
+	files, err := os.ReadDir(router.folderApps)
+	if router.log.Error(err) != nil {
+		return
+	}
+
+	router.lock.Lock()
+	{
+		//add new apps
+		for _, info := range files {
+			if !info.IsDir() {
+				continue
+			}
+
+			_, found := router.apps[info.Name()]
+			if !found {
+				router.apps[info.Name()] = NewToolsApp(info.Name(), filepath.Join(router.folderApps, info.Name()), router)
+			}
+		}
+		//remove deleted apps
+		for appName := range router.apps {
+			found := false
+			for _, file := range files {
+				if file.IsDir() && file.Name() == appName {
+					found = true
+					break
+				}
+			}
+			if !found {
+				delete(router.apps, appName)
+			}
+		}
+	}
+	router.lock.Unlock()
+
+	//hot reload apps
+	for appName, app := range router.apps {
+		err := app.Tick()
+		if err != nil {
+			router.log.Error(fmt.Errorf("%s: %w", appName, err))
+		}
+	}
 }

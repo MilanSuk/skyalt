@@ -123,8 +123,8 @@ func ToolsOpenAI_convertTypeToSchemaType(tp string) string {
 	return tp
 }
 
-func (tools *ToolsCmd) GetSourceDescription(sourceName string) (string, error) {
-	node, err := parser.ParseFile(token.NewFileSet(), tools.getSourceFilePath(sourceName), nil, parser.ParseComments)
+func (app *ToolsApp) GetSourceDescription(sourceName string) (string, error) {
+	node, err := parser.ParseFile(token.NewFileSet(), app.getSourceFilePath(sourceName), nil, parser.ParseComments)
 	if err != nil {
 		return "", fmt.Errorf("error parsing file: %v", err)
 	}
@@ -164,8 +164,8 @@ func (tools *ToolsCmd) GetSourceDescription(sourceName string) (string, error) {
 	return description, nil
 }
 
-func (tools *ToolsCmd) GetToolSchema(toolName string) (*ToolsOpenAI_completion_tool, error) {
-	node, err := parser.ParseFile(token.NewFileSet(), tools.getToolFilePath(toolName), nil, parser.ParseComments)
+func (app *ToolsApp) GetToolSchema(toolName string) (*ToolsOpenAI_completion_tool, error) {
+	node, err := parser.ParseFile(token.NewFileSet(), app.getToolFilePath(toolName), nil, parser.ParseComments)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing file: %v", err)
 	}
@@ -269,31 +269,31 @@ func _exprToString(expr ast.Expr) string {
 	}
 }
 
-func (tools *ToolsCmd) UpdateSources(toolName string) error {
-	fl, err := os.ReadFile(tools.getToolFilePath(toolName))
+func (app *ToolsApp) UpdateSources(toolName string) error {
+	fl, err := os.ReadFile(app.getToolFilePath(toolName))
 	if err != nil {
 		return err
 	}
 
 	var sourcesNames []string
-	for sourceName := range tools.Sources {
+	for sourceName := range app.Sources {
 		if strings.Contains(string(fl), fmt.Sprintf("New%s(", sourceName)) {
 			sourcesNames = append(sourcesNames, sourceName)
 		}
 	}
 
-	tools.lock.Lock()
-	defer tools.lock.Unlock()
+	app.lock.Lock()
+	defer app.lock.Unlock()
 
 	//add
 	for _, sourceName := range sourcesNames {
-		if slices.Index(tools.Sources[sourceName].Tools, toolName) < 0 {
-			tools.Sources[sourceName].Tools = append(tools.Sources[sourceName].Tools, toolName)
+		if slices.Index(app.Sources[sourceName].Tools, toolName) < 0 {
+			app.Sources[sourceName].Tools = append(app.Sources[sourceName].Tools, toolName)
 		}
 	}
 
 	//remove
-	for sourceName, source := range tools.Sources {
+	for sourceName, source := range app.Sources {
 		if slices.Index(sourcesNames, sourceName) < 0 { //not found
 			ind := slices.Index(source.Tools, toolName)
 			if ind >= 0 { //found
@@ -303,7 +303,7 @@ func (tools *ToolsCmd) UpdateSources(toolName string) error {
 	}
 
 	if len(sourcesNames) == 0 {
-		tools.Sources["_default_"].Tools = append(tools.Sources["_default_"].Tools, toolName)
+		app.Sources["_default_"].Tools = append(app.Sources["_default_"].Tools, toolName)
 	}
 
 	return nil

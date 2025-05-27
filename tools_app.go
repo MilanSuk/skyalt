@@ -30,20 +30,21 @@ import (
 	"time"
 )
 
-type ToolsCmdItem struct {
+type ToolsAppItem struct {
 	FileTime int64
 	Schema   *ToolsOpenAI_completion_tool
 }
 
-type ToolsCmdSource struct {
+type ToolsAppSource struct {
 	FileTime    int64
 	Description string
 	Tools       []string
 }
 
-type ToolsCmd struct {
-	router     *ToolsRouter
-	folderCode string
+type ToolsApp struct {
+	router *ToolsRouter
+	folder string
+	name   string
 
 	lock sync.Mutex
 
@@ -55,37 +56,29 @@ type ToolsCmd struct {
 
 	Compile_error string
 	CodeHash      int64
-	Tools         map[string]*ToolsCmdItem
-	Sources       map[string]*ToolsCmdSource
+	Tools         map[string]*ToolsAppItem
+	Sources       map[string]*ToolsAppSource
+
+	storage_changes int64
 }
 
-func NewToolsCmd(folderCode string, router *ToolsRouter) *ToolsCmd {
-	tools := &ToolsCmd{folderCode: folderCode, router: router}
-	tools.Tools = make(map[string]*ToolsCmdItem)
-	tools.Sources = make(map[string]*ToolsCmdSource)
-	tools.Sources["_default_"] = &ToolsCmdSource{}
+func NewToolsApp(name string, folder string, router *ToolsRouter) *ToolsApp {
+	app := &ToolsApp{name: name, folder: folder, router: router}
+	app.Tools = make(map[string]*ToolsAppItem)
+	app.Sources = make(map[string]*ToolsAppSource)
+	app.Sources["_default_"] = &ToolsAppSource{}
 
-	fl, err := os.ReadFile(tools.GetToolsJsonPath())
+	fl, err := os.ReadFile(app.GetToolsJsonPath())
 	if err == nil {
-		json.Unmarshal(fl, tools)
+		json.Unmarshal(fl, app)
 	}
 
-	//hot reload
-	go func() {
-		for {
-			err = tools._hotReload()
-			router.log.Error(err)
-
-			time.Sleep(1000 * time.Millisecond)
-		}
-	}()
-
-	return tools
+	return app
 }
 
-func (tools *ToolsCmd) Destroy() error {
-	if tools.IsRunning() {
-		cl, err := NewToolsClient("localhost", tools.port)
+func (app *ToolsApp) Destroy() error {
+	if app.IsRunning() {
+		cl, err := NewToolsClient("localhost", app.port)
 		if err != nil {
 			return err
 		}
@@ -98,11 +91,11 @@ func (tools *ToolsCmd) Destroy() error {
 	return nil
 }
 
-func (tools *ToolsCmd) _save() error {
-	tools.lock.Lock()
-	defer tools.lock.Unlock()
+func (app *ToolsApp) _save() error {
+	app.lock.Lock()
+	defer app.lock.Unlock()
 
-	_, err := Tools_WriteJSONFile(tools.GetToolsJsonPath(), tools)
+	_, err := Tools_WriteJSONFile(app.GetToolsJsonPath(), app)
 	if err != nil {
 		return err
 	}
@@ -111,49 +104,58 @@ func (tools *ToolsCmd) _save() error {
 
 }
 
-func (tools *ToolsCmd) GetToolsJsonPath() string {
-	return filepath.Join(tools.folderCode, "tools.json")
+func (app *ToolsApp) GetToolsJsonPath() string {
+	return filepath.Join(app.folder, "tools.json")
 }
 
-func (totoolsl *ToolsCmd) GetGenGoFileName() string {
-	return "a_gen.go"
-}
-
-func (tools *ToolsCmd) getToolFileName(toolName string) string {
+func (app *ToolsApp) getToolFileName(toolName string) string {
 	return "z" + toolName + ".go"
 }
-func (tools *ToolsCmd) getSourceFileName(sourceName string) string {
+func (app *ToolsApp) getSourceFileName(sourceName string) string {
 	return sourceName + ".go"
 }
 
-func (tools *ToolsCmd) getToolFilePath(toolName string) string {
-	return filepath.Join(tools.folderCode, tools.getToolFileName(toolName))
+func (app *ToolsApp) getToolFilePath(toolName string) string {
+	return filepath.Join(app.folder, app.getToolFileName(toolName))
 }
-func (tools *ToolsCmd) getSourceFilePath(sourceName string) string {
-	return filepath.Join(tools.folderCode, tools.getSourceFileName(sourceName))
+func (app *ToolsApp) getSourceFilePath(sourceName string) string {
+	return filepath.Join(app.folder, app.getSourceFileName(sourceName))
 }
 
-func (tools *ToolsCmd) WaitUntilExited() string {
+func (app *ToolsApp) WaitUntilExited() string {
 	n := 0
-	for n < 100 && !tools.cmd_exited {
+	for n < 100 && !app.cmd_exited {
 		time.Sleep(10 * time.Millisecond)
 		n++
 	}
-	return tools.cmd_error
+	return app.cmd_error
 }
 
-func (tools *ToolsCmd) IsRunning() bool {
-	return tools.cmd != nil && !tools.cmd_exited
+func (app *ToolsApp) IsRunning() bool {
+	return app.cmd != nil && !app.cmd_exited
 }
 
-func (tools *ToolsCmd) GetSchemas(toolNames []string) []*ToolsOpenAI_completion_tool {
-	tools.lock.Lock()
-	defer tools.lock.Unlock()
+func (app *ToolsApp) GetAllSchemas() []*ToolsOpenAI_completion_tool {
+	app.lock.Lock()
+	defer app.lock.Unlock()
+
+	var schemas []*ToolsOpenAI_completion_tool
+
+	for _, tool := range app.Tools {
+		schemas = append(schemas, tool.Schema)
+	}
+
+	return schemas
+}
+
+func (app *ToolsApp) GetSchemas(toolNames []string) []*ToolsOpenAI_completion_tool {
+	app.lock.Lock()
+	defer app.lock.Unlock()
 
 	var schemas []*ToolsOpenAI_completion_tool
 
 	for _, toolName := range toolNames {
-		tool, found := tools.Tools[toolName]
+		tool, found := app.Tools[toolName]
 		if found {
 			schemas = append(schemas, tool.Schema)
 		}
@@ -161,16 +163,16 @@ func (tools *ToolsCmd) GetSchemas(toolNames []string) []*ToolsOpenAI_completion_
 
 	return schemas
 }
-func (tools *ToolsCmd) GetSchemasForSource(sourceName string) []*ToolsOpenAI_completion_tool {
-	tools.lock.Lock()
-	defer tools.lock.Unlock()
+func (app *ToolsApp) GetSchemasForSource(sourceName string) []*ToolsOpenAI_completion_tool {
+	app.lock.Lock()
+	defer app.lock.Unlock()
 
 	var schemas []*ToolsOpenAI_completion_tool
 
-	source, found := tools.Sources[sourceName]
+	source, found := app.Sources[sourceName]
 	if found {
 		for _, toolName := range source.Tools {
-			tool, found := tools.Tools[toolName]
+			tool, found := app.Tools[toolName]
 			if found {
 				schemas = append(schemas, tool.Schema)
 			}
@@ -180,11 +182,11 @@ func (tools *ToolsCmd) GetSchemasForSource(sourceName string) []*ToolsOpenAI_com
 	return schemas
 }
 
-func (tools *ToolsCmd) _hotReload() error {
+func (app *ToolsApp) Tick() error {
 
 	saveIt := false
 
-	files, err := os.ReadDir(tools.folderCode)
+	files, err := os.ReadDir(app.folder)
 	if err != nil {
 		return err
 	}
@@ -198,7 +200,7 @@ func (tools *ToolsCmd) _hotReload() error {
 			}
 
 			var fileTime int64
-			inf, err := os.Stat(filepath.Join(tools.folderCode, info.Name()))
+			inf, err := os.Stat(filepath.Join(app.folder, info.Name()))
 			if err != nil {
 				return err
 			}
@@ -208,30 +210,30 @@ func (tools *ToolsCmd) _hotReload() error {
 
 			sourceName := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
 
-			item, found := tools.Sources[sourceName]
+			item, found := app.Sources[sourceName]
 			if !found {
-				description, err := tools.GetSourceDescription(sourceName)
+				description, err := app.GetSourceDescription(sourceName)
 				if err != nil {
 					return err
 				}
 
-				tools.lock.Lock()
-				tools.Sources[sourceName] = &ToolsCmdSource{Description: description, FileTime: fileTime}
-				tools.lock.Unlock()
+				app.lock.Lock()
+				app.Sources[sourceName] = &ToolsAppSource{Description: description, FileTime: fileTime}
+				app.lock.Unlock()
 
 				saveIt = true
 			} else {
 				if item.FileTime != fileTime {
 					//update
-					description, err := tools.GetSourceDescription(sourceName)
+					description, err := app.GetSourceDescription(sourceName)
 					if err != nil {
 						return err
 					}
 
-					tools.lock.Lock()
+					app.lock.Lock()
 					item.Description = description
 					item.FileTime = fileTime
-					tools.lock.Unlock()
+					app.lock.Unlock()
 
 					saveIt = true
 				}
@@ -239,22 +241,22 @@ func (tools *ToolsCmd) _hotReload() error {
 		}
 
 		//remove deleted sources
-		for sourceName := range tools.Sources {
+		for sourceName := range app.Sources {
 			if sourceName == "_default_" {
 				continue //skip
 			}
 
 			found := false
 			for _, file := range files {
-				if !file.IsDir() && file.Name() == tools.getSourceFileName(sourceName) {
+				if !file.IsDir() && file.Name() == app.getSourceFileName(sourceName) {
 					found = true
 					break
 				}
 			}
 			if !found {
-				tools.lock.Lock()
-				delete(tools.Sources, sourceName)
-				tools.lock.Unlock()
+				app.lock.Lock()
+				delete(app.Sources, sourceName)
+				app.lock.Unlock()
 				saveIt = true
 			}
 		}
@@ -262,14 +264,27 @@ func (tools *ToolsCmd) _hotReload() error {
 
 	//add new tools
 	codeHash := int64(0)
+	//main.go
+	{
+		var fileTime int64
+		inf, err := os.Stat(filepath.Join(app.router.folderApps, "main.go"))
+		if err != nil {
+			return err
+		}
+		if inf != nil {
+			fileTime = inf.ModTime().UnixNano()
+		}
+		codeHash += fileTime
+
+	}
 	for _, info := range files {
 
-		if info.IsDir() || filepath.Ext(info.Name()) != ".go" || strings.HasPrefix(info.Name(), "a_") {
+		if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" {
 			continue
 		}
 
 		var fileTime int64
-		inf, err := os.Stat(filepath.Join(tools.folderCode, info.Name()))
+		inf, err := os.Stat(filepath.Join(app.folder, info.Name()))
 		if err != nil {
 			return err
 		}
@@ -283,20 +298,20 @@ func (tools *ToolsCmd) _hotReload() error {
 		}
 
 		toolName, _ := strings.CutSuffix(info.Name()[1:], ".go") //remove 'z' and '.go'
-		item, found := tools.Tools[toolName]
+		item, found := app.Tools[toolName]
 		if !found {
 			//add
-			schema, err := tools.GetToolSchema(toolName)
+			schema, err := app.GetToolSchema(toolName)
 			if err != nil {
 				return err
 			}
 
 			if schema != nil { //not ignored
-				tools.lock.Lock()
-				tools.Tools[toolName] = &ToolsCmdItem{Schema: schema, FileTime: fileTime}
-				tools.lock.Unlock()
+				app.lock.Lock()
+				app.Tools[toolName] = &ToolsAppItem{Schema: schema, FileTime: fileTime}
+				app.lock.Unlock()
 
-				err := tools.UpdateSources(toolName)
+				err := app.UpdateSources(toolName)
 				if err != nil {
 					return err
 				}
@@ -307,18 +322,18 @@ func (tools *ToolsCmd) _hotReload() error {
 		} else {
 			if item.FileTime != fileTime {
 				//update
-				schema, err := tools.GetToolSchema(toolName)
+				schema, err := app.GetToolSchema(toolName)
 				if err != nil {
 					return err
 				}
 
 				if schema != nil { //not ignored
-					tools.lock.Lock()
+					app.lock.Lock()
 					item.Schema = schema
 					item.FileTime = fileTime
-					tools.lock.Unlock()
+					app.lock.Unlock()
 
-					err := tools.UpdateSources(toolName)
+					err := app.UpdateSources(toolName)
 					if err != nil {
 						return err
 					}
@@ -327,46 +342,46 @@ func (tools *ToolsCmd) _hotReload() error {
 				}
 			}
 		}
-
 	}
+
 	//remove deleted tools
-	for toolName := range tools.Tools {
+	for toolName := range app.Tools {
 		found := false
 		for _, file := range files {
-			if !file.IsDir() && file.Name() == tools.getToolFileName(toolName) {
+			if !file.IsDir() && file.Name() == app.getToolFileName(toolName) {
 				found = true
 				break
 			}
 		}
 		if !found {
-			tools.lock.Lock()
-			delete(tools.Tools, toolName)
-			tools.lock.Unlock()
+			app.lock.Lock()
+			delete(app.Tools, toolName)
+			app.lock.Unlock()
 			saveIt = true
 		}
 	}
 
-	//remove old bins
-	if tools.IsRunning() && tools.Compile_error == "" {
-		exclude := tools.getBinName()
-		for _, info := range files {
-			if info.IsDir() || filepath.Ext(info.Name()) != ".bin" || info.Name() == exclude {
-				continue
+	if app.CodeHash != codeHash || (app.Compile_error == "" && !Tools_FileExists(filepath.Join(app.folder, app.getBinName()))) {
+		app.Compile_error = ""
+		err = app.compile(codeHash)
+		if err == nil {
+			app.Destroy() //stop it
+
+			//remove old bins
+			if app.Compile_error == "" {
+				exclude := app.getBinName()
+				for _, info := range files {
+					if info.IsDir() || filepath.Ext(info.Name()) != ".bin" || info.Name() == exclude {
+						continue
+					}
+					os.Remove(filepath.Join(app.folder, info.Name()))
+				}
 			}
-			os.Remove(filepath.Join(tools.folderCode, info.Name()))
-		}
-	}
 
-	if tools.CodeHash != codeHash || (tools.Compile_error == "" && !Tools_FileExists(filepath.Join(tools.folderCode, tools.getBinName()))) {
-		tools.Compile_error = ""
-		err = tools.compile(codeHash)
-		if err != nil {
-			tools.Compile_error = err.Error()
+			//err = app.CheckRun()
+			//app.router.log.Error(err)
 		} else {
-			tools.Destroy() //stop it - CheckRun() will start lastest bin
-
-			err = tools.router.tools.CheckRun()
-			tools.router.log.Error(err)
+			app.Compile_error = err.Error()
 		}
 
 		saveIt = true
@@ -374,89 +389,98 @@ func (tools *ToolsCmd) _hotReload() error {
 
 	if saveIt {
 		//save 'tools.json'
-		tools._save()
+		app._save()
 	}
 
 	return nil
 }
 
-func (tools *ToolsCmd) getBinName() string {
-	return strconv.FormatInt(tools.CodeHash, 10) + ".bin"
+func (app *ToolsApp) getBinName() string {
+	return strconv.FormatInt(app.CodeHash, 10) + ".bin"
 }
 
-func (tools *ToolsCmd) CheckRun() error {
-	if !tools.IsRunning() {
+func (app *ToolsApp) CheckRun() error {
+	if !app.IsRunning() {
 
-		tools.lock.Lock()
-		defer tools.lock.Unlock()
+		app.lock.Lock()
+		defer app.lock.Unlock()
 
-		if tools.Compile_error != "" {
-			return errors.New(tools.cmd_error)
+		if app.Compile_error != "" {
+			return fmt.Errorf("'%s' app has compilation error: %s", app.name, app.cmd_error)
 		}
 
-		if tools.cmd_exited {
-			tools.WaitUntilExited()
+		if app.CodeHash == 0 {
+			return fmt.Errorf("'%s' app is waiting for compilation", app.name)
 		}
 
-		tools.cmd_exited = false
-		tools.cmd_error = ""
-		tools.port = 0
-		tools.cmd = nil
+		if app.cmd_exited {
+			app.WaitUntilExited()
+		}
+
+		app.cmd_exited = false
+		app.cmd_error = ""
+		app.port = 0
+		app.cmd = nil
+
+		fmt.Printf("App '%s' is starting\n", app.name)
 
 		//start
-		cmd := exec.Command(filepath.Join("..", tools.folderCode)+"/./"+tools.getBinName(), strconv.Itoa(tools.router.server.port))
-		cmd.Dir = tools.router.files.folder
+		cmd := exec.Command("./"+app.getBinName(), app.name, strconv.Itoa(app.router.server.port))
+		cmd.Dir = app.folder
 		OutStr := new(strings.Builder)
 		ErrStr := new(strings.Builder)
 		cmd.Stdout = OutStr
 		cmd.Stderr = ErrStr
-		fmt.Printf("Tools started\n")
 		err := cmd.Start()
 		if err != nil {
 			return err
 		}
-		tools.cmd = cmd //running
+		app.cmd = cmd //running
+
+		fmt.Printf("App '%s' has started\n", app.name)
 
 		//run tool
 		go func() {
-			tools.cmd.Wait()
+			app.cmd.Wait()
 
 			if OutStr.Len() > 0 {
-				fmt.Printf("Tools output: %s\n", OutStr.String())
+				fmt.Printf("'%s' app output: %s\n", app.name, OutStr.String())
 			}
 			if ErrStr.Len() > 0 {
-				fmt.Printf("\033[31mTools error:%s\033[0m\n", ErrStr.String())
+				fmt.Printf("\033[31m'%s' app error:%s\033[0m\n", app.name, ErrStr.String())
 			}
 
 			wd, _ := os.Getwd()
-			tools.cmd_error = strings.ReplaceAll(ErrStr.String(), wd, "")
-			tools.cmd_exited = true
-			tools.cmd = nil
+			app.cmd_error = strings.ReplaceAll(ErrStr.String(), wd, "")
+			app.cmd_exited = true
+			app.cmd = nil
 		}()
 	}
 
 	//wait one second for recv a port
 	{
 		n := 0
-		for n < 100 && tools.port == 0 {
+		for n < 100 && app.port == 0 {
 			time.Sleep(10 * time.Millisecond)
 			n++
 		}
-		if tools.port == 0 {
-			fmt.Printf("Tools process hasn't connected in time\n")
+		if app.port == 0 {
+			fmt.Printf("'%s' app process hasn't connected in time\n", app.name)
 		}
 	}
 
 	return nil //ok
 }
 
-func (tools *ToolsCmd) compile(codeHash int64) error {
-	tools.lock.Lock()
-	defer tools.lock.Unlock()
+func (app *ToolsApp) compile(codeHash int64) error {
+	app.lock.Lock()
+	defer app.lock.Unlock()
 
-	tools.CodeHash = codeHash
+	defer func() {
+		app.CodeHash = codeHash
+	}()
 
-	msg := tools.router.AddRecompileMsg()
+	msg := app.router.AddRecompileMsg(app.name)
 	defer msg.Done()
 
 	msg.progress_label = "Generating tools code"
@@ -466,11 +490,11 @@ func (tools *ToolsCmd) compile(codeHash int64) error {
 		var strCalls strings.Builder
 
 		//start
-		strInits.WriteString("func _callGlobalInits() {\n\tvar err error\n")
-		strFrees.WriteString("func _callGlobalDestroys() {\n\tvar err error\n")
+		strInits.WriteString("func _callGlobalInits() {\n\n")
+		strFrees.WriteString("func _callGlobalDestroys() {\n\n")
 		strCalls.WriteString("func FindToolRunFunc(funcName string, jsParams []byte) (func(caller *ToolCaller, ui *UI) error, interface{}) {\n\tswitch funcName {\n")
 
-		files, err := os.ReadDir(tools.folderCode)
+		files, err := os.ReadDir(app.folder)
 		if err != nil {
 			return err
 		}
@@ -481,7 +505,7 @@ func (tools *ToolsCmd) compile(codeHash int64) error {
 
 			stName := info.Name()[1 : len(info.Name())-3]
 
-			fl, err := os.ReadFile(filepath.Join(tools.folderCode, info.Name()))
+			fl, err := os.ReadFile(filepath.Join(app.folder, info.Name()))
 			if err != nil {
 				return err
 			}
@@ -490,23 +514,25 @@ func (tools *ToolsCmd) compile(codeHash int64) error {
 			//add init
 			if strings.Index(flstr, stName+"_global_init") > 0 {
 				strInits.WriteString(fmt.Sprintf(`
-		err = %s_global_init()
+	{
+		err := %s_global_init()
 		if err != nil {
 			log.Fatal(err)
 		}
-			`, stName))
+	}
+`, stName))
 			}
 
 			//add destroy
 			if strings.Index(flstr, stName+"_global_destroy") > 0 {
 				strFrees.WriteString(fmt.Sprintf(`
-		defer func() {
-			err = %s_global_destroy()
-			if err != nil {
-				log.Fatal(err)
-			}
-		}()
-			`, stName))
+	{
+		err := %s_global_destroy()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+`, stName))
 			}
 
 			//add call
@@ -527,17 +553,24 @@ func (tools *ToolsCmd) compile(codeHash int64) error {
 		strCalls.WriteString("\n\t}\n\treturn nil, nil\n}\n")
 
 		var strFinal strings.Builder
-		strFinal.WriteString(`package main
-import (
-	"encoding/json"
-	"log"
-)
-`)
+		/*strFinal.WriteString(`package main
+		import (
+			"encoding/json"
+			"log"
+		)
+		`)*/
+
+		mainGo, err := os.ReadFile(filepath.Join(app.router.folderApps, "main.go"))
+		if err != nil {
+			return err
+		}
+		strFinal.WriteString(string(mainGo))
+		strFinal.WriteString("\n")
 		strFinal.WriteString(strInits.String())
 		strFinal.WriteString(strFrees.String())
 		strFinal.WriteString(strCalls.String())
 
-		err = os.WriteFile(filepath.Join(tools.folderCode, tools.GetGenGoFileName()), []byte(strFinal.String()), 0644)
+		err = os.WriteFile(filepath.Join(app.folder, "main.go"), []byte(strFinal.String()), 0644)
 		if err != nil {
 			return err
 		}
@@ -547,10 +580,10 @@ import (
 	//fix files
 	msg.progress_label = "Fixing tools code"
 	{
-		fmt.Printf("Fixing ... ")
+		fmt.Printf("Fixing '%s' ... ", app.name)
 		st := float64(time.Now().UnixMilli()) / 1000
 		cmd := exec.Command("goimports", "-l", "-w", ".")
-		cmd.Dir = tools.folderCode
+		cmd.Dir = app.folder
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
 		cmd.Stdout = os.Stdout
@@ -566,13 +599,13 @@ import (
 	//update packages
 	msg.progress_label = "Updating tools packages"
 	{
-		fmt.Printf("Updating packages ... ")
+		fmt.Printf("Updating packages '%s' ... ", app.name)
 		st := float64(time.Now().UnixMilli()) / 1000
 
-		if !Tools_FileExists(filepath.Join(tools.folderCode, "go.mod")) {
+		if !Tools_FileExists(filepath.Join(app.folder, "go.mod")) {
 			//create
-			cmd := exec.Command("go", "mod", "init", "skyalt_tools")
-			cmd.Dir = tools.folderCode
+			cmd := exec.Command("go", "mod", "init", "skyalt_tool")
+			cmd.Dir = app.folder
 			var stderr bytes.Buffer
 			cmd.Stderr = &stderr //os.Stderr
 			cmd.Stdout = os.Stdout
@@ -584,7 +617,7 @@ import (
 
 		//update
 		cmd := exec.Command("go", "mod", "tidy")
-		cmd.Dir = tools.folderCode
+		cmd.Dir = app.folder
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
 		cmd.Stdout = os.Stdout
@@ -600,10 +633,10 @@ import (
 	//compile
 	msg.progress_label = "Compiling tools code"
 	{
-		fmt.Printf("Compiling ... ")
+		fmt.Printf("Compiling '%s' ... ", app.name)
 		st := float64(time.Now().UnixMilli()) / 1000
-		cmd := exec.Command("go", "build", "-o", tools.getBinName())
-		cmd.Dir = tools.folderCode
+		cmd := exec.Command("go", "build", "-o", app.getBinName())
+		cmd.Dir = app.folder
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
 		cmd.Stdout = os.Stdout
@@ -616,6 +649,19 @@ import (
 	msg.progress_done = 1.0
 
 	return nil
+}
+
+func _ToolsCaller_UpdateDev(port int, fnLog func(err error) error) error {
+	cl, err := NewToolsClient("localhost", port)
+	if fnLog(err) == nil {
+		defer cl.Destroy()
+
+		//send
+		err = cl.WriteArray([]byte("update_dev"))
+		fnLog(err)
+	}
+
+	return fmt.Errorf("connection failed")
 }
 
 // Function was copied from Server code

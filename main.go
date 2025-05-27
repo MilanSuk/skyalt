@@ -42,7 +42,7 @@ func main() {
 	defer win.Destroy()
 
 	//Tools
-	router := NewToolsRouter("tools", "files", 8000)
+	router := NewToolsRouter("apps", 8000)
 	defer router.Destroy()
 
 	//UI
@@ -63,16 +63,17 @@ func main() {
 			log.Fatalf("UpdateIO() failed: %v\n", err)
 		}
 
-		if !router.tools.IsRunning() {
+		rootApp := router.GetRootApp()
+		if rootApp != nil && !rootApp.IsRunning() {
 
 			win.StartRender(color.RGBA{220, 220, 220, 255})
 
-			if router.tools.Compile_error != "" {
+			if rootApp.Compile_error != "" {
 				//error
-				win.RenderError("Error: " + router.tools.Compile_error)
+				win.RenderError("Error: " + rootApp.Compile_error)
 
 			} else {
-				msg := router.FindRecompileMsg()
+				msg := router.FindRecompileMsg("Root")
 				if msg != nil && !msg.out_done.Load() {
 					//compiling
 					pl := ui.sync.GetPalette()
@@ -80,7 +81,7 @@ func main() {
 					win.RenderProgress(msg.progress_label, particles_cd, 0, ui.Cell())
 				} else {
 					//try run it
-					router.tools.CheckRun()
+					rootApp.CheckRun()
 				}
 
 			}

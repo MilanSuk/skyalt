@@ -2,18 +2,37 @@
 TODO.md
 DEMO.md
 
-
 root.json
 ini.json
 layouts.json
 
-files/
-services/
+apps/Activities/*.json
+apps/Activities/*.bin
+apps/Activities/main.go
+apps/Activities/.vscode/
+apps/Activities/Activities/
 
-tools/tools.json
-tools/*.bin
+apps/Emails/*.json
+apps/Emails/*.bin
+apps/Emails/main.go
+apps/Emails/.vscode/
 
+apps/Events/*.json
+apps/Events/*.bin
+apps/Events/main.go
+apps/Events/.vscode/
 
+apps/Root/*.json
+apps/Root/*.bin
+apps/Root/main.go
+apps/Root/.vscode/
+apps/Root/Chats/
+apps/Root/cache.sqlite
+
+apps/Tools/*.json
+apps/Tools/*.bin
+apps/Tools/main.go
+apps/Tools/.vscode/
 
 
 

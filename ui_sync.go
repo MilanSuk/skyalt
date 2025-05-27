@@ -18,8 +18,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"image/color"
+	"os"
 )
 
 type UiSyncDeviceSettingsMicrophone struct {
@@ -61,24 +61,17 @@ type UiSyncMapSettings struct {
 }
 
 type UiSync struct {
-	device_settings UiSyncDeviceSettings
-	map_settings    UiSyncMapSettings
+	Device UiSyncDeviceSettings
+	Map    UiSyncMapSettings
 
-	DeviceSettings_path       string
-	DeviceSettings_time_stamp int64
-
-	MapSettings_path       string
-	MapSettings_time_stamp int64
+	last_dev_storage_change int64
 }
 
 func NewUiSync(router *ToolsRouter) (*UiSync, error) {
 	snc := &UiSync{}
 
-	snc.DeviceSettings_path = "DeviceSettings-DeviceSettings.json"
-	snc.MapSettings_path = "MapSettings-MapSettings.json"
-
 	//"pre-init"
-	snc.device_settings = UiSyncDeviceSettings{
+	snc.Device = UiSyncDeviceSettings{
 		Dpi:        GetDeviceDPI(),
 		DateFormat: "us",
 		Rounding:   0.2,
@@ -102,17 +95,14 @@ func NewUiSync(router *ToolsRouter) (*UiSync, error) {
 	}
 
 	//"pre-init"
-	snc.map_settings = UiSyncMapSettings{Enable: false}
+	snc.Map = UiSyncMapSettings{Enable: false}
 
 	//send default DPI
 	{
 		type SetDPIDefault struct {
 			DPI int
 		}
-		_, err := router.CallAsync(0, "SetDeviceDPIDefault", SetDPIDefault{DPI: GetDeviceDPI()}, nil, nil)
-		if err != nil {
-			return nil, err
-		}
+		router.CallAsync(0, "Root", "SetDeviceDPIDefault", SetDPIDefault{DPI: GetDeviceDPI()}, nil, nil)
 	}
 
 	return snc, nil
@@ -121,64 +111,30 @@ func NewUiSync(router *ToolsRouter) (*UiSync, error) {
 func (snc *UiSync) Destroy() {
 }
 
-func (snc *UiSync) NeedRefresh(router *ToolsRouter) bool {
+func (snc *UiSync) Tick(router *ToolsRouter) bool {
+	devApp := router.FindApp("Root")
+	if devApp != nil {
+		if devApp.storage_changes != snc.last_dev_storage_change {
 
-	changed := false
+			devApp.storage_changes = snc.last_dev_storage_change
 
-	//Device
-	{
-		dev, _ := router.files.GetFile(snc.DeviceSettings_path)
-		if dev != nil {
-			if dev.time_stamp != snc.DeviceSettings_time_stamp {
-				snc.DeviceSettings_time_stamp = dev.time_stamp
-				changed = true
+			devJs, err := os.ReadFile("apps/Root/DeviceSettings-DeviceSettings.json")
+			if err == nil {
+				json.Unmarshal(devJs, &snc.Device) //err ....
 			}
-		}
-	}
 
-	//Maps
-	{
-		mp, _ := router.files.GetFile(snc.MapSettings_path)
-		if mp != nil {
-			if mp.time_stamp != snc.MapSettings_time_stamp {
-				snc.MapSettings_time_stamp = mp.time_stamp
-				changed = true
+			mapJs, err := os.ReadFile("apps/Root/MapSettings-MapSettings.json")
+			if err == nil {
+				json.Unmarshal(mapJs, &snc.Map) //err ....
 			}
+
+			router.CallUpdateDev()
+
+			return true
 		}
 	}
 
-	return changed
-}
-
-func (snc *UiSync) ReloadSettings(router *ToolsRouter) error {
-
-	//Device
-	{
-		dev, dev_data := router.files.GetFile(snc.DeviceSettings_path)
-		if dev == nil {
-			return fmt.Errorf("'%s' not found", snc.DeviceSettings_path)
-		}
-		err := json.Unmarshal(dev_data, &snc.device_settings)
-		if err != nil {
-			return err
-		}
-	}
-
-	//Maps
-	{
-		mps, mps_data := router.files.GetFile(snc.MapSettings_path)
-		if mps == nil {
-			return fmt.Errorf("'%s' not found", snc.MapSettings_path)
-		}
-		err := json.Unmarshal(mps_data, &snc.map_settings)
-		if err != nil {
-			return err
-		}
-	}
-
-	snc.device_settings.Dpi = OsClamp(snc.device_settings.Dpi, 30, 600)
-
-	return nil
+	return false
 }
 
 func (snc *UiSync) Upload_deviceDPI(new_dpi int, router *ToolsRouter) {
@@ -186,7 +142,7 @@ func (snc *UiSync) Upload_deviceDPI(new_dpi int, router *ToolsRouter) {
 	type SetDPI struct {
 		DPI int
 	}
-	router.CallAsync(0, "SetDeviceDPI", SetDPI{DPI: new_dpi}, nil, nil)
+	router.CallAsync(0, "Root", "SetDeviceDPI", SetDPI{DPI: new_dpi}, nil, nil)
 }
 
 func (snc *UiSync) Upload_deviceStats(new_stat bool, router *ToolsRouter) {
@@ -194,7 +150,7 @@ func (snc *UiSync) Upload_deviceStats(new_stat bool, router *ToolsRouter) {
 	type SetStats struct {
 		Show bool
 	}
-	router.CallAsync(0, "SetDeviceStats", SetStats{Show: new_stat}, nil, nil)
+	router.CallAsync(0, "Root", "SetDeviceStats", SetStats{Show: new_stat}, nil, nil)
 }
 
 func (snc *UiSync) Upload_deviceFullscreen(new_fullscreen bool, router *ToolsRouter) {
@@ -202,30 +158,29 @@ func (snc *UiSync) Upload_deviceFullscreen(new_fullscreen bool, router *ToolsRou
 	type SetFullscreen struct {
 		Enable bool
 	}
-	router.CallAsync(0, "SetDeviceFullscreen", SetFullscreen{Enable: new_fullscreen}, nil, nil)
+	router.CallAsync(0, "Root", "SetDeviceFullscreen", SetFullscreen{Enable: new_fullscreen}, nil, nil)
 
 }
 
 func (snc *UiSync) GetPalette() *DevPalette {
-
-	switch snc.device_settings.Theme {
+	switch snc.Device.Theme {
 	case "light":
-		return &snc.device_settings.LightPalette
+		return &snc.Device.LightPalette
 	case "dark":
-		return &snc.device_settings.DarkPalette
+		return &snc.Device.DarkPalette
 	}
-	return &snc.device_settings.CustomPalette
+	return &snc.Device.CustomPalette
 
 }
 func (snc *UiSync) GetStats() bool {
-	return snc.device_settings.Stats
+	return snc.Device.Stats
 }
 func (snc *UiSync) GetDateFormat() string {
-	return snc.device_settings.DateFormat
+	return snc.Device.DateFormat
 }
 func (snc *UiSync) GetRounding() float64 {
-	return snc.device_settings.Rounding
+	return snc.Device.Rounding
 }
 func (snc *UiSync) IsMicrophoneEnabled() bool {
-	return snc.device_settings.Microphone.Enable
+	return snc.Device.Microphone.Enable
 }

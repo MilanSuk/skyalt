@@ -147,11 +147,11 @@ func (ui *Ui) UpdateIO(winRect OsV4) {
 
 	keys := ui.win.io.Keys
 	if keys.ZoomAdd {
-		ui.sync.Upload_deviceDPI(OsClamp(ui.sync.device_settings.Dpi+3, 30, 5000), ui.router)
+		ui.sync.Upload_deviceDPI(OsClamp(ui.sync.Device.Dpi+3, 30, 5000), ui.router)
 		keys.ZoomAdd = false
 	}
 	if keys.ZoomSub {
-		ui.sync.Upload_deviceDPI(OsClamp(ui.sync.device_settings.Dpi-3, 30, 5000), ui.router)
+		ui.sync.Upload_deviceDPI(OsClamp(ui.sync.Device.Dpi-3, 30, 5000), ui.router)
 		keys.ZoomSub = false
 	}
 	if keys.ZoomDef {
@@ -159,15 +159,15 @@ func (ui *Ui) UpdateIO(winRect OsV4) {
 		keys.ZoomDef = false
 	}
 	if keys.F2 {
-		ui.sync.Upload_deviceStats(!ui.sync.device_settings.Stats, ui.router)
+		ui.sync.Upload_deviceStats(!ui.sync.Device.Stats, ui.router)
 		keys.F2 = false
 	}
 	if keys.F11 {
-		ui.sync.Upload_deviceFullscreen(!ui.sync.device_settings.Fullscreen, ui.router)
+		ui.sync.Upload_deviceFullscreen(!ui.sync.Device.Fullscreen, ui.router)
 		keys.F11 = false
 	}
 
-	ui.win.fullscreen = ui.sync.device_settings.Fullscreen
+	ui.win.fullscreen = ui.sync.Device.Fullscreen
 
 	if !ui.winRect.Cmp(winRect) {
 		ui.SetRefresh()
@@ -206,7 +206,7 @@ func (ui *Ui) ResetIO() {
 }
 
 func (ui *Ui) Cell() int {
-	return int(float64(ui.sync.device_settings.Dpi) / 2.5)
+	return int(float64(ui.sync.Device.Dpi) / 2.5)
 }
 func (ui *Ui) CellWidth(width float64) int {
 	t := int(width * float64(ui.Cell())) // cell is ~34
@@ -216,7 +216,7 @@ func (ui *Ui) CellWidth(width float64) int {
 	return t
 }
 func (ui *Ui) GetScrollThickness() int {
-	return int(float64(ui.Cell()) * float64(ui.sync.device_settings.ScrollThick))
+	return int(float64(ui.Cell()) * float64(ui.sync.Device.ScrollThick))
 }
 
 func _draw(layout *Layout) {
@@ -313,7 +313,7 @@ func (ui *Ui) Tick() {
 		ui.SetRefresh()
 	}
 
-	if ui.sync.NeedRefresh(ui.router) {
+	if ui.sync.Tick(ui.router) {
 		ui.SetRefresh()
 	}
 
@@ -350,13 +350,11 @@ func (ui *Ui) Tick() {
 		type ShowRoot struct {
 			AddBrush *LayoutPick
 		}
-		ui.router.CallAsync(1, "ShowRoot", ShowRoot{AddBrush: brush}, fnProgress, fnDone)
+		ui.router.CallAsync(1, "Root", "ShowRoot", ShowRoot{AddBrush: brush}, fnProgress, fnDone)
 	}
 
 	if !ui.touch.IsActive() {
 		if ui.temp_ui != nil {
-			ui.sync.ReloadSettings(ui.router)
-
 			new_dom := NewUiLayoutDOM_root(ui)
 
 			fnProgress := func(cmds []ToolCmd, err error, start_time float64) {
@@ -373,7 +371,7 @@ func (ui *Ui) Tick() {
 				fmt.Printf("_changed(): %.4fsec\n", OsTime()-start_time)
 			}
 
-			ui.temp_ui.addLayout(new_dom, "ShowRoot", 1, fnProgress, fnDone)
+			ui.temp_ui.addLayout(new_dom, "Root", "ShowRoot", 1, fnProgress, fnDone)
 
 			new_dom._build()
 			ui.mainLayout = new_dom
