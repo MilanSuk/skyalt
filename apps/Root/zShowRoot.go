@@ -195,7 +195,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				btClose.Background = 0.2
 				btClose.clicked = func() error {
 					source_root.Tabs = slices.Delete(source_root.Tabs, i, i+1)
-
 					if i < source_root.Selected_tab_i {
 						source_root.Selected_tab_i--
 					}
@@ -227,7 +226,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				return err
 			}
 
-			ChatDiv.Back_cd = caller.GetPalette().GetGrey(0.03)
+			ChatDiv.Back_cd = UI_GetPalette().GetGrey(0.03)
 
 			for _, br := range sourceChat.Input.Picks {
 				ui.Paint_Brush(br.Cd.Cd, br.Points)
@@ -285,7 +284,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 			}
 			err = source_llm.Check(caller)
 			if err != nil {
-				bt.Cd = caller.GetPalette().E
+				bt.Cd = UI_GetPalette().E
 				bt.Tooltip = "Error: " + err.Error()
 			}
 			y++
@@ -312,7 +311,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 			}
 			err = source_wsp.Check()
 			if err != nil {
-				bt.Cd = caller.GetPalette().E
+				bt.Cd = UI_GetPalette().E
 				bt.Tooltip = "Error: " + err.Error()
 			}
 			y++
@@ -390,7 +389,7 @@ func (st *ShowRoot) buildThreads(ui *UI, msgs []SdkMsg) {
 	/*errs := router.log.GetList(time.Now().Unix() - 10)
 	for _, er := range errs {
 		tx := ui.AddText(0, y, 2, 1, "Error: "+er.err.Error())
-		tx.Cd = caller.GetPalette().E
+		tx.Cd = UI_GetPalette().E
 		y++
 	}
 

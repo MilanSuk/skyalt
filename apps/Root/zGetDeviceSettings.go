@@ -14,8 +14,7 @@ type GetDeviceSettings struct {
 
 	Out_Theme string
 
-	Out_Palette    DevPalette
-	Out_Microphone DeviceSettingsMicrophone
+	Out_Palette DeviceSettingsPalette
 }
 
 func (st *GetDeviceSettings) run(caller *ToolCaller, ui *UI) error {
@@ -34,7 +33,6 @@ func (st *GetDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 	st.Out_Stats = source_dev.Stats
 	st.Out_Theme = source_dev.Theme
 	st.Out_Palette = *source_dev.GetPalette()
-	st.Out_Microphone = source_dev.Microphone
 
 	return nil
 }

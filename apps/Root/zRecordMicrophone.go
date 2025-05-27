@@ -56,18 +56,18 @@ func (st *RecordMicrophone) run(caller *ToolCaller, ui *UI) error {
 
 	} else {
 
-		source_dev, err := NewDeviceSettings("", caller)
+		source_mic, err := NewMicrophoneSettings("", caller)
 		if err != nil {
 			return err
 		}
 
-		mic, err := g_malgo.Start(st.UID, source_dev)
+		mic, err := g_malgo.Start(st.UID, source_mic)
 		if err != nil {
 			return err
 		}
 
 		for !mic.Stop.Load() {
-			if source_dev.Microphone.Enable && !caller.Progress(0, "Listening") {
+			if source_mic.Enable && !caller.Progress(0, "Listening") {
 				g_malgo.Finished(st.UID, true)
 				return nil //cancelled
 			}
@@ -93,7 +93,7 @@ type MicMalgo struct {
 
 var g_malgo = MicMalgo{mics: make(map[string]*MicMalgoRecord)}
 
-func (mlg *MicMalgo) _checkDevice(deviceSource *DeviceSettings) error {
+func (mlg *MicMalgo) _checkDevice(source_mic *MicrophoneSettings) error {
 
 	if g_malgo.device != nil {
 		return nil
@@ -106,10 +106,10 @@ func (mlg *MicMalgo) _checkDevice(deviceSource *DeviceSettings) error {
 
 	deviceConfig := malgo.DefaultDeviceConfig(malgo.Duplex)
 	deviceConfig.Capture.Format = malgo.FormatS16
-	deviceConfig.Capture.Channels = uint32(deviceSource.Microphone.Channels)
+	deviceConfig.Capture.Channels = uint32(source_mic.Channels)
 	deviceConfig.Playback.Format = malgo.FormatS16
-	deviceConfig.Playback.Channels = uint32(deviceSource.Microphone.Channels)
-	deviceConfig.SampleRate = uint32(deviceSource.Microphone.Sample_rate)
+	deviceConfig.Playback.Channels = uint32(source_mic.Channels)
+	deviceConfig.SampleRate = uint32(source_mic.Sample_rate)
 	deviceConfig.Alsa.NoMMap = 1
 
 	onRecvFrames := func(pSample2, pSample []byte, framecount uint32) {
@@ -138,11 +138,11 @@ func (mlg *MicMalgo) Find(uid string) *MicMalgoRecord {
 	return mlg.mics[uid]
 }
 
-func (mlg *MicMalgo) Start(uid string, deviceSource *DeviceSettings) (*MicMalgoRecord, error) {
+func (mlg *MicMalgo) Start(uid string, source_mic *MicrophoneSettings) (*MicMalgoRecord, error) {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
-	err := mlg._checkDevice(deviceSource)
+	err := mlg._checkDevice(source_mic)
 	if err != nil {
 		return nil, err
 	}

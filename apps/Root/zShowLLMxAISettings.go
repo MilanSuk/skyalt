@@ -34,7 +34,7 @@ func (st *ShowLLMxAISettings) run(caller *ToolCaller, ui *UI) error {
 	{
 		tx := ui.AddText(0, y, 1, 1, "API key")
 		if source_llm.API_key == "" {
-			tx.Cd = caller.GetPalette().E
+			tx.Cd = UI_GetPalette().E
 		}
 
 		KeyEd := ui.AddEditboxString(1, y, 1, 1, &source_llm.API_key)

@@ -30,8 +30,6 @@ type LLMxAICompleteChat struct {
 	UserMessage      string
 	UserFiles        []string
 
-	Tools []string
-
 	Response_format string
 
 	Max_iteration int
@@ -87,10 +85,7 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 	//Tools
 	var tools []*OpenAI_completion_tool
 	{
-		slices.Sort(st.Tools)
-		st.Tools = slices.Compact(st.Tools) //remove duplicities
-
-		js := callFuncGetToolsShemas(st.Tools)
+		js := callFuncGetToolsShemas()
 		if len(js) > 0 {
 			err := json.Unmarshal(js, &tools)
 			if err != nil {

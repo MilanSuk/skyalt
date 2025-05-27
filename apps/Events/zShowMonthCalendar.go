@@ -22,7 +22,7 @@ func (st *ShowMonthCalendar) run(caller *ToolCaller, ui *UI) error {
 	dt := time.Date(st.Year, time.Month(st.Month), 1, 0, 0, 0, 0, time.Local)
 	{
 		firstDay := time.Monday
-		if caller.GetDateFormat() == "us" {
+		if UI_GetDateFormat() == "us" {
 			firstDay = time.Sunday
 		}
 		for dt.Weekday() != firstDay {

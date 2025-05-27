@@ -17,7 +17,7 @@ func (st *GetWeekDays) run(caller *ToolCaller, ui *UI) error {
 
 	//go to first day of the week
 	firstDay := time.Monday
-	if caller.GetDateFormat() == "us" {
+	if UI_GetDateFormat() == "us" {
 		firstDay = time.Sunday
 	}
 	for dt.Weekday() != firstDay {

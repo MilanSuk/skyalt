@@ -55,17 +55,18 @@ func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
 
 		TestErrDia := ui.AddDialog("test_err")
 		TestErrDia.UI.SetColumn(0, 5, 5)
+		TestErrDia.UI.Border_cd = UI_GetPalette().E
 		tx = TestErrDia.UI.AddText(0, 0, 1, 1, "Error - Server not found")
 		tx.Align_h = 1
-		tx.Cd = caller.GetPalette().E
+		tx.Cd = UI_GetPalette().E
 
 		TestBt := AddrDiv.AddButton(2, 0, 1, 1, "Test")
 		TestBt.clicked = func() error {
 			status, err := st.SetModel("", source_wsp)
 			if err == nil && status == 200 {
-				TestOKDia.OpenCentered(caller)
+				TestOKDia.OpenRelative(TestBt.layout, caller)
 			} else {
-				TestErrDia.OpenCentered(caller)
+				TestErrDia.OpenRelative(TestBt.layout, caller)
 			}
 			return nil
 		}

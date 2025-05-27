@@ -63,7 +63,7 @@ func (st *ShowActivityPacesChart) run(caller *ToolCaller, ui *UI) error {
 				pace := currTime.Sub(last_time).Seconds() / (totalDistance - last_dist) //diff_time / diff_distance = time_in_seconds
 
 				//Label: fmt.Sprintf("%d:%d", int(pace)/60, int(pace)%60)
-				columns = append(columns, UIChartColumn{Values: []UIChartColumnValue{{Value: pace, Cd: caller.GetPalette().P}}})
+				columns = append(columns, UIChartColumn{Values: []UIChartColumnValue{{Value: pace, Cd: UI_GetPalette().P}}})
 				x_labels = append(x_labels, fmt.Sprintf("%d", int(totalDistance)+1))
 
 				last_time = currTime

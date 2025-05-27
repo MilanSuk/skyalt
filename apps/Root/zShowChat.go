@@ -141,9 +141,9 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 		Div.SetRowFromSub(1, 1, g_ShowChat_prompt_height-1)
 		Div.SetRow(2, dd, dd)
 
-		Div.Back_cd = caller.GetPalette().B //GetGrey(0.05)
+		Div.Back_cd = UI_GetPalette().B //GetGrey(0.05)
 		Div.Back_rounding = true
-		Div.Border_cd = caller.GetPalette().GetGrey(0.2)
+		Div.Border_cd = UI_GetPalette().GetGrey(0.2)
 
 		err = st.buildInput(Div.AddLayout(1, 1, 1, 1), caller, source_chat, source_root, MsgsDiv, isRunning)
 		if err != nil {
@@ -342,7 +342,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 			micBt.Tooltip = "Record audio"
 			if callFuncFindMsgName(mic_msg_id) != nil {
 				micBt.Background = 1 //active
-				micBt.Cd = caller.GetPalette().E
+				micBt.Cd = UI_GetPalette().E
 				micBt.Tooltip = "Stop recording"
 			}
 
@@ -471,7 +471,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 			SendBt.clicked = sendIt
 		} else {
 			StopBt := DivSend.AddButton(0, 1, 1, 1, "Stop")
-			StopBt.Cd = caller.GetPalette().E
+			StopBt.Cd = UI_GetPalette().E
 			StopBt.clicked = func() error {
 				st.stop(chat)
 				return nil
@@ -508,7 +508,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 			imgBt.Tooltip = file
 
 			imgBt.Background = 0
-			imgBt.Cd = caller.GetPalette().B
+			imgBt.Cd = UI_GetPalette().B
 			imgBt.Border = true
 			imgBt.clicked = func() error {
 				ImgDia.OpenRelative(imgBt.layout, caller)
@@ -538,7 +538,7 @@ func (st *ShowChat) stop(chat *Chat) {
 }
 
 func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continuee bool) error {
-	sources := callFuncGetSources()
+	//sources := callFuncGetSources()
 
 	needSummary := (len(chat.Messages.Messages) == 0 /*|| len(chat.Label) < 8*/)
 
@@ -554,7 +554,7 @@ func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continu
 	comp.Reasoning_effort = "" //low, high
 
 	//add default(without source) tools
-	{
+	/*{
 		defSource := sources["_default_"]
 		if defSource != nil {
 			comp.Tools = append(comp.Tools, defSource.Tools...)
@@ -568,7 +568,7 @@ func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continu
 				comp.Tools = append(comp.Tools, source.Tools...)
 			}
 		}
-	}
+	}*/
 
 	old_num_msgs := len(chat.Messages.Messages)
 	var err error
@@ -583,7 +583,7 @@ func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continu
 If you need, you can use tool calling. Tools gives you precision and output data which you wouldn't know otherwise. Don't ask to call a tool, just do it! Call tools sequentially. Avoid tool call as parameter value.`
 
 		//sources
-		system_prompt += "Here is the list of data sources in form of '<name> //<description>':\n"
+		/*system_prompt += "Here is the list of data sources in form of '<name> //<description>':\n"
 		for sourceName, source := range sources {
 			system_prompt += fmt.Sprintf("%s //%s", sourceName, source.Description)
 			if slices.Index(chat.Sources, sourceName) >= 0 {
@@ -592,6 +592,7 @@ If you need, you can use tool calling. Tools gives you precision and output data
 			system_prompt += "\n"
 		}
 		system_prompt += fmt.Sprintf("Based on what you need you can install new tools by calling InstallDataSource with ChatID=%d. This will give you access to new tools.\n", st.ChatID)
+		*/
 
 		//Date time
 		system_prompt += fmt.Sprintf("\nCurrent time is %s\n", time.Now().Format("Mon, 02 Jan 2006 15:04"))
@@ -737,7 +738,7 @@ func (st *ShowChat) buildShowMessages(ui *UI, caller *ToolCaller, source_chat *C
 	if !isRunning && len(source_chat.TempMessages.Messages) > 0 {
 
 		btContinue := ui.AddButton(1, y, 1, 1, "Continue")
-		btContinue.Cd = caller.GetPalette().E
+		btContinue.Cd = UI_GetPalette().E
 		btContinue.clicked = func() error {
 			return st._sendIt(caller, source_chat, source_root, ui, true)
 		}
@@ -777,7 +778,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 	layout.SetColumn(2, 1, 100)
 
 	if msg.Provider != "" {
-		layout.Back_cd = caller.GetPalette().GetGrey(0.09)
+		layout.Back_cd = UI_GetPalette().GetGrey(0.09)
 		layout.Back_rounding = true
 	}
 
@@ -800,8 +801,8 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 
 					tx := UserDiv.AddText(1, 0, 1, 1, txt)
 					tx.Multiline = true
-					tx.layout.Border_cd = caller.GetPalette().GetGrey(0.2)
-					tx.layout.Back_cd = caller.GetPalette().B
+					tx.layout.Border_cd = UI_GetPalette().GetGrey(0.2)
+					tx.layout.Back_cd = UI_GetPalette().B
 					tx.layout.Back_rounding = true
 
 				}
@@ -843,7 +844,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 					imgBt.Icon_margin = 0
 
 					imgBt.Background = 0
-					imgBt.Cd = caller.GetPalette().B
+					imgBt.Cd = UI_GetPalette().B
 					imgBt.Border = true
 					imgBt.clicked = func() error {
 						ImgDia.OpenRelative(imgBt.layout, caller)
@@ -896,7 +897,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 	{
 		DivIcons := layout.AddLayout(0, y, 3, 1)
 
-		iconsCd := caller.GetPalette().GetGrey(0.5)
+		iconsCd := UI_GetPalette().GetGrey(0.5)
 
 		x := 0
 
@@ -1104,7 +1105,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 		CallDiv := layout.AddLayout(0, y, 3, 1)
 		CallDiv.SetColumnFromSub(1, 0, 100)
 		CallDiv.SetColumn(2, 1, 100)
-		CallDiv.Back_cd = Color_Aprox(caller.GetPalette().P, caller.GetPalette().B, 0.8)
+		CallDiv.Back_cd = Color_Aprox(UI_GetPalette().P, UI_GetPalette().B, 0.8)
 		y++
 
 		yy := 0

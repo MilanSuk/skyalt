@@ -206,7 +206,7 @@ func (ev *Events) findGroupColorOrDefault(groupID int64, caller *ToolCaller) col
 	if cd != (color.RGBA{}) {
 		return cd
 	}
-	return caller.GetPalette().P
+	return UI_GetPalette().P
 }
 
 func (ev *Events) escapeICSText(text string) string {

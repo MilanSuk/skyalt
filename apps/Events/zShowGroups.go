@@ -54,7 +54,7 @@ func (st *ShowGroups) run(caller *ToolCaller, ui *UI) error {
 	bt := ui.AddButton(0, y, 1, 1, "Add new Group")
 	bt.clicked = func() error {
 		//new
-		source_events.Groups[time.Now().UnixNano()] = &EventsGroup{Label: "New Group", Color: caller.GetPalette().P}
+		source_events.Groups[time.Now().UnixNano()] = &EventsGroup{Label: "New Group", Color: UI_GetPalette().P}
 		return nil
 	}
 

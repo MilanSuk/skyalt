@@ -5,10 +5,9 @@ import (
 	"time"
 )
 
-type DeviceSettingsMicrophone struct {
-	Enable      bool
-	Sample_rate int
-	Channels    int
+type DeviceSettingsPalette struct {
+	P, S, E, B         color.RGBA
+	OnP, OnS, OnE, OnB color.RGBA
 }
 
 // All device settings, this include date format, volume, dpi, fullscreen mode, theme.
@@ -18,8 +17,6 @@ type DeviceSettings struct {
 	ScrollThick float64
 	Volume      float64
 
-	Microphone DeviceSettingsMicrophone
-
 	Dpi         int
 	Dpi_default int
 
@@ -28,9 +25,9 @@ type DeviceSettings struct {
 
 	Theme string //light, dark, custom
 
-	LightPalette  DevPalette
-	DarkPalette   DevPalette
-	CustomPalette DevPalette
+	LightPalette  DeviceSettingsPalette
+	DarkPalette   DeviceSettingsPalette
+	CustomPalette DeviceSettingsPalette
 }
 
 func NewDeviceSettings(file string, caller *ToolCaller) (*DeviceSettings, error) {
@@ -52,7 +49,7 @@ func NewDeviceSettings(file string, caller *ToolCaller) (*DeviceSettings, error)
 	//Theme
 	st.Theme = "light"
 
-	st.LightPalette = DevPalette{
+	st.LightPalette = DeviceSettingsPalette{
 		P:   color.RGBA{37, 100, 120, 255},
 		OnP: color.RGBA{255, 255, 255, 255},
 
@@ -66,7 +63,7 @@ func NewDeviceSettings(file string, caller *ToolCaller) (*DeviceSettings, error)
 		OnB: color.RGBA{25, 27, 30, 255},
 	}
 
-	st.DarkPalette = DevPalette{
+	st.DarkPalette = DeviceSettingsPalette{
 		P:   color.RGBA{150, 205, 225, 255},
 		OnP: color.RGBA{0, 50, 65, 255},
 
@@ -80,7 +77,7 @@ func NewDeviceSettings(file string, caller *ToolCaller) (*DeviceSettings, error)
 		OnB: color.RGBA{230, 230, 230, 255},
 	}
 
-	st.CustomPalette = DevPalette{
+	st.CustomPalette = DeviceSettingsPalette{
 		P:   color.RGBA{37, 100, 120, 255},
 		OnP: color.RGBA{255, 255, 255, 255},
 
@@ -105,13 +102,10 @@ func NewDeviceSettings(file string, caller *ToolCaller) (*DeviceSettings, error)
 		}
 	}
 
-	//Microphone
-	st.Microphone = DeviceSettingsMicrophone{Enable: true, Sample_rate: 44100, Channels: 1}
-
 	return _loadInstance(file, "DeviceSettings", "json", st, true, caller)
 }
 
-func (st *DeviceSettings) GetPalette() *DevPalette {
+func (st *DeviceSettings) GetPalette() *DeviceSettingsPalette {
 	switch st.Theme {
 	case "light":
 		return &st.LightPalette
