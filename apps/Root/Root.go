@@ -9,6 +9,7 @@ type RootApp struct {
 	Name            string
 	Chats           []RootChat
 	Selected_chat_i int
+	DevMode         bool
 }
 
 // Root

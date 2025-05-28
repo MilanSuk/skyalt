@@ -42,14 +42,15 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		}
 	}
 
-	ui.SetColumnResizable(0, 5, 15, 6)
+	ui.SetColumnResizable(0, 6, 15, 6)
 	ui.SetColumn(1, 1, 100)
 	ui.SetRow(0, 1, 100)
 
 	//Side
 	{
 		SideDiv := ui.AddLayout(0, 0, 1, 1)
-		SideDiv.SetColumn(0, 2, 2)
+		d := 1.5
+		SideDiv.SetColumn(0, d, d)
 		SideDiv.SetColumn(1, 1, 100)
 
 		HeaderDiv := SideDiv.AddLayout(0, 0, 2, 1)
@@ -67,49 +68,19 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				AboutDia := HeaderDiv.AddDialog("about")
 				st.buildAbout(&AboutDia.UI)
 
-				HeaderDiv.SetColumn(x, 2, 2)
+				HeaderDiv.SetColumn(x, d, d)
 				//logo := HeaderDiv.AddImagePath(x, 0, 1, 1, "resources/logo_small.png")
 				logoBt := HeaderDiv.AddButton(x, 0, 1, 1, "")
 				logoBt.Icon_align = 1
 				logoBt.Background = 0.2
 				logoBt.IconPath = "resources/logo_small.png"
-				logoBt.Icon_margin = 0.2
+				logoBt.Icon_margin = 0.1
 				logoBt.Tooltip = "About"
 				logoBt.clicked = func() error {
 					AboutDia.OpenRelative(logoBt.layout, caller)
 					return nil
 				}
 				x++
-			}
-
-			//New Tab button
-			{
-				HeaderDiv.SetColumn(x, 0, 100)
-
-				bt := HeaderDiv.AddButton(x, 0, 1, 1, "New Tab")
-				x++
-				bt.Background = 0.5
-				bt.Shortcut = 't'
-				bt.layout.Enable = (app != nil)
-				bt.clicked = func() error {
-					if app == nil {
-						return fmt.Errorf("No app selected")
-					}
-
-					fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
-					source_chat, err = NewChat(fmt.Sprintf("../%s/Chats/%s", app.Name, fileName), caller)
-					if err != nil {
-						return nil
-					}
-
-					app.Chats = slices.Insert(app.Chats, 0, RootChat{Label: "Empty chat", FileName: fileName})
-					app.Selected_chat_i = 0
-					ui.ActivateEditbox("chat_user_prompt", caller)
-
-					TabsDiv.VScrollToTheTop(caller)
-
-					return nil
-				}
 			}
 
 			//Settings
@@ -132,6 +103,69 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					return nil
 				}
 			}
+
+			//New Chat button
+			{
+				HeaderDiv.SetColumn(x, 0, 100)
+
+				bt := HeaderDiv.AddButton(x, 0, 1, 1, "New Chat")
+				x++
+				bt.Background = 0.5
+				bt.Tooltip = "Create new chat"
+				bt.Shortcut = 't'
+				bt.layout.Enable = (app != nil)
+				bt.clicked = func() error {
+					if app == nil {
+						return fmt.Errorf("No app selected")
+					}
+
+					fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
+					source_chat, err = NewChat(fmt.Sprintf("../%s/Chats/%s", app.Name, fileName), caller)
+					if err != nil {
+						return nil
+					}
+
+					app.Chats = slices.Insert(app.Chats, 0, RootChat{Label: "Empty chat", FileName: fileName})
+					app.Selected_chat_i = 0
+					ui.ActivateEditbox("chat_user_prompt", caller)
+
+					TabsDiv.VScrollToTheTop(caller)
+
+					source_root.Mode = "" //reset
+					app.DevMode = false
+
+					return nil
+				}
+			}
+
+			//Dev button
+			{
+				HeaderDiv.SetColumn(x, 1.5, 1.5)
+
+				bt := HeaderDiv.AddButton(x, 0, 1, 1, "Build")
+				x++
+
+				bt.Background = 0.25
+				bt.Border = true
+				if app != nil && app.DevMode && source_root.Mode == "" {
+					bt.Background = 1
+					bt.Border = false
+				}
+
+				bt.Tooltip = "Builder mode"
+				bt.Shortcut = 'd'
+				bt.layout.Enable = (app != nil)
+				bt.clicked = func() error {
+					if app == nil {
+						return fmt.Errorf("No app selected")
+					}
+
+					app.DevMode = !app.DevMode
+					source_root.Mode = "" //reset
+					return nil
+				}
+			}
+
 		}
 
 		//Apps
@@ -139,11 +173,12 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			AppsDiv.ScrollV.Narrow = true
 			AppsDiv.SetColumn(0, 1, 100)
 			AppsDiv.Back_cd = UI_GetPalette().GetGrey(0.1)
+			yy := 0
 			for i, app := range source_root.Apps {
 
-				AppsDiv.SetRow(i, 2, 2)
+				AppsDiv.SetRow(yy, d, d)
 
-				bt := AppsDiv.AddButton(0, i, 1, 1, "")
+				bt := AppsDiv.AddButton(0, yy, 1, 1, "")
 				bt.Icon_align = 1
 				bt.Background = 0.2
 				if i == source_root.Selected_app_i {
@@ -151,7 +186,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				}
 				bt.Tooltip = app.Name
 				bt.IconPath = fmt.Sprintf("apps/%s/icon.png", app.Name)
-				bt.Icon_margin = 0.6
+				bt.Icon_margin = 0.4
 
 				bt.clicked = func() error {
 					source_root.Selected_app_i = i
@@ -168,6 +203,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					ui.ActivateEditbox("chat_user_prompt", caller)
 					return nil
 				}
+				yy++
 			}
 		}
 
@@ -183,7 +219,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				btChat.Align = 0
 				btChat.Background = 0.2
 				if i == app.Selected_chat_i {
-					if source_root.Mode != "" {
+					if source_root.Mode != "" || app.DevMode {
 						btChat.Border = true
 					} else {
 						btChat.Background = 1 //selected
@@ -192,6 +228,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				btChat.clicked = func() error {
 					app.Selected_chat_i = i
 					source_root.Mode = "" //reset
+					app.DevMode = false
 					ui.ActivateEditbox("chat_user_prompt", caller)
 					return nil
 				}
@@ -254,15 +291,19 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		} else if source_chat != nil {
 
-			ChatDiv, err := ui.AddTool(1, 0, 1, 1, (&ShowChat{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
-			if err != nil {
-				return err
-			}
+			if app.DevMode {
 
-			ChatDiv.Back_cd = UI_GetPalette().GetGrey(0.03)
+			} else {
+				ChatDiv, err := ui.AddTool(1, 0, 1, 1, (&ShowChat{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
+				if err != nil {
+					return err
+				}
 
-			for _, br := range source_chat.Input.Picks {
-				ui.Paint_Brush(br.Cd.Cd, br.Points)
+				ChatDiv.Back_cd = UI_GetPalette().GetGrey(0.03)
+
+				for _, br := range source_chat.Input.Picks {
+					ui.Paint_Brush(br.Cd.Cd, br.Points)
+				}
 			}
 		}
 	}
@@ -484,7 +525,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 
 	//Memory
 	{
-		tx := ui.AddText(1, y, 1, 1, "System prompt extended")
+		tx := ui.AddText(1, y, 1, 1, "Extended system prompt - memory")
 		tx.Align_h = 1
 		tx.Tooltip = "Things you want to share with LLM agent.\nThe text is added to every system prompt."
 		y++
