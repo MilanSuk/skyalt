@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -293,11 +292,6 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 				if st.delta != nil {
 					st.delta(res_msg)
 				}
-
-				//add sources(icons for tabs)
-				res_msg.Sources_structs = caller.source_structs
-				slices.Sort(res_msg.Sources_structs)
-				res_msg.Sources_structs = slices.Compact(res_msg.Sources_structs)
 			}
 
 			if len(calls) == 0 {

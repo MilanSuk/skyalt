@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"slices"
 	"time"
 )
@@ -180,23 +179,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				btChat := TabsDiv.AddButton(0, yy, 1, 1, tab.Label)
 				yy++
 
-				icon_path := "tools/icons/unknown.png" //chat icon
-				if len(tab.Use_sources) > 0 {
-					last_struct := tab.Use_sources[len(tab.Use_sources)-1]
-
-					//avoid "DeviceSettings"
-					if last_struct == "DeviceSettings" && len(tab.Use_sources) > 1 {
-						last_struct = tab.Use_sources[len(tab.Use_sources)-2]
-					}
-
-					if _, err := os.Stat(filepath.Join("..", "tools/icons", last_struct+".png")); err == nil {
-						icon_path = filepath.Join("tools/icons", last_struct+".png")
-					}
-					btChat.Tooltip = fmt.Sprintf("Files: %s", tab.Use_sources)
-				}
-				btChat.IconPath = icon_path
-				btChat.Icon_margin = 0.25
-
 				btChat.Align = 0
 				btChat.Background = 0.2
 				if i == app.Selected_chat_i {
@@ -353,7 +335,6 @@ func (st *ShowRoot) refreshChats(app *RootApp, caller *ToolCaller) (*Chat, strin
 		if sourceChat != nil {
 			//reload
 			app.Chats[app.Selected_chat_i].Label = sourceChat.Label
-			app.Chats[app.Selected_chat_i].Use_sources = sourceChat.GetListOfSources()
 		}
 
 		return sourceChat, fileName, nil

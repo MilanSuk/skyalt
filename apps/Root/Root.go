@@ -1,9 +1,8 @@
 package main
 
 type RootChat struct {
-	FileName    string
-	Label       string
-	Use_sources []string
+	FileName string
+	Label    string
 }
 
 type RootApp struct {

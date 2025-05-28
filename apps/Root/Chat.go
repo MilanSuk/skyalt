@@ -7,7 +7,6 @@ import (
 	"image/color"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 )
@@ -96,8 +95,6 @@ type ChatMsg struct {
 	TimeToFirstToken float64
 
 	ShowParameters bool
-
-	Sources_structs []string
 
 	Stream bool
 }
@@ -221,19 +218,6 @@ func (st *Chat) FindNextUI(tool_call_id string) *ChatMsg {
 		}
 	}
 	return nil
-}
-
-func (st *Chat) GetListOfSources() (list []string) {
-	for _, msg := range st.Messages.Messages {
-		list = append(list, msg.Sources_structs...)
-	}
-	for _, msg := range st.TempMessages.Messages {
-		list = append(list, msg.Sources_structs...)
-	}
-
-	slices.Sort(list)
-	list = slices.Compact(list)
-	return
 }
 
 func (st *ChatInput) MergePick(in LayoutPick) {
