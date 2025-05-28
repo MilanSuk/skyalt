@@ -136,6 +136,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 		//Apps
 		{
+			AppsDiv.ScrollV.Narrow = true
 			AppsDiv.SetColumn(0, 1, 100)
 			AppsDiv.Back_cd = UI_GetPalette().GetGrey(0.1)
 			for i, app := range source_root.Apps {
