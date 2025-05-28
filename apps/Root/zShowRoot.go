@@ -19,32 +19,26 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		return err
 	}
 
-	//load chat
-	var sourceChat *Chat
-	chatID := int64(0)
-	if source_root.Selected_tab_i >= 0 {
-		if source_root.Selected_tab_i >= len(source_root.Tabs) {
-			source_root.Selected_tab_i = len(source_root.Tabs) - 1
-		}
-		if source_root.Selected_tab_i >= 0 {
-			chatID = source_root.Tabs[source_root.Selected_tab_i].ChatID
-			sourceChat, err = NewChat(fmt.Sprintf("Chats/Chat-%d.json", chatID), caller)
-			if err != nil {
-				return err
-			}
+	//refresh apps
+	app, err := st.refreshApps(source_root)
+	if err != nil {
+		return err
+	}
 
-			if sourceChat != nil {
-				//reload
-				source_root.Tabs[source_root.Selected_tab_i].Label = sourceChat.Label
-				source_root.Tabs[source_root.Selected_tab_i].Use_sources = sourceChat.GetListOfSources()
-			}
+	//load chat
+	var source_chat *Chat
+	var chat_fileName string
+	if app != nil {
+		source_chat, chat_fileName, err = st.refreshChats(app, caller)
+		if err != nil {
+			return err
 		}
 	}
 
 	//save brush
-	if sourceChat != nil {
+	if source_chat != nil {
 		if st.AddBrush != nil {
-			sourceChat.Input.MergePick(*st.AddBrush)
+			source_chat.Input.MergePick(*st.AddBrush)
 			ui.ActivateEditbox("chat_user_prompt", caller)
 		}
 	}
@@ -56,12 +50,14 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	//Side
 	{
 		SideDiv := ui.AddLayout(0, 0, 1, 1)
-		SideDiv.SetColumn(0, 1, 100)
+		SideDiv.SetColumn(0, 2, 2)
+		SideDiv.SetColumn(1, 1, 100)
 
-		HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
+		HeaderDiv := SideDiv.AddLayout(0, 0, 2, 1)
 
 		SideDiv.SetRow(1, 1, 100)
-		TabsDiv := SideDiv.AddLayout(0, 1, 1, 1)
+		AppsDiv := SideDiv.AddLayout(0, 1, 1, 1)
+		TabsDiv := SideDiv.AddLayout(1, 1, 1, 1)
 
 		//Header
 		{
@@ -95,18 +91,20 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				x++
 				bt.Background = 0.5
 				bt.Shortcut = 't'
+				bt.layout.Enable = (app != nil)
 				bt.clicked = func() error {
+					if app == nil {
+						return fmt.Errorf("No app selected")
+					}
 
-					//empty tab is only in array, create file when there is actually some content ....
-
-					chatID = time.Now().UnixMicro()
-					sourceChat, err = NewChat(fmt.Sprintf("Chats/Chat-%d.json", chatID), caller)
+					fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
+					source_chat, err = NewChat(fmt.Sprintf("../%s/Chats/%s", app.Name, fileName), caller)
 					if err != nil {
 						return nil
 					}
 
-					source_root.Tabs = slices.Insert(source_root.Tabs, 0, RootTab{Label: "Empty chat", ChatID: chatID})
-					source_root.Selected_tab_i = 0
+					app.Chats = slices.Insert(app.Chats, 0, RootChat{Label: "Empty chat", FileName: fileName})
+					app.Selected_chat_i = 0
 					ui.ActivateEditbox("chat_user_prompt", caller)
 
 					TabsDiv.VScrollToTheTop(caller)
@@ -123,26 +121,61 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				logoBt.Icon_margin = 0.2
 				logoBt.Tooltip = "Show Settings"
 				logoBt.Background = 0.25
-				if source_root.Show == "settings" {
+				if source_root.Mode == "settings" {
 					logoBt.Background = 1
 				}
 				logoBt.clicked = func() error {
-					if source_root.Show == "settings" {
-						source_root.Show = ""
+					if source_root.Mode == "settings" {
+						source_root.Mode = ""
 					} else {
-						source_root.Show = "settings"
+						source_root.Mode = "settings"
 					}
 					return nil
 				}
 			}
+		}
 
+		//Apps
+		{
+			AppsDiv.SetColumn(0, 1, 100)
+			AppsDiv.Back_cd = UI_GetPalette().GetGrey(0.1)
+			for i, app := range source_root.Apps {
+
+				AppsDiv.SetRow(i, 2, 2)
+
+				bt := AppsDiv.AddButton(0, i, 1, 1, "")
+				bt.Icon_align = 1
+				bt.Background = 0.2
+				if i == source_root.Selected_app_i {
+					bt.Background = 1
+				}
+				bt.Tooltip = app.Name
+				bt.IconPath = fmt.Sprintf("apps/%s/icon.png", app.Name)
+				bt.Icon_margin = 0.6
+
+				bt.clicked = func() error {
+					source_root.Selected_app_i = i
+					return nil
+				}
+
+				bt.Drag_group = "app"
+				bt.Drop_group = "app"
+				bt.Drag_index = i
+				bt.Drop_v = true
+				bt.dropMove = func(src_i, dst_i int, src_source, dst_source string) error {
+					Layout_MoveElement(&source_root.Apps, &source_root.Apps, src_i, dst_i)
+					source_root.Selected_app_i = dst_i
+					ui.ActivateEditbox("chat_user_prompt", caller)
+					return nil
+				}
+			}
 		}
 
 		//List of tabs
-		{
+		if app != nil {
 			TabsDiv.SetColumn(0, 1, 100)
 			yy := 0
-			for i, tab := range source_root.Tabs {
+			for i, tab := range app.Chats {
 
 				btChat := TabsDiv.AddButton(0, yy, 1, 1, tab.Label)
 				yy++
@@ -166,16 +199,16 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 				btChat.Align = 0
 				btChat.Background = 0.2
-				if i == source_root.Selected_tab_i {
-					if source_root.Show != "" {
+				if i == app.Selected_chat_i {
+					if source_root.Mode != "" {
 						btChat.Border = true
 					} else {
 						btChat.Background = 1 //selected
 					}
 				}
 				btChat.clicked = func() error {
-					source_root.Selected_tab_i = i
-					source_root.Show = "" //reset
+					app.Selected_chat_i = i
+					source_root.Mode = "" //reset
 					ui.ActivateEditbox("chat_user_prompt", caller)
 					return nil
 				}
@@ -185,8 +218,8 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				btChat.Drag_index = i
 				btChat.Drop_v = true
 				btChat.dropMove = func(src_i, dst_i int, src_source, dst_source string) error {
-					Layout_MoveElement(&source_root.Tabs, &source_root.Tabs, src_i, dst_i)
-					source_root.Selected_tab_i = dst_i
+					Layout_MoveElement(&app.Chats, &app.Chats, src_i, dst_i)
+					app.Selected_chat_i = dst_i
 					ui.ActivateEditbox("chat_user_prompt", caller)
 					return nil
 				}
@@ -194,9 +227,24 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				btClose := TabsDiv.AddButton(1, i, 1, 1, "X")
 				btClose.Background = 0.2
 				btClose.clicked = func() error {
-					source_root.Tabs = slices.Delete(source_root.Tabs, i, i+1)
-					if i < source_root.Selected_tab_i {
-						source_root.Selected_tab_i--
+
+					//create "trash" folder
+					os.MkdirAll(fmt.Sprintf("../%s/Chats/trash", app.Name), os.ModePerm)
+
+					//copy file
+					err = OsCopyFile(fmt.Sprintf("../%s/Chats/trash/%s", app.Name, app.Chats[i].FileName),
+						fmt.Sprintf("../%s/Chats/%s", app.Name, app.Chats[i].FileName))
+
+					if err != nil {
+						return err
+					}
+
+					//remove file
+					os.Remove(fmt.Sprintf("../%s/Chats/%s", app.Name, app.Chats[i].FileName))
+
+					app.Chats = slices.Delete(app.Chats, i, i+1)
+					if i < app.Selected_chat_i {
+						app.Selected_chat_i--
 					}
 					return nil
 				}
@@ -208,33 +256,164 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			msgs := GetMsgs()
 			if len(msgs) > 0 {
 				SideDiv.SetRowFromSub(2, 0, 5)
-				st.buildThreads(SideDiv.AddLayout(0, 2, 1, 1), msgs)
+				ThreadsDiv := SideDiv.AddLayout(0, 2, 2, 1)
+				st.buildThreads(ThreadsDiv, msgs)
 			}
 		}
 	}
 
 	//Chat(or settings)
 	{
-		if source_root.Show == "settings" {
+		if source_root.Mode == "settings" {
 			err := st.buildSettings(ui.AddLayout(1, 0, 1, 1), caller, source_root)
 			if err != nil {
 				return err
 			}
-		} else if chatID != 0 {
-			ChatDiv, err := ui.AddTool(1, 0, 1, 1, (&ShowChat{ChatID: chatID}).run, caller)
+		} else if source_chat != nil {
+
+			ChatDiv, err := ui.AddTool(1, 0, 1, 1, (&ShowChat{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
 			if err != nil {
 				return err
 			}
 
 			ChatDiv.Back_cd = UI_GetPalette().GetGrey(0.03)
 
-			for _, br := range sourceChat.Input.Picks {
+			for _, br := range source_chat.Input.Picks {
 				ui.Paint_Brush(br.Cd.Cd, br.Points)
 			}
 		}
 	}
 
 	return nil
+}
+
+func (st *ShowRoot) refreshChats(app *RootApp, caller *ToolCaller) (*Chat, string, error) {
+
+	chats_folder := fmt.Sprintf("../%s/Chats", app.Name)
+	if _, err := os.Stat(chats_folder); os.IsNotExist(err) {
+		//no chat folder
+		app.Chats = nil
+		return nil, "", nil //ok
+	}
+
+	fls, err := os.ReadDir(chats_folder)
+	if err != nil {
+		return nil, "", nil //maybe no chat
+	}
+	//add new chats
+	for _, fl := range fls {
+		if fl.IsDir() {
+			continue
+		}
+
+		found := false
+		for _, chat := range app.Chats {
+			if chat.FileName == fl.Name() {
+				found = true
+				break
+			}
+		}
+		if !found {
+			app.Chats = append(app.Chats, RootChat{FileName: fl.Name()})
+		}
+	}
+	//remove deleted chats
+	for i := len(app.Chats) - 1; i >= 0; i-- {
+		found := false
+		for _, fl := range fls {
+			if fl.IsDir() {
+				continue
+			}
+
+			if fl.Name() == app.Chats[i].FileName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			app.Chats = slices.Delete(app.Chats, i, i+1)
+		}
+	}
+
+	//check selecte in range
+	if app.Selected_chat_i >= 0 {
+		if app.Selected_chat_i >= len(app.Chats) {
+			app.Selected_chat_i = len(app.Chats) - 1
+		}
+	}
+
+	//update and return
+	if app.Selected_chat_i >= 0 {
+		fileName := app.Chats[app.Selected_chat_i].FileName
+		sourceChat, err := NewChat(fmt.Sprintf("../%s/Chats/%s", app.Name, fileName), caller)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if sourceChat != nil {
+			//reload
+			app.Chats[app.Selected_chat_i].Label = sourceChat.Label
+			app.Chats[app.Selected_chat_i].Use_sources = sourceChat.GetListOfSources()
+		}
+
+		return sourceChat, fileName, nil
+	}
+
+	return nil, "", nil
+}
+
+func (st *ShowRoot) refreshApps(source_root *Root) (*RootApp, error) {
+	fls, err := os.ReadDir("..")
+	if err != nil {
+		return nil, err
+	}
+	//add new apps
+	for _, fl := range fls {
+		if !fl.IsDir() || fl.Name() == "Root" {
+			continue
+		}
+
+		found := false
+		for _, app := range source_root.Apps {
+			if app.Name == fl.Name() {
+				found = true
+				break
+			}
+		}
+		if !found {
+			source_root.Apps = append(source_root.Apps, &RootApp{Name: fl.Name()})
+		}
+	}
+	//remove deleted app
+	for i := len(source_root.Apps) - 1; i >= 0; i-- {
+		found := false
+		for _, fl := range fls {
+			if !fl.IsDir() || fl.Name() == "Root" {
+				continue
+			}
+
+			if fl.Name() == source_root.Apps[i].Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			source_root.Apps = slices.Delete(source_root.Apps, i, i+1)
+		}
+	}
+
+	//check selecte in range
+	if source_root.Selected_app_i >= 0 {
+		if source_root.Selected_app_i >= len(source_root.Apps) {
+			source_root.Selected_app_i = len(source_root.Apps) - 1
+		}
+	}
+	//return
+	if source_root.Selected_app_i >= 0 {
+		return source_root.Apps[source_root.Selected_app_i], nil
+	}
+
+	return nil, nil
 }
 
 func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error {
@@ -250,7 +429,8 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 	//device settings
 	{
 		ui.SetRowFromSub(y, 0, 100)
-		ui.AddTool(1, y, 1, 1, (&ShowDeviceSettings{}).run, caller)
+		ui.AddToolApp(1, y, 1, 1, "Device", "ShowDeviceSettings", nil, caller)
+		//ui.AddTool(1, y, 1, 1, (&ShowDeviceSettings{}).run, caller)
 		y++
 	}
 

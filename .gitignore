@@ -1,4 +1,3 @@
-
 TODO.md
 DEMO.md
 
@@ -10,29 +9,40 @@ apps/Activities/*.json
 apps/Activities/*.bin
 apps/Activities/main.go
 apps/Activities/.vscode/
+apps/Activities/Chats/
 apps/Activities/Activities/
+
+apps/Device/*.json
+apps/Device/*.bin
+apps/Device/main.go
+apps/Device/.vscode/
+apps/Device/Chats/
+apps/Device/cache.sqlite
 
 apps/Emails/*.json
 apps/Emails/*.bin
 apps/Emails/main.go
 apps/Emails/.vscode/
+apps/Emails/Chats/
 
 apps/Events/*.json
 apps/Events/*.bin
 apps/Events/main.go
 apps/Events/.vscode/
+apps/Events/Chats/
 
 apps/Root/*.json
 apps/Root/*.bin
 apps/Root/main.go
 apps/Root/.vscode/
 apps/Root/Chats/
-apps/Root/cache.sqlite
+
 
 apps/Tools/*.json
 apps/Tools/*.bin
 apps/Tools/main.go
 apps/Tools/.vscode/
+apps/Tools/Chats/
 
 
 

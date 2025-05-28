@@ -13,13 +13,15 @@ import (
 
 // [ignore]
 type ShowChat struct {
-	ChatID int64
+	AppName      string
+	ChatFileName string
 }
 
 const g_ShowChat_prompt_height = 7
 
 func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
-	source_chat, err := NewChat(fmt.Sprintf("Chats/Chat-%d.json", st.ChatID), caller)
+
+	source_chat, err := NewChat(fmt.Sprintf("../%s/Chats/%s", st.AppName, st.ChatFileName), caller)
 	if err != nil {
 		return err
 	}
@@ -53,12 +55,15 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 			if err != nil {
 				return err
 			}
-			_, newParams, err := DashDiv.AddToolByName(0, 0, 1, 1, dash.UI_func, jsParams, caller)
+
+			appUi, err := DashDiv.AddToolApp(0, 0, 1, 1, st.AppName, dash.UI_func, jsParams, caller)
 			if err != nil {
 				return err
 			}
+			appUi.changed = func(newParams []byte) {
+				dash.UI_params = newParams //save back changes
+			}
 
-			dash.UI_params = newParams //save back changes
 		}
 
 		ChatDiv := DashDiv.AddLayout(1, 0, 1, 1)
@@ -553,6 +558,8 @@ func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continu
 	comp.Presence_penalty = 0
 	comp.Reasoning_effort = "" //low, high
 
+	comp.AppName = st.AppName
+
 	//add default(without source) tools
 	/*{
 		defSource := sources["_default_"]
@@ -580,7 +587,8 @@ func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continu
 	//system
 	{
 		system_prompt := `You are an AI assistant, who enjoys precision and carefully follows the user's requirements.
-If you need, you can use tool calling. Tools gives you precision and output data which you wouldn't know otherwise. Don't ask to call a tool, just do it! Call tools sequentially. Avoid tool call as parameter value.`
+If you need, you can use tool calling. Tools gives you precision and output data which you wouldn't know otherwise. Don't ask to call a tool, just do it! Call tools sequentially. Avoid tool call as parameter value.
+If user wants to show/render/visualize some data, search for tools which 'shows'."`
 
 		//sources
 		/*system_prompt += "Here is the list of data sources in form of '<name> //<description>':\n"

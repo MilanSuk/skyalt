@@ -35,8 +35,8 @@ type ToolsRouterMsg struct {
 
 	start_time float64
 
-	fnProgress func(cmds []ToolCmd, err error, start_time float64)                       //call when 'out_flushed_cmds'
-	fnDone     func(bytes []byte, ui *UI, cmds []ToolCmd, err error, start_time float64) //called when msg is done
+	fnProgress func(cmdsJs [][]byte, err error, start_time float64)                           //call when 'out_flushed_cmds'
+	fnDone     func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) //called when msg is done
 
 	stop     atomic.Bool
 	out_done atomic.Bool
@@ -44,10 +44,11 @@ type ToolsRouterMsg struct {
 	progress_done  float64
 	progress_label string
 
-	out_bytes        []byte
-	out_ui           *UI
-	out_cmds         []ToolCmd
-	out_flushed_cmds []ToolCmd
+	out_data []byte
+	out_ui   []byte
+	out_cmds []byte
+
+	out_flushed_cmds [][]byte
 	out_error        error
 
 	drawit bool
@@ -167,6 +168,53 @@ func NewToolsRouter(folderApps string, start_port int) *ToolsRouter {
 							}
 						}
 
+					case "sub_call":
+						msg_id, err := cl.ReadInt()
+						if router.log.Error(err) == nil {
+							ui_uid, err := cl.ReadInt()
+							if router.log.Error(err) == nil {
+								appName, err := cl.ReadArray()
+								if router.log.Error(err) == nil {
+									funcName, err := cl.ReadArray()
+									if router.log.Error(err) == nil {
+										jsParams, err := cl.ReadArray()
+										if router.log.Error(err) == nil {
+											type Out struct {
+												Data  []byte
+												Ui    []byte
+												Cmds  []byte
+												Error string
+											}
+											var out Out
+											app := router.FindApp(string(appName))
+											if app != nil {
+												//start it
+												err = app.CheckRun()
+												if router.log.Error(err) != nil {
+													out.Error = err.Error()
+												} else {
+													//call it
+													out.Data, out.Ui, out.Cmds, err = _ToolsCaller_CallTool(app.port, msg_id, ui_uid, string(funcName), jsParams, router.log.Error)
+													if router.log.Error(err) != nil {
+														out.Error = err.Error()
+													}
+												}
+											} else {
+												err = fmt.Errorf("app '%s' not found", string(appName))
+												router.log.Error(err)
+												out.Error = err.Error()
+											}
+
+											js, err := json.Marshal(out)
+											router.log.Error(err)
+											err = cl.WriteArray(js)
+											router.log.Error(err)
+										}
+									}
+								}
+							}
+						}
+
 					case "add_cmds":
 						msg_id, err := cl.ReadInt()
 						if router.log.Error(err) == nil {
@@ -177,11 +225,7 @@ func NewToolsRouter(folderApps string, start_port int) *ToolsRouter {
 								{
 									msg, found := router.msgs[msg_id]
 									if found && msg != nil {
-										var cmds []ToolCmd
-										err = json.Unmarshal(cmdsJs, &cmds)
-										if router.log.Error(err) == nil {
-											msg.out_flushed_cmds = cmds
-										}
+										msg.out_flushed_cmds = append(msg.out_flushed_cmds, cmdsJs)
 									}
 								}
 								router.lock.Unlock()
@@ -355,7 +399,7 @@ func (router *ToolsRouter) CallUpdateDev() {
 	}
 }
 
-func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, appName string, funcName string, change SdkChange, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, uii *UI, cmds []ToolCmd, err error, start_time float64)) {
+func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, appName string, funcName string, change SdkChange, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
 	app := router.FindApp(appName)
 	if app == nil {
 		return
@@ -374,12 +418,19 @@ func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, appName string, funcNa
 	go func() {
 		defer msg.Done()
 
-		msg.out_cmds, msg.out_error = _ToolsCaller_CallChange(app.port, msg_id, ui_uid, change, router.log.Error)
-		router.log.Error(msg.out_error)
+		out_bytes, out_cmdsJs, out_error := _ToolsCaller_CallChange(app.port, msg_id, ui_uid, change, router.log.Error)
+		msg.out_error = out_error
+
+		if router.log.Error(out_error) == nil {
+			msg.out_data = out_bytes
+			msg.out_cmds = out_cmdsJs
+			//json.Unmarshal(out_cmdsJs, &msg.out_cmds)
+		}
+
 	}()
 }
 
-func (router *ToolsRouter) CallAsync(ui_uid uint64, appName string, funcName string, params interface{}, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, ui *UI, cmds []ToolCmd, err error, start_time float64)) *ToolsRouterMsg {
+func (router *ToolsRouter) CallAsync(ui_uid uint64, appName string, funcName string, params interface{}, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) *ToolsRouterMsg {
 	app := router.FindApp(appName)
 	if app == nil {
 		return nil
@@ -408,8 +459,8 @@ func (router *ToolsRouter) CallAsync(ui_uid uint64, appName string, funcName str
 			return
 		}
 
-		//call it
-		msg.out_bytes, msg.out_ui, msg.out_cmds, msg.out_error = _ToolsCaller_CallTool(app.port, msg_id, ui_uid, funcName, jsParams, router.log.Error)
+		//call it - no parent!
+		msg.out_data, msg.out_ui, msg.out_cmds, msg.out_error = _ToolsCaller_CallTool(app.port, msg_id, ui_uid, funcName, jsParams, router.log.Error)
 		router.log.Error(msg.out_error)
 	}()
 
@@ -517,7 +568,7 @@ func (router *ToolsRouter) Flush() bool {
 	router.lock.Unlock()
 
 	for _, msg := range doneMsgs {
-		msg.fnDone(msg.out_bytes, msg.out_ui, msg.out_cmds, msg.out_error, msg.start_time)
+		msg.fnDone(msg.out_data, msg.out_ui, msg.out_cmds, msg.out_error, msg.start_time)
 	}
 
 	return redraw

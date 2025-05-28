@@ -201,14 +201,14 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 					Out_image []byte
 				}
 
-				fnAsyncDone := func(bytes []byte, ui *UI, cmds []ToolCmd, err error, start_time float64) {
+				fnAsyncDone := func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
 					if err != nil {
 						fnDone(nil, err)
 						return
 					}
 
 					var out GetTile
-					er := json.Unmarshal(bytes, &out)
+					er := json.Unmarshal(dataJs, &out)
 					if er != nil {
 						fnDone(nil, er)
 						return
@@ -217,8 +217,8 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 					fnDone(out.Out_image, nil) //ok
 				}
 
-				//un-design .....
-				layout.ui.router.CallAsync(0, "Root", "GetMapTile", GetTile{X: int(x), Y: int(y), Zoom: int(zoom)}, nil, fnAsyncDone)
+				//un-design ....
+				layout.ui.router.CallAsync(0, "Device", "GetMapTile", GetTile{X: int(x), Y: int(y), Zoom: int(zoom)}, nil, fnAsyncDone)
 				return nil
 
 			}

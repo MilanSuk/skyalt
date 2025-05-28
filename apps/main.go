@@ -102,6 +102,10 @@ func (caller *ToolCaller) _saveInstances() {
 		}
 
 		if err == nil && !bytes.Equal(it.data, js) {
+
+			//create folder
+			os.MkdirAll(filepath.Dir(path), os.ModePerm)
+
 			//save file
 			os.WriteFile(path, js, 0644)
 
@@ -318,6 +322,10 @@ func main() {
 											err = cl.WriteArray(output_errBytes) //error
 											Tool_Error(err)
 
+											dataJs, _ := json.Marshal(ui.parameters)
+											err = cl.WriteArray(dataJs) //data
+											Tool_Error(err)
+
 											cmdsJs, _ := json.Marshal(ui.Caller.cmds)
 											err = cl.WriteArray(cmdsJs) //commands
 											Tool_Error(err)
@@ -503,7 +511,7 @@ func (caller *ToolCaller) SendFlushCmd() {
 }
 
 func _updateDev() {
-	js, err := os.ReadFile("../Root/DeviceSettings-DeviceSettings.json")
+	js, err := os.ReadFile("../Device/DeviceSettings-DeviceSettings.json")
 	if Tool_Error(err) != nil {
 		return
 	}
@@ -647,7 +655,7 @@ func (caller *ToolCaller) SetMsgName(name string) {
 	}
 }
 
-func callFuncGetToolsShemas() []byte {
+func callFuncGetToolsShemas(appName string) []byte {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
@@ -655,7 +663,7 @@ func callFuncGetToolsShemas() []byte {
 		err = cl.WriteArray([]byte("get_tools_shemas"))
 		if Tool_Error(err) == nil {
 
-			err = cl.WriteArray([]byte(g_main.appName))
+			err = cl.WriteArray([]byte(appName))
 			if Tool_Error(err) == nil {
 				js, err := cl.ReadArray()
 				if Tool_Error(err) == nil {
@@ -665,6 +673,53 @@ func callFuncGetToolsShemas() []byte {
 		}
 	}
 	return nil
+}
+
+type SdkSubCallOut struct {
+	Bytes []byte
+	Ui    []byte
+	Cmds  []byte
+	Error string
+}
+
+func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, funcName string, jsParams []byte) SdkSubCallOut {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("sub_call"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteInt(caller.msg_id)
+			if Tool_Error(err) == nil {
+				err = cl.WriteInt(ui_uid)
+				if Tool_Error(err) == nil {
+					err = cl.WriteArray([]byte(appName))
+					if Tool_Error(err) == nil {
+						err = cl.WriteArray([]byte(funcName))
+						if Tool_Error(err) == nil {
+							if len(jsParams) == 0 {
+								jsParams = []byte("{}")
+							}
+							err = cl.WriteArray(jsParams)
+							if Tool_Error(err) == nil {
+
+								outJs, err := cl.ReadArray()
+								if Tool_Error(err) == nil {
+									var out SdkSubCallOut
+									err = json.Unmarshal(outJs, &out)
+									if Tool_Error(err) == nil {
+										return out
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return SdkSubCallOut{}
 }
 
 /*func callFuncGetToolsShemasBySource(source string) []byte {
@@ -729,6 +784,9 @@ func (caller *ToolCaller) _addCmd(cmd ToolCmd) {
 }
 
 type UI struct {
+	AppName  string `json:",omitempty"`
+	FuncName string `json:",omitempty"`
+
 	UID        uint64
 	X, Y, W, H int
 	LLMTip     string `json:",omitempty"`
@@ -771,6 +829,8 @@ type UI struct {
 	DayCalendar       *UIDayCalendar       `json:",omitempty"`
 
 	Paint []UIPaint `json:",omitempty"`
+
+	changed func(newParams []byte)
 }
 
 func _newUIItem(x, y, w, h int) *UI {
@@ -807,39 +867,6 @@ func (parent *UI) _addUISub(ui *UI, name string) {
 	ui._computeUID(parent, name)
 }
 
-func (ui *UI) _addTool(x, y, w, h int, funcName string, fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) (*UI, error) {
-	ret_ui := _newUIItem(x, y, w, h)
-	ui._addUISub(ret_ui, "")
-
-	var out_error error
-	if fnRun != nil {
-		out_error = fnRun(caller, ret_ui)
-	} else {
-		out_error = fmt.Errorf("Tool function '%s' not found", funcName)
-	}
-
-	if out_error == nil {
-		if !caller._sendProgress(1, "") {
-			out_error = errors.New("_interrupted_")
-		}
-	}
-
-	if out_error != nil {
-		ret_ui.Cols = nil
-		ret_ui.Rows = nil
-		ret_ui.Items = nil
-
-		ret_ui.SetColumn(0, 1, 100)
-		ret_ui.SetRow(0, 1, 100)
-		tx := ret_ui.AddText(0, 0, 1, 1, fmt.Sprintf("<i>Error: %s</i>", out_error.Error()))
-		tx.Align_h = 1
-		tx.Align_v = 1
-		tx.Cd = UI_GetPalette().E
-	}
-
-	return ret_ui, out_error
-}
-
 func _callTool(funcName string, fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) (*UI, error) {
 	if fnRun != nil {
 		ui := &UI{}
@@ -860,10 +887,18 @@ func CallTool(fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) 
 	return _callTool("", fnRun, caller)
 }
 
-func CallToolByName(funcName string, jsParams []byte, caller *ToolCaller) (*UI, interface{}, error) {
-	fnRun, st := FindToolRunFunc(funcName, jsParams)
-	ui, err := _callTool(funcName, fnRun, caller)
-	return ui, st, err
+func CallToolApp(appName string, funcName string, jsParams []byte, caller *ToolCaller) ([]byte, *UI, error) {
+	out := caller.callFuncSubCall(0, appName, funcName, jsParams)
+
+	var err error
+	if out.Error != "" {
+		err = errors.New(out.Error)
+	}
+
+	var ui *UI
+	json.Unmarshal(out.Ui, ui)
+
+	return out.Bytes, ui, err
 }
 
 func (ui *UI) _findUID(uid uint64) *UI {
@@ -900,10 +935,14 @@ type SdkChange struct {
 }
 
 func (ui *UI) runChange(change SdkChange) error {
-
 	it := ui._findUID(change.UID)
 	if it == nil {
 		return fmt.Errorf("UID %d not found", change.UID)
+	}
+
+	//sub-app
+	if it.changed != nil {
+		it.changed(change.ValueBytes)
 	}
 
 	if it.Text != nil {
@@ -2060,13 +2099,68 @@ func (ui *UI) AddDialogBorder(name string, title string) (*UIDialog, *UI) {
 }
 
 func (ui *UI) AddTool(x, y, w, h int, fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) (*UI, error) {
-	return ui._addTool(x, y, w, h, "", fnRun, caller)
+	ret_ui := _newUIItem(x, y, w, h)
+	ui._addUISub(ret_ui, "")
+
+	out_error := fnRun(caller, ret_ui)
+
+	if out_error == nil {
+		if !caller._sendProgress(1, "") {
+			out_error = errors.New("_interrupted_")
+		}
+	}
+
+	if out_error != nil {
+		ret_ui.Cols = nil
+		ret_ui.Rows = nil
+		ret_ui.Items = nil
+
+		ret_ui.SetColumn(0, 1, 100)
+		ret_ui.SetRow(0, 1, 100)
+		tx := ret_ui.AddText(0, 0, 1, 1, fmt.Sprintf("<i>Error: %s</i>", out_error.Error()))
+		tx.Align_h = 1
+		tx.Align_v = 1
+		tx.Cd = UI_GetPalette().E
+	}
+
+	return ret_ui, out_error
 }
 
-func (ui *UI) AddToolByName(x, y, w, h int, funcName string, jsParams []byte, caller *ToolCaller) (*UI, interface{}, error) {
-	fnRun, st := FindToolRunFunc(funcName, jsParams)
-	out_ui, out_err := ui._addTool(x, y, w, h, funcName, fnRun, caller)
-	return out_ui, st, out_err
+func (ui *UI) AddToolApp(x, y, w, h int, appName string, funcName string, jsParams []byte, caller *ToolCaller) (*UI, error) {
+	ret_ui := _newUIItem(x, y, w, h)
+	ui._addUISub(ret_ui, "")
+
+	//call router
+	out := caller.callFuncSubCall(ret_ui.UID, appName, funcName, jsParams)
+	if out.Error == "" {
+		err := json.Unmarshal(out.Ui, ret_ui)
+		if Tool_Error(err) == nil {
+			ret_ui.X = x
+			ret_ui.Y = y
+			ret_ui.W = w
+			ret_ui.H = h
+			ret_ui.AppName = appName
+			ret_ui.FuncName = funcName
+
+			var cmds []ToolCmd
+			err = json.Unmarshal(out.Cmds, &cmds)
+			if Tool_Error(err) == nil {
+				caller.cmds = append(caller.cmds, cmds...)
+			}
+
+			return ret_ui, nil
+		}
+	}
+
+	//error
+	ret_ui.SetColumn(0, 1, 100)
+	ret_ui.SetRow(0, 1, 100)
+	tx := ret_ui.AddText(0, 0, 1, 1, fmt.Sprintf("<i>Error</i>"))
+	tx.Align_h = 1
+	tx.Align_v = 1
+	tx.Cd = UI_GetPalette().E
+
+	return ret_ui, nil
 }
 
 func (ui *UI) Paint_Rect(x, y, w, h float64, cd, cd_over, cd_down color.RGBA, width float64) {

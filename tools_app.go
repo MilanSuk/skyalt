@@ -422,8 +422,6 @@ func (app *ToolsApp) CheckRun() error {
 		app.port = 0
 		app.cmd = nil
 
-		fmt.Printf("App '%s' is starting\n", app.name)
-
 		//start
 		cmd := exec.Command("./"+app.getBinName(), app.name, strconv.Itoa(app.router.server.port))
 		cmd.Dir = app.folder
@@ -433,7 +431,7 @@ func (app *ToolsApp) CheckRun() error {
 		cmd.Stderr = ErrStr
 		err := cmd.Start()
 		if err != nil {
-			return err
+			return fmt.Errorf("'%s' start failed: %w", app.name, err)
 		}
 		app.cmd = cmd //running
 
@@ -455,18 +453,19 @@ func (app *ToolsApp) CheckRun() error {
 			app.cmd_exited = true
 			app.cmd = nil
 		}()
-	}
 
-	//wait one second for recv a port
-	{
-		n := 0
-		for n < 100 && app.port == 0 {
-			time.Sleep(10 * time.Millisecond)
-			n++
+		//wait one second for recv a port
+		{
+			n := 0
+			for n < 100 && app.port == 0 {
+				time.Sleep(10 * time.Millisecond)
+				n++
+			}
+			if app.port == 0 {
+				fmt.Printf("'%s' app process hasn't connected in time\n", app.name)
+			}
 		}
-		if app.port == 0 {
-			fmt.Printf("'%s' app process hasn't connected in time\n", app.name)
-		}
+
 	}
 
 	return nil //ok
@@ -476,9 +475,7 @@ func (app *ToolsApp) compile(codeHash int64) error {
 	app.lock.Lock()
 	defer app.lock.Unlock()
 
-	defer func() {
-		app.CodeHash = codeHash
-	}()
+	app.CodeHash = codeHash
 
 	msg := app.router.AddRecompileMsg(app.name)
 	defer msg.Done()
@@ -665,7 +662,7 @@ func _ToolsCaller_UpdateDev(port int, fnLog func(err error) error) error {
 }
 
 // Function was copied from Server code
-func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change SdkChange, fnLog func(err error) error) ([]ToolCmd, error) {
+func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change SdkChange, fnLog func(err error) error) ([]byte, []byte, error) {
 	cl, err := NewToolsClient("localhost", port)
 	if fnLog(err) == nil {
 		defer cl.Destroy()
@@ -684,17 +681,17 @@ func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change SdkC
 
 							errStr, err := cl.ReadArray()
 							if fnLog(err) == nil {
-								cmdsJs, err := cl.ReadArray()
-								fnLog(err)
+								dataJs, err := cl.ReadArray()
+								if fnLog(err) == nil {
+									cmdsJs, err := cl.ReadArray()
+									fnLog(err)
 
-								var cmds []ToolCmd
-								json.Unmarshal(cmdsJs, &cmds)
+									if len(errStr) > 0 {
+										return nil, nil, errors.New(string(errStr))
+									}
 
-								if len(errStr) > 0 {
-									return nil, errors.New(string(errStr))
+									return dataJs, cmdsJs, nil
 								}
-
-								return cmds, nil
 							}
 						}
 					}
@@ -703,11 +700,11 @@ func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change SdkC
 		}
 	}
 
-	return nil, fmt.Errorf("connection failed")
+	return nil, nil, fmt.Errorf("connection failed")
 }
 
 // Function was copied from Server code
-func _ToolsCaller_CallTool(port int, msg_id uint64, next_ui_uid uint64, funcName string, params []byte, fnLog func(err error) error) ([]byte, *UI, []ToolCmd, error) {
+func _ToolsCaller_CallTool(port int, msg_id uint64, ui_uid uint64, funcName string, params []byte, fnLog func(err error) error) ([]byte, []byte, []byte, error) {
 	cl, err := NewToolsClient("localhost", port)
 	if fnLog(err) == nil {
 		defer cl.Destroy()
@@ -717,7 +714,8 @@ func _ToolsCaller_CallTool(port int, msg_id uint64, next_ui_uid uint64, funcName
 		if fnLog(err) == nil {
 			err = cl.WriteInt(msg_id) //msg_id
 			if fnLog(err) == nil {
-				err = cl.WriteInt(next_ui_uid) //UI UID
+
+				err = cl.WriteInt(ui_uid) //UI UID
 				if fnLog(err) == nil {
 					err = cl.WriteArray([]byte(funcName)) //function name
 					if fnLog(err) == nil {
@@ -726,24 +724,19 @@ func _ToolsCaller_CallTool(port int, msg_id uint64, next_ui_uid uint64, funcName
 
 							errStr, err := cl.ReadArray() //output error
 							if fnLog(err) == nil {
-								out_data, err := cl.ReadArray() //output data
+								out_dataJs, err := cl.ReadArray() //output data
 								if fnLog(err) == nil {
-									out_ui, err := cl.ReadArray() //output UI
+									out_uiJs, err := cl.ReadArray() //output UI
 									if fnLog(err) == nil {
-										out_cmds, err := cl.ReadArray() //output cmds
+										out_cmdsJs, err := cl.ReadArray() //output cmds
 										if fnLog(err) == nil {
-											var ui UI
-											json.Unmarshal(out_ui, &ui)
-
-											var cmds []ToolCmd
-											json.Unmarshal(out_cmds, &cmds)
 
 											var out_err error
 											if len(errStr) > 0 {
 												out_err = errors.New(string(errStr))
 											}
 
-											return out_data, &ui, cmds, out_err
+											return out_dataJs, out_uiJs, out_cmdsJs, out_err
 										}
 									}
 								}

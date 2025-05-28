@@ -326,13 +326,20 @@ func (ui *Ui) Tick() {
 			ui.edit.send(false, ui)
 		}
 
-		fnProgress := func(cmds []ToolCmd, err error, start_time float64) {
+		fnProgress := func(cmdsJs [][]byte, err error, start_time float64) {
 			if err != nil {
 				return
 			}
-			ui.temp_cmds = append(ui.temp_cmds, cmds...)
+
+			for _, js := range cmdsJs {
+				var cmds []ToolCmd
+				err := json.Unmarshal(js, &cmds)
+				if err == nil {
+					ui.temp_cmds = append(ui.temp_cmds, cmds...)
+				}
+			}
 		}
-		fnDone := func(bytes []byte, uii *UI, cmds []ToolCmd, err error, start_time float64) {
+		fnDone := func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
 
 			fmt.Printf("_refresh(): %.4fsec\n", OsTime()-start_time)
 
@@ -340,11 +347,18 @@ func (ui *Ui) Tick() {
 				return
 			}
 
-			if uii != nil {
-				ui.temp_ui = uii
+			var uii UI
+			err = json.Unmarshal(uiJs, &uii)
+			if err == nil {
+				ui.temp_ui = &uii
 			}
 
-			ui.temp_cmds = append(ui.temp_cmds, cmds...)
+			var cmds []ToolCmd
+			err = json.Unmarshal(cmdsJs, &cmds)
+			if err == nil {
+				ui.temp_cmds = append(ui.temp_cmds, cmds...)
+			}
+
 		}
 
 		type ShowRoot struct {
@@ -357,21 +371,33 @@ func (ui *Ui) Tick() {
 		if ui.temp_ui != nil {
 			new_dom := NewUiLayoutDOM_root(ui)
 
-			fnProgress := func(cmds []ToolCmd, err error, start_time float64) {
+			fnProgress := func(cmdsJs [][]byte, err error, start_time float64) {
 				if err != nil {
 					return
 				}
-				ui.temp_cmds = append(ui.temp_cmds, cmds...)
+				for _, js := range cmdsJs {
+					var cmds []ToolCmd
+					err := json.Unmarshal(js, &cmds)
+					if err == nil {
+						ui.temp_cmds = append(ui.temp_cmds, cmds...)
+					}
+				}
 			}
-			fnDone := func(bytes []byte, uii *UI, cmds []ToolCmd, err error, start_time float64) {
+			fnDone := func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
 				if err != nil {
 					return
 				}
-				ui.temp_cmds = append(ui.temp_cmds, cmds...)
+
+				var cmds []ToolCmd
+				err = json.Unmarshal(cmdsJs, &cmds)
+				if err == nil {
+					ui.temp_cmds = append(ui.temp_cmds, cmds...)
+				}
+
 				fmt.Printf("_changed(): %.4fsec\n", OsTime()-start_time)
 			}
 
-			ui.temp_ui.addLayout(new_dom, "Root", "ShowRoot", 1, fnProgress, fnDone)
+			ui.temp_ui.addLayout(new_dom, "Root", "ShowRoot", new_dom.UID, fnProgress, fnDone)
 
 			new_dom._build()
 			ui.mainLayout = new_dom

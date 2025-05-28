@@ -25,6 +25,8 @@ type LLMxAICompleteChat struct {
 	Presence_penalty  float64
 	Reasoning_effort  string //"low", "medium", "high"
 
+	AppName string //load tools from
+
 	PreviousMessages []byte //[]*ChatMsg
 	SystemMessage    string
 	UserMessage      string
@@ -84,13 +86,12 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 
 	//Tools
 	var tools []*OpenAI_completion_tool
-	{
-		js := callFuncGetToolsShemas()
-		if len(js) > 0 {
-			err := json.Unmarshal(js, &tools)
-			if err != nil {
-				return err
-			}
+	if len(st.AppName) > 0 {
+		schema := callFuncGetToolsShemas(st.AppName)
+
+		err := json.Unmarshal(schema, &tools)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -225,15 +226,10 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 				caller.source_structs = nil //reset to get new list of sources
 
 				var result string
-				tool_ui, ress, err := CallToolByName(call.Function.Name, []byte(call.Function.Arguments), caller)
+				resJs, tool_ui, err := CallToolApp(st.AppName, call.Function.Name, []byte(call.Function.Arguments), caller)
+				resMap := make(map[string]interface{})
 				if err == nil {
-
-					resJs, err := json.Marshal(ress)
-					if err != nil {
-						return err
-					}
-					var res map[string]interface{}
-					err = json.Unmarshal(resJs, &res)
+					err = json.Unmarshal(resJs, &resMap)
 					if err != nil {
 						return err
 					}
@@ -241,12 +237,12 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 					//Out_ -> result
 					{
 						num_outs := 0
-						for nm := range res {
+						for nm := range resMap {
 							if strings.HasPrefix(strings.ToLower(nm), "out") {
 								num_outs++
 							}
 						}
-						for nm, val := range res {
+						for nm, val := range resMap {
 							if strings.HasPrefix(strings.ToLower(nm), "out") {
 								var vv string
 								var tp string
@@ -292,7 +288,7 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 				res_msg := msgs.AddCallResult(call.Function.Name, call.Id, result)
 				if hasUI {
 					res_msg.UI_func = call.Function.Name
-					res_msg.UI_params = ress
+					res_msg.UI_params = resMap
 				}
 				if st.delta != nil {
 					st.delta(res_msg)

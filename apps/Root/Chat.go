@@ -153,7 +153,7 @@ type Chat struct {
 }
 
 func NewChat(file string, caller *ToolCaller) (*Chat, error) {
-	st := &Chat{Label: "Empty chat"}
+	st := &Chat{Label: "chat"}
 	return _loadInstance(file, "Chat", "json", st, true, caller)
 }
 

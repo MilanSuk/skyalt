@@ -1,21 +1,26 @@
 package main
 
-type RootTab struct {
-	ChatID int64
-	Label  string
-
+type RootChat struct {
+	FileName    string
+	Label       string
 	Use_sources []string
+}
+
+type RootApp struct {
+	Name            string
+	Chats           []RootChat
+	Selected_chat_i int
 }
 
 // Root
 type Root struct {
-	Show   string
+	Mode   string
 	Memory string
 
 	Autosend float64
 
-	Tabs           []RootTab
-	Selected_tab_i int
+	Apps           []*RootApp
+	Selected_app_i int
 }
 
 func NewRoot(file string, caller *ToolCaller) (*Root, error) {

@@ -245,6 +245,9 @@ type UIDialog struct {
 	UI  UI
 }
 type UI struct {
+	AppName  string
+	FuncName string
+
 	UID        uint64
 	X, Y, W, H int
 	LLMTip     string
@@ -287,7 +290,7 @@ type UI struct {
 	Paint []UIPaint
 }
 
-func (ui *UI) addDialogs(layout *Layout, appName string, funcName string, parent_UID uint64, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, uii *UI, cmds []ToolCmd, err error, start_time float64)) {
+func (ui *UI) addDialogs(layout *Layout, appName string, funcName string, parent_UID uint64, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
 	for _, dia := range ui.Dialogs {
 		d := layout.AddDialog(dia.UID)
 		dia.UI.addLayout(d.Layout, appName, funcName, parent_UID, fnProgress, fnDone)
@@ -395,10 +398,29 @@ type SdkChange struct {
 	ValueBool   bool
 }
 
-func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_UID uint64, fnProgress func(cmds []ToolCmd, err error, start_time float64), fnDone func(bytes []byte, uii *UI, cmds []ToolCmd, err error, start_time float64)) {
+func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_UID uint64, fnProgress func(cmds [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
 
 	if layout.UID != parent_UID {
 		layout.setLayoutFromUI(ui)
+	}
+
+	if ui.AppName != "" {
+		pre_fnDone := fnDone
+		fnDone = func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
+			if err != nil {
+				return
+			}
+			var cmds []ToolCmd
+			err = json.Unmarshal(cmdsJs, &cmds)
+			if err == nil {
+				layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
+			}
+			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: ui.UID, ValueBytes: dataJs}, fnProgress, pre_fnDone)
+		}
+
+		appName = ui.AppName
+		funcName = ui.FuncName
+		parent_UID = ui.UID
 	}
 
 	for _, col := range ui.Cols {

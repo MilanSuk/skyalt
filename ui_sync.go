@@ -102,7 +102,7 @@ func NewUiSync(router *ToolsRouter) (*UiSync, error) {
 		type SetDPIDefault struct {
 			DPI int
 		}
-		router.CallAsync(0, "Root", "SetDeviceDPIDefault", SetDPIDefault{DPI: GetDeviceDPI()}, nil, nil)
+		router.CallAsync(0, "Device", "SetDeviceDPIDefault", SetDPIDefault{DPI: GetDeviceDPI()}, nil, nil)
 	}
 
 	return snc, nil
@@ -112,18 +112,18 @@ func (snc *UiSync) Destroy() {
 }
 
 func (snc *UiSync) Tick(router *ToolsRouter) bool {
-	devApp := router.FindApp("Root")
+	devApp := router.FindApp("Device")
 	if devApp != nil {
 		if devApp.storage_changes != snc.last_dev_storage_change {
 
 			devApp.storage_changes = snc.last_dev_storage_change
 
-			devJs, err := os.ReadFile("apps/Root/DeviceSettings-DeviceSettings.json")
+			devJs, err := os.ReadFile("apps/Device/DeviceSettings-DeviceSettings.json")
 			if err == nil {
 				json.Unmarshal(devJs, &snc.Device) //err ....
 			}
 
-			mapJs, err := os.ReadFile("apps/Root/MapSettings-MapSettings.json")
+			mapJs, err := os.ReadFile("apps/Device/MapSettings-MapSettings.json")
 			if err == nil {
 				json.Unmarshal(mapJs, &snc.Map) //err ....
 			}
@@ -142,7 +142,7 @@ func (snc *UiSync) Upload_deviceDPI(new_dpi int, router *ToolsRouter) {
 	type SetDPI struct {
 		DPI int
 	}
-	router.CallAsync(0, "Root", "SetDeviceDPI", SetDPI{DPI: new_dpi}, nil, nil)
+	router.CallAsync(0, "Device", "SetDeviceDPI", SetDPI{DPI: new_dpi}, nil, nil)
 }
 
 func (snc *UiSync) Upload_deviceStats(new_stat bool, router *ToolsRouter) {
@@ -150,7 +150,7 @@ func (snc *UiSync) Upload_deviceStats(new_stat bool, router *ToolsRouter) {
 	type SetStats struct {
 		Show bool
 	}
-	router.CallAsync(0, "Root", "SetDeviceStats", SetStats{Show: new_stat}, nil, nil)
+	router.CallAsync(0, "Device", "SetDeviceStats", SetStats{Show: new_stat}, nil, nil)
 }
 
 func (snc *UiSync) Upload_deviceFullscreen(new_fullscreen bool, router *ToolsRouter) {
@@ -158,7 +158,7 @@ func (snc *UiSync) Upload_deviceFullscreen(new_fullscreen bool, router *ToolsRou
 	type SetFullscreen struct {
 		Enable bool
 	}
-	router.CallAsync(0, "Root", "SetDeviceFullscreen", SetFullscreen{Enable: new_fullscreen}, nil, nil)
+	router.CallAsync(0, "Device", "SetDeviceFullscreen", SetFullscreen{Enable: new_fullscreen}, nil, nil)
 
 }
 
