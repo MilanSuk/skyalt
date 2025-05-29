@@ -18,11 +18,13 @@ package main
 
 import (
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 )
 
 type ToolsLogItem struct {
+	stack     string
 	err       error
 	time_unix int64
 }
@@ -44,8 +46,11 @@ func (lg *ToolsLog) Error(err error) error {
 		lg.lock.Lock()
 		defer lg.lock.Unlock()
 
-		lg.errors = append(lg.errors, ToolsLogItem{err: err, time_unix: time.Now().Unix()})
-		fmt.Printf("\033[31m%s error: %v\033[0m\n", lg.Name, err)
+		stack := string(debug.Stack())
+
+		lg.errors = append(lg.errors, ToolsLogItem{stack: stack, err: err, time_unix: time.Now().Unix()})
+
+		fmt.Printf("\033[31m%s error: %v\nstack:%s\033[0m\n", lg.Name, err, stack)
 	}
 	return err
 }
