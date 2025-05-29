@@ -19,7 +19,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	//refresh apps
-	app, err := st.refreshApps(source_root)
+	app, err := source_root.refreshApps()
 	if err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	var source_chat *Chat
 	var chat_fileName string
 	if app != nil {
-		source_chat, chat_fileName, err = st.refreshChats(app, caller)
+		source_chat, chat_fileName, err = app.refreshChats(caller)
 		if err != nil {
 			return err
 		}
@@ -292,6 +292,10 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		} else if source_chat != nil {
 
 			if app.DevMode {
+				_, err := ui.AddTool(1, 0, 1, 1, (&ShowDev{AppName: app.Name}).run, caller)
+				if err != nil {
+					return err
+				}
 
 			} else {
 				ChatDiv, err := ui.AddTool(1, 0, 1, 1, (&ShowChat{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
@@ -309,134 +313,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	return nil
-}
-
-func (st *ShowRoot) refreshChats(app *RootApp, caller *ToolCaller) (*Chat, string, error) {
-
-	chats_folder := fmt.Sprintf("../%s/Chats", app.Name)
-	if _, err := os.Stat(chats_folder); os.IsNotExist(err) {
-		//no chat folder
-		app.Chats = nil
-		return nil, "", nil //ok
-	}
-
-	fls, err := os.ReadDir(chats_folder)
-	if err != nil {
-		return nil, "", nil //maybe no chat
-	}
-	//add new chats
-	for _, fl := range fls {
-		if fl.IsDir() {
-			continue
-		}
-
-		found := false
-		for _, chat := range app.Chats {
-			if chat.FileName == fl.Name() {
-				found = true
-				break
-			}
-		}
-		if !found {
-			app.Chats = append(app.Chats, RootChat{FileName: fl.Name()})
-		}
-	}
-	//remove deleted chats
-	for i := len(app.Chats) - 1; i >= 0; i-- {
-		found := false
-		for _, fl := range fls {
-			if fl.IsDir() {
-				continue
-			}
-
-			if fl.Name() == app.Chats[i].FileName {
-				found = true
-				break
-			}
-		}
-		if !found {
-			app.Chats = slices.Delete(app.Chats, i, i+1)
-		}
-	}
-
-	//check selecte in range
-	if app.Selected_chat_i >= 0 {
-		if app.Selected_chat_i >= len(app.Chats) {
-			app.Selected_chat_i = len(app.Chats) - 1
-		}
-	}
-
-	//update and return
-	if app.Selected_chat_i >= 0 {
-		fileName := app.Chats[app.Selected_chat_i].FileName
-		sourceChat, err := NewChat(fmt.Sprintf("../%s/Chats/%s", app.Name, fileName), caller)
-		if err != nil {
-			return nil, "", err
-		}
-
-		if sourceChat != nil {
-			//reload
-			app.Chats[app.Selected_chat_i].Label = sourceChat.Label
-		}
-
-		return sourceChat, fileName, nil
-	}
-
-	return nil, "", nil
-}
-
-func (st *ShowRoot) refreshApps(source_root *Root) (*RootApp, error) {
-	fls, err := os.ReadDir("..")
-	if err != nil {
-		return nil, err
-	}
-	//add new apps
-	for _, fl := range fls {
-		if !fl.IsDir() || fl.Name() == "Root" {
-			continue
-		}
-
-		found := false
-		for _, app := range source_root.Apps {
-			if app.Name == fl.Name() {
-				found = true
-				break
-			}
-		}
-		if !found {
-			source_root.Apps = append(source_root.Apps, &RootApp{Name: fl.Name()})
-		}
-	}
-	//remove deleted app
-	for i := len(source_root.Apps) - 1; i >= 0; i-- {
-		found := false
-		for _, fl := range fls {
-			if !fl.IsDir() || fl.Name() == "Root" {
-				continue
-			}
-
-			if fl.Name() == source_root.Apps[i].Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			source_root.Apps = slices.Delete(source_root.Apps, i, i+1)
-		}
-	}
-
-	//check selecte in range
-	if source_root.Selected_app_i >= 0 {
-		if source_root.Selected_app_i >= len(source_root.Apps) {
-			source_root.Selected_app_i = len(source_root.Apps) - 1
-		}
-	}
-	//return
-	if source_root.Selected_app_i >= 0 {
-		return source_root.Apps[source_root.Selected_app_i], nil
-	}
-
-	return nil, nil
 }
 
 func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error {
