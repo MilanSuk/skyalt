@@ -489,7 +489,7 @@ func (app *ToolsApp) compile(codeHash int64) error {
 		//start
 		strInits.WriteString("func _callGlobalInits() {\n\n")
 		strFrees.WriteString("func _callGlobalDestroys() {\n\n")
-		strCalls.WriteString("func FindToolRunFunc(funcName string, jsParams []byte) (func(caller *ToolCaller, ui *UI) error, interface{}) {\n\tswitch funcName {\n")
+		strCalls.WriteString("func FindToolRunFunc(funcName string, jsParams []byte) (func(caller *ToolCaller, ui *UI) error, interface{}, error) {\n\tswitch funcName {\n")
 
 		files, err := os.ReadDir(app.folder)
 		if err != nil {
@@ -537,9 +537,9 @@ func (app *ToolsApp) compile(codeHash int64) error {
 				st := %s{}
 				err := json.Unmarshal(jsParams, &st)
 				if err != nil {
-					return nil, nil
+					return nil, nil, err
 				}
-				return st.run, &st
+				return st.run, &st, nil
 		`, stName, stName))
 
 		}
@@ -547,7 +547,7 @@ func (app *ToolsApp) compile(codeHash int64) error {
 		//finish
 		strInits.WriteString("}\n")
 		strFrees.WriteString("}\n")
-		strCalls.WriteString("\n\t}\n\treturn nil, nil\n}\n")
+		strCalls.WriteString("\n\t}\n\treturn nil, nil, fmt.Errorf(\"Function '%s' not found\", funcName)\n}\n")
 
 		var strFinal strings.Builder
 		/*strFinal.WriteString(`package main
