@@ -136,8 +136,8 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 					//Dev button
 					btDev := BtDiv.AddButton(0, 1, 1, 1, "Build")
-					btDev.Tooltip = "Builder mode"
-					btDev.Shortcut = 'd'
+					btDev.Tooltip = "Edit app"
+					btDev.Shortcut = 'b'
 					if app.DevMode {
 						btDev.Background = 0.5
 						//btDev.Cd = UI_GetPalette().S
