@@ -1496,8 +1496,10 @@ func (layout *Layout) Touch() {
 				dst_i := dstDom.Drag_index
 				dst_i = UiDrag_MoveElementIndex(src_i, dst_i, drag.pos, srcDom.Drag_source != dstDom.Drag_source)
 
-				if layout.dropMove != nil {
-					layout.dropMove(src_i, dst_i, srcDom.Drag_source, dstDom.Drag_source)
+				if srcDom.Drag_source != dstDom.Drag_source || src_i != dst_i {
+					if layout.dropMove != nil {
+						layout.dropMove(src_i, dst_i, srcDom.Drag_source, dstDom.Drag_source)
+					}
 				}
 			}
 		}
