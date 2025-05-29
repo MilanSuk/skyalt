@@ -132,40 +132,10 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					TabsDiv.VScrollToTheTop(caller)
 
 					source_root.Mode = "" //reset
-					app.DevMode = false
 
 					return nil
 				}
 			}
-
-			//Dev button
-			{
-				HeaderDiv.SetColumn(x, 1.5, 1.5)
-
-				bt := HeaderDiv.AddButton(x, 0, 1, 1, "Build")
-				x++
-
-				bt.Background = 0.25
-				bt.Border = true
-				if app != nil && app.DevMode && source_root.Mode == "" {
-					bt.Background = 1
-					bt.Border = false
-				}
-
-				bt.Tooltip = "Builder mode"
-				bt.Shortcut = 'd'
-				bt.layout.Enable = (app != nil)
-				bt.clicked = func() error {
-					if app == nil {
-						return fmt.Errorf("No app selected")
-					}
-
-					app.DevMode = !app.DevMode
-					source_root.Mode = "" //reset
-					return nil
-				}
-			}
-
 		}
 
 		//Apps
@@ -175,10 +145,42 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			AppsDiv.Back_cd = UI_GetPalette().GetGrey(0.1)
 			yy := 0
 			for i, app := range source_root.Apps {
+				var bt *UIButton
+				if i == source_root.Selected_app_i {
+					dd := 0.8
+					AppsDiv.SetRow(yy, d+dd, d+dd)
 
-				AppsDiv.SetRow(yy, d, d)
+					BtDiv := AppsDiv.AddLayout(0, yy, 1, 1)
+					BtDiv.SetColumn(0, 1, 100)
+					BtDiv.SetRow(0, d, d)
+					BtDiv.SetRow(1, dd, dd)
+					BtDiv.Back_cd = UI_GetPalette().P
 
-				bt := AppsDiv.AddButton(0, yy, 1, 1, "")
+					bt = BtDiv.AddButton(0, 0, 1, 1, "")
+
+					//Dev button
+					btDev := BtDiv.AddButton(0, 1, 1, 1, "Build")
+					btDev.Tooltip = "Builder mode"
+					btDev.Shortcut = 'd'
+					if app.DevMode {
+						btDev.Background = 0.5
+						//btDev.Cd = UI_GetPalette().S
+						btDev.Label = "<b>" + btDev.Label
+					}
+					btDev.clicked = func() error {
+						app.DevMode = !app.DevMode
+						source_root.Selected_app_i = i
+						source_root.Mode = "" //reset
+						return nil
+					}
+
+				} else {
+
+					AppsDiv.SetRow(yy, d, d)
+
+					bt = AppsDiv.AddButton(0, yy, 1, 1, "")
+				}
+
 				bt.Icon_align = 1
 				bt.Background = 0.2
 				if i == source_root.Selected_app_i {
@@ -189,7 +191,11 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				bt.Icon_margin = 0.4
 
 				bt.clicked = func() error {
+					if source_root.Selected_app_i == i {
+						app.DevMode = false
+					}
 					source_root.Selected_app_i = i
+					source_root.Mode = "" //reset
 					return nil
 				}
 
@@ -203,6 +209,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					ui.ActivateEditbox("chat_user_prompt", caller)
 					return nil
 				}
+
 				yy++
 			}
 		}
@@ -228,7 +235,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				btChat.clicked = func() error {
 					app.Selected_chat_i = i
 					source_root.Mode = "" //reset
-					app.DevMode = false
 					ui.ActivateEditbox("chat_user_prompt", caller)
 					return nil
 				}
