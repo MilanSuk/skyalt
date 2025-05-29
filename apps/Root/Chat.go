@@ -86,8 +86,8 @@ type ChatMsg struct {
 	FinalTextSize int //without reasoning
 	ShowReasoning bool
 
-	UI_func   string
-	UI_params interface{}
+	UI_func     string
+	UI_paramsJs string
 
 	Usage ChatMsgUsage
 
