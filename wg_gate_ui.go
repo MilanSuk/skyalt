@@ -405,7 +405,9 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 	}
 
 	if ui.AppName != "" {
+		pre_appName := appName
 		pre_fnDone := fnDone
+		pre_parent_UID := parent_UID
 		fnDone = func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
 			if err != nil {
 				return
@@ -415,9 +417,8 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 			if err == nil {
 				layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
 			}
-			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: ui.UID, ValueBytes: dataJs}, fnProgress, pre_fnDone)
+			layout.ui.router.CallChangeAsync(pre_parent_UID, pre_appName, "back", SdkChange{UID: ui.UID, ValueBytes: dataJs}, fnProgress, pre_fnDone)
 		}
-
 		appName = ui.AppName
 		funcName = ui.FuncName
 		parent_UID = ui.UID
