@@ -52,15 +52,34 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 	source_llm.Check(caller)
 
 	/*{
+		callFuncPrint("------hi:")
+		resJs, tool_ui, err := CallToolApp(st.AppName, "ShowListOfActivities", nil, caller)
+		resMap := make(map[string]interface{})
+		if err == nil {
+			err = json.Unmarshal(resJs, &resMap)
+			if err != nil {
+				return fmt.Errorf("resJs failed: %v", err)
+			}
+		}
+		result := ""
+		hasUI := (tool_ui != nil && tool_ui.Is())
+		if hasUI {
+			if result != "" {
+				result += "\n"
+			}
+			result += "Successfully shown on screen."
+		}
+		callFuncPrint("------result11:" + result)
+
 		var msgs ChatMsgs
 		json.Unmarshal(st.PreviousMessages, &msgs)
-		m1 := msgs.AddUserMessage(st.UserMessage, st.UserFiles)
+		m1, _ := msgs.AddUserMessage(st.UserMessage, st.UserFiles)
 		if st.delta != nil {
 			st.delta(m1)
 		}
 
 		i := 0
-		N := 60
+		N := 5
 		for i < N {
 			if !caller.Progress(float64(i)/float64(N), "completing") {
 				fmt.Println("completion interrupted", caller.msg_id)
@@ -69,7 +88,7 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 
 			//fmt.Println("added", st.UserMessage)
 			{
-				m2 := msgs.AddAssistentCalls("", "response-"+st.UserMessage+"_"+strconv.Itoa(i), nil, ChatMsgUsage{}, 0, "xai", "grok-3-mini")
+				m2 := msgs.AddAssistentCalls("", "response-"+st.UserMessage+"_"+strconv.Itoa(i), nil, ChatMsgUsage{}, 0, 0, "xai", "grok-3-mini")
 				if st.delta != nil {
 					st.delta(m2)
 				}
@@ -90,7 +109,7 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 
 		err := json.Unmarshal(schema, &tools)
 		if err != nil {
-			return err
+			return fmt.Errorf("schema failed: %v", err)
 		}
 	}
 
@@ -98,13 +117,13 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 	var msgs ChatMsgs
 	err = json.Unmarshal(st.PreviousMessages, &msgs)
 	if err != nil {
-		return err
+		return fmt.Errorf("PreviousMessages failed: %v", err)
 	}
 
 	if st.UserMessage != "" || len(st.UserFiles) > 0 {
 		m1, err := msgs.AddUserMessage(st.UserMessage, st.UserFiles)
 		if err != nil {
-			return err
+			return fmt.Errorf("AddUserMessage() failed: %v", err)
 		}
 		if st.delta != nil {
 			st.delta(m1)
@@ -187,12 +206,12 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 
 		jsProps, err := json.Marshal(props)
 		if err != nil {
-			return err
+			return fmt.Errorf("props failed: %v", err)
 		}
 		out, status, dt, time_to_first_token, err := OpenAI_completion_Run(jsProps, source_llm.OpenAI_url, source_llm.API_key, fnStreaming)
 		st.Out_StatusCode = status
 		if err != nil {
-			return err
+			return fmt.Errorf("OpenAI_completion_Run() failed: %v", err)
 		}
 
 		if !caller.Progress(0, "completing") {
@@ -230,7 +249,7 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 				if err == nil {
 					err = json.Unmarshal(resJs, &resMap)
 					if err != nil {
-						return err
+						return fmt.Errorf("resJs failed: %v", err)
 					}
 
 					//Out_ -> result
@@ -287,7 +306,7 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 				res_msg := msgs.AddCallResult(call.Function.Name, call.Id, result)
 				if hasUI {
 					res_msg.UI_func = call.Function.Name
-					res_msg.UI_params = resMap
+					res_msg.UI_paramsJs = string(resJs)
 				}
 				if st.delta != nil {
 					st.delta(res_msg)
@@ -305,7 +324,7 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 
 	st.Out_messages, err = json.Marshal(msgs)
 	if err != nil {
-		return err
+		return fmt.Errorf("Out_messages failed: %v", err)
 	}
 
 	return nil

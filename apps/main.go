@@ -30,6 +30,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
@@ -56,7 +57,12 @@ func _loadInstance[T any](file string, structName string, format string, defInst
 
 	//get file data
 	data, err := os.ReadFile(file)
-	Tool_Error(err)
+	if err != nil {
+		//is file exist
+		if _, err := os.Stat(file); err == nil {
+			Tool_Error(err)
+		}
+	}
 
 	// Unpack
 	if len(data) > 0 {
@@ -357,31 +363,33 @@ func main() {
 						if Tool_Error(err) == nil {
 
 							paramsJs, err := cl.ReadArray()
-							if len(paramsJs) == 0 {
-								paramsJs = []byte("{}")
-							}
 							if Tool_Error(err) == nil {
 								ok = true
 								go func() {
 									ui := _newUIItem(0, 0, 1, 1)
 									ui.UID = caller.ui_uid
 
-									var out_error error
-
-									fnRun, out_params := FindToolRunFunc(string(funcName), paramsJs)
-									if fnRun != nil {
-										out_error = fnRun(caller, ui)
+									if len(paramsJs) == 0 {
+										paramsJs = []byte("{}")
 									}
 
-									if caller.ui_uid != 0 {
-										g_uis_lock.Lock()
-										g_uis[caller.ui_uid] = &ToolUI{ui: ui,
-											parameters: out_params,
-											Caller:     caller}
-										g_uis_lock.Unlock()
+									fnRun, out_params, err := FindToolRunFunc(string(funcName), paramsJs)
+									out_error := err
+									if Tool_Error(out_error) == nil {
+										if fnRun != nil {
+											out_error = fnRun(caller, ui)
+										}
 									}
 
 									if out_error == nil {
+										if caller.ui_uid != 0 {
+											g_uis_lock.Lock()
+											g_uis[caller.ui_uid] = &ToolUI{ui: ui,
+												parameters: out_params,
+												Caller:     caller}
+											g_uis_lock.Unlock()
+										}
+
 										if !caller._sendProgress(1, "") {
 											out_error = errors.New("_interrupted_")
 										}
@@ -393,13 +401,13 @@ func main() {
 									var cmdsJs []byte
 									if out_error == nil {
 										dataJs, out_error = json.Marshal(out_params)
-										Tool_Error(err)
+										Tool_Error(out_error)
 
 										uiJs, out_error = json.Marshal(ui)
-										Tool_Error(err)
+										Tool_Error(out_error)
 
 										cmdsJs, out_error = json.Marshal(caller.cmds)
-										Tool_Error(err)
+										Tool_Error(out_error)
 
 										caller.cmds = nil
 									}
@@ -441,7 +449,11 @@ func main() {
 
 func Tool_Error(err error) error {
 	if err != nil {
-		fmt.Printf("\033[31merror: %v\033[0m\n", err)
+		stack := string(debug.Stack())
+
+		str := fmt.Sprintf("\033[31merror: %v\nstack:%s\033[0m\n", err, stack)
+		fmt.Println(str)
+		callFuncPrint(str)
 	}
 	return err
 }
@@ -675,14 +687,7 @@ func callFuncGetToolsShemas(appName string) []byte {
 	return nil
 }
 
-type SdkSubCallOut struct {
-	Bytes []byte
-	Ui    []byte
-	Cmds  []byte
-	Error string
-}
-
-func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, funcName string, jsParams []byte) SdkSubCallOut {
+func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, funcName string, jsParams []byte) ([]byte, []byte, error) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
@@ -704,12 +709,28 @@ func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, funcNam
 							err = cl.WriteArray(jsParams)
 							if Tool_Error(err) == nil {
 
-								outJs, err := cl.ReadArray()
+								dataJs, err := cl.ReadArray()
 								if Tool_Error(err) == nil {
-									var out SdkSubCallOut
-									err = json.Unmarshal(outJs, &out)
+									uiJs, err := cl.ReadArray()
 									if Tool_Error(err) == nil {
-										return out
+										cmdsJs, err := cl.ReadArray()
+										if Tool_Error(err) == nil {
+											errBytes, err := cl.ReadArray()
+											if Tool_Error(err) == nil {
+												if len(errBytes) > 0 {
+													err = errors.New(string(errBytes))
+												}
+
+												//add cmds
+												var cmds []ToolCmd
+												err = json.Unmarshal(cmdsJs, &cmds)
+												if Tool_Error(err) == nil {
+													caller.cmds = append(caller.cmds, cmds...)
+												}
+
+												return dataJs, uiJs, err
+											}
+										}
 									}
 								}
 							}
@@ -719,7 +740,8 @@ func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, funcNam
 			}
 		}
 	}
-	return SdkSubCallOut{}
+
+	return nil, nil, fmt.Errorf("connection failed")
 }
 
 /*func callFuncGetToolsShemasBySource(source string) []byte {
@@ -830,7 +852,7 @@ type UI struct {
 
 	Paint []UIPaint `json:",omitempty"`
 
-	changed func(newParams []byte)
+	changed func(newParams []byte) error
 }
 
 func _newUIItem(x, y, w, h int) *UI {
@@ -888,17 +910,15 @@ func CallTool(fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) 
 }
 
 func CallToolApp(appName string, funcName string, jsParams []byte, caller *ToolCaller) ([]byte, *UI, error) {
-	out := caller.callFuncSubCall(0, appName, funcName, jsParams)
+	dataJs, uiJs, err := caller.callFuncSubCall(0, appName, funcName, jsParams)
 
-	var err error
-	if out.Error != "" {
-		err = errors.New(out.Error)
+	var ui UI
+	if err == nil {
+		err = json.Unmarshal(uiJs, &ui)
+		Tool_Error(err)
 	}
 
-	var ui *UI
-	json.Unmarshal(out.Ui, ui)
-
-	return out.Bytes, ui, err
+	return dataJs, &ui, err
 }
 
 func (ui *UI) _findUID(uid uint64) *UI {
@@ -942,7 +962,7 @@ func (ui *UI) runChange(change SdkChange) error {
 
 	//sub-app
 	if it.changed != nil {
-		it.changed(change.ValueBytes)
+		return it.changed(change.ValueBytes)
 	}
 
 	if it.Text != nil {
@@ -2131,9 +2151,9 @@ func (ui *UI) AddToolApp(x, y, w, h int, appName string, funcName string, jsPara
 	ui._addUISub(ret_ui, "")
 
 	//call router
-	out := caller.callFuncSubCall(ret_ui.UID, appName, funcName, jsParams)
-	if out.Error == "" {
-		err := json.Unmarshal(out.Ui, ret_ui)
+	_, uiJs, err := caller.callFuncSubCall(ret_ui.UID, appName, funcName, jsParams)
+	if err == nil {
+		err := json.Unmarshal(uiJs, ret_ui)
 		if Tool_Error(err) == nil {
 			ret_ui.X = x
 			ret_ui.Y = y
@@ -2141,12 +2161,6 @@ func (ui *UI) AddToolApp(x, y, w, h int, appName string, funcName string, jsPara
 			ret_ui.H = h
 			ret_ui.AppName = appName
 			ret_ui.FuncName = funcName
-
-			var cmds []ToolCmd
-			err = json.Unmarshal(out.Cmds, &cmds)
-			if Tool_Error(err) == nil {
-				caller.cmds = append(caller.cmds, cmds...)
-			}
 
 			return ret_ui, nil
 		}

@@ -51,17 +51,13 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 
 		//Dash
 		{
-			jsParams, err := json.Marshal(dash.UI_params)
+			appUi, err := DashDiv.AddToolApp(0, 0, 1, 1, st.AppName, dash.UI_func, []byte(dash.UI_paramsJs), caller)
 			if err != nil {
-				return err
+				return fmt.Errorf("AddToolApp() failed: %v", err)
 			}
-
-			appUi, err := DashDiv.AddToolApp(0, 0, 1, 1, st.AppName, dash.UI_func, jsParams, caller)
-			if err != nil {
-				return err
-			}
-			appUi.changed = func(newParams []byte) {
-				dash.UI_params = newParams //save back changes
+			appUi.changed = func(newParamsJs []byte) error {
+				dash.UI_paramsJs = string(newParamsJs) //save back changes
+				return nil
 			}
 
 		}
@@ -114,14 +110,14 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 		MsgsDiv = ChatDiv.AddLayout(0, 1, 1, 1)
 		err = st.buildShowMessages(MsgsDiv, caller, source_chat, source_root, isRunning)
 		if err != nil {
-			return err
+			return fmt.Errorf("buildShowMessages1() failed: %v", err)
 		}
 	} else {
 		//Chat
 		MsgsDiv = ui.AddLayout(0, 0, 1, 1)
 		err = st.buildShowMessages(MsgsDiv, caller, source_chat, source_root, isRunning)
 		if err != nil {
-			return err
+			return fmt.Errorf("buildShowMessages2() failed: %v", err)
 		}
 	}
 
@@ -152,7 +148,7 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 
 		err = st.buildInput(Div.AddLayout(1, 1, 1, 1), caller, source_chat, source_root, MsgsDiv, isRunning)
 		if err != nil {
-			return err
+			return fmt.Errorf("buildInput() failed: %v", err)
 		}
 	}
 
@@ -176,7 +172,7 @@ func (st *ChatInput) SetVoice(js []byte) error {
 	var verb VerboseJson
 	err := json.Unmarshal(js, &verb)
 	if err != nil {
-		return err
+		return fmt.Errorf("verb failed: %v", err)
 	}
 
 	//build prompt
@@ -275,7 +271,7 @@ func (st *ShowChat) _sendIt(caller *ToolCaller, chat *Chat, root *Root, MsgsDiv 
 
 	err := st.complete(caller, chat, root, continuee)
 	if err != nil {
-		return err
+		return fmt.Errorf("complete() failed: %v", err)
 	}
 	if !continuee {
 		chat.Input.Reset()
@@ -361,7 +357,10 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 					caller.SetMsgName(mic_msg_id)
 
 					_, err := CallTool((&RecordMicrophone{UID: mic_msg_id}).run, caller)
-					return err
+					if err != nil {
+						return fmt.Errorf("RecordMicrophone1() failed: %v", err)
+					}
+					return nil
 				} else {
 
 					format := "wav"
@@ -372,7 +371,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 					micRec := &RecordMicrophone{UID: mic_msg_id, Stop: true, Format: format}
 					_, err := CallTool(micRec.run, caller)
 					if err != nil {
-						return err
+						return fmt.Errorf("RecordMicrophone2() failed: %v", err)
 					}
 
 					BlobFileName := "blob.mp3"
@@ -389,12 +388,12 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 
 					_, err = CallTool(transcribe.run, caller)
 					if err != nil {
-						return err
+						return fmt.Errorf("WhispercppTranscribe() failed: %v", err)
 					}
 
 					err = input.SetVoice(transcribe.Out_Output)
 					if err != nil {
-						return err
+						return fmt.Errorf("SetVoice() failed: %v", err)
 					}
 
 					// auto-send
@@ -581,7 +580,7 @@ func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continu
 	var err error
 	comp.PreviousMessages, err = json.Marshal(chat.Messages)
 	if err != nil {
-		return err
+		return fmt.Errorf("comp.PreviousMessages failed: %v", err)
 	}
 
 	//system
@@ -642,13 +641,13 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 
 	_, err = CallTool(comp.run, caller)
 	if err != nil {
-		return err
+		return fmt.Errorf("LLMxAICompleteChat.run() failed: %v", err)
 	}
 
 	chat.TempMessages = ChatMsgs{} //reset
 	err = json.Unmarshal(comp.Out_messages, &chat.Messages)
 	if err != nil {
-		return err
+		return fmt.Errorf("comp.Out_messages failed: %v", err)
 	}
 
 	//activate new dash
