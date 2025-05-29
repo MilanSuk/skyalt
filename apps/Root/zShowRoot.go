@@ -89,6 +89,29 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
+		//Error
+		{
+			//....
+		}
+
+		//Progress
+		{
+			msgs := GetMsgs()
+			if len(msgs) > 0 {
+				AboutDia := AppsDiv.AddDialog("about")
+				AboutDia.UI.SetColumn(0, 5, 15)
+				AboutDia.UI.SetRowFromSub(0, 1, 10)
+				st.buildThreads(AboutDia.UI.AddLayout(0, 0, 1, 1), msgs)
+
+				ProgressBt := AppsDiv.AddButton(0, 3, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
+				ProgressBt.Background = 0
+				ProgressBt.clicked = func() error {
+					AboutDia.OpenRelative(ProgressBt.layout, caller)
+					return nil
+				}
+			}
+		}
+
 		//Apps
 		{
 			Apps2Div := AppsDiv.AddLayout(0, 1, 1, 1)
@@ -306,16 +329,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		}
 	}
 
-	//Threads ..........
-	/*{
-		msgs := GetMsgs()
-		if len(msgs) > 0 {
-			SideDiv.SetRowFromSub(2, 0, 5)
-			ThreadsDiv := SideDiv.AddLayout(0, 2, 2, 1)
-			st.buildThreads(ThreadsDiv, msgs)
-		}
-	}*/
-
 	return nil
 }
 
@@ -448,10 +461,8 @@ func (st *ShowRoot) buildAbout(ui *UI) {
 }
 
 func (st *ShowRoot) buildThreads(ui *UI, msgs []SdkMsg) {
-	//router := layout.ui.router
-
 	y := 0
-	ui.SetColumn(0, 1, 100)
+	ui.SetColumn(0, 3, 100)
 	ui.SetColumn(1, 2, 3)
 
 	//Progress
