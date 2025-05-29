@@ -17,7 +17,9 @@ apps/Device/*.bin
 apps/Device/main.go
 apps/Device/.vscode/
 apps/Device/Chats/
-apps/Device/cache.sqlite
+apps/Device/*.sqlite
+apps/Device/*.sqlite-shm
+apps/Device/*.sqlite-wal
 
 apps/Emails/*.json
 apps/Emails/*.bin
@@ -36,7 +38,6 @@ apps/Root/*.bin
 apps/Root/main.go
 apps/Root/.vscode/
 apps/Root/Chats/
-
 
 apps/Tools/*.json
 apps/Tools/*.bin
