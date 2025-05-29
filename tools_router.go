@@ -179,35 +179,36 @@ func NewToolsRouter(folderApps string, start_port int) *ToolsRouter {
 									if router.log.Error(err) == nil {
 										jsParams, err := cl.ReadArray()
 										if router.log.Error(err) == nil {
-											type Out struct {
-												Data  []byte
-												Ui    []byte
-												Cmds  []byte
-												Error string
-											}
-											var out Out
+											var dataJs []byte
+											var uiJs []byte
+											var cmdsJs []byte
+											var out_Error error
 											app := router.FindApp(string(appName))
 											if app != nil {
 												//start it
-												err = app.CheckRun()
-												if router.log.Error(err) != nil {
-													out.Error = err.Error()
-												} else {
+												out_Error = app.CheckRun()
+												if router.log.Error(out_Error) == nil {
 													//call it
-													out.Data, out.Ui, out.Cmds, err = _ToolsCaller_CallTool(app.port, msg_id, ui_uid, string(funcName), jsParams, router.log.Error)
-													if router.log.Error(err) != nil {
-														out.Error = err.Error()
-													}
+													dataJs, uiJs, cmdsJs, out_Error = _ToolsCaller_CallTool(app.port, msg_id, ui_uid, string(funcName), jsParams, router.log.Error)
+													router.log.Error(out_Error)
 												}
 											} else {
-												err = fmt.Errorf("app '%s' not found", string(appName))
-												router.log.Error(err)
-												out.Error = err.Error()
+												out_Error = fmt.Errorf("app '%s' not found", string(appName))
+												router.log.Error(out_Error)
 											}
 
-											js, err := json.Marshal(out)
+											errStr := ""
+											if out_Error != nil {
+												errStr = out_Error.Error()
+											}
+
+											err = cl.WriteArray(dataJs)
 											router.log.Error(err)
-											err = cl.WriteArray(js)
+											err = cl.WriteArray(uiJs)
+											router.log.Error(err)
+											err = cl.WriteArray(cmdsJs)
+											router.log.Error(err)
+											err = cl.WriteArray([]byte(errStr))
 											router.log.Error(err)
 										}
 									}
