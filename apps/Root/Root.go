@@ -20,8 +20,8 @@ type RootApp struct {
 
 // Root
 type Root struct {
-	Mode   string
-	Memory string
+	ShowSettings bool
+	Memory       string
 
 	Autosend float64
 
