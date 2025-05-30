@@ -11,11 +11,25 @@ type RootChat struct {
 	Label    string
 }
 
+type RootTool struct {
+	Name   string
+	Prompt string
+}
+
+type RootDev struct {
+	Enable bool
+
+	Structures RootTool
+	Tools      []*RootTool
+
+	DevShowCode string //file name
+}
+
 type RootApp struct {
 	Name            string
 	Chats           []RootChat
 	Selected_chat_i int
-	DevMode         bool
+	Dev             RootDev
 }
 
 // Root

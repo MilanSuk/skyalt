@@ -138,13 +138,13 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					btDev := BtDiv.AddButton(0, 1, 1, 1, "Build")
 					btDev.Tooltip = "Edit app"
 					btDev.Shortcut = 'b'
-					if app.DevMode {
+					if app.Dev.Enable {
 						btDev.Background = 0.5
 						//btDev.Cd = UI_GetPalette().S
 						btDev.Label = "<b>" + btDev.Label
 					}
 					btDev.clicked = func() error {
-						app.DevMode = !app.DevMode
+						app.Dev.Enable = !app.Dev.Enable
 						source_root.Selected_app_i = i
 						source_root.ShowSettings = false
 						return nil
@@ -167,7 +167,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 				bt.clicked = func() error {
 					if source_root.Selected_app_i == i {
-						app.DevMode = false
+						app.Dev.Enable = false
 					}
 					source_root.Selected_app_i = i
 					source_root.ShowSettings = false
@@ -201,7 +201,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			return nil
 		}
 
-		if app.DevMode {
+		if app.Dev.Enable {
 			_, err := ui.AddTool(1, 0, 1, 1, (&ShowDev{AppName: app.Name}).run, caller)
 			if err != nil {
 				return err
