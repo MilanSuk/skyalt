@@ -149,9 +149,9 @@ type Chat struct {
 	Sources []string
 }
 
-func NewChat(file string, caller *ToolCaller) (*Chat, error) {
+func NewChat(file string) (*Chat, error) {
 	st := &Chat{Label: "chat"}
-	return _loadInstance(file, "Chat", "json", st, true, caller)
+	return _loadInstance(file, "Chat", "json", st, true)
 }
 
 func (st *Chat) GetChatID() string {

@@ -13,7 +13,7 @@ type ShowRoot struct {
 }
 
 func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
-	source_root, err := NewRoot("", caller)
+	source_root, err := NewRoot("")
 	if err != nil {
 		return err
 	}
@@ -232,7 +232,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 						}
 
 						fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
-						source_chat, err = NewChat(fmt.Sprintf("../%s/Chats/%s", app.Name, fileName), caller)
+						source_chat, err = NewChat(fmt.Sprintf("../%s/Chats/%s", app.Name, fileName))
 						if err != nil {
 							return nil
 						}
@@ -374,7 +374,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 				return nil
 			}
 
-			source_llm, err := NewLLMxAI("", caller)
+			source_llm, err := NewLLMxAI("")
 			if err != nil {
 				return err
 			}
@@ -401,7 +401,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 				return nil
 			}
 
-			source_wsp, err := NewLLMWhispercpp_wsp("", caller)
+			source_wsp, err := NewLLMWhispercpp_wsp("")
 			if err != nil {
 				return err
 			}

@@ -18,7 +18,7 @@ type GetDeviceSettings struct {
 }
 
 func (st *GetDeviceSettings) run(caller *ToolCaller, ui *UI) error {
-	source_dev, err := NewDeviceSettings("", caller)
+	source_dev, err := NewDeviceSettings("")
 	if err != nil {
 		return err
 	}

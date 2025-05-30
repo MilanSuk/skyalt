@@ -25,7 +25,7 @@ type GetMapTile struct {
 }
 
 func (st *GetMapTile) run(caller *ToolCaller, ui *UI) error {
-	source_map, err := NewMapSettings("", caller)
+	source_map, err := NewMapSettings("")
 	if err != nil {
 		return err
 	}

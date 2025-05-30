@@ -8,12 +8,12 @@ type UserBodyMeasurements struct {
 	Weight   float64 //kilograms
 }
 
-func NewUserBodyMeasurements(file string, caller *ToolCaller) (*UserBodyMeasurements, error) {
+func NewUserBodyMeasurements(file string) (*UserBodyMeasurements, error) {
 	st := &UserBodyMeasurements{}
 	st.BornYear = 2000
 	st.Female = true
 	st.Height = 170
 	st.Weight = 60
 
-	return _loadInstance(file, "UserBodyMeasurements", "json", st, true, caller)
+	return _loadInstance(file, "UserBodyMeasurements", "json", st, true)
 }

@@ -22,11 +22,11 @@ type Activities struct {
 	Activities map[string]*ActivitiesItem
 }
 
-func NewActivities(file string, caller *ToolCaller) (*Activities, error) {
+func NewActivities(file string) (*Activities, error) {
 	st := &Activities{}
 	st.Activities = make(map[string]*ActivitiesItem)
 
-	return _loadInstance(file, "Activities", "json", st, true, caller)
+	return _loadInstance(file, "Activities", "json", st, true)
 }
 
 func (acts *Activities) GetTypeLabels() []string {
@@ -46,8 +46,8 @@ func (acts *Activities) GetFilePath(ActivityID string) string {
 	return filepath.Join("Activities", "Gpx-"+ActivityID+".xml")
 }
 
-func (acts *Activities) GetGpx(ActivityID string, caller *ToolCaller) (*Gpx, error) {
-	gpx, err := NewGPX(acts.GetFilePath(ActivityID), caller)
+func (acts *Activities) GetGpx(ActivityID string) (*Gpx, error) {
+	gpx, err := NewGPX(acts.GetFilePath(ActivityID))
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (acts *Activities) Filter(DateStart string, DateEnd string, SortBy string, 
 	return sorted, nil
 }
 
-func (acts *Activities) _importGPXFile(src_path string, tp string, description string, caller *ToolCaller) (string, error) {
+func (acts *Activities) _importGPXFile(src_path string, tp string, description string) (string, error) {
 	//copy file
 	file := strconv.FormatInt(time.Now().UnixNano(), 10)
 	err := OsCopyFile(acts.GetFilePath(file), src_path)
@@ -135,7 +135,7 @@ func (acts *Activities) _importGPXFile(src_path string, tp string, description s
 	}
 
 	//load
-	gpx, err := NewGPX(src_path, caller)
+	gpx, err := NewGPX(src_path)
 	if err != nil {
 		return "", err
 	}

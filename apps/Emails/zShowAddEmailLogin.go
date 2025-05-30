@@ -14,7 +14,7 @@ type ShowAddEmailLogin struct {
 }
 
 func (st *ShowAddEmailLogin) run(caller *ToolCaller, ui *UI) error {
-	source_emails, err := NewEmails("", caller)
+	source_emails, err := NewEmails("")
 	if err != nil {
 		return err
 	}

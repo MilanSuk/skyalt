@@ -6,12 +6,12 @@ type MicrophoneSettings struct {
 	Channels    int
 }
 
-func NewMicrophoneSettings(file string, caller *ToolCaller) (*MicrophoneSettings, error) {
+func NewMicrophoneSettings(file string) (*MicrophoneSettings, error) {
 	st := &MicrophoneSettings{}
 
 	st.Enable = true
 	st.Sample_rate = 44100
 	st.Channels = 1
 
-	return _loadInstance(file, "MicrophoneSettings", "json", st, true, caller)
+	return _loadInstance(file, "MicrophoneSettings", "json", st, true)
 }

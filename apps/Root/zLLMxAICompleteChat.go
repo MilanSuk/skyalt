@@ -44,7 +44,7 @@ type LLMxAICompleteChat struct {
 
 func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 
-	source_llm, err := NewLLMxAI("", caller)
+	source_llm, err := NewLLMxAI("")
 	if err != nil {
 		return err
 	}
@@ -115,9 +115,11 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 
 	//Messages
 	var msgs ChatMsgs
-	err = json.Unmarshal(st.PreviousMessages, &msgs)
-	if err != nil {
-		return fmt.Errorf("PreviousMessages failed: %v", err)
+	if len(st.PreviousMessages) > 0 {
+		err = json.Unmarshal(st.PreviousMessages, &msgs)
+		if err != nil {
+			return fmt.Errorf("PreviousMessages failed: %v", err)
+		}
 	}
 
 	if st.UserMessage != "" || len(st.UserFiles) > 0 {
@@ -200,7 +202,7 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 		{
 			js, err := json.MarshalIndent(props, "", "  ")
 			if err == nil {
-				callFuncPrint("---\n" + string(js) + "---\n")
+				callFuncPrint("---\n" + string(js) + "\n---\n")
 			}
 		}
 
@@ -241,8 +243,6 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 			last_msg = out.Choices[0].Message.Content
 
 			for _, call := range calls {
-				caller.source_structs = nil //reset to get new list of sources
-
 				var result string
 				resJs, tool_ui, err := CallToolApp(st.AppName, call.Function.Name, []byte(call.Function.Arguments), caller)
 				resMap := make(map[string]interface{})
@@ -321,6 +321,14 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	st.Out_last_message = last_msg
+
+	//print
+	{
+		js, err := json.MarshalIndent(msgs, "", "  ")
+		if err == nil {
+			callFuncPrint("+++\n" + string(js) + "\n+++\n")
+		}
+	}
 
 	st.Out_messages, err = json.Marshal(msgs)
 	if err != nil {

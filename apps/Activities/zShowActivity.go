@@ -10,7 +10,7 @@ type ShowActivity struct {
 }
 
 func (st *ShowActivity) run(caller *ToolCaller, ui *UI) error {
-	source_activities, err := NewActivities("", caller)
+	source_activities, err := NewActivities("")
 	if err != nil {
 		return err
 	}

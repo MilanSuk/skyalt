@@ -14,7 +14,7 @@ type ImportGPXFolderToActivities struct {
 }
 
 func (st *ImportGPXFolderToActivities) run(caller *ToolCaller, ui *UI) error {
-	source_activities, err := NewActivities("", caller)
+	source_activities, err := NewActivities("")
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (st *ImportGPXFolderToActivities) run(caller *ToolCaller, ui *UI) error {
 			if strings.ToLower(ext) != ".gpx" {
 				continue
 			}
-			_, err := source_activities._importGPXFile(filepath.Join(st.FolderPath, file.Name()), "", "", caller)
+			_, err := source_activities._importGPXFile(filepath.Join(st.FolderPath, file.Name()), "", "")
 			if err != nil {
 				return err
 			}

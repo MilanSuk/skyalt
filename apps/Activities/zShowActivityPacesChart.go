@@ -12,7 +12,7 @@ type ShowActivityPacesChart struct {
 }
 
 func (st *ShowActivityPacesChart) run(caller *ToolCaller, ui *UI) error {
-	source_activities, err := NewActivities("", caller)
+	source_activities, err := NewActivities("")
 	if err != nil {
 		return err
 	}
@@ -23,7 +23,7 @@ func (st *ShowActivityPacesChart) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	// load
-	gpx, err := source_activities.GetGpx(st.ActivityID, caller)
+	gpx, err := source_activities.GetGpx(st.ActivityID)
 	if err != nil {
 		return err
 	}

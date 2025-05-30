@@ -30,7 +30,7 @@ type DeviceSettings struct {
 	CustomPalette DeviceSettingsPalette
 }
 
-func NewDeviceSettings(file string, caller *ToolCaller) (*DeviceSettings, error) {
+func NewDeviceSettings(file string) (*DeviceSettings, error) {
 	st := &DeviceSettings{}
 
 	//DPI
@@ -102,7 +102,7 @@ func NewDeviceSettings(file string, caller *ToolCaller) (*DeviceSettings, error)
 		}
 	}
 
-	return _loadInstance(file, "DeviceSettings", "json", st, true, caller)
+	return _loadInstance(file, "DeviceSettings", "json", st, true)
 }
 
 func (st *DeviceSettings) GetPalette() *DeviceSettingsPalette {

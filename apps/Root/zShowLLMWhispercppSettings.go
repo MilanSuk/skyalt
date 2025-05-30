@@ -13,7 +13,7 @@ type ShowLLMWhispercppSettings struct {
 }
 
 func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
-	source_wsp, err := NewLLMWhispercpp_wsp("", caller)
+	source_wsp, err := NewLLMWhispercpp_wsp("")
 	if err != nil {
 		return err
 	}

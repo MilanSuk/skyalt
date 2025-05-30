@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 )
 
@@ -14,6 +15,12 @@ type RootChat struct {
 type RootTool struct {
 	Name   string
 	Prompt string
+
+	Message string //wip from LLM
+}
+
+func (tool *RootTool) GetFilePath(app *RootApp) string {
+	return filepath.Join("..", app.Name, tool.Name+".go")
 }
 
 type RootDev struct {
@@ -22,7 +29,7 @@ type RootDev struct {
 	Structures RootTool
 	Tools      []*RootTool
 
-	DevShowCode string //file name
+	ShowCode string //file name
 }
 
 type RootApp struct {
@@ -43,10 +50,10 @@ type Root struct {
 	Selected_app_i int
 }
 
-func NewRoot(file string, caller *ToolCaller) (*Root, error) {
+func NewRoot(file string) (*Root, error) {
 	st := &Root{}
 
-	return _loadInstance(file, "Root", "json", st, true, caller)
+	return _loadInstance(file, "Root", "json", st, true)
 }
 
 func (root *Root) refreshApps() (*RootApp, error) {
@@ -161,7 +168,7 @@ func (app *RootApp) refreshChats(caller *ToolCaller) (*Chat, string, error) {
 	//update and return
 	if app.Selected_chat_i >= 0 {
 		fileName := app.Chats[app.Selected_chat_i].FileName
-		sourceChat, err := NewChat(fmt.Sprintf("../%s/Chats/%s", app.Name, fileName), caller)
+		sourceChat, err := NewChat(fmt.Sprintf("../%s/Chats/%s", app.Name, fileName))
 		if err != nil {
 			return nil, "", err
 		}

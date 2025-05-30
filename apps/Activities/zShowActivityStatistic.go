@@ -11,7 +11,7 @@ type ShowActivityStatistic struct {
 }
 
 func (st *ShowActivityStatistic) run(caller *ToolCaller, ui *UI) error {
-	source_activities, err := NewActivities("", caller)
+	source_activities, err := NewActivities("")
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func (st *ShowActivityStatistic) run(caller *ToolCaller, ui *UI) error {
 	InfoDiv.SetRow(1, 1, 100)
 
 	//load
-	gpx, err := source_activities.GetGpx(st.ActivityID, caller)
+	gpx, err := source_activities.GetGpx(st.ActivityID)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (st *ShowActivityStatistic) run(caller *ToolCaller, ui *UI) error {
 }
 
 func (st *ShowActivityStatistic) computeCaloriesBurned(totalTime_sec float64, totalDistance_m float64, startDate float64, caller *ToolCaller) (float64, error) {
-	source_body, err := NewUserBodyMeasurements("", caller)
+	source_body, err := NewUserBodyMeasurements("")
 	if err != nil {
 		return 0, err
 	}

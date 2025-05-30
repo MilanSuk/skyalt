@@ -27,9 +27,9 @@ type Gpx struct {
 	Trk     []Track  `xml:"trk"`
 }
 
-func NewGPX(file string, caller *ToolCaller) (*Gpx, error) {
+func NewGPX(file string) (*Gpx, error) {
 	st := &Gpx{}
-	return _loadInstance(file, "Gpx", "xml", st, false, caller)
+	return _loadInstance(file, "Gpx", "xml", st, false)
 }
 
 func (gpx *Gpx) GetInfo() (float64, float64, float64) {

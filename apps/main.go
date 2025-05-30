@@ -39,12 +39,10 @@ import (
 	"time"
 )
 
-func _loadInstance[T any](file string, structName string, format string, defInst *T, save bool, caller *ToolCaller) (*T, error) {
+func _loadInstance[T any](file string, structName string, format string, defInst *T, save bool) (*T, error) {
 	if file == "" {
 		file = fmt.Sprintf("%s-%s.%s", structName, structName, format)
 	}
-
-	caller._addSourceStruct(structName)
 
 	//find
 	g_files_lock.Lock()
@@ -87,7 +85,7 @@ func _loadInstance[T any](file string, structName string, format string, defInst
 	return defInst, nil
 }
 
-func (caller *ToolCaller) _saveInstances() {
+func _saveInstances() {
 
 	g_files_lock.Lock()
 	defer g_files_lock.Unlock()
@@ -184,8 +182,6 @@ type ToolCaller struct {
 	last_send_progress_ms int64 //ms
 
 	cmds []ToolCmd
-
-	source_structs []string
 }
 
 func NewToolCaller() *ToolCaller {
@@ -338,7 +334,7 @@ func main() {
 										}
 										cl.Destroy()
 
-										ui.Caller._saveInstances()
+										_saveInstances()
 									}()
 								} else {
 									fmt.Printf("UI UID %d not found\n", ui_uid)
@@ -433,7 +429,7 @@ func main() {
 
 									cl.Destroy()
 
-									caller._saveInstances()
+									_saveInstances()
 								}()
 							}
 						}
@@ -456,10 +452,6 @@ func Tool_Error(err error) error {
 		callFuncPrint(str)
 	}
 	return err
-}
-
-func (caller *ToolCaller) _addSourceStruct(name string) {
-	caller.source_structs = append(caller.source_structs, name)
 }
 
 // returns true=OK, false=interrupted

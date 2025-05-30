@@ -26,7 +26,7 @@ type LLMxAIGenerateImage struct {
 }
 
 func (st *LLMxAIGenerateImage) run(caller *ToolCaller, ui *UI) error {
-	source_llm, err := NewLLMxAI("", caller)
+	source_llm, err := NewLLMxAI("")
 	if err != nil {
 		return err
 	}

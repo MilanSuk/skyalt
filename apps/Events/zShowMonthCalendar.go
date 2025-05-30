@@ -13,7 +13,7 @@ type ShowMonthCalendar struct {
 }
 
 func (st *ShowMonthCalendar) run(caller *ToolCaller, ui *UI) error {
-	source_events, err := NewEvents("", caller)
+	source_events, err := NewEvents("")
 	if err != nil {
 		return err
 	}

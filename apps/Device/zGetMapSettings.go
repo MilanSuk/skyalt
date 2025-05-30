@@ -6,7 +6,7 @@ type GetMapSettings struct {
 }
 
 func (st *GetMapSettings) run(caller *ToolCaller, ui *UI) error {
-	source_map, err := NewMapSettings("", caller)
+	source_map, err := NewMapSettings("")
 	if err != nil {
 		return err
 	}

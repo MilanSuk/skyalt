@@ -12,7 +12,7 @@ type ImportGPXToActivities struct {
 }
 
 func (st *ImportGPXToActivities) run(caller *ToolCaller, ui *UI) error {
-	source_activities, err := NewActivities("", caller)
+	source_activities, err := NewActivities("")
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (st *ImportGPXToActivities) run(caller *ToolCaller, ui *UI) error {
 			return fmt.Errorf("invalid input(s)")
 		}
 
-		_, err := source_activities._importGPXFile(st.FilePath, st.Type, st.Description, caller)
+		_, err := source_activities._importGPXFile(st.FilePath, st.Type, st.Description)
 		if err != nil {
 			return err
 		}

@@ -5,7 +5,7 @@ type ShowUserBodyMeasurements struct {
 }
 
 func (st *ShowUserBodyMeasurements) run(caller *ToolCaller, ui *UI) error {
-	source_body, err := NewUserBodyMeasurements("", caller)
+	source_body, err := NewUserBodyMeasurements("")
 	if err != nil {
 		return err
 	}

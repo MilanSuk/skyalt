@@ -11,7 +11,7 @@ type Emails struct {
 	Logins map[string]*EmailsLogin
 }
 
-func NewEmails(file string, caller *ToolCaller) (*Emails, error) {
+func NewEmails(file string) (*Emails, error) {
 	st := &Emails{}
-	return _loadInstance(file, "Emails", "json", st, true, caller)
+	return _loadInstance(file, "Emails", "json", st, true)
 }

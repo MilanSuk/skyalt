@@ -32,11 +32,11 @@ type Events struct {
 	Groups map[int64]*EventsGroup
 }
 
-func NewEvents(file string, caller *ToolCaller) (*Events, error) {
+func NewEvents(file string) (*Events, error) {
 	st := &Events{}
 	st.Events = make(map[int64]*EventsItem)
 	st.Groups = make(map[int64]*EventsGroup)
-	return _loadInstance(file, "Events", "json", st, true, caller)
+	return _loadInstance(file, "Events", "json", st, true)
 }
 
 func (ev *Events) getSortedGroupIDs() (sorted []int64) {

@@ -56,7 +56,7 @@ func (st *RecordMicrophone) run(caller *ToolCaller, ui *UI) error {
 
 	} else {
 
-		source_mic, err := NewMicrophoneSettings("", caller)
+		source_mic, err := NewMicrophoneSettings("")
 		if err != nil {
 			return err
 		}

@@ -45,14 +45,14 @@ type LLMxAI struct {
 	ImageModels    []*LLMxAIImageModel
 }
 
-func NewLLMxAI(file string, caller *ToolCaller) (*LLMxAI, error) {
+func NewLLMxAI(file string) (*LLMxAI, error) {
 	st := &LLMxAI{}
 
 	st.Provider = "xAI"
 	st.OpenAI_url = "https://api.x.ai/v1"
 	st.DevUrl = "https://console.x.ai"
 
-	return _loadInstance(file, "LLMxAI", "json", st, true, caller)
+	return _loadInstance(file, "LLMxAI", "json", st, true)
 }
 
 func (llm *LLMxAI) Check(caller *ToolCaller) error {

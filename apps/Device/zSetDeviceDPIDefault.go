@@ -6,7 +6,7 @@ type SetDeviceDPIDefault struct {
 }
 
 func (st *SetDeviceDPIDefault) run(caller *ToolCaller, ui *UI) error {
-	source_dev, err := NewDeviceSettings("", caller)
+	source_dev, err := NewDeviceSettings("")
 	if err != nil {
 		return err
 	}

@@ -9,7 +9,7 @@ type ShowLLMxAISettings struct {
 }
 
 func (st *ShowLLMxAISettings) run(caller *ToolCaller, ui *UI) error {
-	source_llm, err := NewLLMxAI("", caller)
+	source_llm, err := NewLLMxAI("")
 	if err != nil {
 		return err
 	}

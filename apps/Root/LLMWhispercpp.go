@@ -20,13 +20,13 @@ type LLMWhispercpp struct {
 	Port    int
 }
 
-func NewLLMWhispercpp_wsp(file string, caller *ToolCaller) (*LLMWhispercpp, error) {
+func NewLLMWhispercpp_wsp(file string) (*LLMWhispercpp, error) {
 	st := &LLMWhispercpp{}
 
 	st.Address = "http://localhost"
 	st.Port = 8090
 
-	return _loadInstance(file, "LLMWhispercpp", "json", st, true, caller)
+	return _loadInstance(file, "LLMWhispercpp", "json", st, true)
 }
 
 func (wsp *LLMWhispercpp) Check() error {

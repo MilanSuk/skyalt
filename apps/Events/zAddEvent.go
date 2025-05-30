@@ -28,7 +28,7 @@ type AddEvent struct {
 }
 
 func (st *AddEvent) run(caller *ToolCaller, ui *UI) error {
-	source_events, err := NewEvents("", caller)
+	source_events, err := NewEvents("")
 	if err != nil {
 		return err
 	}

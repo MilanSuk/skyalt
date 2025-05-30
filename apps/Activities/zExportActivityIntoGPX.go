@@ -24,7 +24,7 @@ func (st *ExportActivityIntoGPX) run(caller *ToolCaller, ui *UI) error {
 
 	bt := ui.AddButton(0, 3, 2, 1, "Export")
 	bt.clicked = func() error {
-		source_activities, err := NewActivities("", caller)
+		source_activities, err := NewActivities("")
 		if err != nil {
 			return err
 		}
