@@ -457,7 +457,7 @@ func (gph *WinGph) GetTextMax(str string, const_max_line_px int, prop WinFontPro
 		}
 	}
 
-	if len(lines) == 0 || start_p < len(str) {
+	if len(lines) == 0 || start_p < len(str) || (str != "" && str[len(str)-1] == '\n') {
 		lines = append(lines, WinGphLine{s: start_p, e: len(str)})
 	}
 
