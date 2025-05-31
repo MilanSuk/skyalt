@@ -166,7 +166,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				bt.Icon_margin = 0.4
 
 				bt.clicked = func() error {
-					if source_root.Selected_app_i == i {
+					if source_root.Selected_app_i == i && !source_root.ShowSettings {
 						app.Dev.Enable = false
 					}
 					source_root.Selected_app_i = i
