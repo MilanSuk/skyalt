@@ -126,7 +126,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 		ListDiv.SetRowFromSub(y, 2, 100)
 		app.Dev.Structures.Name = "Structures"
-		st._showPrompt(app, &app.Dev.Structures, ListDiv.AddLayout(1, y, 1, 1), caller)
+		st._showPrompt(app, &app.Dev.Structures, -1, ListDiv.AddLayout(1, y, 1, 1), caller)
 		y++
 		y++
 
@@ -143,9 +143,9 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			return nil
 		}
 
-		for _, tool := range app.Dev.Tools {
+		for i, tool := range app.Dev.Tools {
 			ListDiv.SetRowFromSub(y, 2, 100)
-			st._showPrompt(app, tool, ListDiv.AddLayout(1, y, 1, 1), caller)
+			st._showPrompt(app, tool, i, ListDiv.AddLayout(1, y, 1, 1), caller)
 			y++
 			y++
 		}
@@ -154,7 +154,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	return nil
 }
 
-func (st *ShowDev) _showPrompt(app *RootApp, tool *RootTool, ui *UI, caller *ToolCaller) {
+func (st *ShowDev) _showPrompt(app *RootApp, tool *RootTool, tool_i int, ui *UI, caller *ToolCaller) {
 	m := 0.25 //maring
 	ui.SetColumn(0, m, m)
 	ui.SetColumn(1, 1, 100)
@@ -242,7 +242,27 @@ func (st *ShowDev) _showPrompt(app *RootApp, tool *RootTool, ui *UI, caller *Too
 		return nil
 	}
 
-	//reorder(drag or arrows) tools ....
+	//reorder
+	if tool_i >= 0 {
+		MoveUpBt := BtsDiv.AddButton(4, 0, 1, 1, "↑")
+		MoveDownBt := BtsDiv.AddButton(5, 0, 1, 1, "↓")
+		MoveUpBt.Background = 0.5
+		MoveDownBt.Background = 0.5
+
+		MoveUpBt.layout.Enable = tool_i > 0
+		MoveDownBt.layout.Enable = tool_i < len(app.Dev.Tools)-1
+
+		MoveUpBt.clicked = func() error {
+			app.Dev.Tools = slices.Delete(app.Dev.Tools, tool_i, tool_i+1)
+			app.Dev.Tools = slices.Insert(app.Dev.Tools, tool_i-1, tool)
+			return nil
+		}
+		MoveDownBt.clicked = func() error {
+			app.Dev.Tools = slices.Delete(app.Dev.Tools, tool_i, tool_i+1)
+			app.Dev.Tools = slices.Insert(app.Dev.Tools, tool_i+1, tool)
+			return nil
+		}
+	}
 
 	//if compiler find bug in file, show it here ....
 }
