@@ -29,7 +29,8 @@ type RootDev struct {
 	Structures RootTool
 	Tools      []*RootTool
 
-	ShowCode string //file name
+	ShowTool     string //file name
+	ShowToolMode string //"message", "code"
 }
 
 type RootApp struct {

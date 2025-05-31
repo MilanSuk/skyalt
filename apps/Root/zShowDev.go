@@ -12,6 +12,9 @@ type ShowDev struct {
 	AppName string
 }
 
+//remove 'z' from files ....
+//all struct and utils must be in Structures.go ....
+
 func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	source_root, err := NewRoot("")
 	if err != nil {
@@ -29,64 +32,98 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		app.Dev.Tools = append(app.Dev.Tools, &RootTool{})
 	}
 
+	//add, delete Tools from list of files. Keep tools without name ....
+
 	ui.SetColumn(0, 1, 100)
 	ui.SetRow(0, 1, 100)
-	if app.Dev.ShowCode != "" {
+
+	if app.Dev.ShowTool != "" {
 		ui.SetColumn(0, 1, 100)
 		ui.SetColumnResizable(1, 5, 25, 7)
 
-		//code
-		{
-			CodeDiv := ui.AddLayout(1, 0, 1, 1)
-			CodeDiv.SetColumn(0, 1, 100)
-			CodeDiv.SetRowFromSub(1, 1, 100)
-			CodeDiv.AddText(0, 0, 1, 1, app.Name+"/"+app.Dev.ShowCode+".go").Align_h = 1
+		CodeDiv := ui.AddLayout(1, 0, 1, 1)
+		CodeDiv.SetColumn(0, 1, 100)
+		CodeDiv.SetRowFromSub(1, 1, 100)
 
-			var tool *RootTool
-			if app.Dev.ShowCode == "Structures" {
-				tool = &app.Dev.Structures
-			} else {
-				for _, t := range app.Dev.Tools {
-					if t.Name == app.Dev.ShowCode {
-						tool = t
-						break
-					}
-				}
+		{
+			HeaderDiv := CodeDiv.AddLayout(0, 0, 1, 1)
+			HeaderDiv.SetColumn(0, 3, 100)
+			HeaderDiv.SetColumn(1, 2, 3)
+			HeaderDiv.SetColumn(2, 2, 3)
+
+			HeaderDiv.AddText(0, 0, 1, 1, "<b>"+app.Name+"/"+app.Dev.ShowTool+".go").Align_h = 0
+
+			CodeBt := HeaderDiv.AddButton(1, 0, 1, 1, "Code")
+			CodeBt.Background = 0.5
+			CodeBt.clicked = func() error {
+				app.Dev.ShowToolMode = "code"
+				return nil
+			}
+			MessageBt := HeaderDiv.AddButton(2, 0, 1, 1, "Message")
+			MessageBt.Background = 0.5
+			MessageBt.clicked = func() error {
+				app.Dev.ShowToolMode = "message"
+				return nil
 			}
 
-			if tool != nil {
-				if tool.Message != "" {
+			if app.Dev.ShowToolMode == "message" {
+				MessageBt.Background = 1
+			} else {
+				CodeBt.Background = 1
+			}
+		}
 
-					tx := CodeDiv.AddText(0, 1, 1, 1, tool.Message)
-					tx.Linewrapping = false
-					tx.Align_v = 0
-					tx.layout.Back_cd = UI_GetPalette().GetGrey(0.05)
-
-					//scroll nefunguje .............
-
-					//scroll
-					tx.layout.VScrollToTheBottom(true, caller)
-
-				} else {
-					fl, err := os.ReadFile(tool.GetFilePath(app))
-					if err == nil {
-						tx := CodeDiv.AddText(0, 1, 1, 1, string(fl))
-						tx.Linewrapping = false
-						tx.Align_v = 0
-						tx.layout.Back_cd = UI_GetPalette().GetGrey(0.05)
-					}
+		var tool *RootTool
+		if app.Dev.ShowTool == "Structures" {
+			tool = &app.Dev.Structures
+		} else {
+			for _, t := range app.Dev.Tools {
+				if t.Name == app.Dev.ShowTool {
+					tool = t
+					break
 				}
 			}
 		}
+
+		if tool != nil {
+			if app.Dev.ShowToolMode == "message" {
+
+				tx := CodeDiv.AddText(0, 1, 1, 1, tool.Message)
+				tx.Linewrapping = false
+				tx.Align_v = 0
+				tx.layout.Back_cd = UI_GetPalette().GetGrey(0.05)
+
+				//scroll doesn't work? .............
+
+				//scroll
+				tx.layout.VScrollToTheBottom(true, caller)
+			} else {
+				fl, err := os.ReadFile(tool.GetFilePath(app))
+				if err == nil {
+					tx := CodeDiv.AddText(0, 1, 1, 1, string(fl))
+					tx.Linewrapping = false
+					tx.Align_v = 0
+					tx.layout.Back_cd = UI_GetPalette().GetGrey(0.05)
+				}
+			}
+		}
+
 	}
 
+	y := 1
+
+	//app icon, change name, delete app
+	{
+		//drop app icon ....
+	}
+
+	//Create/Edit tools
 	{
 		ListDiv := ui.AddLayout(0, 0, 1, 1)
 		ListDiv.SetColumn(0, 1, 100)
 		ListDiv.SetColumn(1, 10, 20)
 		ListDiv.SetColumn(2, 1, 100)
 
-		y := 1
 		ListDiv.SetRowFromSub(y, 2, 100)
 		app.Dev.Structures.Name = "Structures"
 		st._showPrompt(app, &app.Dev.Structures, ListDiv.AddLayout(1, y, 1, 1), caller)
@@ -113,8 +150,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			y++
 		}
 	}
-
-	//drop app icon ....
 
 	return nil
 }
@@ -152,18 +187,18 @@ func (st *ShowDev) _showPrompt(app *RootApp, tool *RootTool, ui *UI, caller *Too
 	CodeBt := BtsDiv.AddButton(1, 0, 1, 1, "Show code")
 	CodeBt.layout.Enable = exist
 	CodeBt.Background = 0.5
-	if app.Dev.ShowCode != "" && app.Dev.ShowCode == tool.Name {
+	if app.Dev.ShowTool != "" && app.Dev.ShowTool == tool.Name {
 		CodeBt.Label = "Hide code"
 		CodeBt.Background = 1
 		//CodeBt.Border = true
 	}
 	CodeBt.clicked = func() error {
-		if app.Dev.ShowCode == tool.Name {
-			app.Dev.ShowCode = ""
+		if app.Dev.ShowTool == tool.Name {
+			app.Dev.ShowTool = ""
 		} else {
-			app.Dev.ShowCode = tool.Name
+			app.Dev.ShowTool = tool.Name
+			app.Dev.ShowToolMode = "code"
 		}
-		tool.Message = "" //reset
 		return nil
 	}
 
@@ -179,49 +214,43 @@ func (st *ShowDev) _showPrompt(app *RootApp, tool *RootTool, ui *UI, caller *Too
 	//GenBt.layout.Enable = .... if prompt or file changed
 	GenBt.clicked = func() error {
 
-		app.Dev.ShowCode = tool.Name //open code panel
+		app.Dev.ShowTool = tool.Name //open code panel
+		app.Dev.ShowToolMode = "message"
 
+		code := ""
+		var err error
 		if tool.Name == "Structures" {
-			code, err := st.GenerateStructure(tool, caller)
-			if err != nil {
-				return err
-			}
+			code, err = st.GenerateStructure(tool, caller)
 
-			err = os.WriteFile(tool.GetFilePath(app), []byte(code), 0644)
-			if err != nil {
-				return err
-			}
-			//save hash? ....
-			return nil
 		} else {
-			//GenerateTool()....
+			code, err = st.GenerateFunction(tool, caller)
+
+			tool.Name = "" //get name from code ......
 		}
+
+		app.Dev.ShowToolMode = "code" //switch to final code
+
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile(tool.GetFilePath(app), []byte(code), 0644)
+		if err != nil {
+			return err
+		}
+		//save hash? ....
+
 		return nil
 	}
 
-	//move(reorder) ....
-
-	//remove 'z' from files ....
-	//all struct and utils must be in Structures.go ....
+	//reorder(drag or arrows) tools ....
 
 	//if compiler find bug in file, show it here ....
 }
 
 func (st *ShowDev) GenerateStructure(tool *RootTool, caller *ToolCaller) (string, error) {
+	comp := st._prepareLLM(tool.Prompt)
 
-	var comp LLMxAICompleteChat
-	comp.Model = "grok-3-mini" //grok-3-mini-fast
-	comp.Temperature = 0.2
-	comp.Max_tokens = 65536
-	comp.Top_p = 0.7 //1.0
-	comp.Frequency_penalty = 0
-	comp.Presence_penalty = 0
-	comp.Reasoning_effort = ""
-
-	comp.UserMessage = tool.Prompt
-	comp.Max_iteration = 1
-	{
-		exampleStructFile := `
+	exampleFile := `
 package main
 
 type ExampleStruct struct {
@@ -238,17 +267,75 @@ func NewExampleStruct(filePath string) (*ExampleStruct, error) {
 
 //<structures functions here>
 `
-		comp.SystemMessage = "You are a programmer. You write code in Go language.\n"
+	comp.SystemMessage = "You are a programmer. You write code in Go language.\n"
+	comp.SystemMessage += "Here is the example file with code:\n```go" + exampleFile + "```\n"
 
-		comp.SystemMessage += "Here is the example file with code:\n```go" + exampleStructFile + "```\n"
+	comp.SystemMessage += "Based on user message, rewrite above code. Your job is to design structures. Write functions only if user ask for them. You may write multiple structures, but output everything in one code block.\n"
 
-		comp.SystemMessage += "Based on user message, rewrite above code. Your job is to design structures. Write functions only if user ask for them. You may write multiple structures, but output everything in one code block.\n"
+	comp.SystemMessage += "Structures can't have pointers, because they will be saved as JSON, so instead of pointer(s) use ID which is saved in map[interger or string ID].\n"
 
-		comp.SystemMessage += "Structures can't have pointers, because they will be saved as JSON, so instead of pointer(s) use ID which is saved in map[interger or string ID].\n"
+	//maybe add old file structures, because it's needed that struct and attributes names are same ...............
 
-		//maybe add old file structures, because it's needed that struct and attributes names are same ...............
-	}
+	return st._runLLM(tool, &comp, caller)
+}
 
+func (st *ShowDev) GenerateFunction(tool *RootTool, caller *ToolCaller) (string, error) {
+	comp := st._prepareLLM(tool.Prompt)
+
+	//exampleApis := ``
+
+	//exampleStructs := ``
+
+	exampleFile := `
+package main
+
+type ExampleTool struct {
+	//<tool's arguments>
+}
+
+func (st *ExampleTool) run(caller *ToolCaller, ui *UI) error {
+
+	//<...>
+
+	return nil
+}
+`
+
+	//Arguments 'Out_' ....
+
+	//add list of structures and their loading functions ....
+	/*source_root, err := NewRoot("")
+	if err != nil {
+		return err
+	}*/
+
+	comp.SystemMessage = "You are a programmer. You write code in Go language.\n"
+	comp.SystemMessage += "Here is the example file with code:\n```go" + exampleFile + "```\n"
+
+	//Pick up Tool name. Here are the names of tools which already exists, don't use them.
+
+	//..........
+
+	return st._runLLM(tool, &comp, caller)
+}
+
+func (st *ShowDev) _prepareLLM(user_prompt string) LLMxAICompleteChat {
+	var comp LLMxAICompleteChat
+	comp.Model = "grok-3-mini" //grok-3-mini-fast
+	comp.Temperature = 0.2
+	comp.Max_tokens = 65536
+	comp.Top_p = 0.7 //1.0
+	comp.Frequency_penalty = 0
+	comp.Presence_penalty = 0
+	comp.Reasoning_effort = ""
+	comp.Max_iteration = 1
+
+	comp.UserMessage = user_prompt
+
+	return comp
+}
+
+func (st *ShowDev) _runLLM(tool *RootTool, comp *LLMxAICompleteChat, caller *ToolCaller) (string, error) {
 	tool.Message = ""
 	comp.delta = func(msg *ChatMsg) {
 		if msg.Content.Calls != nil {
@@ -258,7 +345,6 @@ func NewExampleStruct(filePath string) (*ExampleStruct, error) {
 
 	code := ""
 	_, err := CallTool(comp.run, caller)
-	tool.Message = "" //reset
 	if err != nil {
 		return "", err
 	}
@@ -276,5 +362,5 @@ func NewExampleStruct(filePath string) (*ExampleStruct, error) {
 
 	code = strings.TrimSpace(goCode.String())
 
-	return code, err
+	return code, nil
 }
