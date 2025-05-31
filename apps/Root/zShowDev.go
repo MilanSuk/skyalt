@@ -114,7 +114,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 	//app icon, change name, delete app
 	{
-		//drop app icon ....
+		//drop app icon ...........
 	}
 
 	//Create/Edit tools
@@ -175,16 +175,29 @@ func (st *ShowDev) _showPrompt(app *RootApp, tool *RootTool, tool_i int, ui *UI,
 	ed.Multiline = true
 
 	BtsDiv := ui.AddLayout(1, 3, 1, 1)
-	BtsDiv.SetColumn(0, 1, 100)
-
+	BtsDiv.SetColumn(1, 1, 100)
 	btm := 3.0
-	BtsDiv.SetColumn(1, btm, btm)
 	BtsDiv.SetColumn(2, btm, btm)
 	BtsDiv.SetColumn(3, btm, btm)
+	BtsDiv.SetColumn(4, btm, btm)
 
 	exist := (tool.Name != "") //&& file_exist ....
 
-	CodeBt := BtsDiv.AddButton(1, 0, 1, 1, "Show code")
+	if tool.Name != "Structures" {
+		MoveBt := BtsDiv.AddButton(0, 0, 1, 1, "<small>↕")
+		MoveBt.Background = 0.5
+		MoveBt.Cd = UI_GetPalette().GetGrey(0.15)
+		MoveBt.Drag_group = "tool"
+		MoveBt.Drop_group = "tool"
+		MoveBt.Drag_index = tool_i
+		MoveBt.Drop_v = true
+		MoveBt.dropMove = func(src_i, dst_i int, src_source, dst_source string) error {
+			Layout_MoveElement(&app.Dev.Tools, &app.Dev.Tools, src_i, dst_i)
+			return nil
+		}
+	}
+
+	CodeBt := BtsDiv.AddButton(2, 0, 1, 1, "Show code")
 	CodeBt.layout.Enable = exist
 	CodeBt.Background = 0.5
 	if app.Dev.ShowTool != "" && app.Dev.ShowTool == tool.Name {
@@ -202,7 +215,7 @@ func (st *ShowDev) _showPrompt(app *RootApp, tool *RootTool, tool_i int, ui *UI,
 		return nil
 	}
 
-	IgnoreBt := BtsDiv.AddButton(2, 0, 1, 1, "Ignore")
+	IgnoreBt := BtsDiv.AddButton(3, 0, 1, 1, "Ignore")
 	IgnoreBt.layout.Enable = exist
 	IgnoreBt.Background = 0.5
 	IgnoreBt.clicked = func() error {
@@ -210,7 +223,7 @@ func (st *ShowDev) _showPrompt(app *RootApp, tool *RootTool, tool_i int, ui *UI,
 		return nil
 	}
 
-	GenBt := BtsDiv.AddButton(3, 0, 1, 1, "Generate")
+	GenBt := BtsDiv.AddButton(4, 0, 1, 1, "Generate")
 	//GenBt.layout.Enable = .... if prompt or file changed
 	GenBt.clicked = func() error {
 
@@ -240,28 +253,6 @@ func (st *ShowDev) _showPrompt(app *RootApp, tool *RootTool, tool_i int, ui *UI,
 		//save hash? ....
 
 		return nil
-	}
-
-	//reorder
-	if tool_i >= 0 {
-		MoveUpBt := BtsDiv.AddButton(4, 0, 1, 1, "↑")
-		MoveDownBt := BtsDiv.AddButton(5, 0, 1, 1, "↓")
-		MoveUpBt.Background = 0.5
-		MoveDownBt.Background = 0.5
-
-		MoveUpBt.layout.Enable = tool_i > 0
-		MoveDownBt.layout.Enable = tool_i < len(app.Dev.Tools)-1
-
-		MoveUpBt.clicked = func() error {
-			app.Dev.Tools = slices.Delete(app.Dev.Tools, tool_i, tool_i+1)
-			app.Dev.Tools = slices.Insert(app.Dev.Tools, tool_i-1, tool)
-			return nil
-		}
-		MoveDownBt.clicked = func() error {
-			app.Dev.Tools = slices.Delete(app.Dev.Tools, tool_i, tool_i+1)
-			app.Dev.Tools = slices.Insert(app.Dev.Tools, tool_i+1, tool)
-			return nil
-		}
 	}
 
 	//if compiler find bug in file, show it here ....
