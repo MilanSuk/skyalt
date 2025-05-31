@@ -313,6 +313,18 @@ func (st *LLMxAICompleteChat) run(caller *ToolCaller, ui *UI) error {
 				}
 			}
 
+			//log stats
+			source_llm.Stats = append(source_llm.Stats, LLMxAIMsgStats{
+				Function:       "completion",
+				CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000,
+				Model:          st.Model,
+
+				Time:             dt,
+				TimeToFirstToken: time_to_first_token,
+
+				Usage: usage,
+			})
+
 			if len(calls) == 0 {
 				break
 			}

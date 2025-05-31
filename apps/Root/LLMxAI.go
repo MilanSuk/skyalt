@@ -34,6 +34,17 @@ type LLMxAIImageModel struct {
 	Aliases []string
 }
 
+type LLMxAIMsgStats struct {
+	Function       string
+	CreatedTimeSec float64
+	Model          string
+
+	Time             float64
+	TimeToFirstToken float64
+
+	Usage ChatMsgUsage
+}
+
 // xAI LLM settings.
 type LLMxAI struct {
 	Provider   string
@@ -43,6 +54,8 @@ type LLMxAI struct {
 
 	LanguageModels []*LLMxAILanguageModel
 	ImageModels    []*LLMxAIImageModel
+
+	Stats []LLMxAIMsgStats
 }
 
 func NewLLMxAI(file string) (*LLMxAI, error) {
