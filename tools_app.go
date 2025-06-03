@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,17 +29,19 @@ import (
 	"time"
 )
 
+type ToolsSdkChange struct {
+	UID         uint64
+	ValueBytes  []byte
+	ValueString string
+	ValueFloat  float64
+	ValueInt    int64
+	ValueBool   bool
+}
+
 type ToolsAppItem struct {
 	FileTime int64
 	Schema   *ToolsOpenAI_completion_tool
 }
-
-type ToolsAppSource struct {
-	FileTime    int64
-	Description string
-	Tools       []string
-}
-
 type ToolsApp struct {
 	router *ToolsRouter
 	folder string
@@ -57,7 +58,6 @@ type ToolsApp struct {
 	Compile_error string
 	CodeHash      int64
 	Tools         map[string]*ToolsAppItem
-	Sources       map[string]*ToolsAppSource
 
 	storage_changes int64
 }
@@ -65,8 +65,6 @@ type ToolsApp struct {
 func NewToolsApp(name string, folder string, router *ToolsRouter) *ToolsApp {
 	app := &ToolsApp{name: name, folder: folder, router: router}
 	app.Tools = make(map[string]*ToolsAppItem)
-	app.Sources = make(map[string]*ToolsAppSource)
-	app.Sources["_default_"] = &ToolsAppSource{}
 
 	fl, err := os.ReadFile(app.GetToolsJsonPath())
 	if err == nil {
@@ -111,15 +109,9 @@ func (app *ToolsApp) GetToolsJsonPath() string {
 func (app *ToolsApp) getToolFileName(toolName string) string {
 	return "z" + toolName + ".go"
 }
-func (app *ToolsApp) getSourceFileName(sourceName string) string {
-	return sourceName + ".go"
-}
 
 func (app *ToolsApp) getToolFilePath(toolName string) string {
 	return filepath.Join(app.folder, app.getToolFileName(toolName))
-}
-func (app *ToolsApp) getSourceFilePath(sourceName string) string {
-	return filepath.Join(app.folder, app.getSourceFileName(sourceName))
 }
 
 func (app *ToolsApp) WaitUntilExited() string {
@@ -163,24 +155,6 @@ func (app *ToolsApp) GetSchemas(toolNames []string) []*ToolsOpenAI_completion_to
 
 	return schemas
 }
-func (app *ToolsApp) GetSchemasForSource(sourceName string) []*ToolsOpenAI_completion_tool {
-	app.lock.Lock()
-	defer app.lock.Unlock()
-
-	var schemas []*ToolsOpenAI_completion_tool
-
-	source, found := app.Sources[sourceName]
-	if found {
-		for _, toolName := range source.Tools {
-			tool, found := app.Tools[toolName]
-			if found {
-				schemas = append(schemas, tool.Schema)
-			}
-		}
-	}
-
-	return schemas
-}
 
 func (app *ToolsApp) Tick() error {
 
@@ -189,77 +163,6 @@ func (app *ToolsApp) Tick() error {
 	files, err := os.ReadDir(app.folder)
 	if err != nil {
 		return err
-	}
-
-	//create list of sources
-	{
-		//add new sources
-		for _, info := range files {
-			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "" || info.Name()[0] != strings.ToUpper(info.Name())[0] {
-				continue
-			}
-
-			var fileTime int64
-			inf, err := os.Stat(filepath.Join(app.folder, info.Name()))
-			if err != nil {
-				return err
-			}
-			if inf != nil {
-				fileTime = inf.ModTime().UnixNano()
-			}
-
-			sourceName := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
-
-			item, found := app.Sources[sourceName]
-			if !found {
-				description, err := app.GetSourceDescription(sourceName)
-				if err != nil {
-					return err
-				}
-
-				app.lock.Lock()
-				app.Sources[sourceName] = &ToolsAppSource{Description: description, FileTime: fileTime}
-				app.lock.Unlock()
-
-				saveIt = true
-			} else {
-				if item.FileTime != fileTime {
-					//update
-					description, err := app.GetSourceDescription(sourceName)
-					if err != nil {
-						return err
-					}
-
-					app.lock.Lock()
-					item.Description = description
-					item.FileTime = fileTime
-					app.lock.Unlock()
-
-					saveIt = true
-				}
-			}
-		}
-
-		//remove deleted sources
-		for sourceName := range app.Sources {
-			if sourceName == "_default_" {
-				continue //skip
-			}
-
-			found := false
-			for _, file := range files {
-				if !file.IsDir() && file.Name() == app.getSourceFileName(sourceName) {
-					found = true
-					break
-				}
-			}
-			if !found {
-				app.lock.Lock()
-				delete(app.Sources, sourceName)
-				app.lock.Unlock()
-				saveIt = true
-			}
-		}
 	}
 
 	//add new tools
@@ -311,11 +214,6 @@ func (app *ToolsApp) Tick() error {
 				app.Tools[toolName] = &ToolsAppItem{Schema: schema, FileTime: fileTime}
 				app.lock.Unlock()
 
-				err := app.UpdateSources(toolName)
-				if err != nil {
-					return err
-				}
-
 				saveIt = true
 			}
 
@@ -332,11 +230,6 @@ func (app *ToolsApp) Tick() error {
 					item.Schema = schema
 					item.FileTime = fileTime
 					app.lock.Unlock()
-
-					err := app.UpdateSources(toolName)
-					if err != nil {
-						return err
-					}
 
 					saveIt = true
 				}
@@ -471,183 +364,6 @@ func (app *ToolsApp) CheckRun() error {
 	return nil //ok
 }
 
-func (app *ToolsApp) compile(codeHash int64) error {
-	app.lock.Lock()
-	defer app.lock.Unlock()
-
-	app.CodeHash = codeHash
-
-	msg := app.router.AddRecompileMsg(app.name)
-	defer msg.Done()
-
-	msg.progress_label = "Generating tools code"
-	{
-		var strInits strings.Builder
-		var strFrees strings.Builder
-		var strCalls strings.Builder
-
-		//start
-		strInits.WriteString("func _callGlobalInits() {\n\n")
-		strFrees.WriteString("func _callGlobalDestroys() {\n\n")
-		strCalls.WriteString("func FindToolRunFunc(funcName string, jsParams []byte) (func(caller *ToolCaller, ui *UI) error, interface{}, error) {\n\tswitch funcName {\n")
-
-		files, err := os.ReadDir(app.folder)
-		if err != nil {
-			return err
-		}
-		for _, info := range files {
-			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || !strings.HasPrefix(info.Name(), "z") {
-				continue
-			}
-
-			stName := info.Name()[1 : len(info.Name())-3]
-
-			fl, err := os.ReadFile(filepath.Join(app.folder, info.Name()))
-			if err != nil {
-				return err
-			}
-			flstr := string(fl)
-
-			//add init
-			if strings.Index(flstr, stName+"_global_init") > 0 {
-				strInits.WriteString(fmt.Sprintf(`
-	{
-		err := %s_global_init()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-`, stName))
-			}
-
-			//add destroy
-			if strings.Index(flstr, stName+"_global_destroy") > 0 {
-				strFrees.WriteString(fmt.Sprintf(`
-	{
-		err := %s_global_destroy()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-`, stName))
-			}
-
-			//add call
-			strCalls.WriteString(fmt.Sprintf(`	case "%s":
-				st := %s{}
-				err := json.Unmarshal(jsParams, &st)
-				if err != nil {
-					return nil, nil, err
-				}
-				return st.run, &st, nil
-		`, stName, stName))
-
-		}
-
-		//finish
-		strInits.WriteString("}\n")
-		strFrees.WriteString("}\n")
-		strCalls.WriteString("\n\t}\n\treturn nil, nil, fmt.Errorf(\"Function '%s' not found\", funcName)\n}\n")
-
-		var strFinal strings.Builder
-		/*strFinal.WriteString(`package main
-		import (
-			"encoding/json"
-			"log"
-		)
-		`)*/
-
-		mainGo, err := os.ReadFile(filepath.Join(app.router.folderApps, "main.go"))
-		if err != nil {
-			return err
-		}
-		strFinal.WriteString(string(mainGo))
-		strFinal.WriteString("\n")
-		strFinal.WriteString(strInits.String())
-		strFinal.WriteString(strFrees.String())
-		strFinal.WriteString(strCalls.String())
-
-		err = os.WriteFile(filepath.Join(app.folder, "main.go"), []byte(strFinal.String()), 0644)
-		if err != nil {
-			return err
-		}
-	}
-	msg.progress_done = 0.2
-
-	//fix files
-	msg.progress_label = "Fixing tools code"
-	{
-		fmt.Printf("Fixing '%s' ... ", app.name)
-		st := float64(time.Now().UnixMilli()) / 1000
-		cmd := exec.Command("goimports", "-l", "-w", ".")
-		cmd.Dir = app.folder
-		var stderr bytes.Buffer
-		cmd.Stderr = &stderr //os.Stderr
-		cmd.Stdout = os.Stdout
-		err := cmd.Run()
-		if err != nil {
-			return fmt.Errorf("goimports failed: %s", stderr.String())
-		}
-		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
-	}
-
-	msg.progress_done = 0.4
-
-	//update packages
-	msg.progress_label = "Updating tools packages"
-	{
-		fmt.Printf("Updating packages '%s' ... ", app.name)
-		st := float64(time.Now().UnixMilli()) / 1000
-
-		if !Tools_FileExists(filepath.Join(app.folder, "go.mod")) {
-			//create
-			cmd := exec.Command("go", "mod", "init", "skyalt_tool")
-			cmd.Dir = app.folder
-			var stderr bytes.Buffer
-			cmd.Stderr = &stderr //os.Stderr
-			cmd.Stdout = os.Stdout
-			err := cmd.Run()
-			if err != nil {
-				return fmt.Errorf("go mod init failed: %s", stderr.String())
-			}
-		}
-
-		//update
-		cmd := exec.Command("go", "mod", "tidy")
-		cmd.Dir = app.folder
-		var stderr bytes.Buffer
-		cmd.Stderr = &stderr //os.Stderr
-		cmd.Stdout = os.Stdout
-		err := cmd.Run()
-		if err != nil {
-			return fmt.Errorf("go mod tidy failed: %s", stderr.String())
-		}
-
-		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
-	}
-	msg.progress_done = 0.6
-
-	//compile
-	msg.progress_label = "Compiling tools code"
-	{
-		fmt.Printf("Compiling '%s' ... ", app.name)
-		st := float64(time.Now().UnixMilli()) / 1000
-		cmd := exec.Command("go", "build", "-o", app.getBinName())
-		cmd.Dir = app.folder
-		var stderr bytes.Buffer
-		cmd.Stderr = &stderr //os.Stderr
-		cmd.Stdout = os.Stdout
-		err := cmd.Run()
-		if err != nil {
-			return fmt.Errorf("compiler failed: %s", stderr.String())
-		}
-		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
-	}
-	msg.progress_done = 1.0
-
-	return nil
-}
-
 func _ToolsCaller_UpdateDev(port int, fnLog func(err error) error) error {
 	cl, err := NewToolsClient("localhost", port)
 	if fnLog(err) == nil {
@@ -662,7 +378,7 @@ func _ToolsCaller_UpdateDev(port int, fnLog func(err error) error) error {
 }
 
 // Function was copied from Server code
-func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change SdkChange, fnLog func(err error) error) ([]byte, []byte, error) {
+func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change ToolsSdkChange, fnLog func(err error) error) ([]byte, []byte, error) {
 	cl, err := NewToolsClient("localhost", port)
 	if fnLog(err) == nil {
 		defer cl.Destroy()

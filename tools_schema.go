@@ -21,8 +21,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
-	"slices"
 	"strings"
 	"unicode"
 )
@@ -123,45 +121,24 @@ func ToolsOpenAI_convertTypeToSchemaType(tp string) string {
 	return tp
 }
 
-func (app *ToolsApp) GetSourceDescription(sourceName string) (string, error) {
-	node, err := parser.ParseFile(token.NewFileSet(), app.getSourceFilePath(sourceName), nil, parser.ParseComments)
-	if err != nil {
-		return "", fmt.Errorf("error parsing file: %v", err)
-	}
-
-	description := ""
-
-	for _, decl := range node.Decls {
-		genDecl, ok := decl.(*ast.GenDecl)
-		if !ok || genDecl.Tok != token.TYPE {
-			continue
+func _exprToString(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		return t.Name
+	//case *ast.InterfaceType:
+	//	return "any" // "oneOf": [{ "type": "string" }, { "type": "number" }]
+	case *ast.StarExpr:
+		return "*" + _exprToString(t.X)
+	case *ast.ArrayType:
+		if t.Len == nil {
+			return "[]" + _exprToString(t.Elt)
 		}
-
-		for _, spec := range genDecl.Specs {
-			typeSpec, ok := spec.(*ast.TypeSpec)
-			if !ok {
-				continue
-			}
-
-			_, ok = typeSpec.Type.(*ast.StructType)
-			if !ok {
-				continue
-			}
-
-			structDoc := ""
-			if genDecl.Doc != nil {
-				structDoc = strings.TrimSpace(genDecl.Doc.Text())
-			}
-
-			if sourceName != typeSpec.Name.Name {
-				continue
-			}
-
-			description = structDoc
-		}
+		return "[" + _exprToString(t.Len) + "]" + _exprToString(t.Elt)
+	case *ast.SelectorExpr:
+		return _exprToString(t.X) + "." + t.Sel.Name
+	default:
+		return fmt.Sprintf("%T", expr)
 	}
-
-	return description, nil
 }
 
 func (app *ToolsApp) GetToolSchema(toolName string) (*ToolsOpenAI_completion_tool, error) {
@@ -247,64 +224,4 @@ func (app *ToolsApp) GetToolSchema(toolName string) (*ToolsOpenAI_completion_too
 	}
 
 	return oai, nil
-}
-
-func _exprToString(expr ast.Expr) string {
-	switch t := expr.(type) {
-	case *ast.Ident:
-		return t.Name
-	//case *ast.InterfaceType:
-	//	return "any" // "oneOf": [{ "type": "string" }, { "type": "number" }]
-	case *ast.StarExpr:
-		return "*" + _exprToString(t.X)
-	case *ast.ArrayType:
-		if t.Len == nil {
-			return "[]" + _exprToString(t.Elt)
-		}
-		return "[" + _exprToString(t.Len) + "]" + _exprToString(t.Elt)
-	case *ast.SelectorExpr:
-		return _exprToString(t.X) + "." + t.Sel.Name
-	default:
-		return fmt.Sprintf("%T", expr)
-	}
-}
-
-func (app *ToolsApp) UpdateSources(toolName string) error {
-	fl, err := os.ReadFile(app.getToolFilePath(toolName))
-	if err != nil {
-		return err
-	}
-
-	var sourcesNames []string
-	for sourceName := range app.Sources {
-		if strings.Contains(string(fl), fmt.Sprintf("New%s(", sourceName)) {
-			sourcesNames = append(sourcesNames, sourceName)
-		}
-	}
-
-	app.lock.Lock()
-	defer app.lock.Unlock()
-
-	//add
-	for _, sourceName := range sourcesNames {
-		if slices.Index(app.Sources[sourceName].Tools, toolName) < 0 {
-			app.Sources[sourceName].Tools = append(app.Sources[sourceName].Tools, toolName)
-		}
-	}
-
-	//remove
-	for sourceName, source := range app.Sources {
-		if slices.Index(sourcesNames, sourceName) < 0 { //not found
-			ind := slices.Index(source.Tools, toolName)
-			if ind >= 0 { //found
-				source.Tools = slices.Delete(source.Tools, ind, ind+1)
-			}
-		}
-	}
-
-	if len(sourcesNames) == 0 {
-		app.Sources["_default_"].Tools = append(app.Sources["_default_"].Tools, toolName)
-	}
-
-	return nil
 }

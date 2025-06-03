@@ -21,7 +21,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 )
+
+func Tools_Time() float64 {
+	return float64(time.Now().UnixMicro()) / 1000000 //seconds
+}
 
 func Tools_FormatBytes(bytes int) string {
 	const unit = 1024

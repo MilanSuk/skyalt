@@ -389,15 +389,6 @@ func (cmd *ToolCmd) Exe(ui *Ui) bool {
 	return found
 }
 
-type SdkChange struct {
-	UID         uint64
-	ValueBytes  []byte
-	ValueString string
-	ValueFloat  float64
-	ValueInt    int64
-	ValueBool   bool
-}
-
 func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_UID uint64, fnProgress func(cmds [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
 
 	if layout.UID != parent_UID {
@@ -417,7 +408,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 			if err == nil {
 				layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
 			}
-			layout.ui.router.CallChangeAsync(pre_parent_UID, pre_appName, "back", SdkChange{UID: ui.UID, ValueBytes: dataJs}, fnProgress, pre_fnDone)
+			layout.ui.router.CallChangeAsync(pre_parent_UID, pre_appName, "back", ToolsSdkChange{UID: ui.UID, ValueBytes: dataJs}, fnProgress, pre_fnDone)
 		}
 		appName = ui.AppName
 		funcName = ui.FuncName
@@ -480,7 +471,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 					pathes := []string{path}
 					pathesJs, err := json.Marshal(pathes)
 					if err == nil {
-						layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueBytes: pathesJs}, fnProgress, fnDone)
+						layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueBytes: pathesJs}, fnProgress, fnDone)
 					}
 				}
 			}
@@ -530,8 +521,8 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 			ed.Linewrapping = it.Editbox.Linewrapping
 			ed.Formating = it.Editbox.Formating
 
-			createChange := func() SdkChange {
-				change := SdkChange{UID: it.UID}
+			createChange := func() ToolsSdkChange {
+				change := ToolsSdkChange{UID: it.UID}
 				if it.Editbox.Value != nil {
 					change.ValueString = *it.Editbox.Value
 				} else if it.Editbox.ValueInt != nil {
@@ -574,7 +565,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 			}
 			itemLLMTip = strconv.FormatFloat(*it.Slider.Value, 'f', -1, 64)
 			sl.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueFloat: *it.Slider.Value}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueFloat: *it.Slider.Value}, fnProgress, fnDone)
 			}
 
 		} else if it.FilePickerButton != nil {
@@ -598,7 +589,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 				itemLLMTip = "File: " + *it.FilePickerButton.Path
 			}
 			bt.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueString: *it.FilePickerButton.Path}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: *it.FilePickerButton.Path}, fnProgress, fnDone)
 			}
 		} else if it.DatePickerButton != nil {
 			var bt *DatePickerButton
@@ -621,7 +612,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 				itemLLMTip = "Date(YY-MM-DD HH:MM): " + time.Unix(*it.DatePickerButton.Date, 0).Format("01-02-2006 15:04")
 			}
 			bt.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueInt: *it.DatePickerButton.Date}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueInt: *it.DatePickerButton.Date}, fnProgress, fnDone)
 			}
 
 		} else if it.ColorPickerButton != nil {
@@ -643,7 +634,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 			}
 			itemLLMTip = fmt.Sprintf("Color: R:%d, G:%d, B:%d, A:%d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)
 			bt.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %d %d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %d %d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)}, fnProgress, fnDone)
 			}
 
 		} else if it.Combo != nil {
@@ -667,7 +658,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 				cb.DialogWidth = it.Combo.DialogWidth
 			}
 			cb.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueString: *it.Combo.Value}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: *it.Combo.Value}, fnProgress, fnDone)
 			}
 
 			if it.Combo.Value != nil {
@@ -694,7 +685,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 				sw.Tooltip = it.Switch.Tooltip
 			}
 			sw.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueBool: *it.Switch.Value}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueBool: *it.Switch.Value}, fnProgress, fnDone)
 			}
 
 			if it.Switch.Value != nil {
@@ -721,7 +712,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 				che.Tooltip = it.Checkbox.Tooltip
 			}
 			che.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueFloat: *it.Checkbox.Value}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueFloat: *it.Checkbox.Value}, fnProgress, fnDone)
 			}
 
 			if it.Checkbox.Value != nil {
@@ -736,7 +727,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 			mp.Routes = it.OsmMap.Routes
 
 			mp.changed = func() {
-				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueString: fmt.Sprintf("%f %f %f", mp.Cam.Lon, mp.Cam.Lat, mp.Cam.Zoom)}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%f %f %f", mp.Cam.Lon, mp.Cam.Lat, mp.Cam.Zoom)}, fnProgress, fnDone)
 			}
 
 			//itemLLMTip ....
@@ -781,7 +772,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 			if it.Button.ConfirmQuestion != "" {
 				bt := layout.AddButtonConfirm(it.X, it.Y, it.W, it.H, it.Button.Label, it.Button.ConfirmQuestion)
 				bt.confirmed = func() {
-					layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID}, fnProgress, fnDone)
+					layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID}, fnProgress, fnDone)
 				}
 				bt.Tooltip = it.Button.Tooltip
 				bt.Align = it.Button.Align
@@ -796,7 +787,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 			} else {
 				bt := layout.AddButton(it.X, it.Y, it.W, it.H, it.Button.Label)
 				bt.clicked = func() {
-					layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID}, fnProgress, fnDone)
+					layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID}, fnProgress, fnDone)
 				}
 				bt.Tooltip = it.Button.Tooltip
 				bt.Align = it.Button.Align
@@ -821,7 +812,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 			btLay.Drop_v = it.Button.Drop_v
 			btLay.Drop_in = it.Button.Drop_in
 			btLay.dropMove = func(src_i, dst_i int, src_source, dst_source string) {
-				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, SdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %s %s", src_i, dst_i, src_source, dst_source)}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %s %s", src_i, dst_i, src_source, dst_source)}, fnProgress, fnDone)
 			}
 
 			itemLLMTip = "Button with label: " + it.Button.Label

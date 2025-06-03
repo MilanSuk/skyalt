@@ -348,7 +348,7 @@ func (router *ToolsRouter) FindApp(appName string) *ToolsApp {
 	router.lock.Lock()
 	defer router.lock.Unlock()
 
-	app, _ := router.apps[appName]
+	app := router.apps[appName]
 	if app == nil {
 		router.log.Error(fmt.Errorf("app '%s' not found", appName))
 	}
@@ -377,7 +377,7 @@ func (router *ToolsRouter) GetSortedMsgs() []*ToolsRouterMsg {
 	return sortedMsgs
 }
 
-func _ToolsRouter_getJSON(params interface{}) ([]byte, error) {
+func _ToolsRouter_getJSON(params any) ([]byte, error) {
 	jsParams := []byte("{}")
 	if params != nil {
 		var err error
@@ -400,13 +400,13 @@ func (router *ToolsRouter) CallUpdateDev() {
 	}
 }
 
-func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, appName string, funcName string, change SdkChange, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
+func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, appName string, funcName string, change ToolsSdkChange, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
 	app := router.FindApp(appName)
 	if app == nil {
 		return
 	}
 
-	msg := &ToolsRouterMsg{user_uid: "", appName: appName, funcName: "_change_" + funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: OsTime()}
+	msg := &ToolsRouterMsg{user_uid: "", appName: appName, funcName: "_change_" + funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: Tools_Time()}
 	msg_id := router.msgs_counter.Add(1)
 
 	msg.drawit = true
@@ -437,7 +437,7 @@ func (router *ToolsRouter) CallAsync(ui_uid uint64, appName string, funcName str
 		return nil
 	}
 
-	msg := &ToolsRouterMsg{user_uid: "", ui_uid: ui_uid, appName: appName, funcName: funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: OsTime()}
+	msg := &ToolsRouterMsg{user_uid: "", ui_uid: ui_uid, appName: appName, funcName: funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: Tools_Time()}
 	msg_id := router.msgs_counter.Add(1)
 
 	router.lock.Lock()
@@ -469,7 +469,7 @@ func (router *ToolsRouter) CallAsync(ui_uid uint64, appName string, funcName str
 }
 
 func (router *ToolsRouter) AddRecompileMsg(appName string) *ToolsRouterMsg {
-	msg := &ToolsRouterMsg{user_uid: "_compile_", ui_uid: 0, appName: appName, funcName: "_compile_", fnDone: nil, start_time: OsTime()}
+	msg := &ToolsRouterMsg{user_uid: "_compile_", ui_uid: 0, appName: appName, funcName: "_compile_", fnDone: nil, start_time: Tools_Time()}
 	msg_id := router.msgs_counter.Add(1)
 
 	router.lock.Lock()
@@ -507,7 +507,7 @@ func (router *ToolsRouter) NeedMsgRedraw() bool {
 	router.lock.Lock()
 	defer router.lock.Unlock()
 
-	TM := OsTime()
+	TM := Tools_Time()
 	for _, msg := range router.msgs {
 		if (TM-msg.start_time) > 0.9 && msg.ui_uid != 1 {
 			msg.drawit = true
@@ -527,7 +527,7 @@ func (router *ToolsRouter) Flush() bool {
 	{
 		//redraw progress/threads with delay
 		{
-			TM := OsTime()
+			TM := Tools_Time()
 			msg_redraw := false
 			for _, msg := range router.msgs {
 				if (TM-msg.start_time) > 0.9 && msg.ui_uid != 1 {
