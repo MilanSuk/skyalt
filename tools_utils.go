@@ -50,6 +50,14 @@ func Tools_FileExists(fileName string) bool {
 	return !info.IsDir()
 }
 
+func Tools_GetFileTime(path string) int64 {
+	inf, err := os.Stat(path)
+	if err == nil && inf != nil {
+		return inf.ModTime().UnixNano()
+	}
+	return 0
+}
+
 func Tools_WriteJSONFile(path string, st interface{}) (bool, error) {
 	// Pack into JSON
 	fl, err := json.Marshal(st)

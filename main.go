@@ -42,7 +42,10 @@ func main() {
 	defer win.Destroy()
 
 	//Tools
-	router := NewToolsRouter("apps", 8000)
+	router, err := NewToolsRouter(8000)
+	if err != nil {
+		log.Fatalf("NewToolsRouter() failed: %v\n", err)
+	}
 	defer router.Destroy()
 
 	//UI
@@ -64,19 +67,19 @@ func main() {
 		}
 
 		rootApp := router.GetRootApp()
-		if rootApp != nil && !rootApp.IsRunning() {
+		if rootApp != nil && !rootApp.Process.IsRunning() {
 
 			win.StartRender(color.RGBA{220, 220, 220, 255})
 
-			if rootApp.Compile_error != "" {
+			if rootApp.Process.Compile.Error != "" {
 				//error
-				win.RenderError("Error: " + rootApp.Compile_error)
+				win.RenderError("Error: " + rootApp.Process.Compile.Error)
 
 			} else {
 				msg := router.FindRecompileMsg("Root")
 				if msg != nil && !msg.out_done.Load() {
 					//compiling
-					pl := ui.sync.GetPalette()
+					pl := ui.router.sync.GetPalette()
 					particles_cd := Color_Aprox(pl.P, pl.B, 0.5)
 					win.RenderProgress(msg.progress_label, particles_cd, 0, ui.Cell())
 				} else {
@@ -85,7 +88,7 @@ func main() {
 				}
 
 			}
-			win.EndRender(true, ui.sync.GetStats())
+			win.EndRender(true, ui.router.sync.GetStats())
 
 		} else {
 			win.StopProgress()
@@ -102,7 +105,7 @@ func main() {
 			if win_redraw {
 				win.StartRender(color.RGBA{220, 220, 220, 255})
 				ui.Draw()
-				win.EndRender(true, ui.sync.GetStats())
+				win.EndRender(true, ui.router.sync.GetStats())
 
 				num_sleeps = 0 //reset
 			} else {

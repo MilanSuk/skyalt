@@ -141,8 +141,8 @@ func _exprToString(expr ast.Expr) string {
 	}
 }
 
-func (app *ToolsApp) GetToolSchema(toolName string) (*ToolsOpenAI_completion_tool, error) {
-	node, err := parser.ParseFile(token.NewFileSet(), app.getToolFilePath(toolName), nil, parser.ParseComments)
+func BuildToolsOpenAI_completion_tool(toolName string, fileName string, code any) (*ToolsOpenAI_completion_tool, error) {
+	node, err := parser.ParseFile(token.NewFileSet(), fileName, code, parser.ParseComments)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing file: %v", err)
 	}

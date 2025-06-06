@@ -22,17 +22,76 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
 
-func (app *ToolsApp) compile(codeHash int64) error {
-	app.lock.Lock()
-	defer app.lock.Unlock()
+type ToolsCodeError struct {
+	File string
+	Line int
+	Col  int
+	Msg  string
+}
+
+type ToolsAppCompile struct {
+	folderPath string
+
+	Error    string
+	CodeHash int64
+}
+
+func NewToolsAppCompile(folderPath string) *ToolsAppCompile {
+	app := &ToolsAppCompile{folderPath: folderPath}
+	return app
+}
+
+func (app *ToolsAppCompile) GetBinName() string {
+	return strconv.FormatInt(app.CodeHash, 10) + ".bin"
+}
+
+func (app *ToolsAppCompile) NeedCompile(codeHash int64) bool {
+	return app.CodeHash != codeHash || (app.Error == "" && !Tools_FileExists(filepath.Join(app.folderPath, app.GetBinName())))
+}
+
+func (app *ToolsAppCompile) Compile(codeHash int64, router *ToolsRouter, stopProcess func() error) ([]ToolsCodeError, error) {
+
+	codeErrors, err := app._compile(codeHash, router)
+	if err == nil {
+		err := stopProcess() //stop it
+		if err != nil {
+			return nil, err
+		}
+
+		//remove old bins
+		if app.Error == "" {
+			exclude := app.GetBinName()
+
+			files, err := os.ReadDir(app.folderPath)
+			if err != nil {
+				return nil, err
+			}
+			for _, info := range files {
+				if info.IsDir() || filepath.Ext(info.Name()) != ".bin" || info.Name() == exclude {
+					continue
+				}
+				os.Remove(filepath.Join(app.folderPath, info.Name()))
+			}
+		}
+	} else {
+		app.Error = err.Error()
+	}
+
+	return codeErrors, nil
+}
+
+func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]ToolsCodeError, error) {
+
+	app.Error = ""
 
 	app.CodeHash = codeHash
 
-	msg := app.router.AddRecompileMsg(app.name)
+	msg := router.AddRecompileMsg(app.folderPath)
 	defer msg.Done()
 
 	msg.progress_label = "Generating tools code"
@@ -46,9 +105,9 @@ func (app *ToolsApp) compile(codeHash int64) error {
 		strFrees.WriteString("func _callGlobalDestroys() {\n\n")
 		strCalls.WriteString("func FindToolRunFunc(funcName string, jsParams []byte) (func(caller *ToolCaller, ui *UI) error, interface{}, error) {\n\tswitch funcName {\n")
 
-		files, err := os.ReadDir(app.folder)
+		files, err := os.ReadDir(app.folderPath)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for _, info := range files {
 			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || !strings.HasPrefix(info.Name(), "z") {
@@ -57,9 +116,9 @@ func (app *ToolsApp) compile(codeHash int64) error {
 
 			stName := info.Name()[1 : len(info.Name())-3]
 
-			fl, err := os.ReadFile(filepath.Join(app.folder, info.Name()))
+			fl, err := os.ReadFile(filepath.Join(app.folderPath, info.Name()))
 			if err != nil {
-				return err
+				return nil, err
 			}
 			flstr := string(fl)
 
@@ -112,9 +171,9 @@ func (app *ToolsApp) compile(codeHash int64) error {
 		)
 		`)*/
 
-		mainGo, err := os.ReadFile(filepath.Join(app.router.folderApps, "main.go"))
+		mainGo, err := os.ReadFile("apps/main.go")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		strFinal.WriteString(string(mainGo))
 		strFinal.WriteString("\n")
@@ -122,9 +181,9 @@ func (app *ToolsApp) compile(codeHash int64) error {
 		strFinal.WriteString(strFrees.String())
 		strFinal.WriteString(strCalls.String())
 
-		err = os.WriteFile(filepath.Join(app.folder, "main.go"), []byte(strFinal.String()), 0644)
+		err = os.WriteFile(filepath.Join(app.folderPath, "main.go"), []byte(strFinal.String()), 0644)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	msg.progress_done = 0.2
@@ -132,16 +191,16 @@ func (app *ToolsApp) compile(codeHash int64) error {
 	//fix files
 	msg.progress_label = "Fixing tools code"
 	{
-		fmt.Printf("Fixing '%s' ... ", app.name)
+		fmt.Printf("Fixing '%s' ... ", app.folderPath)
 		st := float64(time.Now().UnixMilli()) / 1000
 		cmd := exec.Command("goimports", "-l", "-w", ".")
-		cmd.Dir = app.folder
+		cmd.Dir = app.folderPath
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
 		cmd.Stdout = os.Stdout
 		err := cmd.Run()
 		if err != nil {
-			return fmt.Errorf("goimports failed: %s", stderr.String())
+			return nil, fmt.Errorf("goimports failed: %s", stderr.String())
 		}
 		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
 	}
@@ -151,31 +210,31 @@ func (app *ToolsApp) compile(codeHash int64) error {
 	//update packages
 	msg.progress_label = "Updating tools packages"
 	{
-		fmt.Printf("Updating packages '%s' ... ", app.name)
+		fmt.Printf("Updating packages '%s' ... ", app.folderPath)
 		st := float64(time.Now().UnixMilli()) / 1000
 
-		if !Tools_FileExists(filepath.Join(app.folder, "go.mod")) {
+		if !Tools_FileExists(filepath.Join(app.folderPath, "go.mod")) {
 			//create
 			cmd := exec.Command("go", "mod", "init", "skyalt_tool")
-			cmd.Dir = app.folder
+			cmd.Dir = app.folderPath
 			var stderr bytes.Buffer
 			cmd.Stderr = &stderr //os.Stderr
 			cmd.Stdout = os.Stdout
 			err := cmd.Run()
 			if err != nil {
-				return fmt.Errorf("go mod init failed: %s", stderr.String())
+				return nil, fmt.Errorf("go mod init failed: %s", stderr.String())
 			}
 		}
 
 		//update
 		cmd := exec.Command("go", "mod", "tidy")
-		cmd.Dir = app.folder
+		cmd.Dir = app.folderPath
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
 		cmd.Stdout = os.Stdout
 		err := cmd.Run()
 		if err != nil {
-			return fmt.Errorf("go mod tidy failed: %s", stderr.String())
+			return nil, fmt.Errorf("go mod tidy failed: %s", stderr.String())
 		}
 
 		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
@@ -185,20 +244,72 @@ func (app *ToolsApp) compile(codeHash int64) error {
 	//compile
 	msg.progress_label = "Compiling tools code"
 	{
-		fmt.Printf("Compiling '%s' ... ", app.name)
+		fmt.Printf("Compiling '%s' ... ", app.folderPath)
 		st := float64(time.Now().UnixMilli()) / 1000
-		cmd := exec.Command("go", "build", "-o", app.getBinName())
-		cmd.Dir = app.folder
+		cmd := exec.Command("go", "build", "-o", app.GetBinName())
+		cmd.Dir = app.folderPath
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
 		cmd.Stdout = os.Stdout
 		err := cmd.Run()
 		if err != nil {
-			return fmt.Errorf("compiler failed: %s", stderr.String())
+
+			var codeErrors []ToolsCodeError
+			lines := strings.Split(stderr.String(), "\n")
+			for _, line := range lines {
+				itErr, err := _ToolsAppCompile_parseErrorString(line)
+				if err == nil {
+					codeErrors = append(codeErrors, itErr)
+				}
+			}
+
+			return codeErrors, fmt.Errorf("compiler failed: %s", stderr.String())
 		}
 		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
 	}
 	msg.progress_done = 1.0
 
-	return nil
+	return nil, nil
+}
+
+func _ToolsAppCompile_parseErrorString(errStr string) (ToolsCodeError, error) {
+	// Split the string by colons
+	parts := strings.SplitN(errStr, ":", 3)
+	if len(parts) < 3 {
+		return ToolsCodeError{}, fmt.Errorf("invalid error string format: %s", errStr)
+	}
+
+	// Extract file name
+	file := parts[0]
+
+	// Extract line number
+	lineStr := parts[1]
+	line, err := strconv.Atoi(lineStr)
+	if err != nil {
+		return ToolsCodeError{}, fmt.Errorf("invalid line number: %s", lineStr)
+	}
+
+	// Split the remaining part to get column and message
+	remaining := parts[2]
+	colonIndex := strings.Index(remaining, ":")
+	if colonIndex == -1 {
+		return ToolsCodeError{}, fmt.Errorf("invalid error string format, missing column or message: %s", errStr)
+	}
+
+	// Extract column number
+	colStr := strings.TrimSpace(remaining[:colonIndex])
+	col, err := strconv.Atoi(colStr)
+	if err != nil {
+		return ToolsCodeError{}, fmt.Errorf("invalid column number: %s", colStr)
+	}
+
+	// Extract message
+	msg := strings.TrimSpace(remaining[colonIndex+1:])
+
+	return ToolsCodeError{
+		File: file,
+		Line: line,
+		Col:  col,
+		Msg:  msg,
+	}, nil
 }

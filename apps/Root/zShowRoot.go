@@ -345,7 +345,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 	//device settings
 	{
 		ui.SetRowFromSub(y, 0, 100)
-		ui.AddToolApp(1, y, 1, 1, "Device", "ShowDeviceSettings", nil, caller)
+		ui.AddToolApp(1, y, 1, 1, "apps/Device", "ShowDeviceSettings", nil, caller)
 		//ui.AddTool(1, y, 1, 1, (&ShowDeviceSettings{}).run, caller)
 		y++
 	}

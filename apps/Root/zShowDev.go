@@ -1,9 +1,10 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
-	"regexp"
-	"slices"
+	"path/filepath"
 	"strings"
 )
 
@@ -27,351 +28,325 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		return err
 	}
 
-	//check
-	if len(app.Dev.Tools) == 0 {
-		app.Dev.Tools = append(app.Dev.Tools, &RootTool{})
-	}
-
-	//add, delete Tools from list of files. Keep tools without name ....
-
 	ui.SetColumn(0, 1, 100)
 	ui.SetRow(0, 1, 100)
 
-	if app.Dev.ShowTool != "" {
+	MainDiv := ui.AddLayout(0, 0, 1, 1)
+	MainDiv.SetColumn(0, 1, 100)
+	MainDiv.SetColumn(1, 10, 20)
+	MainDiv.SetColumn(2, 1, 100)
+	MainDiv.SetRow(1, 1, 100)
+	MainDiv.SetRow(2, 2, 2)
+
+	type SdkLLMMsgUsage struct {
+		Prompt_tokens       int
+		Input_cached_tokens int
+		Completion_tokens   int
+		Reasoning_tokens    int
+
+		Prompt_price       float64
+		Input_cached_price float64
+		Completion_price   float64
+		Reasoning_price    float64
+	}
+	type SdkToolsCodeError struct {
+		File string
+		Line int
+		Col  int
+		Msg  string
+	}
+	type SdkToolsPrompt struct {
+		Prompt string //LLM input
+
+		//LLM output
+		Message   string
+		Reasoning string
+
+		Code string
+
+		//from code
+		Name   string
+		Schema json.RawMessage
+		Errors []SdkToolsCodeError
+
+		Usage SdkLLMMsgUsage
+	}
+	type SdkToolsPrompts struct {
+		PromptsFileTime int64
+
+		Prompts  []*SdkToolsPrompt
+		Err      string
+		Err_line int
+	}
+	var sdk_app SdkToolsPrompts
+	appJs, err := callFuncGetToolData("apps/" + app.Name)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(appJs, &sdk_app)
+	if err != nil {
+		return err
+	}
+
+	{
+		prompts_path := filepath.Join("..", app.Name, "skyalt")
+		filePromptsStr, _ := os.ReadFile(prompts_path)
+
+		if app.Dev.PromptsFileTime != sdk_app.PromptsFileTime {
+			app.Dev.Prompts = string(filePromptsStr) //rewrite from file
+			app.Dev.PromptsFileTime = sdk_app.PromptsFileTime
+		}
+
+		diff := (string(filePromptsStr) != app.Dev.Prompts)
+
+		HeaderDiv := MainDiv.AddLayout(1, 0, 1, 1)
+		HeaderDiv.SetColumn(0, 1, 100)
+		HeaderDiv.SetColumn(1, 3, 3)
+		HeaderDiv.SetColumn(2, 3, 3)
+
+		HeaderDiv.AddText(0, 0, 1, 1, app.Name)
+
+		CancelBt := HeaderDiv.AddButton(1, 0, 1, 1, "Cancel")
+		CancelBt.Background = 0.5
+		CancelBt.ConfirmQuestion = "Are you sure?"
+		CancelBt.Tooltip = "Trash changes"
+		CancelBt.clicked = func() error {
+			app.Dev.Prompts = string(filePromptsStr)
+			return nil
+		}
+		SaveBt := HeaderDiv.AddButton(2, 0, 1, 1, "Save")
+		SaveBt.Tooltip = "Save & Generate code"
+		SaveBt.clicked = func() error {
+			os.WriteFile(prompts_path, []byte(app.Dev.Prompts), 0644)
+			return nil
+		}
+
+		SaveBt.layout.Enable = diff
+		CancelBt.layout.Enable = diff
+
+		//back/forward buttons ....
+	}
+
+	{
+		ed := MainDiv.AddEditboxString(1, 1, 1, 1, &app.Dev.Prompts)
+		ed.Align_v = 0
+		ed.Linewrapping = true
+		ed.Multiline = true
+	}
+
+	//Note
+	{
+		MainDiv.SetRowFromSub(2, 1, 10)
+		FooterDiv := MainDiv.AddLayout(1, 2, 1, 1)
+		FooterDiv.SetColumn(0, 1, 100)
+		FooterDiv.SetColumn(1, 1, 3)
+		FooterDiv.SetRowFromSub(0, 1, 5)
+		tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#tool //Describe app's feature.")
+		tx.Align_v = 0
+		tx.Cd = UI_GetPalette().GetGrey(0.5)
+
+		//Total price
+		{
+			sum := 0.0
+			for _, it := range sdk_app.Prompts {
+				sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price
+			}
+			tx := FooterDiv.AddText(1, 0, 1, 1, fmt.Sprintf("<i>Total: $%.3f", sum))
+			tx.Align_v = 0
+			tx.Align_h = 2
+		}
+
+		//Total errors
+		{
+			n_errors := 0
+			for _, it := range sdk_app.Prompts {
+				if len(it.Errors) > 0 {
+					n_errors++
+				}
+			}
+			if n_errors > 0 {
+				tx := FooterDiv.AddText(0, 1, 1, 1, fmt.Sprintf("%d file(s) has compilation error(s)", n_errors))
+				tx.Cd = UI_GetPalette().E
+			}
+		}
+	}
+
+	//app icon, change name, delete app
+	/*{
+		HeaderDiv := MainDiv.AddLayout(1, y, 1, 1)
+		HeaderDiv.SetColumn(0, 2, 2)
+		HeaderDiv.SetColumn(1, 1, 1)
+
+		//app name
+		//....
+
+		//delete app
+		//....
+
+		//change icon
+		path := filepath.Join("apps", app.Name, "icon.png")
+		IconBt := HeaderDiv.AddFilePickerButton(1, 0, 1, 1, &path, false, false)
+		IconBt.Preview = true
+		y++
+	}*/
+
+	//Side panel
+	if app.Dev.ShowSide {
 		ui.SetColumn(0, 1, 100)
 		ui.SetColumnResizable(1, 5, 25, 7)
 
-		CodeDiv := ui.AddLayout(1, 0, 1, 1)
-		CodeDiv.SetColumn(0, 1, 100)
-		CodeDiv.SetRowFromSub(1, 1, 100)
+		SideDiv := ui.AddLayout(1, 0, 1, 1)
+		SideDiv.SetColumn(0, 1, 100)
+		SideDiv.SetRow(1, 1, 100)
 
 		{
-			HeaderDiv := CodeDiv.AddLayout(0, 0, 1, 1)
+			var labels []string
+			var values []string
+			for _, it := range sdk_app.Prompts {
+				errStr := ""
+				if len(it.Errors) > 0 {
+					errStr = fmt.Sprintf(" (%d errors)", len(it.Errors))
+				}
+				labels = append(labels, it.Name+".go"+errStr)
+				values = append(values, it.Name+".go")
+
+			}
+
+			HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
 			HeaderDiv.SetColumn(0, 3, 100)
-			HeaderDiv.SetColumn(1, 2, 3)
-			HeaderDiv.SetColumn(2, 2, 3)
+			HeaderDiv.SetColumn(1, 1, 1)
+			HeaderDiv.SetColumnFromSub(2, 5, 100)
+			HeaderDiv.ScrollV.Hide = true
+			HeaderDiv.ScrollH.Narrow = true
 
-			HeaderDiv.AddText(0, 0, 1, 1, "<b>"+app.Name+"/"+app.Dev.ShowTool+".go").Align_h = 0
+			HeaderDiv.AddCombo(0, 0, 1, 1, &app.Dev.SideFile, labels, values)
 
-			CodeBt := HeaderDiv.AddButton(1, 0, 1, 1, "Code")
-			CodeBt.Background = 0.5
-			CodeBt.clicked = func() error {
-				app.Dev.ShowToolMode = "code"
-				return nil
+			{
+				TabsDiv := HeaderDiv.AddLayout(2, 0, 1, 1)
+				TabsDiv.SetColumn(0, 2, 3)
+				TabsDiv.SetColumn(1, 2, 3)
+				TabsDiv.SetColumn(2, 2, 3)
+				TabsDiv.Back_cd = UI_GetPalette().GetGrey(0.1)
+				//TabsDiv.Border_cd = UI_GetPalette().P
+				TabsDiv.Back_rounding = true
+
+				isStruct := app.Dev.SideFile == "Structures.go"
+				if isStruct {
+					if app.Dev.SideMode == "schema" {
+						app.Dev.SideMode = "code"
+					}
+				}
+
+				CodeBt := TabsDiv.AddButton(0, 0, 1, 1, "Code")
+				CodeBt.Background = 0.0
+				CodeBt.clicked = func() error {
+					app.Dev.SideMode = "code"
+					return nil
+				}
+				SchemaBt := TabsDiv.AddButton(1, 0, 1, 1, "Schema")
+				SchemaBt.Background = 0.0
+				SchemaBt.layout.Enable = !isStruct
+				SchemaBt.clicked = func() error {
+					app.Dev.SideMode = "schema"
+					return nil
+				}
+
+				MsgBt := TabsDiv.AddButton(2, 0, 1, 1, "Thinking")
+				MsgBt.Background = 0.0
+				MsgBt.clicked = func() error {
+					app.Dev.SideMode = "msg"
+					return nil
+				}
+
+				switch app.Dev.SideMode {
+				case "schema":
+					SchemaBt.Background = 1
+				case "msg":
+					MsgBt.Background = 1
+				default: //"code"
+					CodeBt.Background = 1
+				}
 			}
-			MessageBt := HeaderDiv.AddButton(2, 0, 1, 1, "Message")
-			MessageBt.Background = 0.5
-			MessageBt.clicked = func() error {
-				app.Dev.ShowToolMode = "message"
-				return nil
-			}
 
-			if app.Dev.ShowToolMode == "message" {
-				MessageBt.Background = 1
-			} else {
-				CodeBt.Background = 1
+			CloseBt := HeaderDiv.AddButton(3, 0, 1, 1, "X")
+			CloseBt.Background = 0.25
+			CloseBt.clicked = func() error {
+				app.Dev.ShowSide = false //hide
+				return nil
 			}
 		}
 
-		var tool *RootTool
-		if app.Dev.ShowTool == "Structures" {
-			tool = &app.Dev.Structures
-		} else {
-			for _, t := range app.Dev.Tools {
-				if t.Name == app.Dev.ShowTool {
-					tool = t
+		if app.Dev.SideFile != "" {
+
+			var prompt *SdkToolsPrompt
+			app_toolName := strings.TrimSuffix(app.Dev.SideFile, filepath.Ext(app.Dev.SideFile))
+			for _, it := range sdk_app.Prompts {
+				if it.Name == app_toolName {
+					prompt = it
 					break
 				}
 			}
-		}
 
-		if tool != nil {
-			if app.Dev.ShowToolMode == "message" {
+			if prompt != nil {
 
-				tx := CodeDiv.AddText(0, 1, 1, 1, tool.Message)
-				tx.Linewrapping = false
-				tx.Align_v = 0
-				tx.layout.Back_cd = UI_GetPalette().GetGrey(0.05)
+				codeBackCd := UI_GetPalette().GetGrey(0.05)
 
-				//scroll doesn't work? .............
+				switch app.Dev.SideMode {
 
-				//scroll
-				tx.layout.VScrollToTheBottom(true, caller)
-			} else {
-				fl, err := os.ReadFile(tool.GetFilePath(app))
-				if err == nil {
-					tx := CodeDiv.AddText(0, 1, 1, 1, string(fl))
-					tx.Linewrapping = false
+				case "schema":
+					tx := SideDiv.AddText(0, 1, 1, 1, string(prompt.Schema))
+					//tx.Linewrapping = false
 					tx.Align_v = 0
-					tx.layout.Back_cd = UI_GetPalette().GetGrey(0.05)
+					tx.layout.Back_cd = codeBackCd
+
+					//scroll
+					//tx.layout.VScrollToTheBottom(true, caller)
+
+				case "msg":
+					tx := SideDiv.AddText(0, 1, 1, 1, prompt.Reasoning)
+					tx.Align_v = 0
+					tx.layout.Back_cd = codeBackCd
+
+				default:
+					fl, err := os.ReadFile(filepath.Join("..", app.Name, app.Dev.SideFile))
+					if err == nil {
+						tx := SideDiv.AddText(0, 1, 1, 1, string(fl))
+						tx.Linewrapping = false
+						tx.Align_v = 0
+						tx.layout.Back_cd = codeBackCd
+					}
+				}
+
+				//Price
+				{
+					tx := SideDiv.AddText(0, 2, 1, 1, fmt.Sprintf("<i>$%.3f", prompt.Usage.Prompt_price+prompt.Usage.Input_cached_price+prompt.Usage.Completion_price+prompt.Usage.Reasoning_price))
+					tx.Align_h = 2
+				}
+
+				//Errors
+				{
+					if len(prompt.Errors) > 0 {
+						SideDiv.AddText(0, 3, 1, 1, "Code errors").Align_h = 1
+						SideDiv.SetRowFromSub(4, 1, 5)
+						ErrsDiv := SideDiv.AddLayout(0, 4, 1, 1)
+						ErrsDiv.SetColumn(0, 1, 100)
+						for i, er := range prompt.Errors {
+							tx := ErrsDiv.AddText(0, i, 1, 1, fmt.Sprintf("%d:%d: %s", er.Line, er.Col, er.Msg))
+							tx.Cd = UI_GetPalette().E
+						}
+					}
 				}
 			}
 		}
-
-	}
-
-	y := 1
-
-	//app icon, change name, delete app
-	{
-		//drop app icon ...........
-	}
-
-	//Create/Edit tools
-	{
-		ListDiv := ui.AddLayout(0, 0, 1, 1)
-		ListDiv.SetColumn(0, 1, 100)
-		ListDiv.SetColumn(1, 10, 20)
-		ListDiv.SetColumn(2, 1, 100)
-
-		ListDiv.SetRowFromSub(y, 2, 100)
-		app.Dev.Structures.Name = "Structures"
-		st._showPrompt(app, &app.Dev.Structures, -1, ListDiv.AddLayout(1, y, 1, 1), caller)
-		y++
-		y++
-
-		//ui.AddDivider(1, y, 1, 1, true)
-		//y++
-
-		NewToolBt := ListDiv.AddButton(1, y, 1, 1, "Create new tool")
-		NewToolBt.Background = 0.5
-		y++
-		y++
-
-		NewToolBt.clicked = func() error {
-			app.Dev.Tools = slices.Insert(app.Dev.Tools, 0, &RootTool{}) //1st
-			return nil
-		}
-
-		for i, tool := range app.Dev.Tools {
-			ListDiv.SetRowFromSub(y, 2, 100)
-			st._showPrompt(app, tool, i, ListDiv.AddLayout(1, y, 1, 1), caller)
-			y++
-			y++
-		}
-	}
-
-	return nil
-}
-
-func (st *ShowDev) _showPrompt(app *RootApp, tool *RootTool, tool_i int, ui *UI, caller *ToolCaller) {
-	m := 0.25 //maring
-	ui.SetColumn(0, m, m)
-	ui.SetColumn(1, 1, 100)
-	ui.SetColumn(2, m, m)
-	ui.SetRow(0, m, m)
-	ui.SetRowFromSub(2, 1, 10) //prompt
-	ui.SetRow(4, m, m)
-
-	ui.Back_cd = UI_GetPalette().GetGrey(0.08)
-	ui.Back_rounding = true
-
-	name := tool.Name
-	if name == "" {
-		name = "<Tool's name>"
-	}
-	ui.AddText(1, 1, 1, 1, name)
-	ed := ui.AddEditboxString(1, 2, 1, 1, &tool.Prompt)
-	ed.Multiline = true
-
-	BtsDiv := ui.AddLayout(1, 3, 1, 1)
-	BtsDiv.SetColumn(1, 1, 100)
-	btm := 3.0
-	BtsDiv.SetColumn(2, btm, btm)
-	BtsDiv.SetColumn(3, btm, btm)
-	BtsDiv.SetColumn(4, btm, btm)
-
-	exist := (tool.Name != "") //&& file_exist ....
-
-	if tool.Name != "Structures" {
-		MoveBt := BtsDiv.AddButton(0, 0, 1, 1, "<small>↕")
-		MoveBt.Background = 0.5
-		MoveBt.Cd = UI_GetPalette().GetGrey(0.15)
-		MoveBt.Drag_group = "tool"
-		MoveBt.Drop_group = "tool"
-		MoveBt.Drag_index = tool_i
-		MoveBt.Drop_v = true
-		MoveBt.dropMove = func(src_i, dst_i int, src_source, dst_source string) error {
-			Layout_MoveElement(&app.Dev.Tools, &app.Dev.Tools, src_i, dst_i)
+	} else {
+		ShowSideBt := ui.AddButton(3, 0, 1, 1, "<<")
+		ShowSideBt.Tooltip = "Show side panel"
+		ShowSideBt.Background = 0.25
+		ShowSideBt.clicked = func() error {
+			app.Dev.ShowSide = true
 			return nil
 		}
 	}
 
-	CodeBt := BtsDiv.AddButton(2, 0, 1, 1, "Show code")
-	CodeBt.layout.Enable = exist
-	CodeBt.Background = 0.5
-	if app.Dev.ShowTool != "" && app.Dev.ShowTool == tool.Name {
-		CodeBt.Label = "Hide code"
-		CodeBt.Background = 1
-		//CodeBt.Border = true
-	}
-	CodeBt.clicked = func() error {
-		if app.Dev.ShowTool == tool.Name {
-			app.Dev.ShowTool = ""
-		} else {
-			app.Dev.ShowTool = tool.Name
-			app.Dev.ShowToolMode = "code"
-		}
-		return nil
-	}
-
-	IgnoreBt := BtsDiv.AddButton(3, 0, 1, 1, "Ignore")
-	IgnoreBt.layout.Enable = exist
-	IgnoreBt.Background = 0.5
-	IgnoreBt.clicked = func() error {
-		//rename file to .goo ....
-		return nil
-	}
-
-	GenBt := BtsDiv.AddButton(4, 0, 1, 1, "Generate")
-	//GenBt.layout.Enable = .... if prompt or file changed
-	GenBt.clicked = func() error {
-
-		app.Dev.ShowTool = tool.Name //open code panel
-		app.Dev.ShowToolMode = "message"
-
-		code := ""
-		var err error
-		if tool.Name == "Structures" {
-			code, err = st.GenerateStructure(tool, caller)
-
-		} else {
-			code, err = st.GenerateFunction(tool, caller)
-
-			tool.Name = "" //get name from code ......
-		}
-
-		app.Dev.ShowToolMode = "code" //switch to final code
-
-		if err != nil {
-			return err
-		}
-		err = os.WriteFile(tool.GetFilePath(app), []byte(code), 0644)
-		if err != nil {
-			return err
-		}
-		//save hash? ....
-
-		return nil
-	}
-
-	//if compiler find bug in file, show it here ....
-}
-
-func (st *ShowDev) GenerateStructure(tool *RootTool, caller *ToolCaller) (string, error) {
-	comp := st._prepareLLM(tool.Prompt)
-
-	exampleFile := `
-package main
-
-type ExampleStruct struct {
-	//<attributes>
-}
-
-func NewExampleStruct(filePath string) (*ExampleStruct, error) {
-	st := &ExampleStruct{}
-
-	//<set 'st' default values here>
-
-	return _loadInstance(filePath, "ExampleStruct", "json", st, true)
-}
-
-//<structures functions here>
-`
-	comp.SystemMessage = "You are a programmer. You write code in Go language.\n"
-	comp.SystemMessage += "Here is the example file with code:\n```go" + exampleFile + "```\n"
-
-	comp.SystemMessage += "Based on user message, rewrite above code. Your job is to design structures. Write functions only if user ask for them. You may write multiple structures, but output everything in one code block.\n"
-
-	comp.SystemMessage += "Structures can't have pointers, because they will be saved as JSON, so instead of pointer(s) use ID which is saved in map[interger or string ID].\n"
-
-	//maybe add old file structures, because it's needed that struct and attributes names are same ...............
-
-	return st._runLLM(tool, &comp, caller)
-}
-
-func (st *ShowDev) GenerateFunction(tool *RootTool, caller *ToolCaller) (string, error) {
-	comp := st._prepareLLM(tool.Prompt)
-
-	//exampleApis := ``
-
-	//exampleStructs := ``
-
-	exampleFile := `
-package main
-
-type ExampleTool struct {
-	//<tool's arguments>
-}
-
-func (st *ExampleTool) run(caller *ToolCaller, ui *UI) error {
-
-	//<...>
-
 	return nil
-}
-`
-
-	//Arguments 'Out_' ....
-
-	//add list of structures and their loading functions ....
-	/*source_root, err := NewRoot("")
-	if err != nil {
-		return err
-	}*/
-
-	comp.SystemMessage = "You are a programmer. You write code in Go language.\n"
-	comp.SystemMessage += "Here is the example file with code:\n```go" + exampleFile + "```\n"
-
-	//Pick up Tool name. Here are the names of tools which already exists, don't use them.
-
-	//..........
-
-	return st._runLLM(tool, &comp, caller)
-}
-
-func (st *ShowDev) _prepareLLM(user_prompt string) LLMxAICompleteChat {
-	var comp LLMxAICompleteChat
-	comp.Model = "grok-3-mini" //grok-3-mini-fast
-	comp.Temperature = 0.2
-	comp.Max_tokens = 65536
-	comp.Top_p = 0.7 //1.0
-	comp.Frequency_penalty = 0
-	comp.Presence_penalty = 0
-	comp.Reasoning_effort = ""
-	comp.Max_iteration = 1
-
-	comp.UserMessage = user_prompt
-
-	return comp
-}
-
-func (st *ShowDev) _runLLM(tool *RootTool, comp *LLMxAICompleteChat, caller *ToolCaller) (string, error) {
-	tool.Message = ""
-	comp.delta = func(msg *ChatMsg) {
-		if msg.Content.Calls != nil {
-			tool.Message = msg.Content.Calls.Content
-		}
-	}
-
-	code := ""
-	_, err := CallTool(comp.run, caller)
-	if err != nil {
-		return "", err
-	}
-
-	re := regexp.MustCompile("(?s)```(?:go|golang)\n(.*?)\n```")
-	matches := re.FindAllStringSubmatch(comp.Out_last_message, -1)
-
-	var goCode strings.Builder
-	for _, match := range matches {
-		if len(match) > 1 {
-			goCode.WriteString(match[1])
-			goCode.WriteString("\n")
-		}
-	}
-
-	code = strings.TrimSpace(goCode.String())
-
-	return code, nil
 }

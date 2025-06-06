@@ -679,6 +679,27 @@ func callFuncGetToolsShemas(appName string) []byte {
 	return nil
 }
 
+func callFuncGetToolData(appName string) ([]byte, error) {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("get_tool_data"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteArray([]byte(appName))
+			if Tool_Error(err) == nil {
+				promptsJs, err := cl.ReadArray()
+				if Tool_Error(err) == nil {
+					return promptsJs, nil
+				}
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("connection failed")
+}
+
 func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, funcName string, jsParams []byte) ([]byte, []byte, error) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
@@ -736,50 +757,6 @@ func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, funcNam
 	return nil, nil, fmt.Errorf("connection failed")
 }
 
-/*func callFuncGetToolsShemasBySource(source string) []byte {
-	cl, err := NewToolClient("localhost", g_main.router_port)
-	if Tool_Error(err) == nil {
-		defer cl.Destroy()
-
-		err = cl.WriteArray([]byte("get_tools_shemas_by_source"))
-		if Tool_Error(err) == nil {
-			err = cl.WriteArray([]byte(source))
-			if Tool_Error(err) == nil {
-				js, err := cl.ReadArray()
-				if Tool_Error(err) == nil {
-					return js
-				}
-			}
-		}
-	}
-	return nil
-}*/
-
-/*type _ToolSource struct {
-	Description string
-	Tools       []string
-}
-
-func callFuncGetSources() map[string]*_ToolSource {
-	cl, err := NewToolClient("localhost", g_main.router_port)
-	if Tool_Error(err) == nil {
-		defer cl.Destroy()
-
-		err = cl.WriteArray([]byte("get_sources"))
-		if Tool_Error(err) == nil {
-			js, err := cl.ReadArray()
-			if Tool_Error(err) == nil {
-				var sources map[string]*_ToolSource
-				err = json.Unmarshal(js, &sources)
-				if Tool_Error(err) == nil {
-					return sources
-				}
-			}
-		}
-	}
-	return nil
-}*/
-
 func callFuncPrint(str string) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
@@ -795,56 +772,6 @@ func callFuncPrint(str string) {
 
 func (caller *ToolCaller) _addCmd(cmd ToolCmd) {
 	caller.cmds = append(caller.cmds, cmd)
-}
-
-type UI struct {
-	AppName  string `json:",omitempty"`
-	FuncName string `json:",omitempty"`
-
-	UID        uint64
-	X, Y, W, H int
-	LLMTip     string `json:",omitempty"`
-
-	Cols  []UIGridSize
-	Rows  []UIGridSize
-	Items []*UI
-
-	Dialogs []*UIDialog
-
-	Enable        bool       `json:",omitempty"`
-	EnableTouch   bool       `json:",omitempty"`
-	Back_cd       color.RGBA `json:",omitempty"`
-	Back_margin   float64    `json:",omitempty"`
-	Back_rounding bool       `json:",omitempty"`
-	Border_cd     color.RGBA `json:",omitempty"`
-	ScrollV       UIScroll
-	ScrollH       UIScroll
-
-	//"omit empty" OR "Type string + Props interface{}" ....
-	//Layout            *UI
-	List              *UIList              `json:",omitempty"`
-	Text              *UIText              `json:",omitempty"`
-	Editbox           *UIEditbox           `json:",omitempty"`
-	Button            *UIButton            `json:",omitempty"`
-	Slider            *UISlider            `json:",omitempty"`
-	FilePickerButton  *UIFilePickerButton  `json:",omitempty"`
-	DatePickerButton  *UIDatePickerButton  `json:",omitempty"`
-	ColorPickerButton *UIColorPickerButton `json:",omitempty"`
-	Combo             *UICombo             `json:",omitempty"`
-	Switch            *UISwitch            `json:",omitempty"`
-	Checkbox          *UICheckbox          `json:",omitempty"`
-	Divider           *UIDivider           `json:",omitempty"`
-	OsmMap            *UIOsmMap            `json:",omitempty"`
-	ChartLines        *UIChartLines        `json:",omitempty"`
-	ChartColumns      *UIChartColumns      `json:",omitempty"`
-	Image             *UIImage             `json:",omitempty"`
-	YearCalendar      *UIYearCalendar      `json:",omitempty"`
-	MonthCalendar     *UIMonthCalendar     `json:",omitempty"`
-	DayCalendar       *UIDayCalendar       `json:",omitempty"`
-
-	Paint []UIPaint `json:",omitempty"`
-
-	changed func(newParams []byte) error
 }
 
 func _newUIItem(x, y, w, h int) *UI {
@@ -1448,6 +1375,56 @@ func (client *ToolClient) WriteArray(data []byte) error {
 }
 
 //--- Ui ---
+
+type UI struct {
+	AppName  string `json:",omitempty"`
+	FuncName string `json:",omitempty"`
+
+	UID        uint64
+	X, Y, W, H int
+	LLMTip     string `json:",omitempty"`
+
+	Cols  []UIGridSize
+	Rows  []UIGridSize
+	Items []*UI
+
+	Dialogs []*UIDialog
+
+	Enable        bool       `json:",omitempty"`
+	EnableTouch   bool       `json:",omitempty"`
+	Back_cd       color.RGBA `json:",omitempty"`
+	Back_margin   float64    `json:",omitempty"`
+	Back_rounding bool       `json:",omitempty"`
+	Border_cd     color.RGBA `json:",omitempty"`
+	ScrollV       UIScroll
+	ScrollH       UIScroll
+
+	//"omit empty" OR "Type string + Props interface{}" ....
+	//Layout            *UI
+	List              *UIList              `json:",omitempty"`
+	Text              *UIText              `json:",omitempty"`
+	Editbox           *UIEditbox           `json:",omitempty"`
+	Button            *UIButton            `json:",omitempty"`
+	Slider            *UISlider            `json:",omitempty"`
+	FilePickerButton  *UIFilePickerButton  `json:",omitempty"`
+	DatePickerButton  *UIDatePickerButton  `json:",omitempty"`
+	ColorPickerButton *UIColorPickerButton `json:",omitempty"`
+	Combo             *UICombo             `json:",omitempty"`
+	Switch            *UISwitch            `json:",omitempty"`
+	Checkbox          *UICheckbox          `json:",omitempty"`
+	Divider           *UIDivider           `json:",omitempty"`
+	OsmMap            *UIOsmMap            `json:",omitempty"`
+	ChartLines        *UIChartLines        `json:",omitempty"`
+	ChartColumns      *UIChartColumns      `json:",omitempty"`
+	Image             *UIImage             `json:",omitempty"`
+	YearCalendar      *UIYearCalendar      `json:",omitempty"`
+	MonthCalendar     *UIMonthCalendar     `json:",omitempty"`
+	DayCalendar       *UIDayCalendar       `json:",omitempty"`
+
+	Paint []UIPaint `json:",omitempty"`
+
+	changed func(newParams []byte) error
+}
 
 type UIText struct {
 	layout  *UI

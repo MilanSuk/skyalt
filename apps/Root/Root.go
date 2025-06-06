@@ -12,25 +12,19 @@ type RootChat struct {
 	Label    string
 }
 
-type RootTool struct {
-	Name   string
-	Prompt string
-
-	Message string //wip from LLM
-}
-
-func (tool *RootTool) GetFilePath(app *RootApp) string {
-	return filepath.Join("..", app.Name, tool.Name+".go")
+func (app *RootApp) GetFolderPath() string {
+	return filepath.Join("..", app.Name)
 }
 
 type RootDev struct {
 	Enable bool
 
-	Structures RootTool
-	Tools      []*RootTool
+	Prompts         string
+	PromptsFileTime int64
 
-	ShowTool     string //file name
-	ShowToolMode string //"message", "code"
+	ShowSide bool
+	SideFile string //Name.go
+	SideMode string //"schema", "code", "msg"
 }
 
 type RootApp struct {
@@ -97,7 +91,7 @@ func (root *Root) refreshApps() (*RootApp, error) {
 		}
 	}
 
-	//check selecte in range
+	//check select in range
 	if root.Selected_app_i >= 0 {
 		if root.Selected_app_i >= len(root.Apps) {
 			root.Selected_app_i = len(root.Apps) - 1
@@ -110,6 +104,61 @@ func (root *Root) refreshApps() (*RootApp, error) {
 
 	return nil, nil
 }
+
+/*func (app *RootApp) _refreshFiles() error {
+
+	fls, err := os.ReadDir(app.GetFolderPath())
+	if err != nil {
+		return err
+	}
+	//add new tool/storage(.go)
+	for _, fl := range fls {
+		if fl.IsDir() || filepath.Ext(fl.Name()) != ".go" || fl.Name() == "main.go" || fl.Name() == "Structures.go" {
+			continue
+		}
+
+		toolName, _ := strings.CutSuffix(fl.Name(), ".go")
+		found := false
+		for _, tool := range app.Dev.Tools {
+			if tool.Name == toolName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			app.Dev.Tools = append(app.Dev.Tools, &RootTool{Name: toolName})
+		}
+	}
+	//remove deleted tool/structs(.go)
+	for i := len(app.Dev.Tools) - 1; i >= 0; i-- {
+		if app.Dev.Tools[i].Name == "" {
+			continue
+		}
+
+		found := false
+		for _, fl := range fls {
+			if fl.IsDir() || filepath.Ext(fl.Name()) != ".go" || fl.Name() == "main.go" || fl.Name() == "Structures.go" {
+				continue
+			}
+
+			toolName, _ := strings.CutSuffix(fl.Name(), ".go")
+			if toolName == app.Dev.Tools[i].Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			app.Dev.Tools = slices.Delete(app.Dev.Tools, i, i+1)
+		}
+	}
+
+	//at least one tool
+	if len(app.Dev.Tools) == 0 {
+		app.Dev.Tools = append(app.Dev.Tools, &RootTool{})
+	}
+
+	return nil
+}*/
 
 func (app *RootApp) refreshChats(caller *ToolCaller) (*Chat, string, error) {
 

@@ -15,13 +15,11 @@ type ChatMsgUsage struct {
 	Prompt_tokens       int
 	Input_cached_tokens int
 	Completion_tokens   int
-	Total_tokens        int
 	Reasoning_tokens    int
 
 	Prompt_price       float64
 	Input_cached_price float64
 	Completion_price   float64
-	Total_price        float64
 	Reasoning_price    float64
 }
 
