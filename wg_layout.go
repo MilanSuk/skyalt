@@ -414,7 +414,7 @@ func (layout *Layout) ConvertTextTime(unix_sec int64) string {
 func (layout *Layout) ConvertTextDate(unix_sec int64) string {
 	tm := time.Unix(unix_sec, 0)
 
-	switch layout.ui.sync.GetDateFormat() {
+	switch layout.ui.router.sync.GetDateFormat() {
 	case "eu":
 		return fmt.Sprintf("%d/%d/%d", tm.Day(), int(tm.Month()), tm.Year())
 

@@ -276,7 +276,7 @@ func (layout *Layout) GetSettings() *UiRootSettings {
 }
 
 func (layout *Layout) GetPalette() *DevPalette {
-	return layout.ui.sync.GetPalette()
+	return layout.ui.router.sync.GetPalette()
 }
 
 func (layout *Layout) projectScroll() {
@@ -894,7 +894,7 @@ func (layout *Layout) renderBuffer(buffer []LayoutDrawPrim) (hasBrush bool) {
 				if layout.ui.edit.Is(layout) {
 					width *= 2
 				}
-				rounding := layout.ui.CellWidth(layout.ui.sync.GetRounding())
+				rounding := layout.ui.CellWidth(layout.ui.router.sync.GetRounding())
 				buff.AddRectRound(layout.crop, rounding, layout.GetPalette().P, layout.ui.CellWidth(width))
 			}
 		}
@@ -1220,7 +1220,7 @@ func (layout *Layout) Draw() {
 			if layApp != nil {
 				//alpha grey background
 				backCanvas := layApp.CropWithScroll()
-				buff.StartLevel(layDia.CropWithScroll(), layout.GetPalette().B, backCanvas, layout.ui.CellWidth(layout.ui.sync.GetRounding()))
+				buff.StartLevel(layDia.CropWithScroll(), layout.GetPalette().B, backCanvas, layout.ui.CellWidth(layout.ui.router.sync.GetRounding()))
 			}
 
 			layDia.drawBuffers() //add renderToTexture optimalization ....
@@ -1274,7 +1274,7 @@ func (layout *Layout) drawBuffers() {
 
 	rad := 0
 	if layout.Back_rounding {
-		rad = layout.ui.CellWidth(layout.ui.sync.GetRounding())
+		rad = layout.ui.CellWidth(layout.ui.router.sync.GetRounding())
 	}
 
 	if layout.Back_cd.A > 0 {

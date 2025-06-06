@@ -20,7 +20,7 @@ func (layout *Layout) AddCalendar(x, y, w, h int, value *int64, page *int64) *Ca
 
 func (st *Calendar) Build(layout *Layout) {
 
-	format := layout.ui.sync.GetDateFormat()
+	format := layout.ui.router.sync.GetDateFormat()
 
 	if st.Page == nil {
 		st.Page = &layout.ui.datePage

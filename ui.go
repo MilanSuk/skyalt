@@ -43,8 +43,6 @@ type Ui struct {
 
 	redrawLayouts []uint64 //hashes
 
-	sync *UiSync
-
 	datePage int64
 
 	edit_history *UiTextHistoryArray
@@ -77,18 +75,12 @@ func NewUi(win *Win, router *ToolsRouter) (*Ui, error) {
 
 	ui.open()
 
-	var err error
-	ui.sync, err = NewUiSync(router)
-	if err != nil {
-		return nil, err
-	}
-
 	ui.SetRefresh()
 
 	return ui, nil
 }
 func (ui *Ui) Destroy() {
-	ui.sync.Destroy()
+	ui.router.sync.Destroy()
 
 	ui.save()
 
@@ -147,27 +139,27 @@ func (ui *Ui) UpdateIO(winRect OsV4) {
 
 	keys := ui.win.io.Keys
 	if keys.ZoomAdd {
-		ui.sync.Upload_deviceDPI(OsClamp(ui.sync.Device.Dpi+3, 30, 5000), ui.router)
+		ui.router.sync.Upload_deviceDPI(OsClamp(ui.router.sync.Device.Dpi+3, 30, 5000))
 		keys.ZoomAdd = false
 	}
 	if keys.ZoomSub {
-		ui.sync.Upload_deviceDPI(OsClamp(ui.sync.Device.Dpi-3, 30, 5000), ui.router)
+		ui.router.sync.Upload_deviceDPI(OsClamp(ui.router.sync.Device.Dpi-3, 30, 5000))
 		keys.ZoomSub = false
 	}
 	if keys.ZoomDef {
-		ui.sync.Upload_deviceDPI(GetDeviceDPI(), ui.router)
+		ui.router.sync.Upload_deviceDPI(GetDeviceDPI())
 		keys.ZoomDef = false
 	}
 	if keys.F2 {
-		ui.sync.Upload_deviceStats(!ui.sync.Device.Stats, ui.router)
+		ui.router.sync.Upload_deviceStats(!ui.router.sync.Device.Stats)
 		keys.F2 = false
 	}
 	if keys.F11 {
-		ui.sync.Upload_deviceFullscreen(!ui.sync.Device.Fullscreen, ui.router)
+		ui.router.sync.Upload_deviceFullscreen(!ui.router.sync.Device.Fullscreen)
 		keys.F11 = false
 	}
 
-	ui.win.fullscreen = ui.sync.Device.Fullscreen
+	ui.win.fullscreen = ui.router.sync.Device.Fullscreen
 
 	if !ui.winRect.Cmp(winRect) {
 		ui.SetRefresh()
@@ -206,7 +198,7 @@ func (ui *Ui) ResetIO() {
 }
 
 func (ui *Ui) Cell() int {
-	return int(float64(ui.sync.Device.Dpi) / 2.5)
+	return int(float64(ui.router.sync.Device.Dpi) / 2.5)
 }
 func (ui *Ui) CellWidth(width float64) int {
 	t := int(width * float64(ui.Cell())) // cell is ~34
@@ -216,7 +208,7 @@ func (ui *Ui) CellWidth(width float64) int {
 	return t
 }
 func (ui *Ui) GetScrollThickness() int {
-	return int(float64(ui.Cell()) * float64(ui.sync.Device.ScrollThick))
+	return int(float64(ui.Cell()) * float64(ui.router.sync.Device.ScrollThick))
 }
 
 func _draw(layout *Layout) {
@@ -250,7 +242,7 @@ func (ui *Ui) Draw() {
 	}
 
 	win := ui.GetWin()
-	win.buff.StartLevel(ui.mainLayout.canvas, ui.sync.GetPalette().B, OsV4{}, 0)
+	win.buff.StartLevel(ui.mainLayout.canvas, ui.router.sync.GetPalette().B, OsV4{}, 0)
 
 	ui.mainLayout.Draw()
 	if win.io.Keys.Ctrl {
@@ -313,7 +305,7 @@ func (ui *Ui) Tick() {
 		ui.SetRefresh()
 	}
 
-	if ui.sync.Tick(ui.router) {
+	if ui.router.sync.Tick() {
 		ui.SetRefresh()
 	}
 
@@ -364,7 +356,7 @@ func (ui *Ui) Tick() {
 		type ShowRoot struct {
 			AddBrush *LayoutPick
 		}
-		ui.router.CallAsync(1, "Root", "ShowRoot", ShowRoot{AddBrush: brush}, fnProgress, fnDone)
+		ui.router.CallAsync(1, "apps/Root", "ShowRoot", ShowRoot{AddBrush: brush}, fnProgress, fnDone)
 	}
 
 	if !ui.touch.IsActive() {
@@ -397,7 +389,7 @@ func (ui *Ui) Tick() {
 				fmt.Printf("_changed(): %.4fsec\n", OsTime()-start_time)
 			}
 
-			ui.temp_ui.addLayout(new_dom, "Root", "ShowRoot", new_dom.UID, fnProgress, fnDone)
+			ui.temp_ui.addLayout(new_dom, "apps/Root", "ShowRoot", new_dom.UID, fnProgress, fnDone)
 
 			new_dom._build()
 			ui.mainLayout = new_dom

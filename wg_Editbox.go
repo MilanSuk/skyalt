@@ -92,7 +92,7 @@ func (st *Editbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	//background
 	cd := layout.GetPalette().B
-	paint.RectRad(rect, cd, cd, cd, 0, layout.ui.sync.GetRounding())
+	paint.RectRad(rect, cd, cd, cd, 0, layout.ui.router.sync.GetRounding())
 
 	//text
 	st.addPaintText(rect, &paint)

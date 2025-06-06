@@ -152,9 +152,9 @@ func (st *OsmMap) Build(layout *Layout) {
 		}
 	}
 
-	copyright := layout.AddButton(3, 1, 1, 1, layout.ui.sync.Map.Copyright)
+	copyright := layout.AddButton(3, 1, 1, 1, layout.ui.router.sync.Map.Copyright)
 	copyright.Background = 0
-	copyright.BrowserUrl = layout.ui.sync.Map.Copyright_url
+	copyright.BrowserUrl = layout.ui.router.sync.Map.Copyright_url
 
 }
 
@@ -218,7 +218,7 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 				}
 
 				//un-design ....
-				layout.ui.router.CallAsync(0, "Device", "GetMapTile", GetTile{X: int(x), Y: int(y), Zoom: int(zoom)}, nil, fnAsyncDone)
+				layout.ui.router.CallAsync(0, "apps/Device", "GetMapTile", GetTile{X: int(x), Y: int(y), Zoom: int(zoom)}, nil, fnAsyncDone)
 				return nil
 
 			}

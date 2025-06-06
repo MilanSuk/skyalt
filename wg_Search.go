@@ -54,7 +54,7 @@ func (st *Search) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 		rc := rect.CutLeft(1)
 		rc = rc.CutRight(1)
 		rc = rc.Cut(0.06)
-		paint.RectRad(rc, backCd, backCd, backCd, 0, layout.ui.sync.GetRounding())
+		paint.RectRad(rc, backCd, backCd, backCd, 0, layout.ui.router.sync.GetRounding())
 	}
 	return
 }

@@ -290,6 +290,10 @@ type UI struct {
 	Paint []UIPaint
 }
 
+func (ui *UI) Is() bool {
+	return len(ui.Items) > 0
+}
+
 func (ui *UI) addDialogs(layout *Layout, appName string, funcName string, parent_UID uint64, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
 	for _, dia := range ui.Dialogs {
 		d := layout.AddDialog(dia.UID)

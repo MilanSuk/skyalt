@@ -147,9 +147,9 @@ func (scroll *UiLayoutScroll) _UpdateH(start OsV2, ui *Ui) OsV4 {
 
 func (scroll *UiLayoutScroll) _GetSlideCd(ui *Ui) color.RGBA {
 
-	cd_slide := ui.sync.GetPalette().GetGrey(0.5)
+	cd_slide := ui.router.sync.GetPalette().GetGrey(0.5)
 	if scroll.data_height <= scroll.screen_height {
-		cd_slide = Color_Aprox(ui.sync.GetPalette().OnB, cd_slide, 0.5) // disable
+		cd_slide = Color_Aprox(ui.router.sync.GetPalette().OnB, cd_slide, 0.5) // disable
 	}
 
 	return cd_slide
@@ -168,12 +168,12 @@ func (scroll *UiLayoutScroll) DrawV(view OsV4, showBackground bool, ui *Ui) {
 	}
 
 	if showBackground {
-		cd := ui.sync.GetPalette().OnB
+		cd := ui.router.sync.GetPalette().OnB
 		cd.A = 30
 		ui.GetWin().buff.AddRect(view, cd, 0)
 	}
 	cd := scroll._GetSlideCd(ui)
-	rounding := OsRoundUp(float64(slider.Size.X) * ui.sync.GetRounding())
+	rounding := OsRoundUp(float64(slider.Size.X) * ui.router.sync.GetRounding())
 	ui.GetWin().buff.AddRectRound(slider, rounding, cd, 0)
 }
 
@@ -191,13 +191,13 @@ func (scroll *UiLayoutScroll) DrawH(view OsV4, showBackground bool, ui *Ui) {
 	}
 
 	if showBackground {
-		cd := ui.sync.GetPalette().OnB
+		cd := ui.router.sync.GetPalette().OnB
 		cd.A = 30
 		ui.GetWin().buff.AddRect(view, cd, 0)
 	}
 
 	cd := scroll._GetSlideCd(ui)
-	rounding := OsRoundUp(float64(slider.Size.Y) * ui.sync.GetRounding())
+	rounding := OsRoundUp(float64(slider.Size.Y) * ui.router.sync.GetRounding())
 	ui.GetWin().buff.AddRectRound(slider, rounding, cd, 0)
 }
 
