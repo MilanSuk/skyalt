@@ -57,6 +57,9 @@ type LLMxAI struct {
 	DevUrl     string
 	API_key    string
 
+	FastMode  bool
+	SmartMode bool
+
 	LanguageModels []*LLMxAILanguageModel
 	ImageModels    []*LLMxAIImageModel
 
@@ -226,6 +229,14 @@ func (xai *LLMxAI) run(st *LLMComplete, router *ToolsRouter, msg *ToolsRouterMsg
 
 	xai.Check()
 
+	model := "grok-3"
+	if !xai.SmartMode {
+		model += "-mini"
+	}
+	if xai.FastMode {
+		model += "-fast"
+	}
+
 	//Tools
 	var tools []*ToolsOpenAI_completion_tool
 	var app *ToolsApp
@@ -294,7 +305,7 @@ func (xai *LLMxAI) run(st *LLMComplete, router *ToolsRouter, msg *ToolsRouterMsg
 			Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
 
 			Seed:  seed,
-			Model: st.Model,
+			Model: model,
 
 			Tools:    tools,
 			Messages: messages,
@@ -313,7 +324,7 @@ func (xai *LLMxAI) run(st *LLMComplete, router *ToolsRouter, msg *ToolsRouterMsg
 		fnStreaming := func(chatMsg *ChatMsg) bool {
 
 			chatMsg.Provider = xai.Provider
-			chatMsg.Model = st.Model
+			chatMsg.Model = model
 			chatMsg.Seed = seed
 			chatMsg.Stream = true
 			chatMsg.ShowParameters = true
@@ -356,7 +367,7 @@ func (xai *LLMxAI) run(st *LLMComplete, router *ToolsRouter, msg *ToolsRouterMsg
 				usage.Input_cached_tokens = out.Usage.Input_cached_tokens
 				usage.Completion_tokens = out.Usage.Completion_tokens
 				usage.Reasoning_tokens = out.Usage.Completion_tokens_details.Reasoning_tokens
-				mod, _ := xai.FindProviderModel(st.Model)
+				mod, _ := xai.FindProviderModel(model)
 				if mod != nil {
 					usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price = mod.GetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens)
 				}
@@ -368,7 +379,7 @@ func (xai *LLMxAI) run(st *LLMComplete, router *ToolsRouter, msg *ToolsRouterMsg
 			}
 
 			calls := out.Choices[0].Message.Tool_calls
-			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, xai.Provider, st.Model)
+			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, xai.Provider, model)
 			if st.delta != nil {
 				st.delta(m2)
 			}
@@ -472,7 +483,7 @@ func (xai *LLMxAI) run(st *LLMComplete, router *ToolsRouter, msg *ToolsRouterMsg
 			xai.Stats = append(xai.Stats, LLMxAIMsgStats{
 				Function:       "completion",
 				CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000,
-				Model:          st.Model,
+				Model:          model,
 
 				Time:             dt,
 				TimeToFirstToken: time_to_first_token,

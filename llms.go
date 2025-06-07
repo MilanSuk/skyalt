@@ -122,7 +122,7 @@ func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 }
 
 type LLMComplete struct {
-	Model             string
+	Provider          string //"xai"
 	Temperature       float64
 	Top_p             float64
 	Max_tokens        int
@@ -152,8 +152,7 @@ type LLMComplete struct {
 }
 
 func (a *LLMComplete) Cmp(b *LLMComplete) bool {
-	return a.Model == b.Model &&
-		a.Temperature == b.Temperature &&
+	return a.Temperature == b.Temperature &&
 		a.Top_p == b.Top_p &&
 		bytes.Equal(a.PreviousMessages, b.PreviousMessages) &&
 		a.SystemMessage == b.SystemMessage &&
@@ -164,7 +163,6 @@ type LLMs struct {
 	router *ToolsRouter
 
 	Requests []LLMComplete
-	//database: prompt - message ......
 }
 
 func NewLLMs(router *ToolsRouter) (*LLMs, error) {
@@ -191,18 +189,21 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 	}
 
 	//call
-	err := llms.router.sync.LLM_xai.run(st, llms.router, msg)
-	if llms.router.log.Error(err) != nil {
-		return err
+	switch st.Provider {
+	case "xai":
+		err := llms.router.sync.LLM_xai.run(st, llms.router, msg)
+		if llms.router.log.Error(err) != nil {
+			return err
+		}
+		//other providers
 	}
-	//other models ....
 
-	//add
-	llms.Requests = append(llms.Requests, *st)
-
-	//save
-	_, err = Tools_WriteJSONFile("apps/requests.json", llms.Requests)
-	llms.router.log.Error(err)
+	//add & save
+	{
+		llms.Requests = append(llms.Requests, *st)
+		_, err := Tools_WriteJSONFile("apps/requests.json", llms.Requests)
+		llms.router.log.Error(err)
+	}
 
 	return nil
 }

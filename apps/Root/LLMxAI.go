@@ -52,6 +52,9 @@ type LLMxAI struct {
 	DevUrl     string
 	API_key    string
 
+	FastMode  bool
+	SmartMode bool
+
 	LanguageModels []*LLMxAILanguageModel
 	ImageModels    []*LLMxAIImageModel
 

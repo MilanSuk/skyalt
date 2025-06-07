@@ -199,7 +199,7 @@ func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error 
 	structPrompt := app.FindPromptName("Structures")
 
 	var comp LLMComplete
-	comp.Model = "grok-3-mini" //grok-3-mini-fast
+	comp.Provider = "xai"
 	comp.Temperature = 0.2
 	comp.Max_tokens = 65536
 	comp.Top_p = 0.7 //1.0

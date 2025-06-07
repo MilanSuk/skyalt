@@ -24,11 +24,19 @@ func (st *ShowLLMxAISettings) run(caller *ToolCaller, ui *UI) error {
 
 	y := 1
 
-	ui.AddText(0, y, 1, 1, "OpenAI API endpoint")
-	ui.AddText(1, y, 1, 1, source_llm.OpenAI_url)
+	ui.AddText(0, y, 1, 1, "Inference")
+	fs := ui.AddSwitch(1, y, 1, 1, "Faster", &source_llm.FastMode)
+	fs.Tooltip = "Generate answers faster."
+	y++
+	sm := ui.AddSwitch(1, y, 1, 1, "Smarter", &source_llm.SmartMode)
+	sm.Tooltip = "Use bigger model."
 	y++
 
 	y++ //space
+
+	ui.AddText(0, y, 1, 1, "OpenAI API endpoint")
+	ui.AddText(1, y, 1, 1, source_llm.OpenAI_url)
+	y++
 
 	//api key
 	{
