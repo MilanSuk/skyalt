@@ -18,9 +18,6 @@ package main
 
 import (
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -65,7 +62,7 @@ func (prompt *ToolsPrompt) GetErrors(file string) (errs []ToolsCodeError) {
 	return
 }
 
-func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, usage *LLMMsgUsage, loadName bool) {
+func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, usage *LLMMsgUsage) {
 
 	re := regexp.MustCompile("(?s)```(?:go|golang)\n(.*?)\n```")
 	matches := re.FindAllStringSubmatch(final_msg, -1)
@@ -83,10 +80,9 @@ func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, us
 	prompt.Reasoning = reasoning_msg
 	prompt.Usage = *usage
 
-	if loadName {
+	/*if loadName {
 		prompt.Name, _ = _ToolsPrompt_getFileName(prompt.Code)
-	}
-
+	}*/
 }
 
 type ToolsPrompts struct {
@@ -128,7 +124,7 @@ func (app *ToolsPrompts) FindPromptName(name string) *ToolsPrompt {
 	return nil
 }
 
-func (app *ToolsPrompts) Reload(folderPath string) error {
+func (app *ToolsPrompts) Reload(folderPath string) (bool, error) {
 
 	app.Prompts = nil
 	app.Err = ""
@@ -137,37 +133,50 @@ func (app *ToolsPrompts) Reload(folderPath string) error {
 	promptsFilePath := filepath.Join(folderPath, "skyalt")
 	fl, err := os.ReadFile(promptsFilePath)
 	if err != nil {
-		return err
+		return false, err
 	}
 
+	saveFile := false
 	structFound := false
 	var last_prompt *ToolsPrompt
 	lines := strings.Split(string(fl), "\n")
 	for i, ln := range lines {
 		ln = strings.TrimSpace(ln)
 
-		isStruct := strings.HasPrefix(strings.ToLower(ln), "#storage")
-		isTool := strings.HasPrefix(strings.ToLower(ln), "#tool")
+		isHash := strings.HasPrefix(strings.ToLower(ln), "#")
+		isStorage := strings.HasPrefix(strings.ToLower(ln), "#storage")
 
-		if isStruct && structFound {
+		if isStorage && structFound {
 			app.Err = "second '#storage' is not allowed"
 			app.Err_line = i + 1
 			break
 		}
 
-		if isStruct || isTool {
+		if isHash {
+
+			//extract or edit name
+			toolName := "Structures"
+			if !isStorage {
+				toolName = ln[1:] //skip '#'
+				newToolName := _ToolsPrompt_getValidFileName(toolName)
+
+				if toolName != newToolName {
+					toolName = newToolName
+					lines[i] = newToolName
+					//ln = "#" + newToolName
+					saveFile = true
+				}
+			}
+
 			//save
 			if last_prompt != nil {
 				app.Prompts = append(app.Prompts, last_prompt)
 			}
-			if isStruct {
-				last_prompt = &ToolsPrompt{Name: "Structures", header_line: i}
+			last_prompt = &ToolsPrompt{Name: toolName, header_line: i}
+			if isStorage {
 				structFound = true
-			} else {
-				last_prompt = &ToolsPrompt{header_line: i}
 			}
 		} else {
-
 			if last_prompt == nil && ln != "" {
 				app.Err = "missing '#storage' or '#tool' header"
 				app.Err_line = i + 1
@@ -190,7 +199,15 @@ func (app *ToolsPrompts) Reload(folderPath string) error {
 		prompt.Prompt = strings.Trim(prompt.Prompt, "\n ")
 	}
 
-	return nil
+	if saveFile {
+		str := strings.Join(lines, "\n")
+		err := os.WriteFile(promptsFilePath, []byte(str), 0644)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return saveFile, nil
 }
 
 func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error {
@@ -224,7 +241,7 @@ func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error 
 			return err
 		}
 
-		structPrompt.setMessage(comp.Out_last_final_message, comp.Out_last_reasoning_message, &comp.Out_usage, false)
+		structPrompt.setMessage(comp.Out_last_final_message, comp.Out_last_reasoning_message, &comp.Out_usage)
 	}
 
 	//generate tools code
@@ -243,10 +260,10 @@ func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error 
 			return err
 		}
 
-		prompt.setMessage(comp.Out_last_final_message, comp.Out_last_reasoning_message, &comp.Out_usage, true)
+		prompt.setMessage(comp.Out_last_final_message, comp.Out_last_reasoning_message, &comp.Out_usage)
 	}
 
-	promptsFilePath := filepath.Join(folderPath, "skyalt")
+	/*promptsFilePath := filepath.Join(folderPath, "skyalt")
 	fl, err := os.ReadFile(promptsFilePath)
 	if err != nil {
 		return err
@@ -270,7 +287,7 @@ func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error 
 	err = os.WriteFile(promptsFilePath, []byte(newFl), 0644)
 	if err != nil {
 		return err
-	}
+	}*/
 
 	return nil
 }
@@ -379,22 +396,22 @@ func (app *ToolsPrompts) _getToolMsg(prompt *ToolsPrompt, structPrompt *ToolsPro
 
 	storageFile := structPrompt.Code
 
-	exampleFile := `
+	toolFile := fmt.Sprintf(`
 package main
 
-type ExampleTool struct {
+type %s struct {
 	//<tool's arguments>
 }
 
-func (st *ExampleTool) run(caller *ToolCaller, ui *UI) error {
+func (st *%s) run(caller *ToolCaller, ui *UI) error {
 
 	//<code based on prompt>
 
 	return nil
 }
-`
+`, prompt.Name, prompt.Name)
 
-	toolsNames := ""
+	/*toolsNames := ""
 	for i, it := range app.Prompts {
 		if it.Name == "" || it.Name == prompt.Name {
 			continue
@@ -405,33 +422,57 @@ func (st *ExampleTool) run(caller *ToolCaller, ui *UI) error {
 		} else {
 			toolsNames += "."
 		}
-	}
+	}*/
 
 	systemMessage := "You are a programmer. You write code in Go language.\n"
 
 	systemMessage += "Here is the file with the API functions:\n```go" + apisFile + "```\n"
-	systemMessage += "Here is the file with the structures(and help functions) which represent the storage:\n```go" + storageFile + "```\n"
-	systemMessage += "Here is the example file with code:\n```go" + exampleFile + "```\n"
+	systemMessage += "Here is the file with the storage structures(and help functions):\n```go" + storageFile + "```\n"
+	systemMessage += "Here is the file with code which you re-write:\n```go" + toolFile + "```\n"
 
-	systemMessage += "Based on user message, rewrite above example file code. Your job is to design function(tool).\n"
+	systemMessage += "Based on user message, rewrite above file code. Your job is to design function(tool).\n"
 
-	systemMessage += "Rename 'ExampleTool' with tools name based on user prompt. Don't use the word 'tool' in the name."
+	/*systemMessage += "Rename 'ExampleTool' with tools name based on user prompt. Don't use the word 'tool' in the name."
 	if toolsNames != "" {
 		systemMessage += "Here are the names of tools which already exists, don't use them:" + toolsNames + "\n"
-	}
+	}*/
 
 	systemMessage += "Figure out <tool's arguments> based on user prompt. They are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with upper letter. Every argument must have description as comment.\n"
 
-	systemMessage += "If you need to access the storage, use \"\" as 'filePath'. This will access default file for specific file structure. Don't redeclare storage structures(and functions) in tool's code.\n"
+	systemMessage += "If you need to access the storage, use \"\" as 'filePath'. This will access default file for specific file structure. Don't redeclare storage structures(and functions) in the code you are writting.\n"
 
-	systemMessage += "You may write help functions. They should start with ```func (st *ExampleTool)NameOfHelpFunction``` and output everything in one code block.\n"
+	systemMessage += fmt.Sprintf("You may write help functions. They should start with ```func (st *%s)NameOfHelpFunction``` and output everything in one code block.\n", prompt.Name)
 
 	userMessage := prompt.Prompt
 
 	return systemMessage, userMessage, nil
 }
 
-func _ToolsPrompt_getFileName(code string) (string, error) {
+func _ToolsPrompt_getValidFileName(s string) string {
+	re := regexp.MustCompile(`[^a-zA-Z0-9_]+`)
+	words := re.Split(s, -1)
+
+	// Use a strings.Builder for efficient concatenation
+	var builder strings.Builder
+
+	// Process each word
+	for _, word := range words {
+		if word != "" {
+			if len(word) > 0 && word[0] >= 'a' && word[0] <= 'z' {
+				// Capitalize the first letter if it's lowercase
+				builder.WriteByte(word[0] - 32)
+				builder.WriteString(word[1:])
+			} else {
+				// Keep the word as is if it starts with uppercase, digit, or underscore
+				builder.WriteString(word)
+			}
+		}
+	}
+
+	return builder.String()
+}
+
+/*func _ToolsPrompt_getFileName(code string) (string, error) {
 	file, err := parser.ParseFile(token.NewFileSet(), "", code, parser.ParseComments)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse source: %v", err)
@@ -458,4 +499,4 @@ func _ToolsPrompt_getFileName(code string) (string, error) {
 	})
 
 	return structName, nil
-}
+}*/

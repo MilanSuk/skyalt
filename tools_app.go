@@ -163,16 +163,18 @@ func (app *ToolsApp) Tick() error {
 
 		if app.Process.Compile.NeedCompile(codeHash) {
 
-			err := app.Prompts.Reload(app.Process.Compile.GetFolderPath())
+			saved, err := app.Prompts.Reload(app.Process.Compile.GetFolderPath())
 			if err != nil {
 				return err
+			}
+			if saved {
+				codeHash = Tools_GetFileTime(promptsFilePath) //refresh
 			}
 
 			err = app.Prompts.Generate(app.Process.Compile.GetFolderPath(), app.router)
 			if err != nil {
 				return err
 			}
-			codeHash = Tools_GetFileTime(promptsFilePath) //refresh, because Generate() re-wrote tools names
 
 			err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath())
 			if err != nil {
