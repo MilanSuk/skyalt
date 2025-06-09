@@ -149,7 +149,7 @@ func (app *ToolsPrompts) Reload(folderPath string) (bool, error) {
 		if isStorage && structFound {
 			app.Err = "second '#storage' is not allowed"
 			app.Err_line = i + 1
-			break
+			return false, fmt.Errorf(app.Err)
 		}
 
 		if isHash {
@@ -162,10 +162,17 @@ func (app *ToolsPrompts) Reload(folderPath string) (bool, error) {
 
 				if toolName != newToolName {
 					toolName = newToolName
-					lines[i] = newToolName
-					//ln = "#" + newToolName
+					ln = "#" + newToolName
+					lines[i] = ln
+
 					saveFile = true
 				}
+			}
+
+			if toolName == "" {
+				app.Err = "nothing after '#'"
+				app.Err_line = i + 1
+				return false, fmt.Errorf(app.Err)
 			}
 
 			//save
@@ -180,7 +187,7 @@ func (app *ToolsPrompts) Reload(folderPath string) (bool, error) {
 			if last_prompt == nil && ln != "" {
 				app.Err = "missing '#storage' or '#tool' header"
 				app.Err_line = i + 1
-				break
+				return false, fmt.Errorf(app.Err)
 			}
 
 			if last_prompt != nil {
@@ -449,6 +456,8 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 }
 
 func _ToolsPrompt_getValidFileName(s string) string {
+	s = strings.TrimSpace(s)
+
 	re := regexp.MustCompile(`[^a-zA-Z0-9_]+`)
 	words := re.Split(s, -1)
 
@@ -456,14 +465,15 @@ func _ToolsPrompt_getValidFileName(s string) string {
 	var builder strings.Builder
 
 	// Process each word
-	for _, word := range words {
+	for i, word := range words {
 		if word != "" {
 			if len(word) > 0 && word[0] >= 'a' && word[0] <= 'z' {
 				// Capitalize the first letter if it's lowercase
-				builder.WriteByte(word[0] - 32)
-				builder.WriteString(word[1:])
+				builder.WriteString(strings.ToUpper(word[0:1]) + word[1:])
+			} else if i == 0 && len(word) > 0 && word[0] >= '0' && word[0] <= '9' {
+				//ignore 1st word starting with digits
 			} else {
-				// Keep the word as is if it starts with uppercase, digit, or underscore
+				// Keep the word as is if it starts with uppercase, or underscore
 				builder.WriteString(word)
 			}
 		}
