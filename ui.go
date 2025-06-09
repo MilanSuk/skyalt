@@ -356,7 +356,7 @@ func (ui *Ui) Tick() {
 		type ShowRoot struct {
 			AddBrush *LayoutPick
 		}
-		ui.router.CallAsync(1, "apps/Root", "ShowRoot", ShowRoot{AddBrush: brush}, fnProgress, fnDone)
+		ui.router.CallAsync(1, "Root", "ShowRoot", ShowRoot{AddBrush: brush}, fnProgress, fnDone)
 	}
 
 	if !ui.touch.IsActive() {
@@ -389,7 +389,7 @@ func (ui *Ui) Tick() {
 				fmt.Printf("_changed(): %.4fsec\n", OsTime()-start_time)
 			}
 
-			ui.temp_ui.addLayout(new_dom, "apps/Root", "ShowRoot", new_dom.UID, fnProgress, fnDone)
+			ui.temp_ui.addLayout(new_dom, "Root", "ShowRoot", new_dom.UID, fnProgress, fnDone)
 
 			new_dom._build()
 			ui.mainLayout = new_dom

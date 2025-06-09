@@ -51,14 +51,14 @@ type ToolsApp struct {
 	storage_changes int64
 }
 
-func NewToolsApp(folderPath string, router *ToolsRouter) *ToolsApp {
+func NewToolsApp(appName string, router *ToolsRouter) *ToolsApp {
 
 	app := &ToolsApp{router: router}
 	app.Tools = make(map[string]*ToolsAppItem)
 
-	app.Process = NewToolsAppRun(folderPath)
+	app.Process = NewToolsAppRun(appName)
 
-	promptsFilePath := filepath.Join(folderPath, "skyalt")
+	promptsFilePath := filepath.Join("apps", appName, "skyalt")
 	if Tools_FileExists(promptsFilePath) {
 		app.Prompts = NewToolsPrompts()
 	}
@@ -93,7 +93,7 @@ func (app *ToolsApp) _save() error {
 }
 
 func (app *ToolsApp) GetToolsJsonPath() string {
-	return filepath.Join(app.Process.Compile.folderPath, "tools.json")
+	return filepath.Join(app.Process.Compile.GetFolderPath(), "tools.json")
 }
 
 func (app *ToolsApp) getToolFileName(toolName string) string {
@@ -101,7 +101,7 @@ func (app *ToolsApp) getToolFileName(toolName string) string {
 }
 
 func (app *ToolsApp) getToolFilePath(toolName string) string {
-	return filepath.Join(app.Process.Compile.folderPath, app.getToolFileName(toolName))
+	return filepath.Join(app.Process.Compile.GetFolderPath(), app.getToolFileName(toolName))
 }
 
 func (app *ToolsApp) GetAllSchemas() []*ToolsOpenAI_completion_tool {
@@ -142,11 +142,11 @@ func (app *ToolsApp) CheckRun() error {
 	defer app.lock.Unlock()
 
 	if app.Process.Compile.Error != "" {
-		return fmt.Errorf("'%s' app has compilation error: %s", app.Process.Compile.folderPath, app.Process.cmd_error)
+		return fmt.Errorf("'%s' app has compilation error: %s", app.Process.Compile.GetFolderPath(), app.Process.cmd_error)
 	}
 
 	if app.Process.Compile.CodeHash == 0 {
-		return fmt.Errorf("'%s' app is waiting for compilation", app.Process.Compile.folderPath)
+		return fmt.Errorf("'%s' app is waiting for compilation", app.Process.Compile.GetFolderPath())
 	}
 
 	return app.Process.CheckRun(app.router)
@@ -158,23 +158,23 @@ func (app *ToolsApp) Tick() error {
 
 	if app.Prompts != nil {
 
-		promptsFilePath := filepath.Join(app.Process.Compile.folderPath, "skyalt")
+		promptsFilePath := filepath.Join(app.Process.Compile.GetFolderPath(), "skyalt")
 		codeHash := Tools_GetFileTime(promptsFilePath)
 
 		if app.Process.Compile.NeedCompile(codeHash) {
 
-			err := app.Prompts.Reload(app.Process.Compile.folderPath)
+			err := app.Prompts.Reload(app.Process.Compile.GetFolderPath())
 			if err != nil {
 				return err
 			}
 
-			err = app.Prompts.Generate(app.Process.Compile.folderPath, app.router)
+			err = app.Prompts.Generate(app.Process.Compile.GetFolderPath(), app.router)
 			if err != nil {
 				return err
 			}
 			codeHash = Tools_GetFileTime(promptsFilePath) //refresh, because Generate() re-wrote tools names
 
-			err = app.Prompts.WriteFiles(app.Process.Compile.folderPath)
+			err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath())
 			if err != nil {
 				return err
 			}
@@ -192,7 +192,7 @@ func (app *ToolsApp) Tick() error {
 
 	} else {
 
-		files, err := os.ReadDir(app.Process.Compile.folderPath)
+		files, err := os.ReadDir(app.Process.Compile.GetFolderPath())
 		if err != nil {
 			return err
 		}
@@ -208,7 +208,7 @@ func (app *ToolsApp) Tick() error {
 				continue
 			}
 
-			fileTime := Tools_GetFileTime(filepath.Join(app.Process.Compile.folderPath, info.Name()))
+			fileTime := Tools_GetFileTime(filepath.Join(app.Process.Compile.GetFolderPath(), info.Name()))
 			codeHash += fileTime
 
 			if !strings.HasPrefix(info.Name(), "z") {

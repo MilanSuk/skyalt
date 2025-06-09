@@ -218,7 +218,7 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 				}
 
 				//un-design ....
-				layout.ui.router.CallAsync(0, "apps/Device", "GetMapTile", GetTile{X: int(x), Y: int(y), Zoom: int(zoom)}, nil, fnAsyncDone)
+				layout.ui.router.CallAsync(0, "Device", "GetMapTile", GetTile{X: int(x), Y: int(y), Zoom: int(zoom)}, nil, fnAsyncDone)
 				return nil
 
 			}

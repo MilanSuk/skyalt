@@ -34,10 +34,10 @@ type ToolsAppProcess struct {
 	cmd_error  string
 }
 
-func NewToolsAppRun(folderPath string) *ToolsAppProcess {
+func NewToolsAppRun(appName string) *ToolsAppProcess {
 	app := &ToolsAppProcess{}
 
-	app.Compile = NewToolsAppCompile(folderPath)
+	app.Compile = NewToolsAppCompile(appName)
 
 	return app
 }
@@ -83,29 +83,29 @@ func (app *ToolsAppProcess) CheckRun(router *ToolsRouter) error {
 		app.cmd = nil
 
 		//start
-		cmd := exec.Command("./"+app.Compile.GetBinName(), app.Compile.folderPath, strconv.Itoa(router.server.port))
-		cmd.Dir = app.Compile.folderPath
+		cmd := exec.Command("./"+app.Compile.GetBinName(), app.Compile.AppName, strconv.Itoa(router.server.port))
+		cmd.Dir = app.Compile.GetFolderPath()
 		OutStr := new(strings.Builder)
 		ErrStr := new(strings.Builder)
 		cmd.Stdout = OutStr
 		cmd.Stderr = ErrStr
 		err := cmd.Start()
 		if err != nil {
-			return fmt.Errorf("'%s' start failed: %w", app.Compile.folderPath, err)
+			return fmt.Errorf("'%s' start failed: %w", app.Compile.GetFolderPath(), err)
 		}
 		app.cmd = cmd //running
 
-		fmt.Printf("App '%s' has started\n", app.Compile.folderPath)
+		fmt.Printf("App '%s' has started\n", app.Compile.GetFolderPath())
 
 		//run tool
 		go func() {
 			app.cmd.Wait()
 
 			if OutStr.Len() > 0 {
-				fmt.Printf("'%s' app output: %s\n", app.Compile.folderPath, OutStr.String())
+				fmt.Printf("'%s' app output: %s\n", app.Compile.GetFolderPath(), OutStr.String())
 			}
 			if ErrStr.Len() > 0 {
-				fmt.Printf("\033[31m'%s' app error:%s\033[0m\n", app.Compile.folderPath, ErrStr.String())
+				fmt.Printf("\033[31m'%s' app error:%s\033[0m\n", app.Compile.GetFolderPath(), ErrStr.String())
 			}
 
 			wd, _ := os.Getwd()
@@ -122,7 +122,7 @@ func (app *ToolsAppProcess) CheckRun(router *ToolsRouter) error {
 				n++
 			}
 			if app.port == 0 {
-				fmt.Printf("'%s' app process hasn't connected in time\n", app.Compile.folderPath)
+				fmt.Printf("'%s' app process hasn't connected in time\n", app.Compile.GetFolderPath())
 			}
 		}
 

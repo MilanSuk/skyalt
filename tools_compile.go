@@ -35,15 +35,19 @@ type ToolsCodeError struct {
 }
 
 type ToolsAppCompile struct {
-	folderPath string
+	AppName string
 
 	Error    string
 	CodeHash int64
 }
 
-func NewToolsAppCompile(folderPath string) *ToolsAppCompile {
-	app := &ToolsAppCompile{folderPath: folderPath}
+func NewToolsAppCompile(appName string) *ToolsAppCompile {
+	app := &ToolsAppCompile{AppName: appName}
 	return app
+}
+
+func (app *ToolsAppCompile) GetFolderPath() string {
+	return filepath.Join("apps", app.AppName)
 }
 
 func (app *ToolsAppCompile) GetBinName() string {
@@ -51,7 +55,7 @@ func (app *ToolsAppCompile) GetBinName() string {
 }
 
 func (app *ToolsAppCompile) NeedCompile(codeHash int64) bool {
-	return app.CodeHash != codeHash || (app.Error == "" && !Tools_FileExists(filepath.Join(app.folderPath, app.GetBinName())))
+	return app.CodeHash != codeHash || (app.Error == "" && !Tools_FileExists(filepath.Join(app.GetFolderPath(), app.GetBinName())))
 }
 
 func (app *ToolsAppCompile) Compile(codeHash int64, router *ToolsRouter, stopProcess func() error) ([]ToolsCodeError, error) {
@@ -67,7 +71,7 @@ func (app *ToolsAppCompile) Compile(codeHash int64, router *ToolsRouter, stopPro
 		if app.Error == "" {
 			exclude := app.GetBinName()
 
-			files, err := os.ReadDir(app.folderPath)
+			files, err := os.ReadDir(app.GetFolderPath())
 			if err != nil {
 				return nil, err
 			}
@@ -75,7 +79,7 @@ func (app *ToolsAppCompile) Compile(codeHash int64, router *ToolsRouter, stopPro
 				if info.IsDir() || filepath.Ext(info.Name()) != ".bin" || info.Name() == exclude {
 					continue
 				}
-				os.Remove(filepath.Join(app.folderPath, info.Name()))
+				os.Remove(filepath.Join(app.GetFolderPath(), info.Name()))
 			}
 		}
 	} else {
@@ -91,7 +95,7 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 
 	app.CodeHash = codeHash
 
-	msg := router.AddRecompileMsg(app.folderPath)
+	msg := router.AddRecompileMsg(app.GetFolderPath())
 	defer msg.Done()
 
 	msg.progress_label = "Generating tools code"
@@ -105,7 +109,7 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 		strFrees.WriteString("func _callGlobalDestroys() {\n\n")
 		strCalls.WriteString("func FindToolRunFunc(funcName string, jsParams []byte) (func(caller *ToolCaller, ui *UI) error, interface{}, error) {\n\tswitch funcName {\n")
 
-		files, err := os.ReadDir(app.folderPath)
+		files, err := os.ReadDir(app.GetFolderPath())
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +120,7 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 
 			stName := info.Name()[1 : len(info.Name())-3]
 
-			fl, err := os.ReadFile(filepath.Join(app.folderPath, info.Name()))
+			fl, err := os.ReadFile(filepath.Join(app.GetFolderPath(), info.Name()))
 			if err != nil {
 				return nil, err
 			}
@@ -181,7 +185,7 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 		strFinal.WriteString(strFrees.String())
 		strFinal.WriteString(strCalls.String())
 
-		err = os.WriteFile(filepath.Join(app.folderPath, "main.go"), []byte(strFinal.String()), 0644)
+		err = os.WriteFile(filepath.Join(app.GetFolderPath(), "main.go"), []byte(strFinal.String()), 0644)
 		if err != nil {
 			return nil, err
 		}
@@ -191,10 +195,10 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 	//fix files
 	msg.progress_label = "Fixing tools code"
 	{
-		fmt.Printf("Fixing '%s' ... ", app.folderPath)
+		fmt.Printf("Fixing '%s' ... ", app.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000
 		cmd := exec.Command("goimports", "-l", "-w", ".")
-		cmd.Dir = app.folderPath
+		cmd.Dir = app.GetFolderPath()
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
 		cmd.Stdout = os.Stdout
@@ -210,13 +214,13 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 	//update packages
 	msg.progress_label = "Updating tools packages"
 	{
-		fmt.Printf("Updating packages '%s' ... ", app.folderPath)
+		fmt.Printf("Updating packages '%s' ... ", app.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000
 
-		if !Tools_FileExists(filepath.Join(app.folderPath, "go.mod")) {
+		if !Tools_FileExists(filepath.Join(app.GetFolderPath(), "go.mod")) {
 			//create
 			cmd := exec.Command("go", "mod", "init", "skyalt_tool")
-			cmd.Dir = app.folderPath
+			cmd.Dir = app.GetFolderPath()
 			var stderr bytes.Buffer
 			cmd.Stderr = &stderr //os.Stderr
 			cmd.Stdout = os.Stdout
@@ -228,7 +232,7 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 
 		//update
 		cmd := exec.Command("go", "mod", "tidy")
-		cmd.Dir = app.folderPath
+		cmd.Dir = app.GetFolderPath()
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
 		cmd.Stdout = os.Stdout
@@ -244,10 +248,10 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 	//compile
 	msg.progress_label = "Compiling tools code"
 	{
-		fmt.Printf("Compiling '%s' ... ", app.folderPath)
+		fmt.Printf("Compiling '%s' ... ", app.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000
 		cmd := exec.Command("go", "build", "-o", app.GetBinName())
-		cmd.Dir = app.folderPath
+		cmd.Dir = app.GetFolderPath()
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
 		cmd.Stdout = os.Stdout
