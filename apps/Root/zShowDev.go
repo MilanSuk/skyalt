@@ -141,7 +141,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		FooterDiv.SetColumn(0, 1, 100)
 		FooterDiv.SetColumn(1, 1, 3)
 		FooterDiv.SetRowFromSub(0, 1, 5)
-		tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#tool //Describe app's feature.")
+		tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#<NameOfTool> //Describe app's feature.")
 		tx.Align_v = 0
 		tx.Cd = UI_GetPalette().GetGrey(0.5)
 
