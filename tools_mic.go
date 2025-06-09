@@ -14,88 +14,35 @@ import (
 	"github.com/go-audio/wav"
 )
 
-// Start microphone recording [ignore]
-type RecordMicrophone struct {
-	UID string //Unique ID of recording session
-
-	Stop         bool
-	CancelResult bool
-
-	Format string //Output bytes format [Options: wav, mp3]
-
-	Out_bytes []byte
-}
-
-func (st *RecordMicrophone) run(caller *ToolCaller, ui *UI) error {
-
-	if st.Stop {
-		mic := g_malgo.Find(st.UID)
-		if mic == nil {
-			return fmt.Errorf("Mic UID '%s' not found", st.UID)
-		}
-
-		//stop "play" function call
-		mic.Stop.Store(true)
-
-		if st.CancelResult {
-			return nil
-		}
-
-		//return data
-		if st.Format != "wav" && st.Format != "mp3" {
-			return fmt.Errorf("unknown format")
-		}
-		out, err := g_malgo.Finished(st.UID, false)
-		if err != nil {
-			return err
-		}
-		st.Out_bytes, err = FFMpeg_convertIntoFile(&out, st.Format == "mp3")
-		if err != nil {
-			return err
-		}
-
-	} else {
-
-		source_mic, err := NewMicrophoneSettings("")
-		if err != nil {
-			return err
-		}
-
-		mic, err := g_malgo.Start(st.UID, source_mic)
-		if err != nil {
-			return err
-		}
-
-		for !mic.Stop.Load() {
-			if source_mic.Enable && !caller.Progress(0, "Listening") {
-				g_malgo.Finished(st.UID, true)
-				return nil //cancelled
-			}
-
-			time.Sleep(10 * time.Millisecond)
-		}
-	}
-
-	return nil
-}
-
-type MicMalgoRecord struct {
+type ToolsMicMalgoRecord struct {
 	data          []byte //int=hash
 	startUnixTime float64
 	Stop          atomic.Bool
 }
 
-type MicMalgo struct {
+type ToolsMicMalgo struct {
 	lock   sync.Mutex
 	device *malgo.Device
-	mics   map[string]*MicMalgoRecord //int=hash
+	mics   map[string]*ToolsMicMalgoRecord //int=hash
 }
 
-var g_malgo = MicMalgo{mics: make(map[string]*MicMalgoRecord)}
+func NewToolsMicMalgo() *ToolsMicMalgo {
+	st := &ToolsMicMalgo{}
 
-func (mlg *MicMalgo) _checkDevice(source_mic *MicrophoneSettings) error {
+	st.mics = make(map[string]*ToolsMicMalgoRecord)
 
-	if g_malgo.device != nil {
+	return st
+}
+
+func (mlg *ToolsMicMalgo) Destroy() {
+	for uid := range mlg.mics {
+		mlg.Finished(uid, true)
+	}
+}
+
+func (mlg *ToolsMicMalgo) _checkDevice(source_mic *ToolsSyncMicrophoneSettings) error {
+
+	if mlg.device != nil {
 		return nil
 	}
 
@@ -131,14 +78,14 @@ func (mlg *MicMalgo) _checkDevice(source_mic *MicrophoneSettings) error {
 	return nil
 }
 
-func (mlg *MicMalgo) Find(uid string) *MicMalgoRecord {
+func (mlg *ToolsMicMalgo) Find(uid string) *ToolsMicMalgoRecord {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
 	return mlg.mics[uid]
 }
 
-func (mlg *MicMalgo) Start(uid string, source_mic *MicrophoneSettings) (*MicMalgoRecord, error) {
+func (mlg *ToolsMicMalgo) Start(uid string, source_mic *ToolsSyncMicrophoneSettings) (*ToolsMicMalgoRecord, error) {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
@@ -148,12 +95,12 @@ func (mlg *MicMalgo) Start(uid string, source_mic *MicrophoneSettings) (*MicMalg
 	}
 
 	//add
-	mic, found := mlg.mics[uid]
+	_, found := mlg.mics[uid]
 	if found {
-		return nil, fmt.Errorf("Mic UID '%s' already recording", uid)
+		return nil, fmt.Errorf("mic UID '%s' already recording", uid)
 	}
 
-	mic = &MicMalgoRecord{}
+	mic := &ToolsMicMalgoRecord{}
 	mlg.mics[uid] = mic
 
 	if !mlg.device.IsStarted() {
@@ -167,7 +114,7 @@ func (mlg *MicMalgo) Start(uid string, source_mic *MicrophoneSettings) (*MicMalg
 	return mic, nil
 }
 
-func (mlg *MicMalgo) Finished(uid string, cancel bool) (audio.IntBuffer, error) {
+func (mlg *ToolsMicMalgo) Finished(uid string, cancel bool) (audio.IntBuffer, error) {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
@@ -180,6 +127,9 @@ func (mlg *MicMalgo) Finished(uid string, cancel bool) (audio.IntBuffer, error) 
 
 	Sample_rate := int(mlg.device.SampleRate())
 	NumChannels := int(mlg.device.CaptureChannels())
+
+	//stop loop
+	mic.Stop.Store(true)
 
 	//stop device
 	if len(mlg.mics) == 0 && mlg.device.IsStarted() {

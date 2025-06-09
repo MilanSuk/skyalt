@@ -98,15 +98,15 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		{
 			msgs := GetMsgs()
 			if len(msgs) > 0 {
-				AboutDia := AppsDiv.AddDialog("about")
-				AboutDia.UI.SetColumn(0, 5, 15)
-				AboutDia.UI.SetRowFromSub(0, 1, 10)
-				st.buildThreads(AboutDia.UI.AddLayout(0, 0, 1, 1), msgs)
+				ProgressDia := AppsDiv.AddDialog("progress")
+				ProgressDia.UI.SetColumn(0, 5, 15)
+				ProgressDia.UI.SetRowFromSub(0, 1, 10)
+				st.buildThreads(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs)
 
 				ProgressBt := AppsDiv.AddButton(0, 3, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
 				ProgressBt.Background = 0
 				ProgressBt.clicked = func() error {
-					AboutDia.OpenRelative(ProgressBt.layout, caller)
+					ProgressDia.OpenRelative(ProgressBt.layout, caller)
 					return nil
 				}
 			}
@@ -345,7 +345,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 	//device settings
 	{
 		ui.SetRowFromSub(y, 0, 100)
-		ui.AddToolApp(1, y, 1, 1, "apps/Device", "ShowDeviceSettings", nil, caller)
+		ui.AddToolApp(1, y, 1, 1, "Device", "ShowDeviceSettings", nil, caller)
 		//ui.AddTool(1, y, 1, 1, (&ShowDeviceSettings{}).run, caller)
 		y++
 	}
@@ -468,6 +468,7 @@ func (st *ShowRoot) buildThreads(ui *UI, msgs []SdkMsg) {
 	//Progress
 	for _, msg := range msgs {
 		label := msg.GetLabel()
+		ui.SetRowFromSub(y, 1, 5)
 		tx := ui.AddText(0, y, 1, 1, label)
 		tx.Tooltip = fmt.Sprintf("%s() - %s", msg.FuncName, label)
 		bt := ui.AddButton(1, y, 1, 1, "Cancel")

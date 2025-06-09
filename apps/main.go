@@ -2201,4 +2201,210 @@ func (ui *UI) Paint_Brush(cd color.RGBA, pts []UIPaintBrushPoint) {
 	}})
 }
 
+type LLMCompletion struct {
+	UID string
+
+	Temperature       float64
+	Max_tokens        int
+	Top_p             float64
+	Frequency_penalty float64
+	Presence_penalty  float64
+	Reasoning_effort  string //"low", "medium", "high"
+
+	AppName string //load tools from
+
+	PreviousMessages []byte //[]*ChatMsg
+	SystemMessage    string
+	UserMessage      string
+	UserFiles        []string
+
+	Response_format string
+
+	Max_iteration int
+
+	Out_StatusCode   int
+	Out_messages     []byte //[]*ChatMsg
+	Out_last_message string
+
+	delta func(msgJs []byte) //msg *ChatMsg
+}
+
+func (comp *LLMCompletion) Run(caller *ToolCaller) error {
+	compJs, err := json.Marshal(comp)
+	if err != nil {
+		return err
+	}
+
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("llm_complete"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteInt(caller.msg_id)
+			if Tool_Error(err) == nil {
+
+				err = cl.WriteArray(compJs)
+				if Tool_Error(err) == nil {
+
+					//delta(s)
+					for {
+						msgJs, err := cl.ReadArray()
+						if Tool_Error(err) == nil && len(msgJs) > 0 {
+							if comp.delta != nil {
+								comp.delta(msgJs)
+							}
+						} else {
+							break
+						}
+					}
+
+					//result
+					compJs, err = cl.ReadArray()
+					if Tool_Error(err) == nil {
+						err = json.Unmarshal(compJs, comp)
+						if Tool_Error(err) == nil {
+							return nil
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return fmt.Errorf("connection failed")
+}
+
+type LLMTranscribe struct {
+	UID string
+
+	AudioBlob    []byte
+	BlobFileName string //ext.... (blob.wav, blob.mp3)
+
+	Temperature     float64 //0
+	Response_format string
+
+	Out_StatusCode int
+	Out_Output     []byte
+}
+
+func (comp *LLMTranscribe) Run(caller *ToolCaller) error {
+	compJs, err := json.Marshal(comp)
+	if err != nil {
+		return err
+	}
+
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("llm_transcribe"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteInt(caller.msg_id)
+			if Tool_Error(err) == nil {
+
+				err = cl.WriteArray(compJs)
+				if Tool_Error(err) == nil {
+
+					//delta(s)
+					for {
+						msgJs, err := cl.ReadArray()
+						if Tool_Error(err) == nil && len(msgJs) > 0 {
+							//if comp.delta != nil {
+							//	comp.delta(msgJs)
+							//}
+						} else {
+							break
+						}
+					}
+
+					//result
+					compJs, err = cl.ReadArray()
+					if Tool_Error(err) == nil {
+						err = json.Unmarshal(compJs, comp)
+						if Tool_Error(err) == nil {
+							return nil
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return fmt.Errorf("connection failed")
+}
+
+func (caller *ToolCaller) StartRecordingMicrophone(mic_uid string) error {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("start_microphone"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteInt(caller.msg_id)
+			if Tool_Error(err) == nil {
+
+				err = cl.WriteArray([]byte(mic_uid))
+				if Tool_Error(err) == nil {
+
+					//recv
+					errBytes, err := cl.ReadArray()
+					if Tool_Error(err) == nil {
+						if len(errBytes) > 0 {
+							err = errors.New(string(errBytes))
+						}
+						return Tool_Error(err)
+					}
+				}
+			}
+		}
+	}
+	return fmt.Errorf("StartRecordingMicrophone() connection failed")
+}
+
+func (caller *ToolCaller) StopRecordingMicrophone(mic_uid string, cancel bool, format string) ([]byte, error) {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("stop_microphone"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteArray([]byte(mic_uid))
+			if Tool_Error(err) == nil {
+
+				cancelInt := uint64(0)
+				if cancel {
+					cancelInt = 1
+				}
+				err = cl.WriteInt(cancelInt)
+				if Tool_Error(err) == nil {
+
+					err = cl.WriteArray([]byte(format))
+					if Tool_Error(err) == nil {
+
+						//recv
+						errBytes, err := cl.ReadArray()
+						if Tool_Error(err) == nil {
+							outBytes, err := cl.ReadArray()
+							if Tool_Error(err) == nil {
+
+								if len(errBytes) > 0 {
+									err = errors.New(string(errBytes))
+									Tool_Error(err)
+								}
+								return outBytes, err
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("StopRecordingMicrophone() connection failed")
+}
+
 //--- Auto generated ---

@@ -356,9 +356,9 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 
 					caller.SetMsgName(mic_msg_id)
 
-					_, err := CallTool((&RecordMicrophone{UID: mic_msg_id}).run, caller)
+					err := caller.StartRecordingMicrophone(mic_msg_id)
 					if err != nil {
-						return fmt.Errorf("RecordMicrophone1() failed: %v", err)
+						return fmt.Errorf("StartRecordingMicrophone() failed: %v", err)
 					}
 					return nil
 				} else {
@@ -368,25 +368,23 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 						format = "mp3"
 					}
 
-					micRec := &RecordMicrophone{UID: mic_msg_id, Stop: true, Format: format}
-					_, err := CallTool(micRec.run, caller)
+					Out_bytes, err := caller.StopRecordingMicrophone(mic_msg_id, false, format)
 					if err != nil {
-						return fmt.Errorf("RecordMicrophone2() failed: %v", err)
+						return fmt.Errorf("StopRecordingMicrophone() failed: %v", err)
 					}
 
 					BlobFileName := "blob.mp3"
 					if IsLocal {
 						BlobFileName = "blob.wav"
 					}
-					transcribe := WhispercppTranscribe{
-						Model:           "",
-						AudioBlob:       micRec.Out_bytes,
+					transcribe := LLMTranscribe{
+						AudioBlob:       Out_bytes,
 						BlobFileName:    BlobFileName,
 						Temperature:     0,
 						Response_format: "verbose_json",
 					}
 
-					_, err = CallTool(transcribe.run, caller)
+					err = transcribe.Run(caller)
 					if err != nil {
 						return fmt.Errorf("WhispercppTranscribe() failed: %v", err)
 					}
@@ -548,8 +546,7 @@ func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continu
 
 	prompt, files := chat.Input.GetFullPrompt()
 
-	var comp LLMxAICompleteChat
-	comp.Model = "grok-3-mini" //grok-3-mini-fast
+	var comp LLMCompletion
 	comp.Temperature = 0.2
 	comp.Max_tokens = 4096
 	comp.Top_p = 0.7 //1.0
@@ -617,8 +614,13 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 		comp.UserFiles = files
 	}
 	comp.Max_iteration = -1
+	comp.delta = func(msgJs []byte) {
+		var msg ChatMsg
+		err := json.Unmarshal(msgJs, &msg)
+		if err != nil {
+			return //err ....
+		}
 
-	comp.delta = func(msg *ChatMsg) {
 		last_i := len(chat.TempMessages.Messages) - 1
 		if last_i >= 0 && chat.TempMessages.Messages[last_i].Stream {
 			if msg.Stream {
@@ -627,9 +629,9 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 				msg.ShowReasoning = chat.TempMessages.Messages[last_i].ShowReasoning
 			}
 
-			chat.TempMessages.Messages[last_i] = msg //rewrite last
+			chat.TempMessages.Messages[last_i] = &msg //rewrite last
 		} else {
-			chat.TempMessages.Messages = append(chat.TempMessages.Messages, msg)
+			chat.TempMessages.Messages = append(chat.TempMessages.Messages, &msg)
 		}
 
 		//activate dash
@@ -639,7 +641,7 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 	}
 	chat.TempMessages = ChatMsgs{} //reset
 
-	_, err = CallTool(comp.run, caller)
+	err = comp.Run(caller)
 	if err != nil {
 		return fmt.Errorf("LLMxAICompleteChat.run() failed: %v", err)
 	}
@@ -673,8 +675,7 @@ func (st *ShowChat) summarize(userMessage string, caller *ToolCaller, chat *Chat
 		chat.Label = strings.ReplaceAll(chat.Label, "\n", " ")
 		chat.Label = strings.TrimSpace(chat.Label)
 	} else {
-		var comp LLMxAICompleteChat
-		comp.Model = "grok-3-mini" //grok-3-mini-fast
+		var comp LLMCompletion
 		comp.Temperature = 0.2
 		comp.Max_tokens = 1024
 		comp.Top_p = 0.7 //1.0
@@ -686,7 +687,7 @@ func (st *ShowChat) summarize(userMessage string, caller *ToolCaller, chat *Chat
 		comp.UserMessage = "Summarize following text to maximum 10 words:\n" + userMessage
 		comp.Max_iteration = 1
 
-		_, err := CallTool(comp.run, caller)
+		err := comp.Run(caller)
 		if err == nil {
 
 			label := comp.Out_last_message

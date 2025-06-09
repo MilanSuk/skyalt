@@ -79,7 +79,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		Err_line int
 	}
 	var sdk_app SdkToolsPrompts
-	appJs, err := callFuncGetToolData("apps/" + app.Name)
+	appJs, err := callFuncGetToolData(app.Name)
 	if err != nil {
 		return err
 	}

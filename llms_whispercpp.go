@@ -6,31 +6,65 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
+	"sync"
 )
 
-// [ignore]
-type WhispercppTranscribe struct {
-	AudioBlob    []byte
-	BlobFileName string //ext.... (blob.wav, blob.mp3)
-
-	Model           string
-	Temperature     float64 //0
-	Response_format string
-
-	Out_StatusCode int
-	Out_Output     []byte
+type LLMWhispercppModel struct {
+	Label string
+	Path  string
 }
 
-func (st *WhispercppTranscribe) run(caller *ToolCaller, ui *UI) error {
-	source_wsp, err := NewLLMWhispercpp_wsp("")
-	if err != nil {
-		return err
+// Whisper.cpp settings.
+type LLMWhispercpp struct {
+	lock sync.Mutex
+
+	Address string
+	Port    int
+}
+
+func NewLLMWhispercpp() *LLMWhispercpp {
+	wsp := &LLMWhispercpp{}
+
+	wsp.Address = "http://localhost"
+	wsp.Port = 8090
+
+	return wsp
+}
+
+func (wsp *LLMWhispercpp) Check() error {
+	if wsp.Address == "" {
+		return fmt.Errorf("whisper address is empty")
 	}
 
-	source_wsp.Check()
+	return nil
+}
+func (wsp *LLMWhispercpp) IsFolderExists(fileName string) bool {
+	info, err := os.Stat(fileName)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return info.IsDir()
+}
 
-	//Transcribe
-	st.Out_Output, st.Out_StatusCode, err = st.Transcribe(st.AudioBlob, st.Model, st.Temperature, st.Response_format, source_wsp)
+func (wsp *LLMWhispercpp) getModelPath(model_name string) string {
+	return filepath.Join("models/", model_name+".bin")
+}
+
+func (wsp *LLMWhispercpp) GetUrlInference() string {
+	return fmt.Sprintf("%s:%d/inference", wsp.Address, wsp.Port)
+}
+func (wsp *LLMWhispercpp) GetUrlLoadModel() string {
+	return fmt.Sprintf("%s:%d/load", wsp.Address, wsp.Port)
+}
+
+func (wsp *LLMWhispercpp) Transcribe(st *LLMTranscribe) error {
+
+	wsp.Check()
+
+	var err error
+	st.Out_Output, st.Out_StatusCode, err = LLMWhispercppTranscribe_Transcribe(st.AudioBlob, st.Model, st.Temperature, st.Response_format, wsp)
 	if err != nil {
 		return err
 	}
@@ -38,7 +72,7 @@ func (st *WhispercppTranscribe) run(caller *ToolCaller, ui *UI) error {
 	return nil
 }
 
-func (st *WhispercppTranscribe) Transcribe(blob []byte, model string, temperature float64, response_format string, source *LLMWhispercpp) ([]byte, int, error) {
+func LLMWhispercppTranscribe_Transcribe(blob []byte, model string, temperature float64, response_format string, source *LLMWhispercpp) ([]byte, int, error) {
 	source.lock.Lock()
 	defer source.lock.Unlock()
 

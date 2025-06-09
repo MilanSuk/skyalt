@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -86,12 +85,15 @@ type ToolsRouter struct {
 
 	llms *LLMs
 	sync *ToolsSync
+
+	mics *ToolsMicMalgo
 }
 
 func NewToolsRouter(start_port int) (*ToolsRouter, error) {
 	var err error
 
 	router := &ToolsRouter{}
+	router.mics = NewToolsMicMalgo()
 	router.server = NewToolsServer(start_port)
 	router.msgs = make(map[uint64]*ToolsRouterMsg)
 	router.apps = make(map[string]*ToolsApp)
@@ -136,6 +138,8 @@ func (router *ToolsRouter) Destroy() {
 
 	router.server.Destroy()
 
+	router.mics.Destroy()
+
 	router.Save()
 }
 
@@ -144,19 +148,19 @@ func (router *ToolsRouter) Save() {
 	defer router.lock.Unlock()
 }
 
-func (router *ToolsRouter) FindApp(appFolderPath string) *ToolsApp {
+func (router *ToolsRouter) FindApp(appName string) *ToolsApp {
 	router.lock.Lock()
 	defer router.lock.Unlock()
 
-	app := router.apps[appFolderPath]
+	app := router.apps[appName]
 	if app == nil {
-		router.log.Error(fmt.Errorf("app '%s' not found", appFolderPath))
+		router.log.Error(fmt.Errorf("app '%s' not found", appName))
 	}
 	return app
 }
 
 func (router *ToolsRouter) GetRootApp() *ToolsApp {
-	return router.FindApp("apps/Root")
+	return router.FindApp("Root")
 }
 
 func (router *ToolsRouter) GetSortedMsgs() []*ToolsRouterMsg {
@@ -640,6 +644,160 @@ func (router *ToolsRouter) RunNet() {
 							app.storage_changes++
 						}
 					}
+
+				case "llm_complete":
+					msg_id, err := cl.ReadInt()
+					if router.log.Error(err) == nil {
+						compJs, err := cl.ReadArray()
+						if router.log.Error(err) == nil {
+
+							var msg *ToolsRouterMsg
+							router.lock.Lock()
+							{
+								msg = router.msgs[msg_id]
+							}
+							router.lock.Unlock()
+
+							//exe
+							if msg != nil {
+								var comp LLMComplete
+								err := json.Unmarshal(compJs, &comp)
+								if router.log.Error(err) == nil {
+
+									comp.delta = func(msg *ChatMsg) {
+										msgJs, err := json.Marshal(msg)
+										if router.log.Error(err) == nil {
+											err = cl.WriteArray(msgJs) //send delta
+											router.log.Error(err)
+										}
+									}
+
+									err = router.llms.Complete(&comp, msg)
+									if router.log.Error(err) == nil {
+										//save back
+										compJs, err = json.Marshal(&comp)
+										router.log.Error(err)
+									}
+								}
+							}
+
+							//send back
+							err = cl.WriteArray(nil) //empty delta
+							router.log.Error(err)
+
+							err = cl.WriteArray(compJs)
+							router.log.Error(err)
+						}
+					}
+
+				case "llm_transcribe":
+					msg_id, err := cl.ReadInt()
+					if router.log.Error(err) == nil {
+						compJs, err := cl.ReadArray()
+						if router.log.Error(err) == nil {
+
+							var msg *ToolsRouterMsg
+							router.lock.Lock()
+							{
+								msg = router.msgs[msg_id]
+							}
+							router.lock.Unlock()
+
+							//exe
+							if msg != nil {
+								var comp LLMTranscribe
+								err := json.Unmarshal(compJs, &comp)
+								if router.log.Error(err) == nil {
+
+									err = router.llms.Transcribe(&comp, msg)
+									if router.log.Error(err) == nil {
+										//save back
+										compJs, err = json.Marshal(&comp)
+										router.log.Error(err)
+									}
+								}
+							}
+
+							//send back
+							err = cl.WriteArray(nil) //empty delta
+							router.log.Error(err)
+
+							err = cl.WriteArray(compJs)
+							router.log.Error(err)
+						}
+					}
+
+				case "start_microphone":
+					msg_id, err := cl.ReadInt()
+					if router.log.Error(err) == nil {
+						mic_uid, err := cl.ReadArray()
+						if router.log.Error(err) == nil {
+
+							var msg *ToolsRouterMsg
+							router.lock.Lock()
+							{
+								msg = router.msgs[msg_id]
+							}
+							router.lock.Unlock()
+
+							//exe
+							errStr := ""
+							if msg != nil {
+								mic, err := router.mics.Start(string(mic_uid), router.sync.Mic)
+								if err == nil {
+									//loop and wait for 'stop_microphone' or cancel
+									for !mic.Stop.Load() {
+										if router.sync.Mic.Enable && !msg.Progress(0, "Listening") {
+											router.mics.Finished(string(mic_uid), true)
+											errStr = "recording canceled"
+										}
+
+										time.Sleep(10 * time.Millisecond)
+									}
+								} else {
+									errStr = err.Error()
+								}
+							}
+
+							//send back
+							err = cl.WriteArray([]byte(errStr))
+							router.log.Error(err)
+						}
+					}
+
+				case "stop_microphone":
+					mic_uid, err := cl.ReadArray()
+					if router.log.Error(err) == nil {
+						cancel, err := cl.ReadInt()
+						if router.log.Error(err) == nil {
+							format, err := cl.ReadArray()
+							if router.log.Error(err) == nil {
+
+								errStr := ""
+								var Out_bytes []byte
+
+								out, err := router.mics.Finished(string(mic_uid), cancel > 0)
+								if router.log.Error(err) == nil {
+									if string(format) != "wav" && string(format) != "mp3" {
+										errStr = "unknown format"
+									}
+									//convert
+									Out_bytes, err = FFMpeg_convertIntoFile(&out, string(format) == "mp3")
+									if err != nil {
+										errStr = err.Error()
+									}
+
+								}
+
+								//send back
+								err = cl.WriteArray([]byte(errStr))
+								router.log.Error(err)
+								err = cl.WriteArray(Out_bytes)
+								router.log.Error(err)
+							}
+						}
+					}
+
 				}
 			}
 		}()
@@ -660,19 +818,18 @@ func (router *ToolsRouter) _hotReload() {
 				continue
 			}
 
-			folderPath := filepath.Join("apps", info.Name())
+			appName := info.Name()
 
-			_, found := router.apps[folderPath]
+			_, found := router.apps[appName]
 			if !found {
-				router.apps[folderPath] = NewToolsApp(folderPath, router)
+				router.apps[appName] = NewToolsApp(appName, router)
 			}
 		}
 		//remove deleted apps
 		for appName := range router.apps {
 			found := false
 			for _, info := range files {
-				folderPath := filepath.Join("apps", info.Name())
-				if info.IsDir() && folderPath == appName {
+				if info.IsDir() && appName == info.Name() {
 					found = true
 					break
 				}

@@ -22,10 +22,19 @@ import (
 	"os"
 )
 
-type ToolsSyncDeviceSettingsMicrophone struct {
+type ToolsSyncMicrophoneSettings struct {
 	Enable      bool
 	Sample_rate int
 	Channels    int
+}
+
+func NewToolsSyncMicrophoneSettings() *ToolsSyncMicrophoneSettings {
+	st := &ToolsSyncMicrophoneSettings{}
+
+	st.Enable = true
+	st.Sample_rate = 44100
+	st.Channels = 1
+	return st
 }
 
 type ToolsSyncDeviceSettings struct {
@@ -43,15 +52,34 @@ type ToolsSyncDeviceSettings struct {
 	LightPalette  DevPalette
 	DarkPalette   DevPalette
 	CustomPalette DevPalette
-
-	Microphone ToolsSyncDeviceSettingsMicrophone
 }
 
-type ToolsSyncMicrophoneSettings struct {
-	Enable      bool
-	Sample_rate int
-	Channels    int
+func NewToolsSyncDeviceSettings() *ToolsSyncDeviceSettings {
+	mp := &ToolsSyncDeviceSettings{}
+
+	mp.Dpi = GetDeviceDPI()
+	mp.DateFormat = "us"
+	mp.Rounding = 0.2
+	mp.Fullscreen = false
+	mp.Stats = false
+	mp.Theme = "light"
+	mp.LightPalette = DevPalette{
+		P:   color.RGBA{37, 100, 120, 255},
+		OnP: color.RGBA{255, 255, 255, 255},
+
+		S:   color.RGBA{170, 200, 170, 255},
+		OnS: color.RGBA{255, 255, 255, 255},
+
+		E:   color.RGBA{180, 40, 30, 255},
+		OnE: color.RGBA{255, 255, 255, 255},
+
+		B:   color.RGBA{250, 250, 250, 255},
+		OnB: color.RGBA{25, 27, 30, 255},
+	}
+
+	return mp
 }
+
 type ToolsSyncMapSettings struct {
 	Enable    bool
 	Tiles_url string
@@ -60,13 +88,25 @@ type ToolsSyncMapSettings struct {
 	Copyright_url string
 }
 
+func NewToolsSyncMapSettings() *ToolsSyncMapSettings {
+	mp := &ToolsSyncMapSettings{}
+
+	mp.Enable = true
+	mp.Tiles_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+	mp.Copyright = "(c)OpenStreetMap contributors"
+	mp.Copyright_url = "https://www.openstreetmap.org/copyright"
+
+	return mp
+}
+
 type ToolsSync struct {
 	router *ToolsRouter
 
-	Device ToolsSyncDeviceSettings
-	Map    ToolsSyncMapSettings
-
-	LLM_xai LLMxAI
+	Device  *ToolsSyncDeviceSettings
+	Map     *ToolsSyncMapSettings
+	Mic     *ToolsSyncMicrophoneSettings
+	LLM_xai *LLMxAI
+	LLM_wsp *LLMWhispercpp
 
 	last_dev_storage_change int64
 }
@@ -75,33 +115,11 @@ func NewToolsSync(router *ToolsRouter) (*ToolsSync, error) {
 	snc := &ToolsSync{router: router, last_dev_storage_change: -1}
 
 	//"pre-init"
-	snc.Device = ToolsSyncDeviceSettings{
-		Dpi:        GetDeviceDPI(),
-		DateFormat: "us",
-		Rounding:   0.2,
-		Fullscreen: false,
-		Stats:      false,
-		Theme:      "light",
-		LightPalette: DevPalette{
-			P:   color.RGBA{37, 100, 120, 255},
-			OnP: color.RGBA{255, 255, 255, 255},
-
-			S:   color.RGBA{170, 200, 170, 255},
-			OnS: color.RGBA{255, 255, 255, 255},
-
-			E:   color.RGBA{180, 40, 30, 255},
-			OnE: color.RGBA{255, 255, 255, 255},
-
-			B:   color.RGBA{250, 250, 250, 255},
-			OnB: color.RGBA{25, 27, 30, 255},
-		},
-		Microphone: ToolsSyncDeviceSettingsMicrophone{Enable: true, Sample_rate: 44100, Channels: 1},
-	}
-
-	snc.LLM_xai = InitLLMxAI()
-
-	//"pre-init"
-	snc.Map = ToolsSyncMapSettings{Enable: false}
+	snc.Device = NewToolsSyncDeviceSettings()
+	snc.LLM_xai = NewLLMxAI()
+	snc.LLM_wsp = NewLLMWhispercpp()
+	snc.Map = NewToolsSyncMapSettings()
+	snc.Mic = NewToolsSyncMicrophoneSettings()
 
 	snc._loadFiles()
 
@@ -122,16 +140,26 @@ func (snc *ToolsSync) _loadFiles() error {
 		json.Unmarshal(mapJs, &snc.Map) //err ....
 	}
 
+	micJs, err := os.ReadFile("apps/Device/MicrophoneSettings-MicrophoneSettings.json")
+	if err == nil {
+		json.Unmarshal(micJs, &snc.Mic) //err ....
+	}
+
 	xaiJs, err := os.ReadFile("apps/Root/LLMxAI-LLMxAI.json") //move to apps/Device ....
 	if err == nil {
-		json.Unmarshal(xaiJs, &snc.LLM_xai) //err ....
+		json.Unmarshal(xaiJs, snc.LLM_xai) //err ....
+	}
+
+	wspJs, err := os.ReadFile("apps/Root/LLMWhispercpp-LLMWhispercpp.json") //move to apps/Device ....
+	if err == nil {
+		json.Unmarshal(wspJs, snc.LLM_wsp) //err ....
 	}
 
 	return nil
 }
 
 func (snc *ToolsSync) Tick() bool {
-	devApp := snc.router.FindApp("apps/Device")
+	devApp := snc.router.FindApp("Device")
 	if devApp != nil {
 		if devApp.storage_changes != snc.last_dev_storage_change {
 
@@ -152,7 +180,7 @@ func (snc *ToolsSync) Upload_deviceDefaultDPI() {
 	type SetDPIDefault struct {
 		DPI int
 	}
-	snc.router.CallAsync(0, "apps/Device", "SetDeviceDPIDefault", SetDPIDefault{DPI: GetDeviceDPI()}, nil, nil)
+	snc.router.CallAsync(0, "Device", "SetDeviceDPIDefault", SetDPIDefault{DPI: GetDeviceDPI()}, nil, nil)
 }
 
 func (snc *ToolsSync) Upload_deviceDPI(new_dpi int) {
@@ -160,7 +188,7 @@ func (snc *ToolsSync) Upload_deviceDPI(new_dpi int) {
 	type SetDPI struct {
 		DPI int
 	}
-	snc.router.CallAsync(0, "apps/Device", "SetDeviceDPI", SetDPI{DPI: new_dpi}, nil, nil)
+	snc.router.CallAsync(0, "Device", "SetDeviceDPI", SetDPI{DPI: new_dpi}, nil, nil)
 }
 
 func (snc *ToolsSync) Upload_deviceStats(new_stat bool) {
@@ -168,7 +196,7 @@ func (snc *ToolsSync) Upload_deviceStats(new_stat bool) {
 	type SetStats struct {
 		Show bool
 	}
-	snc.router.CallAsync(0, "apps/Device", "SetDeviceStats", SetStats{Show: new_stat}, nil, nil)
+	snc.router.CallAsync(0, "Device", "SetDeviceStats", SetStats{Show: new_stat}, nil, nil)
 }
 
 func (snc *ToolsSync) Upload_deviceFullscreen(new_fullscreen bool) {
@@ -176,7 +204,7 @@ func (snc *ToolsSync) Upload_deviceFullscreen(new_fullscreen bool) {
 	type SetFullscreen struct {
 		Enable bool
 	}
-	snc.router.CallAsync(0, "apps/Device", "SetDeviceFullscreen", SetFullscreen{Enable: new_fullscreen}, nil, nil)
+	snc.router.CallAsync(0, "Device", "SetDeviceFullscreen", SetFullscreen{Enable: new_fullscreen}, nil, nil)
 
 }
 
@@ -198,7 +226,4 @@ func (snc *ToolsSync) GetDateFormat() string {
 }
 func (snc *ToolsSync) GetRounding() float64 {
 	return snc.Device.Rounding
-}
-func (snc *ToolsSync) IsMicrophoneEnabled() bool {
-	return snc.Device.Microphone.Enable
 }

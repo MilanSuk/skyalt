@@ -1,14 +1,9 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"image/color"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 type ChatMsgUsage struct {
@@ -323,74 +318,6 @@ func (msgs *ChatMsgs) FindResultContent(call_id string) (*ChatMsg, int) {
 		}
 	}
 	return nil, -1
-}
-
-func (msgs *ChatMsgs) AddUserMessage(text string, files []string) (*ChatMsg, error) {
-	content := OpenAI_content{}
-	content.Msg = &OpenAI_completion_msgContent{Role: "user"}
-	if text != "" {
-		content.Msg.AddText(text)
-	}
-	for _, file := range files {
-		err := content.Msg.AddImageFile(file)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	msg := &ChatMsg{CreatedTimeSec: float64(time.Now().UnixMilli()) / 1000, Content: content}
-	msgs.Messages = append(msgs.Messages, msg)
-	return msg, nil
-}
-
-func ChatMsg_GetReasoningTextIntro() string {
-	return "\n\nReasoning: "
-}
-
-func (msgs *ChatMsgs) AddAssistentCalls(reasoning_text, final_text string, tool_calls []OpenAI_completion_msg_Content_ToolCall, usage ChatMsgUsage, dtime float64, timeToFirstToken float64, providerName string, modelName string) *ChatMsg {
-	text := final_text
-	if reasoning_text != "" {
-		text = final_text + ChatMsg_GetReasoningTextIntro() + reasoning_text
-	}
-
-	content := OpenAI_content{}
-	content.Calls = &OpenAI_completion_msgCalls{Role: "assistant", Content: text, Tool_calls: tool_calls}
-
-	msg := &ChatMsg{Provider: providerName, Model: modelName, CreatedTimeSec: float64(time.Now().UnixMilli()) / 1000, Content: content, Usage: usage, Time: dtime, TimeToFirstToken: timeToFirstToken, FinalTextSize: len(final_text)}
-	msgs.Messages = append(msgs.Messages, msg)
-	return msg
-}
-func (msgs *ChatMsgs) AddCallResult(tool_name string, tool_use_id string, result string) *ChatMsg {
-	content := OpenAI_content{}
-	content.Result = &OpenAI_completion_msgResult{Role: "tool", Tool_call_id: tool_use_id, Name: tool_name, Content: result}
-
-	msg := &ChatMsg{CreatedTimeSec: float64(time.Now().UnixMilli()) / 1000, Content: content}
-	msgs.Messages = append(msgs.Messages, msg)
-	return msg
-}
-
-func (msg *OpenAI_completion_msgContent) AddText(str string) {
-	msg.Content = append(msg.Content, OpenAI_completion_msg_Content{Type: "text", Text: str})
-}
-func (msg *OpenAI_completion_msgContent) AddImage(data []byte, media_type string) { //ext="image/png","image/jpeg", "image/webp", "image/gif"(non-animated)
-	prefix := "data:" + media_type + ";base64,"
-	bs64 := base64.StdEncoding.EncodeToString(data)
-	msg.Content = append(msg.Content, OpenAI_completion_msg_Content{Type: "image_url", Image_url: &OpenAI_completion_msg_Content_Image_url{Detail: "high", Url: prefix + bs64}})
-}
-func (msg *OpenAI_completion_msgContent) AddImageFile(path string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	ext := filepath.Ext(path)
-	ext, _ = strings.CutPrefix(ext, ".")
-	if ext == "" {
-		return fmt.Errorf("missing file type(.ext)")
-	}
-
-	msg.AddImage(data, "image/"+ext)
-	return nil
 }
 
 func (call *OpenAI_completion_msg_Content_ToolCall_Function) GetArgsAsStrings() (map[string]json.RawMessage, error) {

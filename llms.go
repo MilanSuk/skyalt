@@ -122,6 +122,8 @@ func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 }
 
 type LLMComplete struct {
+	UID string
+
 	Provider          string //"xai"
 	Temperature       float64
 	Top_p             float64
@@ -159,6 +161,34 @@ func (a *LLMComplete) Cmp(b *LLMComplete) bool {
 		a.UserMessage == b.UserMessage
 }
 
+type LLMGenerateImage struct {
+	UID string
+
+	Provider string //"xai"
+
+	Prompt     string //Prompt for image generation.
+	Num_images int    //Number of images to be generated
+
+	Out_StatusCode      int
+	Out_images          [][]byte
+	Out_revised_prompts []string
+	Out_dtime_sec       float64
+}
+
+type LLMTranscribe struct {
+	UID string
+
+	AudioBlob    []byte
+	BlobFileName string //ext.... (blob.wav, blob.mp3)
+
+	Model           string
+	Temperature     float64 //0
+	Response_format string
+
+	Out_StatusCode int
+	Out_Output     []byte
+}
+
 type LLMs struct {
 	router *ToolsRouter
 
@@ -180,6 +210,8 @@ func NewLLMs(router *ToolsRouter) (*LLMs, error) {
 
 func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 
+	st.Provider = "xai" //read from settings ....
+
 	//find
 	for i := range llms.Requests {
 		if llms.Requests[i].Cmp(st) {
@@ -191,8 +223,8 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 	//call
 	switch st.Provider {
 	case "xai":
-		err := llms.router.sync.LLM_xai.run(st, llms.router, msg)
-		if llms.router.log.Error(err) != nil {
+		err := llms.router.sync.LLM_xai.Complete(st, llms.router, msg)
+		if err != nil {
 			return err
 		}
 		//other providers
@@ -203,6 +235,31 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 		llms.Requests = append(llms.Requests, *st)
 		_, err := Tools_WriteJSONFile("apps/requests.json", llms.Requests)
 		llms.router.log.Error(err)
+	}
+
+	return nil
+}
+
+func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *ToolsRouterMsg) error {
+
+	//call
+	switch st.Provider {
+	case "xai":
+		err := llms.router.sync.LLM_xai.GenerateImage(st, llms.router, msg)
+		if err != nil {
+			return err
+		}
+		//other providers
+	}
+
+	return nil
+}
+
+func (llms *LLMs) Transcribe(st *LLMTranscribe, msg *ToolsRouterMsg) error {
+
+	err := llms.router.sync.LLM_wsp.Transcribe(st)
+	if err != nil {
+		return err
 	}
 
 	return nil
