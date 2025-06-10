@@ -91,6 +91,9 @@ type ToolsPrompts struct {
 	Prompts  []*ToolsPrompt
 	Err      string
 	Err_line int
+
+	Generating_name string
+	Generating_msg  string
 }
 
 func NewToolsPrompts() *ToolsPrompts {
@@ -155,7 +158,7 @@ func (app *ToolsPrompts) Reload(folderPath string) (bool, error) {
 		if isHash {
 
 			//extract or edit name
-			toolName := "Structures"
+			toolName := "Storage"
 			if !isStorage {
 				toolName = ln[1:] //skip '#'
 				newToolName := _ToolsPrompt_getValidFileName(toolName)
@@ -219,14 +222,20 @@ func (app *ToolsPrompts) Reload(folderPath string) (bool, error) {
 
 func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error {
 
+	defer func() {
+		//reset
+		app.Generating_name = ""
+		app.Generating_msg = ""
+	}()
+
 	//find structure
-	structPrompt := app.FindPromptName("Structures")
+	storagePrompt := app.FindPromptName("Storage")
 
 	var comp LLMComplete
 	comp.Provider = "xai"
 	comp.Temperature = 0.2
 	comp.Max_tokens = 65536
-	comp.Top_p = 0.7 //1.0
+	comp.Top_p = 0.95 //1.0
 	comp.Frequency_penalty = 0
 	comp.Presence_penalty = 0
 	comp.Reasoning_effort = ""
@@ -235,31 +244,27 @@ func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error 
 	msg := router.AddRecompileMsg(folderPath)
 	defer msg.Done()
 
-	//generate Structures.go
-	if structPrompt != nil {
-		var err error
-		comp.SystemMessage, comp.UserMessage, err = app._getStructureMsg(structPrompt)
-		if err != nil {
-			return err
-		}
-
-		err = router.llms.Complete(&comp, msg)
-		if err != nil {
-			return err
-		}
-
-		structPrompt.setMessage(comp.Out_last_final_message, comp.Out_last_reasoning_message, &comp.Out_usage)
-	}
-
-	//generate tools code
+	//generate code
 	for _, prompt := range app.Prompts {
-		if prompt == structPrompt {
-			continue
-		}
+
 		var err error
-		comp.SystemMessage, comp.UserMessage, err = app._getToolMsg(prompt, structPrompt)
-		if err != nil {
-			return err
+		if prompt == storagePrompt {
+			comp.SystemMessage, comp.UserMessage, err = app._getStructureMsg(storagePrompt)
+			if err != nil {
+				return err
+			}
+		} else {
+			comp.SystemMessage, comp.UserMessage, err = app._getToolMsg(prompt, storagePrompt)
+			if err != nil {
+				return err
+			}
+		}
+
+		comp.delta = func(msg *ChatMsg) {
+			app.Generating_name = prompt.Name
+			if msg.Content.Calls != nil {
+				app.Generating_msg = msg.Content.Calls.Content
+			}
 		}
 
 		err = router.llms.Complete(&comp, msg)
@@ -269,32 +274,6 @@ func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error 
 
 		prompt.setMessage(comp.Out_last_final_message, comp.Out_last_reasoning_message, &comp.Out_usage)
 	}
-
-	/*promptsFilePath := filepath.Join(folderPath, "skyalt")
-	fl, err := os.ReadFile(promptsFilePath)
-	if err != nil {
-		return err
-	}
-	lines := strings.Split(string(fl), "\n")
-
-	for _, prompt := range app.Prompts {
-		if prompt.Code == "" || prompt.Name == "" || prompt.Name == "Structures" {
-			continue
-		}
-
-		lines[prompt.header_line] = "#Tool - " + prompt.Name //update tool name
-
-		err := prompt.updateSchema()
-		if err != nil {
-			return err
-		}
-	}
-
-	newFl := strings.Join(lines, "\n")
-	err = os.WriteFile(promptsFilePath, []byte(newFl), 0644)
-	if err != nil {
-		return err
-	}*/
 
 	return nil
 }
@@ -344,12 +323,12 @@ type ExampleStruct struct {
 	//<attributes>
 }
 
-func NewExampleStruct(filePath string) (*ExampleStruct, error) {
+func Open<ExampleStruct>() (*ExampleStruct, error) {
 	st := &ExampleStruct{}
 
 	//<set 'st' default values here>
 
-	return _loadInstance(filePath, "ExampleStruct", "json", st, true)
+	return _loadInstance("", "ExampleStruct", "json", st, true)
 }
 
 //<structures functions here>
@@ -431,13 +410,13 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 		}
 	}*/
 
-	systemMessage := "You are a programmer. You write code in Go language.\n"
+	systemMessage := "You are a programmer. You write code in Go language. Here is the list of files in project repository.\n"
 
-	systemMessage += "Here is the file with the API functions:\n```go" + apisFile + "```\n"
-	systemMessage += "Here is the file with the storage structures(and help functions):\n```go" + storageFile + "```\n"
-	systemMessage += "Here is the file with code which you re-write:\n```go" + toolFile + "```\n"
+	systemMessage += "apis.go:\n```go" + apisFile + "```\n"
+	systemMessage += "storage.go:\n```go" + storageFile + "```\n"
+	systemMessage += "tool.go:\n```go" + toolFile + "```\n"
 
-	systemMessage += "Based on user message, rewrite above file code. Your job is to design function(tool).\n"
+	systemMessage += "Based on user message, rewrite tool.go file. Your job is to design function(tool).\n"
 
 	/*systemMessage += "Rename 'ExampleTool' with tools name based on user prompt. Don't use the word 'tool' in the name."
 	if toolsNames != "" {
@@ -446,9 +425,9 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 
 	systemMessage += "Figure out <tool's arguments> based on user prompt. They are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with upper letter. Every argument must have description as comment.\n"
 
-	systemMessage += "If you need to access the storage, use \"\" as 'filePath'. This will access default file for specific file structure. Don't redeclare storage structures(and functions) in the code you are writting.\n"
+	systemMessage += "If you need to access the storage, call Open<StructName>() from storage.go.\n"
 
-	systemMessage += fmt.Sprintf("You may write help functions. They should start with ```func (st *%s)NameOfHelpFunction``` and output everything in one code block.\n", prompt.Name)
+	//systemMessage += fmt.Sprintf("You may add help functions into tool.go. They should start with ```func (st *%s)NameOfHelpFunction```\n", prompt.Name)
 
 	userMessage := prompt.Prompt
 
