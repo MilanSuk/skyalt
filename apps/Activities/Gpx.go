@@ -29,7 +29,7 @@ type Gpx struct {
 
 func NewGPX(file string) (*Gpx, error) {
 	st := &Gpx{}
-	return _loadInstance(file, "Gpx", "xml", st, false)
+	return LoadFile(file, "Gpx", "xml", st, false)
 }
 
 func (gpx *Gpx) GetInfo() (float64, float64, float64) {

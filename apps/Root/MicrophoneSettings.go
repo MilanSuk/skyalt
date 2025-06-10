@@ -13,5 +13,5 @@ func NewMicrophoneSettings(file string) (*MicrophoneSettings, error) {
 	st.Sample_rate = 44100
 	st.Channels = 1
 
-	return _loadInstance(file, "MicrophoneSettings", "json", st, true)
+	return LoadFile(file, "MicrophoneSettings", "json", st, true)
 }

@@ -17,5 +17,5 @@ func NewMapSettings(file string) (*MapSettings, error) {
 	st.Copyright = "(c)OpenStreetMap contributors"
 	st.Copyright_url = "https://www.openstreetmap.org/copyright"
 
-	return _loadInstance(file, "MapSettings", "json", st, true)
+	return LoadFile(file, "MapSettings", "json", st, true)
 }

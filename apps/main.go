@@ -39,7 +39,7 @@ import (
 	"time"
 )
 
-func _loadInstance[T any](file string, structName string, format string, defInst *T, save bool) (*T, error) {
+func LoadFile[T any](file string, structName string, format string, defInst *T, save bool) (*T, error) {
 	if file == "" {
 		file = fmt.Sprintf("%s-%s.%s", structName, structName, format)
 	}

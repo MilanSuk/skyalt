@@ -26,7 +26,7 @@ func NewActivities(file string) (*Activities, error) {
 	st := &Activities{}
 	st.Activities = make(map[string]*ActivitiesItem)
 
-	return _loadInstance(file, "Activities", "json", st, true)
+	return LoadFile(file, "Activities", "json", st, true)
 }
 
 func (acts *Activities) GetTypeLabels() []string {

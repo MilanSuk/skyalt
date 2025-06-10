@@ -36,7 +36,7 @@ func NewEvents(file string) (*Events, error) {
 	st := &Events{}
 	st.Events = make(map[int64]*EventsItem)
 	st.Groups = make(map[int64]*EventsGroup)
-	return _loadInstance(file, "Events", "json", st, true)
+	return LoadFile(file, "Events", "json", st, true)
 }
 
 func (ev *Events) getSortedGroupIDs() (sorted []int64) {

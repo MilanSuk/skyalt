@@ -48,7 +48,7 @@ type Root struct {
 func NewRoot(file string) (*Root, error) {
 	st := &Root{}
 
-	return _loadInstance(file, "Root", "json", st, true)
+	return LoadFile(file, "Root", "json", st, true)
 }
 
 func (root *Root) refreshApps() (*RootApp, error) {
@@ -113,7 +113,7 @@ func (root *Root) refreshApps() (*RootApp, error) {
 	}
 	//add new tool/storage(.go)
 	for _, fl := range fls {
-		if fl.IsDir() || filepath.Ext(fl.Name()) != ".go" || fl.Name() == "main.go" || fl.Name() == "Structures.go" {
+		if fl.IsDir() || filepath.Ext(fl.Name()) != ".go" || fl.Name() == "main.go" || fl.Name() == "Storage.go" {
 			continue
 		}
 

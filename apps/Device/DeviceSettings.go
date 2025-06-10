@@ -102,7 +102,7 @@ func NewDeviceSettings(file string) (*DeviceSettings, error) {
 		}
 	}
 
-	return _loadInstance(file, "DeviceSettings", "json", st, true)
+	return LoadFile(file, "DeviceSettings", "json", st, true)
 }
 
 func (st *DeviceSettings) GetPalette() *DeviceSettingsPalette {

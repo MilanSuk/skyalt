@@ -68,7 +68,7 @@ func NewLLMxAI(file string) (*LLMxAI, error) {
 	xai.OpenAI_url = "https://api.x.ai/v1"
 	xai.DevUrl = "https://console.x.ai"
 
-	return _loadInstance(file, "LLMxAI", "json", xai, true)
+	return LoadFile(file, "LLMxAI", "json", xai, true)
 }
 
 func (xai *LLMxAI) Check(caller *ToolCaller) error {

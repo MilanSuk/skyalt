@@ -144,7 +144,7 @@ type Chat struct {
 
 func NewChat(file string) (*Chat, error) {
 	st := &Chat{Label: "chat"}
-	return _loadInstance(file, "Chat", "json", st, true)
+	return LoadFile(file, "Chat", "json", st, true)
 }
 
 func (st *Chat) GetChatID() string {

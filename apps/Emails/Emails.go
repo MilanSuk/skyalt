@@ -13,5 +13,5 @@ type Emails struct {
 
 func NewEmails(file string) (*Emails, error) {
 	st := &Emails{}
-	return _loadInstance(file, "Emails", "json", st, true)
+	return LoadFile(file, "Emails", "json", st, true)
 }

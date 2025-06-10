@@ -61,7 +61,7 @@ func NewLLMMistral(file string) (*LLMMistral, error) {
 	mst.OpenAI_url = "https://api.mistral.ai/v1"
 	mst.DevUrl = "https://console.mistral.ai"
 
-	return _loadInstance(file, "LLMMistral", "json", mst, true)
+	return LoadFile(file, "LLMMistral", "json", mst, true)
 }
 
 func (mst *LLMMistral) Check(caller *ToolCaller) error {

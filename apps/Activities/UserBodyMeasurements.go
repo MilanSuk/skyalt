@@ -15,5 +15,5 @@ func NewUserBodyMeasurements(file string) (*UserBodyMeasurements, error) {
 	st.Height = 170
 	st.Weight = 60
 
-	return _loadInstance(file, "UserBodyMeasurements", "json", st, true)
+	return LoadFile(file, "UserBodyMeasurements", "json", st, true)
 }
