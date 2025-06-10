@@ -615,14 +615,14 @@ func callFuncMsgStop(msg_id string) {
 		}
 	}
 }
-func callFuncFindMsgName(name string) *SdkMsg {
+func callFuncFindMsgName(user_uid string) *SdkMsg {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
-		err = cl.WriteArray([]byte("find_msg"))
+		err = cl.WriteArray([]byte("find_msg_name"))
 		if Tool_Error(err) == nil {
-			err = cl.WriteArray([]byte(name))
+			err = cl.WriteArray([]byte(g_main.appName + "_" + user_uid))
 			if Tool_Error(err) == nil {
 
 				exist, err := cl.ReadInt()
@@ -642,7 +642,7 @@ func callFuncFindMsgName(name string) *SdkMsg {
 	return nil
 }
 
-func (caller *ToolCaller) SetMsgName(name string) {
+func (caller *ToolCaller) SetMsgName(user_uid string) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
@@ -652,7 +652,7 @@ func (caller *ToolCaller) SetMsgName(name string) {
 
 			err = cl.WriteInt(caller.msg_id)
 			if Tool_Error(err) == nil {
-				err = cl.WriteArray([]byte(name))
+				err = cl.WriteArray([]byte(g_main.appName + "_" + user_uid))
 				Tool_Error(err)
 			}
 		}
