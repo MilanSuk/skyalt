@@ -72,9 +72,20 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
+		//create an app
+		{
+			setBt := AppsDiv.AddButton(0, 2, 1, 1, "<h1>+")
+			setBt.Tooltip = "Create new app"
+			setBt.Background = 0.25
+			setBt.clicked = func() error {
+				//open dialog ....
+				return nil
+			}
+		}
+
 		//Settings
 		{
-			setBt := AppsDiv.AddButton(0, 2, 1, 1, "")
+			setBt := AppsDiv.AddButton(0, 3, 1, 1, "")
 			setBt.IconPath = "resources/settings.png"
 			setBt.Icon_margin = 0.2
 			setBt.Icon_align = 1
@@ -103,7 +114,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				ProgressDia.UI.SetRowFromSub(0, 1, 10)
 				st.buildThreads(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs)
 
-				ProgressBt := AppsDiv.AddButton(0, 3, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
+				ProgressBt := AppsDiv.AddButton(0, 4, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
 				ProgressBt.Background = 0
 				ProgressBt.clicked = func() error {
 					ProgressDia.OpenRelative(ProgressBt.layout, caller)
@@ -375,6 +386,33 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 			}
 
 			source_llm, err := NewLLMxAI("")
+			if err != nil {
+				return err
+			}
+			err = source_llm.Check(caller)
+			if err != nil {
+				bt.Cd = UI_GetPalette().E
+				bt.Tooltip = "Error: " + err.Error()
+			}
+			y++
+		}
+
+		//Mistral
+		{
+			setDia := ui.AddDialog("mistral_settings")
+			setDia.UI.SetColumn(0, 1, 20)
+			setDia.UI.SetRowFromSub(0, 1, 100)
+			setDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMMistralSettings{}).run, caller)
+
+			bt := ui.AddButton(1, y, 1, 1, "Mistral settings")
+			//bt.Align = 0
+			bt.Background = 0.5
+			bt.clicked = func() error {
+				setDia.OpenCentered(caller)
+				return nil
+			}
+
+			source_llm, err := NewLLMMistral("")
 			if err != nil {
 				return err
 			}

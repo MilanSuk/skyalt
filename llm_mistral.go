@@ -1,18 +1,14 @@
 package main
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type LLMxAILanguageModel struct {
+type LLMMistralLanguageModel struct {
 	Id               string
 	Created          int64
 	Version          string
@@ -26,7 +22,7 @@ type LLMxAILanguageModel struct {
 	Aliases []string
 }
 
-type LLMxAIImageModel struct {
+type LLMMistralImageModel struct {
 	Id                string
 	Created           int64
 	Version           string
@@ -37,7 +33,7 @@ type LLMxAIImageModel struct {
 	Aliases []string
 }
 
-type LLMxAIMsgStats struct {
+type LLMMistralMsgStats struct {
 	Function       string
 	CreatedTimeSec float64
 	Model          string
@@ -48,50 +44,46 @@ type LLMxAIMsgStats struct {
 	Usage LLMMsgUsage
 }
 
-// xAI LLM settings.
-type LLMxAI struct {
+// Mistral LLM settings.
+type LLMMistral struct {
 	Provider   string
 	OpenAI_url string
 	DevUrl     string
 	API_key    string
 
-	FastMode  bool
-	SmartMode bool
+	LanguageModels []*LLMMistralLanguageModel
+	ImageModels    []*LLMMistralImageModel
 
-	LanguageModels []*LLMxAILanguageModel
-	ImageModels    []*LLMxAIImageModel
-
-	Stats []LLMxAIMsgStats
+	Stats []LLMMistralMsgStats
 }
 
-func NewLLMxAI() *LLMxAI {
-	xai := &LLMxAI{}
+func NewLLMMistral() *LLMMistral {
+	mst := &LLMMistral{}
 
-	xai.Provider = "xAI"
-	xai.OpenAI_url = "https://api.x.ai/v1"
-	xai.DevUrl = "https://console.x.ai"
+	mst.Provider = "Mistral"
+	mst.OpenAI_url = "https://api.mistral.ai/v1"
+	mst.DevUrl = "https://console.mistral.ai"
 
-	return xai
+	return mst
 }
 
-func (xai *LLMxAI) Check() error {
-
-	if xai.API_key == "" {
-		return fmt.Errorf("%s API key is empty", xai.Provider)
+func (mst *LLMMistral) Check() error {
+	if mst.API_key == "" {
+		return fmt.Errorf("%s API key is empty", mst.Provider)
 	}
 
 	//reload models
-	if len(xai.LanguageModels) == 0 {
-		xai.ReloadModels()
+	if len(mst.LanguageModels) == 0 {
+		mst.ReloadModels()
 	}
 
 	return nil
 }
 
-func (xai *LLMxAI) FindProviderModel(name string) (*LLMxAILanguageModel, *LLMxAIImageModel) {
+func (mst *LLMMistral) FindProviderModel(name string) (*LLMMistralLanguageModel, *LLMMistralImageModel) {
 	name = strings.ToLower(name)
 
-	for _, model := range xai.LanguageModels {
+	for _, model := range mst.LanguageModels {
 		if strings.ToLower(model.Id) == name {
 			return model, nil
 		}
@@ -101,7 +93,7 @@ func (xai *LLMxAI) FindProviderModel(name string) (*LLMxAILanguageModel, *LLMxAI
 			}
 		}
 	}
-	for _, model := range xai.ImageModels {
+	for _, model := range mst.ImageModels {
 		if strings.ToLower(model.Id) == name {
 			return nil, model
 		}
@@ -115,57 +107,53 @@ func (xai *LLMxAI) FindProviderModel(name string) (*LLMxAILanguageModel, *LLMxAI
 	return nil, nil
 }
 
-func (xai *LLMxAI) ReloadModels() error {
+func (mst *LLMMistral) ReloadModels() error {
 
 	//reset
-	xai.LanguageModels = nil
-	xai.ImageModels = nil
+	mst.LanguageModels = nil
+	mst.ImageModels = nil
 
-	//Language models
-	{
-		js, err := xai.downloadList("language-models")
-		if err != nil {
-			return err
-		}
+	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
+		Id:                             "devstral-small-latest",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        0,
+		Cached_prompt_text_token_price: 0,
+		Completion_text_token_price:    0,
+	})
 
-		type ST struct {
-			Models []*LLMxAILanguageModel
-		}
-		var stt ST
-		err = json.Unmarshal(js, &stt)
-		if err != nil {
-			return err
-		}
-		xai.LanguageModels = stt.Models
-	}
+	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
+		Id:                             "mistral-small-latest",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        0,
+		Cached_prompt_text_token_price: 0,
+		Completion_text_token_price:    0,
+	})
 
-	//Image models
-	{
-		js, err := xai.downloadList("image-generation-models")
-		if err != nil {
-			return err
-		}
+	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
+		Id:                             "magistral-small-latest",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        0,
+		Cached_prompt_text_token_price: 0,
+		Completion_text_token_price:    0,
+	})
 
-		type ST struct {
-			Models []*LLMxAIImageModel
-		}
-		var stt ST
-		err = json.Unmarshal(js, &stt)
-		if err != nil {
-			return err
-		}
-		xai.ImageModels = stt.Models
-	}
+	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
+		Id:                             "pixtral-12b-latest",
+		Input_modalities:               []string{"text", "image"},
+		Prompt_text_token_price:        0,
+		Cached_prompt_text_token_price: 0,
+		Completion_text_token_price:    0,
+	})
 
 	return nil
 }
 
-func (xai *LLMxAI) GetPricingString(model string) string {
+func (mst *LLMMistral) GetPricingString(model string) string {
 	model = strings.ToLower(model)
 
 	convert_to_dolars := float64(10000)
 
-	lang, img := xai.FindProviderModel(model)
+	lang, img := mst.FindProviderModel(model)
 	if lang != nil {
 		//in, cached, out, image
 		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
@@ -178,7 +166,7 @@ func (xai *LLMxAI) GetPricingString(model string) string {
 	return fmt.Sprintf("model %s not found", model)
 }
 
-func (model *LLMxAILanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
+func (model *LLMMistralLanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
 
 	convert_to_dolars := float64(10000)
 
@@ -190,95 +178,13 @@ func (model *LLMxAILanguageModel) GetTextPrice(in, reason, cached, out int) (flo
 	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price
 }
 
-func (xai *LLMxAI) downloadList(url_part string) ([]byte, error) {
-	if xai.API_key == "" {
-		return nil, fmt.Errorf("%s API key is empty", xai.Provider)
-	}
-
-	Completion_url := xai.OpenAI_url
-	if !strings.HasSuffix(Completion_url, "/") {
-		Completion_url += "/"
-	}
-	Completion_url += url_part
-
-	body := bytes.NewReader(nil)
-	req, err := http.NewRequest(http.MethodGet, Completion_url, body) //http.MethodPost
-	if err != nil {
-		return nil, fmt.Errorf("NewRequest() failed: %w", err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Bearer "+xai.API_key)
-
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("Do() failed: %w", err)
-	}
-	defer res.Body.Close()
-
-	js, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	return js, nil
-}
-
-func (xai *LLMxAI) GenerateImage(st *LLMGenerateImage, router *ToolsRouter, msg *ToolsRouterMsg) error {
-	err := xai.Check()
+func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRouterMsg) error {
+	err := mst.Check()
 	if err != nil {
 		return err
 	}
 
-	model := "grok-2-image"
-
-	props := OpenAI_getImage_props{
-		Model:           model,
-		N:               st.Num_images,
-		Response_format: "b64_json",
-	}
-
-	jsProps, err := json.Marshal(props)
-	if err != nil {
-		return err
-	}
-	out, status, dt, err := OpenAI_genImage_Run(jsProps, xai.OpenAI_url, xai.API_key)
-	st.Out_dtime_sec = dt
-	st.Out_StatusCode = status
-	if err != nil {
-		return err
-	}
-
-	for _, it := range out.Data {
-		img, err := base64.StdEncoding.DecodeString(it.B64_json)
-		if err != nil {
-			return err
-		}
-
-		sep := bytes.IndexByte(img, ',')
-		if sep < 0 {
-			sep = 0
-		}
-
-		st.Out_images = append(st.Out_images, img[sep:])
-		st.Out_revised_prompts = append(st.Out_revised_prompts, it.Revised_prompt)
-	}
-
-	return nil
-}
-
-func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRouterMsg) error {
-	err := xai.Check()
-	if err != nil {
-		return err
-	}
-
-	model := "grok-3"
-	if !xai.SmartMode {
-		model += "-mini"
-	}
-	if xai.FastMode {
-		model += "-fast"
-	}
+	model := "devstral-small-latest"
 
 	//Tools
 	var tools []*ToolsOpenAI_completion_tool
@@ -311,13 +217,13 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 		}
 	}
 
-	seed := 1
+	/*seed := 1
 	if len(msgs.Messages) > 0 {
 		seed = msgs.Messages[len(msgs.Messages)-1].Seed
 		if seed <= 0 {
 			seed = 1
 		}
-	}
+	}*/
 
 	last_final_msg := ""
 	last_reasoning_msg := ""
@@ -344,10 +250,10 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 		}
 
 		props := OpenAI_completion_props{
-			Stream:         true,
-			Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
+			Stream: true,
+			//Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
+			//Seed:  seed,
 
-			Seed:  seed,
 			Model: model,
 
 			Tools:    tools,
@@ -366,9 +272,9 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 
 		fnStreaming := func(chatMsg *ChatMsg) bool {
 
-			chatMsg.Provider = xai.Provider
+			chatMsg.Provider = mst.Provider
 			chatMsg.Model = model
-			chatMsg.Seed = seed
+			//chatMsg.Seed = seed
 			chatMsg.Stream = true
 			chatMsg.ShowParameters = true
 			chatMsg.ShowReasoning = true
@@ -392,7 +298,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 		if err != nil {
 			return fmt.Errorf("props failed: %v", err)
 		}
-		out, status, dt, time_to_first_token, err := OpenAI_completion_Run(jsProps, xai.OpenAI_url, xai.API_key, fnStreaming)
+		out, status, dt, time_to_first_token, err := OpenAI_completion_Run(jsProps, mst.OpenAI_url, mst.API_key, fnStreaming)
 		st.Out_StatusCode = status
 		if err != nil {
 			return fmt.Errorf("OpenAI_completion_Run() failed: %v", err)
@@ -410,7 +316,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 				usage.Input_cached_tokens = out.Usage.Input_cached_tokens
 				usage.Completion_tokens = out.Usage.Completion_tokens
 				usage.Reasoning_tokens = out.Usage.Completion_tokens_details.Reasoning_tokens
-				mod, _ := xai.FindProviderModel(model)
+				mod, _ := mst.FindProviderModel(model)
 				if mod != nil {
 					usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price = mod.GetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens)
 				}
@@ -422,7 +328,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 			}
 
 			calls := out.Choices[0].Message.Tool_calls
-			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, xai.Provider, model)
+			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, mst.Provider, model)
 			if st.delta != nil {
 				st.delta(m2)
 			}
@@ -523,7 +429,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 			}
 
 			//log stats
-			xai.Stats = append(xai.Stats, LLMxAIMsgStats{
+			mst.Stats = append(mst.Stats, LLMMistralMsgStats{
 				Function:       "completion",
 				CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000,
 				Model:          model,

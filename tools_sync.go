@@ -102,11 +102,12 @@ func NewToolsSyncMapSettings() *ToolsSyncMapSettings {
 type ToolsSync struct {
 	router *ToolsRouter
 
-	Device  *ToolsSyncDeviceSettings
-	Map     *ToolsSyncMapSettings
-	Mic     *ToolsSyncMicrophoneSettings
-	LLM_xai *LLMxAI
-	LLM_wsp *LLMWhispercpp
+	Device      *ToolsSyncDeviceSettings
+	Map         *ToolsSyncMapSettings
+	Mic         *ToolsSyncMicrophoneSettings
+	LLM_xai     *LLMxAI
+	LLM_mistral *LLMMistral
+	LLM_wsp     *LLMWhispercpp
 
 	last_dev_storage_change int64
 }
@@ -117,6 +118,7 @@ func NewToolsSync(router *ToolsRouter) (*ToolsSync, error) {
 	//"pre-init"
 	snc.Device = NewToolsSyncDeviceSettings()
 	snc.LLM_xai = NewLLMxAI()
+	snc.LLM_mistral = NewLLMMistral()
 	snc.LLM_wsp = NewLLMWhispercpp()
 	snc.Map = NewToolsSyncMapSettings()
 	snc.Mic = NewToolsSyncMicrophoneSettings()
@@ -148,6 +150,11 @@ func (snc *ToolsSync) _loadFiles() error {
 	xaiJs, err := os.ReadFile("apps/Root/LLMxAI-LLMxAI.json") //move to apps/Device ....
 	if err == nil {
 		json.Unmarshal(xaiJs, snc.LLM_xai) //err ....
+	}
+
+	mistralJs, err := os.ReadFile("apps/Root/LLMMistral-LLMMistral.json") //move to apps/Device ....
+	if err == nil {
+		json.Unmarshal(mistralJs, snc.LLM_mistral) //err ....
 	}
 
 	wspJs, err := os.ReadFile("apps/Root/LLMWhispercpp-LLMWhispercpp.json") //move to apps/Device ....

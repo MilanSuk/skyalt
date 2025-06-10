@@ -62,33 +62,33 @@ type LLMxAI struct {
 }
 
 func NewLLMxAI(file string) (*LLMxAI, error) {
-	st := &LLMxAI{}
+	xai := &LLMxAI{}
 
-	st.Provider = "xAI"
-	st.OpenAI_url = "https://api.x.ai/v1"
-	st.DevUrl = "https://console.x.ai"
+	xai.Provider = "xAI"
+	xai.OpenAI_url = "https://api.x.ai/v1"
+	xai.DevUrl = "https://console.x.ai"
 
-	return _loadInstance(file, "LLMxAI", "json", st, true)
+	return _loadInstance(file, "LLMxAI", "json", xai, true)
 }
 
-func (llm *LLMxAI) Check(caller *ToolCaller) error {
+func (xai *LLMxAI) Check(caller *ToolCaller) error {
 
-	if llm.API_key == "" {
-		return fmt.Errorf("%s API key is empty", llm.Provider)
+	if xai.API_key == "" {
+		return fmt.Errorf("%s API key is empty", xai.Provider)
 	}
 
 	//reload models
-	if len(llm.LanguageModels) == 0 {
-		llm.ReloadModels(caller)
+	if len(xai.LanguageModels) == 0 {
+		xai.ReloadModels(caller)
 	}
 
 	return nil
 }
 
-func (llm *LLMxAI) FindProviderModel(name string) (*LLMxAILanguageModel, *LLMxAIImageModel) {
+func (xai *LLMxAI) FindProviderModel(name string) (*LLMxAILanguageModel, *LLMxAIImageModel) {
 	name = strings.ToLower(name)
 
-	for _, model := range llm.LanguageModels {
+	for _, model := range xai.LanguageModels {
 		if strings.ToLower(model.Id) == name {
 			return model, nil
 		}
@@ -98,7 +98,7 @@ func (llm *LLMxAI) FindProviderModel(name string) (*LLMxAILanguageModel, *LLMxAI
 			}
 		}
 	}
-	for _, model := range llm.ImageModels {
+	for _, model := range xai.ImageModels {
 		if strings.ToLower(model.Id) == name {
 			return nil, model
 		}
@@ -112,15 +112,15 @@ func (llm *LLMxAI) FindProviderModel(name string) (*LLMxAILanguageModel, *LLMxAI
 	return nil, nil
 }
 
-func (llm *LLMxAI) ReloadModels(caller *ToolCaller) error {
+func (xai *LLMxAI) ReloadModels(caller *ToolCaller) error {
 
 	//reset
-	llm.LanguageModels = nil
-	llm.ImageModels = nil
+	xai.LanguageModels = nil
+	xai.ImageModels = nil
 
 	//Language models
 	{
-		js, err := llm.downloadList("language-models")
+		js, err := xai.downloadList("language-models")
 		if err != nil {
 			return err
 		}
@@ -133,12 +133,12 @@ func (llm *LLMxAI) ReloadModels(caller *ToolCaller) error {
 		if err != nil {
 			return err
 		}
-		llm.LanguageModels = stt.Models
+		xai.LanguageModels = stt.Models
 	}
 
 	//Image models
 	{
-		js, err := llm.downloadList("image-generation-models")
+		js, err := xai.downloadList("image-generation-models")
 		if err != nil {
 			return err
 		}
@@ -151,18 +151,18 @@ func (llm *LLMxAI) ReloadModels(caller *ToolCaller) error {
 		if err != nil {
 			return err
 		}
-		llm.ImageModels = stt.Models
+		xai.ImageModels = stt.Models
 	}
 
 	return nil
 }
 
-func (llm *LLMxAI) GetPricingString(model string) string {
+func (xai *LLMxAI) GetPricingString(model string) string {
 	model = strings.ToLower(model)
 
 	convert_to_dolars := float64(10000)
 
-	lang, img := llm.FindProviderModel(model)
+	lang, img := xai.FindProviderModel(model)
 	if lang != nil {
 		//in, cached, out, image
 		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
@@ -187,12 +187,12 @@ func (model *LLMxAILanguageModel) GetTextPrice(in, reason, cached, out int) (flo
 	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price
 }
 
-func (llm *LLMxAI) downloadList(url_part string) ([]byte, error) {
-	if llm.API_key == "" {
-		return nil, fmt.Errorf("%s API key is empty", llm.Provider)
+func (xai *LLMxAI) downloadList(url_part string) ([]byte, error) {
+	if xai.API_key == "" {
+		return nil, fmt.Errorf("%s API key is empty", xai.Provider)
 	}
 
-	Completion_url := llm.OpenAI_url
+	Completion_url := xai.OpenAI_url
 	if !strings.HasSuffix(Completion_url, "/") {
 		Completion_url += "/"
 	}
@@ -204,7 +204,7 @@ func (llm *LLMxAI) downloadList(url_part string) ([]byte, error) {
 		return nil, fmt.Errorf("NewRequest() failed: %w", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Bearer "+llm.API_key)
+	req.Header.Add("Authorization", "Bearer "+xai.API_key)
 
 	client := &http.Client{}
 	res, err := client.Do(req)

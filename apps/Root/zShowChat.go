@@ -549,7 +549,7 @@ func (st *ShowChat) complete(caller *ToolCaller, chat *Chat, root *Root, continu
 	var comp LLMCompletion
 	comp.Temperature = 0.2
 	comp.Max_tokens = 4096
-	comp.Top_p = 0.7 //1.0
+	comp.Top_p = 0.95 //1.0
 	comp.Frequency_penalty = 0
 	comp.Presence_penalty = 0
 	comp.Reasoning_effort = "" //low, high
@@ -678,7 +678,7 @@ func (st *ShowChat) summarize(userMessage string, caller *ToolCaller, chat *Chat
 		var comp LLMCompletion
 		comp.Temperature = 0.2
 		comp.Max_tokens = 1024
-		comp.Top_p = 0.7 //1.0
+		comp.Top_p = 0.95 //1.0
 		comp.Frequency_penalty = 0
 		comp.Presence_penalty = 0
 		comp.Reasoning_effort = ""

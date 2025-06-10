@@ -124,7 +124,7 @@ func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 type LLMComplete struct {
 	UID string
 
-	Provider          string //"xai"
+	Provider          string //"xai", "mistral"
 	Temperature       float64
 	Top_p             float64
 	Max_tokens        int
@@ -210,7 +210,7 @@ func NewLLMs(router *ToolsRouter) (*LLMs, error) {
 
 func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 
-	st.Provider = "xai" //read from settings ....
+	st.Provider = "mistral" //read from settings ....
 
 	//find
 	for i := range llms.Requests {
@@ -227,7 +227,13 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 		if err != nil {
 			return err
 		}
-		//other providers
+	case "mistral":
+		err := llms.router.sync.LLM_mistral.Complete(st, llms.router, msg)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("provider '%s' not found", st.Provider)
 	}
 
 	//add & save
