@@ -558,13 +558,13 @@ func (router *ToolsRouter) RunNet() {
 					}
 
 				case "set_msg_name":
-					msg_id, err := cl.ReadInt()
+					user_uid, err := cl.ReadInt()
 					if router.log.Error(err) == nil {
 						user_id, err := cl.ReadArray()
 						if router.log.Error(err) == nil {
 							router.lock.Lock()
 							{
-								msg, found := router.msgs[msg_id]
+								msg, found := router.msgs[user_uid]
 								if found && msg != nil {
 									msg.user_uid = string(user_id)
 								}
@@ -573,16 +573,16 @@ func (router *ToolsRouter) RunNet() {
 						}
 					}
 
-				case "find_msg":
-					msg_id, err := cl.ReadArray()
+				case "find_msg_name":
+					user_uid, err := cl.ReadArray()
 					if router.log.Error(err) == nil {
-						msg := router.FindMessage(string(msg_id))
+						msg := router.FindMessage(string(user_uid))
 
 						if msg != nil {
 							err := cl.WriteInt(1) //exist
 							router.log.Error(err)
 
-							msg := SdkMsg{Id: string(msg_id), AppName: msg.appName, FuncName: msg.funcName, Progress_label: msg.progress_label, Progress_done: msg.progress_done, Start_time: msg.start_time}
+							msg := SdkMsg{Id: string(user_uid), AppName: msg.appName, FuncName: msg.funcName, Progress_label: msg.progress_label, Progress_done: msg.progress_done, Start_time: msg.start_time}
 							msgJs, err := json.Marshal(msg)
 							if router.log.Error(err) == nil {
 								err = cl.WriteArray(msgJs)
