@@ -37,6 +37,8 @@ type UIText struct {
 	Linewrapping bool
 
 	EnableDropFile bool
+
+	EnableCodeFormating bool
 }
 type UIEditbox struct {
 	Name       string
@@ -459,7 +461,13 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 				itt.addLayout(listItem, appName, funcName, parent_UID, fnProgress, fnDone)
 			}
 		} else if it.Text != nil {
-			tx := layout.AddText(it.X, it.Y, it.W, it.H, it.Text.Label)
+
+			label := it.Text.Label
+			if it.Text.EnableCodeFormating {
+				label = _UiText_FormatAsCode(label, layout.GetPalette())
+			}
+
+			tx := layout.AddText(it.X, it.Y, it.W, it.H, label)
 			tx.Align_h = it.Text.Align_h
 			tx.Align_v = it.Text.Align_v
 			tx.Tooltip = it.Text.Tooltip

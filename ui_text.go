@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"strings"
 	"unicode/utf8"
@@ -750,6 +751,49 @@ func _UiText_RemoveFormatingRGBA(str string) string {
 			str = str[:st] + str[st+en+1:]
 		}
 	}
+	return str
+}
+
+func _UiText_FormatAsCodeReplace(str string, find string, cd color.RGBA) string {
+	return strings.ReplaceAll(str, find, fmt.Sprintf("<rgba%d,%d,%d,255>%s</rgba>", cd.R, cd.G, cd.B, find))
+}
+
+func _UiText_FormatAsCode(str string, palette *DevPalette) string {
+
+	//need more work ....
+
+	red := color.RGBA{255, 50, 50, 255}
+	green := color.RGBA{50, 255, 50, 255}
+	blue := color.RGBA{50, 50, 255, 255}
+
+	grey := palette.GetGrey(0.5)
+
+	str = _UiText_FormatAsCodeReplace(str, "type", blue)
+	str = _UiText_FormatAsCodeReplace(str, "struct", blue)
+	str = _UiText_FormatAsCodeReplace(str, "func", blue)
+
+	str = _UiText_FormatAsCodeReplace(str, "for", red)
+	str = _UiText_FormatAsCodeReplace(str, "if", red)
+	str = _UiText_FormatAsCodeReplace(str, "switch", red)
+	str = _UiText_FormatAsCodeReplace(str, "return", red)
+	str = _UiText_FormatAsCodeReplace(str, "break", red)
+	str = _UiText_FormatAsCodeReplace(str, "continue", red)
+
+	str = _UiText_FormatAsCodeReplace(str, "string", green)
+	str = _UiText_FormatAsCodeReplace(str, "byte", green)
+	str = _UiText_FormatAsCodeReplace(str, "int", green)
+	str = _UiText_FormatAsCodeReplace(str, "int64", green)
+	str = _UiText_FormatAsCodeReplace(str, "float64", green)
+	str = _UiText_FormatAsCodeReplace(str, "float32", green)
+	str = _UiText_FormatAsCodeReplace(str, "error", green)
+
+	str = _UiText_FormatAsCodeReplace(str, "(", grey)
+	str = _UiText_FormatAsCodeReplace(str, ")", grey)
+	str = _UiText_FormatAsCodeReplace(str, "[", grey)
+	str = _UiText_FormatAsCodeReplace(str, "]", grey)
+	str = _UiText_FormatAsCodeReplace(str, "{", grey)
+	str = _UiText_FormatAsCodeReplace(str, "}", grey)
+
 	return str
 }
 

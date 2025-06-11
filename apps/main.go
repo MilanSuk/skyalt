@@ -1475,7 +1475,10 @@ type UIText struct {
 	Linewrapping bool
 
 	EnableDropFile bool
-	dropFile       func(pathes []string) error
+
+	EnableCodeFormating bool
+
+	dropFile func(pathes []string) error
 }
 type UIEditbox struct {
 	layout     *UI

@@ -373,6 +373,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 							tx.Linewrapping = false
 							tx.Align_v = 0
 							tx.layout.Back_cd = codeBackCd
+							tx.EnableCodeFormating = true
 						}
 					}
 
