@@ -762,7 +762,7 @@ func _UiText_FormatAsCode(str string, palette *DevPalette) string {
 
 	//need more work ....
 
-	red := color.RGBA{255, 50, 50, 255}
+	/*red := color.RGBA{255, 50, 50, 255}
 	green := color.RGBA{50, 255, 50, 255}
 	blue := color.RGBA{50, 50, 255, 255}
 
@@ -792,7 +792,7 @@ func _UiText_FormatAsCode(str string, palette *DevPalette) string {
 	str = _UiText_FormatAsCodeReplace(str, "[", grey)
 	str = _UiText_FormatAsCodeReplace(str, "]", grey)
 	str = _UiText_FormatAsCodeReplace(str, "{", grey)
-	str = _UiText_FormatAsCodeReplace(str, "}", grey)
+	str = _UiText_FormatAsCodeReplace(str, "}", grey)*/
 
 	return str
 }
