@@ -363,7 +363,11 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						//tx.layout.VScrollToTheBottom(true, caller)
 
 					case "msg":
-						tx := SideDiv.AddText(0, 1, 1, 1, prompt.Reasoning)
+						msgStr := prompt.Reasoning
+						if msgStr == "" {
+							msgStr = prompt.Message
+						}
+						tx := SideDiv.AddText(0, 1, 1, 1, msgStr)
 						tx.Align_v = 0
 						tx.layout.Back_cd = codeBackCd
 
