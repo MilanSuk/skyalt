@@ -1499,6 +1499,8 @@ type UIEditbox struct {
 	Multiline    bool
 	Linewrapping bool
 
+	AutoSave bool
+
 	changed func() error
 	enter   func() error
 }

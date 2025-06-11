@@ -163,6 +163,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		ed.Linewrapping = true
 		ed.Multiline = true
 		ed.layout.Enable = !isGenerating
+		ed.AutoSave = true //refresh "Save button"
 	}
 
 	//Note

@@ -57,6 +57,8 @@ type UIEditbox struct {
 	Formating    bool
 	Multiline    bool
 	Linewrapping bool
+
+	AutoSave bool
 }
 type UISlider struct {
 	Error string
@@ -532,6 +534,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 			ed.Multiline = it.Editbox.Multiline
 			ed.Linewrapping = it.Editbox.Linewrapping
 			ed.Formating = it.Editbox.Formating
+			ed.Refresh = it.Editbox.AutoSave
 
 			createChange := func() ToolsSdkChange {
 				change := ToolsSdkChange{UID: it.UID}
