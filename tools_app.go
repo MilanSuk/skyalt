@@ -181,11 +181,8 @@ func (app *ToolsApp) Tick() error {
 				return err
 			}
 
-			codeErrors, err := app.Process.Compile.Compile(codeHash, app.router, app.Destroy)
+			codeErrors, _ := app.Process.Compile.Compile(codeHash, app.router, app.Destroy)
 			app.Prompts.SetCodeErrors(codeErrors)
-			if err != nil {
-				return err
-			}
 
 			saveIt = true
 		}

@@ -86,7 +86,7 @@ func (app *ToolsAppCompile) Compile(codeHash int64, router *ToolsRouter, stopPro
 		app.Error = err.Error()
 	}
 
-	return codeErrors, nil
+	return codeErrors, err
 }
 
 func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]ToolsCodeError, error) {
@@ -204,7 +204,15 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 		cmd.Stdout = os.Stdout
 		err := cmd.Run()
 		if err != nil {
-			return nil, fmt.Errorf("goimports failed: %s", stderr.String())
+
+			var codeErrors []ToolsCodeError
+			lines := strings.Split(stderr.String(), "\n")
+			for _, line := range lines {
+				itErr, _ := _ToolsAppCompile_parseErrorString(line)
+				codeErrors = append(codeErrors, itErr)
+			}
+
+			return codeErrors, fmt.Errorf("goimports failed: %s", stderr.String())
 		}
 		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
 	}
@@ -257,14 +265,12 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 		cmd.Stdout = os.Stdout
 		err := cmd.Run()
 		if err != nil {
-
 			var codeErrors []ToolsCodeError
 			lines := strings.Split(stderr.String(), "\n")
 			for _, line := range lines {
-				itErr, err := _ToolsAppCompile_parseErrorString(line)
-				if err == nil {
-					codeErrors = append(codeErrors, itErr)
-				}
+				itErr, _ := _ToolsAppCompile_parseErrorString(line)
+				codeErrors = append(codeErrors, itErr)
+
 			}
 
 			return codeErrors, fmt.Errorf("compiler failed: %s", stderr.String())
@@ -280,7 +286,7 @@ func _ToolsAppCompile_parseErrorString(errStr string) (ToolsCodeError, error) {
 	// Split the string by colons
 	parts := strings.SplitN(errStr, ":", 3)
 	if len(parts) < 3 {
-		return ToolsCodeError{}, fmt.Errorf("invalid error string format: %s", errStr)
+		return ToolsCodeError{Line: -1, Msg: errStr}, fmt.Errorf("invalid error string format: %s", errStr)
 	}
 
 	// Extract file name
@@ -290,21 +296,21 @@ func _ToolsAppCompile_parseErrorString(errStr string) (ToolsCodeError, error) {
 	lineStr := parts[1]
 	line, err := strconv.Atoi(lineStr)
 	if err != nil {
-		return ToolsCodeError{}, fmt.Errorf("invalid line number: %s", lineStr)
+		return ToolsCodeError{Line: -1, Msg: errStr}, fmt.Errorf("invalid line number: %s", lineStr)
 	}
 
 	// Split the remaining part to get column and message
 	remaining := parts[2]
 	colonIndex := strings.Index(remaining, ":")
 	if colonIndex == -1 {
-		return ToolsCodeError{}, fmt.Errorf("invalid error string format, missing column or message: %s", errStr)
+		return ToolsCodeError{Line: -1, Msg: errStr}, fmt.Errorf("invalid error string format, missing column or message: %s", errStr)
 	}
 
 	// Extract column number
 	colStr := strings.TrimSpace(remaining[:colonIndex])
 	col, err := strconv.Atoi(colStr)
 	if err != nil {
-		return ToolsCodeError{}, fmt.Errorf("invalid column number: %s", colStr)
+		return ToolsCodeError{Line: -1, Msg: errStr}, fmt.Errorf("invalid column number: %s", colStr)
 	}
 
 	// Extract message
