@@ -44,6 +44,10 @@ type ToolsPrompt struct {
 }
 
 func (prompt *ToolsPrompt) updateSchema() error {
+	if prompt.Name == "Storage" {
+		return nil
+	}
+
 	schema, err := BuildToolsOpenAI_completion_tool(prompt.Name, prompt.Name+".go", prompt.Code)
 	if err != nil {
 		return err
@@ -310,6 +314,10 @@ func (app *ToolsPrompts) WriteFiles(folderPath string) error {
 				return err
 			}
 		}
+	}
+
+	for _, prompt := range app.Prompts {
+		prompt.updateSchema()
 	}
 
 	return nil
