@@ -316,29 +316,37 @@ func (app *ToolsPrompts) WriteFiles(folderPath string) error {
 }
 
 func (app *ToolsPrompts) _getStructureMsg(structPrompt *ToolsPrompt) (string, string, error) {
-	exampleFile := `
+
+	apisFile := `func ReadJSONFile[T any](path string, defaultValues *T) (*T, error)
+`
+	storageFile := `
 package main
 
 type ExampleStruct struct {
 	//<attributes>
 }
 
-func Open<ExampleStruct>() (*ExampleStruct, error) {
+func Load<ExampleStruct>() (*ExampleStruct, error) {
 	st := &ExampleStruct{}
 
 	//<set 'st' default values here>
 
-	return _loadInstance("", "ExampleStruct", "json", st, true)
+	return ReadJSONFile("ExampleStruct.json", st)
 }
 
 //<structures functions here>
 `
-	systemMessage := "You are a programmer. You write code in Go language.\n"
-	systemMessage += "Here is the example file with code:\n```go" + exampleFile + "```\n"
 
-	systemMessage += "Based on user message, rewrite above code. Your job is to design structures. Write functions only if user ask for them. You may write multiple structures, but output everything in one code block.\n"
+	systemMessage := "You are a programmer. You write code in Go language. Here is the list of files in project folder.\n"
 
-	systemMessage += "Structures can't have pointers, because they will be saved as JSON, so instead of pointer(s) use ID which is saved in map[interger or string ID].\n"
+	systemMessage += "file - apis.go:\n```go" + apisFile + "```\n"
+	systemMessage += "file - storage.go:\n```go" + storageFile + "```\n"
+
+	systemMessage += "Based on user message, rewrite storage.go file. Your job is to design structures. Write additional functions only if user ask for them. You may write multiple structures.\n"
+
+	systemMessage += "Structures can not have pointers, because they will be saved as JSON, so instead of pointer(s) use ID which is saved in map[interger or string ID].\n"
+
+	systemMessage += "Do not call os.ReadFile() + json.Unmarshal(), instead call ReadJSONFile(). Do not call os.WriteFile(), saving structures into disk is automatic."
 
 	//maybe add old file structures, because it's needed that struct and attributes names are same ...............
 
@@ -410,11 +418,11 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 		}
 	}*/
 
-	systemMessage := "You are a programmer. You write code in Go language. Here is the list of files in project repository.\n"
+	systemMessage := "You are a programmer. You write code in Go language. Here is the list of files in project folder.\n"
 
-	systemMessage += "apis.go:\n```go" + apisFile + "```\n"
-	systemMessage += "storage.go:\n```go" + storageFile + "```\n"
-	systemMessage += "tool.go:\n```go" + toolFile + "```\n"
+	systemMessage += "file - apis.go:\n```go" + apisFile + "```\n"
+	systemMessage += "file - storage.go:\n```go" + storageFile + "```\n"
+	systemMessage += "file - tool.go:\n```go" + toolFile + "```\n"
 
 	systemMessage += "Based on user message, rewrite tool.go file. Your job is to design function(tool).\n"
 
@@ -425,7 +433,7 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 
 	systemMessage += "Figure out <tool's arguments> based on user prompt. They are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with upper letter. Every argument must have description as comment.\n"
 
-	systemMessage += "If you need to access the storage, call Open<StructName>() from storage.go.\n"
+	systemMessage += "If you need to access the storage, call function starting with 'Load' from storage.go.\n"
 
 	//systemMessage += fmt.Sprintf("You may add help functions into tool.go. They should start with ```func (st *%s)NameOfHelpFunction```\n", prompt.Name)
 

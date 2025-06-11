@@ -39,6 +39,41 @@ import (
 	"time"
 )
 
+func ReadJSONFile[T any](path string, defaultValues *T) (*T, error) {
+	save := true
+
+	//find
+	g_files_lock.Lock()
+	inst, found := g_files[path]
+	g_files_lock.Unlock()
+	if found {
+		inst.save = save
+		return inst.st.(*T), nil
+	}
+
+	//get file data
+	data, err := os.ReadFile(path)
+	if err != nil {
+		//is file exist
+		if _, err := os.Stat(path); err == nil {
+			Tool_Error(err)
+		}
+	}
+
+	// Unpack
+	if len(data) > 0 {
+		err := json.Unmarshal(data, defaultValues)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	g_files_lock.Lock()
+	g_files[path] = &_Instance{data: data, st: defaultValues, save: save}
+	g_files_lock.Unlock()
+	return defaultValues, nil
+}
+
 func LoadFile[T any](file string, structName string, format string, defInst *T, save bool) (*T, error) {
 	if file == "" {
 		file = fmt.Sprintf("%s-%s.%s", structName, structName, format)
