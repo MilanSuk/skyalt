@@ -74,11 +74,12 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 		//create an app
 		{
-			setBt := AppsDiv.AddButton(0, 2, 1, 1, "<h1>+")
-			setBt.Tooltip = "Create new app"
-			setBt.Background = 0.25
-			setBt.clicked = func() error {
-				//open dialog ....
+			newAppBt := AppsDiv.AddButton(0, 2, 1, 1, "<h1>+")
+			newAppBt.Tooltip = "Create new app"
+			newAppBt.Background = 0.25
+			newAppBt.clicked = func() error {
+
+				//open dialog ...........................
 				return nil
 			}
 		}
@@ -377,7 +378,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 			setDia.UI.SetRowFromSub(0, 1, 100)
 			setDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMxAISettings{}).run, caller)
 
-			bt := ui.AddButton(1, y, 1, 1, "xAI settings")
+			bt := ui.AddButton(1, y, 1, 1, "xAI")
 			//bt.Align = 0
 			bt.Background = 0.5
 			bt.clicked = func() error {
@@ -404,7 +405,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 			setDia.UI.SetRowFromSub(0, 1, 100)
 			setDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMMistralSettings{}).run, caller)
 
-			bt := ui.AddButton(1, y, 1, 1, "Mistral settings")
+			bt := ui.AddButton(1, y, 1, 1, "Mistral")
 			//bt.Align = 0
 			bt.Background = 0.5
 			bt.clicked = func() error {
@@ -424,6 +425,33 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 			y++
 		}
 
+		//OpenAI
+		{
+			setDia := ui.AddDialog("openai_settings")
+			setDia.UI.SetColumn(0, 1, 20)
+			setDia.UI.SetRowFromSub(0, 1, 100)
+			setDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMOpenaiSettings{}).run, caller)
+
+			bt := ui.AddButton(1, y, 1, 1, "OpenAI")
+			//bt.Align = 0
+			bt.Background = 0.5
+			bt.clicked = func() error {
+				setDia.OpenCentered(caller)
+				return nil
+			}
+
+			source_llm, err := NewLLMOpenai("")
+			if err != nil {
+				return err
+			}
+			err = source_llm.Check(caller)
+			if err != nil {
+				bt.Cd = UI_GetPalette().E
+				bt.Tooltip = "Error: " + err.Error()
+			}
+			y++
+		}
+
 		//Whisper.cpp
 		{
 			setDia := ui.AddDialog("whispercpp_settings")
@@ -431,7 +459,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 			setDia.UI.SetRowFromSub(0, 1, 100)
 			setDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMWhispercppSettings{}).run, caller)
 
-			bt := ui.AddButton(1, y, 1, 1, "Whisper.cpp settings")
+			bt := ui.AddButton(1, y, 1, 1, "Whisper.cpp")
 			//bt.Align = 0
 			bt.Background = 0.5
 			bt.clicked = func() error {

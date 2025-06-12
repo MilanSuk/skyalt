@@ -107,6 +107,7 @@ type ToolsSync struct {
 	Mic         *ToolsSyncMicrophoneSettings
 	LLM_xai     *LLMxAI
 	LLM_mistral *LLMMistral
+	LLM_openai  *LLMOpenai
 	LLM_wsp     *LLMWhispercpp
 
 	last_dev_storage_change int64
@@ -119,6 +120,7 @@ func NewToolsSync(router *ToolsRouter) (*ToolsSync, error) {
 	snc.Device = NewToolsSyncDeviceSettings()
 	snc.LLM_xai = NewLLMxAI()
 	snc.LLM_mistral = NewLLMMistral()
+	snc.LLM_openai = NewLLMOpenai()
 	snc.LLM_wsp = NewLLMWhispercpp()
 	snc.Map = NewToolsSyncMapSettings()
 	snc.Mic = NewToolsSyncMicrophoneSettings()
@@ -155,6 +157,11 @@ func (snc *ToolsSync) _loadFiles() error {
 	mistralJs, err := os.ReadFile("apps/Root/LLMMistral-LLMMistral.json") //move to apps/Device ....
 	if err == nil {
 		json.Unmarshal(mistralJs, snc.LLM_mistral) //err ....
+	}
+
+	openailJs, err := os.ReadFile("apps/Root/LLMOpenai-LLMOpenai.json") //move to apps/Device ....
+	if err == nil {
+		json.Unmarshal(openailJs, snc.LLM_openai) //err ....
 	}
 
 	wspJs, err := os.ReadFile("apps/Root/LLMWhispercpp-LLMWhispercpp.json") //move to apps/Device ....
