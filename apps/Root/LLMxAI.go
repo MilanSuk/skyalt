@@ -85,7 +85,7 @@ func (xai *LLMxAI) Check(caller *ToolCaller) error {
 	return nil
 }
 
-func (xai *LLMxAI) FindProviderModel(name string) (*LLMxAILanguageModel, *LLMxAIImageModel) {
+func (xai *LLMxAI) FindModel(name string) (*LLMxAILanguageModel, *LLMxAIImageModel) {
 	name = strings.ToLower(name)
 
 	for _, model := range xai.LanguageModels {
@@ -162,7 +162,7 @@ func (xai *LLMxAI) GetPricingString(model string) string {
 
 	convert_to_dolars := float64(10000)
 
-	lang, img := xai.FindProviderModel(model)
+	lang, img := xai.FindModel(model)
 	if lang != nil {
 		//in, cached, out, image
 		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)

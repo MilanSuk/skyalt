@@ -78,7 +78,7 @@ func (mst *LLMMistral) Check(caller *ToolCaller) error {
 	return nil
 }
 
-func (mst *LLMMistral) FindProviderModel(name string) (*LLMMistralLanguageModel, *LLMMistralImageModel) {
+func (mst *LLMMistral) FindModel(name string) (*LLMMistralLanguageModel, *LLMMistralImageModel) {
 	name = strings.ToLower(name)
 
 	for _, model := range mst.LanguageModels {
@@ -151,7 +151,7 @@ func (mst *LLMMistral) GetPricingString(model string) string {
 
 	convert_to_dolars := float64(10000)
 
-	lang, img := mst.FindProviderModel(model)
+	lang, img := mst.FindModel(model)
 	if lang != nil {
 		//in, cached, out, image
 		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)

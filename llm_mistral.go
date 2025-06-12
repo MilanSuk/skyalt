@@ -80,7 +80,7 @@ func (mst *LLMMistral) Check() error {
 	return nil
 }
 
-func (mst *LLMMistral) FindProviderModel(name string) (*LLMMistralLanguageModel, *LLMMistralImageModel) {
+func (mst *LLMMistral) FindModel(name string) (*LLMMistralLanguageModel, *LLMMistralImageModel) {
 	name = strings.ToLower(name)
 
 	for _, model := range mst.LanguageModels {
@@ -153,7 +153,7 @@ func (mst *LLMMistral) GetPricingString(model string) string {
 
 	convert_to_dolars := float64(10000)
 
-	lang, img := mst.FindProviderModel(model)
+	lang, img := mst.FindModel(model)
 	if lang != nil {
 		//in, cached, out, image
 		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
@@ -167,7 +167,6 @@ func (mst *LLMMistral) GetPricingString(model string) string {
 }
 
 func (model *LLMMistralLanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
-
 	convert_to_dolars := float64(10000)
 
 	Input_price := float64(model.Prompt_text_token_price) / convert_to_dolars / 1000000
@@ -184,8 +183,9 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 		return err
 	}
 
-	model := "devstral-small-latest"
-	st.Out_model = model
+	if st.Model == "" {
+		st.Model = "devstral-small-latest"
+	}
 
 	//Tools
 	var tools []*ToolsOpenAI_completion_tool
@@ -255,7 +255,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 			//Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
 			//Seed:  seed,
 
-			Model: model,
+			Model: st.Model,
 
 			Tools:    tools,
 			Messages: messages,
@@ -274,7 +274,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 		fnStreaming := func(chatMsg *ChatMsg) bool {
 
 			chatMsg.Provider = mst.Provider
-			chatMsg.Model = model
+			chatMsg.Model = st.Model
 			//chatMsg.Seed = seed
 			chatMsg.Stream = true
 			chatMsg.ShowParameters = true
@@ -317,7 +317,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 				usage.Input_cached_tokens = out.Usage.Input_cached_tokens
 				usage.Completion_tokens = out.Usage.Completion_tokens
 				usage.Reasoning_tokens = out.Usage.Completion_tokens_details.Reasoning_tokens
-				mod, _ := mst.FindProviderModel(model)
+				mod, _ := mst.FindModel(st.Model)
 				if mod != nil {
 					usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price = mod.GetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens)
 				}
@@ -329,7 +329,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 			}
 
 			calls := out.Choices[0].Message.Tool_calls
-			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, mst.Provider, model)
+			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, mst.Provider, st.Model)
 			if st.delta != nil {
 				st.delta(m2)
 			}
@@ -433,7 +433,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 			mst.Stats = append(mst.Stats, LLMMistralMsgStats{
 				Function:       "completion",
 				CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000,
-				Model:          model,
+				Model:          st.Model,
 
 				Time:             dt,
 				TimeToFirstToken: time_to_first_token,

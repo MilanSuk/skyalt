@@ -80,7 +80,7 @@ func (oai *LLMOpenai) Check() error {
 	return nil
 }
 
-func (oai *LLMOpenai) FindProviderModel(name string) (*LLMOpenaiLanguageModel, *LLMOpenaiImageModel) {
+func (oai *LLMOpenai) FindModel(name string) (*LLMOpenaiLanguageModel, *LLMOpenaiImageModel) {
 	name = strings.ToLower(name)
 
 	for _, model := range oai.LanguageModels {
@@ -114,14 +114,14 @@ func (oai *LLMOpenai) ReloadModels() error {
 	oai.ImageModels = nil
 
 	oai.LanguageModels = append(oai.LanguageModels, &LLMOpenaiLanguageModel{
-		Id:                             "gpt-4.1-nano-latest",
+		Id:                             "gpt-4.1-nano",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        1000,
 		Cached_prompt_text_token_price: 250,
 		Completion_text_token_price:    4000,
 	})
 	oai.LanguageModels = append(oai.LanguageModels, &LLMOpenaiLanguageModel{
-		Id:                             "gpt-4.1-mini-latest",
+		Id:                             "gpt-4.1-mini",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        4000,
 		Cached_prompt_text_token_price: 1000,
@@ -129,7 +129,7 @@ func (oai *LLMOpenai) ReloadModels() error {
 	})
 
 	oai.LanguageModels = append(oai.LanguageModels, &LLMOpenaiLanguageModel{
-		Id:                             "gpt-4o-mini-latest",
+		Id:                             "gpt-4o-mini",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        1500,
 		Cached_prompt_text_token_price: 750,
@@ -137,7 +137,7 @@ func (oai *LLMOpenai) ReloadModels() error {
 	})
 
 	oai.LanguageModels = append(oai.LanguageModels, &LLMOpenaiLanguageModel{
-		Id:                             "o4-mini-latest",
+		Id:                             "o4-mini",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        11000,
 		Cached_prompt_text_token_price: 2750,
@@ -152,7 +152,7 @@ func (oai *LLMOpenai) GetPricingString(model string) string {
 
 	convert_to_dolars := float64(10000)
 
-	lang, img := oai.FindProviderModel(model)
+	lang, img := oai.FindModel(model)
 	if lang != nil {
 		//in, cached, out, image
 		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
@@ -183,8 +183,9 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 		return err
 	}
 
-	model := "gpt-4.1-nano-latest"
-	st.Out_model = model
+	if st.Model == "" {
+		st.Model = "gpt-4.1-nano"
+	}
 
 	//Tools
 	var tools []*ToolsOpenAI_completion_tool
@@ -217,13 +218,13 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 		}
 	}
 
-	/*seed := 1
+	seed := 1
 	if len(msgs.Messages) > 0 {
 		seed = msgs.Messages[len(msgs.Messages)-1].Seed
 		if seed <= 0 {
 			seed = 1
 		}
-	}*/
+	}
 
 	last_final_msg := ""
 	last_reasoning_msg := ""
@@ -250,11 +251,11 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 		}
 
 		props := OpenAI_completion_props{
-			Stream: true,
-			//Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
-			//Seed:  seed,
+			Stream:         true,
+			Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
+			Seed:           seed,
 
-			Model: model,
+			Model: st.Model,
 
 			Tools:    tools,
 			Messages: messages,
@@ -273,8 +274,8 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 		fnStreaming := func(chatMsg *ChatMsg) bool {
 
 			chatMsg.Provider = oai.Provider
-			chatMsg.Model = model
-			//chatMsg.Seed = seed
+			chatMsg.Model = st.Model
+			chatMsg.Seed = seed
 			chatMsg.Stream = true
 			chatMsg.ShowParameters = true
 			chatMsg.ShowReasoning = true
@@ -316,7 +317,7 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 				usage.Input_cached_tokens = out.Usage.Input_cached_tokens
 				usage.Completion_tokens = out.Usage.Completion_tokens
 				usage.Reasoning_tokens = out.Usage.Completion_tokens_details.Reasoning_tokens
-				mod, _ := oai.FindProviderModel(model)
+				mod, _ := oai.FindModel(st.Model)
 				if mod != nil {
 					usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price = mod.GetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens)
 				}
@@ -328,7 +329,7 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 			}
 
 			calls := out.Choices[0].Message.Tool_calls
-			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, oai.Provider, model)
+			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, oai.Provider, st.Model)
 			if st.delta != nil {
 				st.delta(m2)
 			}
@@ -432,7 +433,7 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 			oai.Stats = append(oai.Stats, LLMOpenaiMsgStats{
 				Function:       "completion",
 				CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000,
-				Model:          model,
+				Model:          st.Model,
 
 				Time:             dt,
 				TimeToFirstToken: time_to_first_token,

@@ -690,7 +690,7 @@ func (st *ShowChat) summarize(userMessage string, caller *ToolCaller, chat *Chat
 		err := comp.Run(caller)
 		if err == nil {
 
-			label := comp.Out_last_message
+			label := comp.Out_last_final_message
 			label = strings.ReplaceAll(label, "\n", " ")
 			label = strings.TrimSpace(label)
 			chat.Label = label

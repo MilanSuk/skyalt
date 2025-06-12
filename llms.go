@@ -124,7 +124,7 @@ func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 type LLMComplete struct {
 	UID string
 
-	Provider          string //"xai", "mistral", "openai"
+	Model             string
 	Temperature       float64
 	Top_p             float64
 	Max_tokens        int
@@ -147,15 +147,14 @@ type LLMComplete struct {
 	Out_messages               []byte //[]*ChatMsg
 	Out_last_final_message     string
 	Out_last_reasoning_message string
-
-	Out_usage LLMMsgUsage
-	Out_model string
+	Out_usage                  LLMMsgUsage
 
 	delta func(msg *ChatMsg)
 }
 
 func (a *LLMComplete) Cmp(b *LLMComplete) bool {
-	return a.Temperature == b.Temperature &&
+	return a.Model == b.Model &&
+		a.Temperature == b.Temperature &&
 		a.Top_p == b.Top_p &&
 		bytes.Equal(a.PreviousMessages, b.PreviousMessages) &&
 		a.SystemMessage == b.SystemMessage &&
@@ -211,7 +210,32 @@ func NewLLMs(router *ToolsRouter) (*LLMs, error) {
 
 func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 
-	st.Provider = "openai" //read from settings ....
+	//st.Provider = "openai" //read from settings ....
+
+	var provider string
+
+	//get provider & model name
+	if llms.router.sync.LLM_xai != nil {
+		chat, _ := llms.router.sync.LLM_xai.FindModel(st.Model)
+		if chat != nil {
+			st.Model = chat.Id
+			provider = "xai"
+		}
+	}
+	if llms.router.sync.LLM_mistral != nil {
+		chat, _ := llms.router.sync.LLM_mistral.FindModel(st.Model)
+		if chat != nil {
+			st.Model = chat.Id
+			provider = "mistral"
+		}
+	}
+	if llms.router.sync.LLM_openai != nil {
+		chat, _ := llms.router.sync.LLM_openai.FindModel(st.Model)
+		if chat != nil {
+			st.Model = chat.Id
+			provider = "openai"
+		}
+	}
 
 	//find in cache
 	for i := range llms.Requests {
@@ -222,7 +246,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 	}
 
 	//call
-	switch st.Provider {
+	switch provider {
 	case "xai":
 		err := llms.router.sync.LLM_xai.Complete(st, llms.router, msg)
 		if err != nil {
@@ -240,7 +264,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 		}
 
 	default:
-		return fmt.Errorf("provider '%s' not found", st.Provider)
+		return fmt.Errorf("provider not found")
 	}
 
 	//add & save cache

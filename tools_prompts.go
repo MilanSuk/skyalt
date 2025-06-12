@@ -242,12 +242,13 @@ func (app *ToolsPrompts) Generate(appName string, router *ToolsRouter) error {
 
 	var comp LLMComplete
 	comp.Temperature = 0.2
-	comp.Max_tokens = 65536
-	comp.Top_p = 0.95 //1.0
+	comp.Max_tokens = 32768 //65536
+	comp.Top_p = 0.95       //1.0
 	comp.Frequency_penalty = 0
 	comp.Presence_penalty = 0
 	comp.Reasoning_effort = ""
 	comp.Max_iteration = 1
+	comp.Model = "gpt-4.1-nano"
 
 	msg := router.AddRecompileMsg(appName)
 	defer msg.Done()
@@ -280,7 +281,7 @@ func (app *ToolsPrompts) Generate(appName string, router *ToolsRouter) error {
 			return err
 		}
 
-		prompt.setMessage(comp.Out_last_final_message, comp.Out_last_reasoning_message, &comp.Out_usage, comp.Out_model)
+		prompt.setMessage(comp.Out_last_final_message, comp.Out_last_reasoning_message, &comp.Out_usage, comp.Model)
 	}
 
 	return nil
@@ -338,7 +339,7 @@ type ExampleStruct struct {
 	//<attributes>
 }
 
-func Load<ExampleStruct>() (*ExampleStruct, error) {
+func LoadExampleStruct() (*ExampleStruct, error) {
 	st := &ExampleStruct{}	//set default values here
 
 	return ReadJSONFile("ExampleStruct.json", st)
@@ -443,7 +444,7 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 
 	systemMessage += "Figure out <tool's arguments> based on user prompt. They are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with upper letter. Every argument must have description as comment.\n"
 
-	systemMessage += "If you need to access the storage, call function starting with 'Load' from storage.go.\n"
+	systemMessage += "If you need to access the storage, call function Load...() from storage.go.\n"
 
 	//systemMessage += fmt.Sprintf("You may add help functions into tool.go. They should start with ```func (st *%s)NameOfHelpFunction```\n", prompt.Name)
 

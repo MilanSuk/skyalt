@@ -88,8 +88,18 @@ func (xai *LLMxAI) Check() error {
 	return nil
 }
 
-func (xai *LLMxAI) FindProviderModel(name string) (*LLMxAILanguageModel, *LLMxAIImageModel) {
+func (xai *LLMxAI) FindModel(name string) (*LLMxAILanguageModel, *LLMxAIImageModel) {
 	name = strings.ToLower(name)
+
+	if name == "" {
+		name = "grok-3"
+		if !xai.SmartMode {
+			name += "-mini"
+		}
+		if xai.FastMode {
+			name += "-fast"
+		}
+	}
 
 	for _, model := range xai.LanguageModels {
 		if strings.ToLower(model.Id) == name {
@@ -165,7 +175,7 @@ func (xai *LLMxAI) GetPricingString(model string) string {
 
 	convert_to_dolars := float64(10000)
 
-	lang, img := xai.FindProviderModel(model)
+	lang, img := xai.FindModel(model)
 	if lang != nil {
 		//in, cached, out, image
 		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
@@ -272,15 +282,6 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 		return err
 	}
 
-	model := "grok-3"
-	if !xai.SmartMode {
-		model += "-mini"
-	}
-	if xai.FastMode {
-		model += "-fast"
-	}
-	st.Out_model = model
-
 	//Tools
 	var tools []*ToolsOpenAI_completion_tool
 	var app *ToolsApp
@@ -349,7 +350,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 			Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
 
 			Seed:  seed,
-			Model: model,
+			Model: st.Model,
 
 			Tools:    tools,
 			Messages: messages,
@@ -368,7 +369,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 		fnStreaming := func(chatMsg *ChatMsg) bool {
 
 			chatMsg.Provider = xai.Provider
-			chatMsg.Model = model
+			chatMsg.Model = st.Model
 			chatMsg.Seed = seed
 			chatMsg.Stream = true
 			chatMsg.ShowParameters = true
@@ -411,7 +412,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 				usage.Input_cached_tokens = out.Usage.Input_cached_tokens
 				usage.Completion_tokens = out.Usage.Completion_tokens
 				usage.Reasoning_tokens = out.Usage.Completion_tokens_details.Reasoning_tokens
-				mod, _ := xai.FindProviderModel(model)
+				mod, _ := xai.FindModel(st.Model)
 				if mod != nil {
 					usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price = mod.GetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens)
 				}
@@ -423,7 +424,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 			}
 
 			calls := out.Choices[0].Message.Tool_calls
-			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, xai.Provider, model)
+			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, xai.Provider, st.Model)
 			if st.delta != nil {
 				st.delta(m2)
 			}
@@ -527,7 +528,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 			xai.Stats = append(xai.Stats, LLMxAIMsgStats{
 				Function:       "completion",
 				CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000,
-				Model:          model,
+				Model:          st.Model,
 
 				Time:             dt,
 				TimeToFirstToken: time_to_first_token,

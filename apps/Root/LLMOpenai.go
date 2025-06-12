@@ -78,7 +78,7 @@ func (mst *LLMOpenai) Check(caller *ToolCaller) error {
 	return nil
 }
 
-func (mst *LLMOpenai) FindProviderModel(name string) (*LLMOpenaiLanguageModel, *LLMOpenaiImageModel) {
+func (mst *LLMOpenai) FindModel(name string) (*LLMOpenaiLanguageModel, *LLMOpenaiImageModel) {
 	name = strings.ToLower(name)
 
 	for _, model := range mst.LanguageModels {
@@ -112,14 +112,14 @@ func (mst *LLMOpenai) ReloadModels(caller *ToolCaller) error {
 	mst.ImageModels = nil
 
 	mst.LanguageModels = append(mst.LanguageModels, &LLMOpenaiLanguageModel{
-		Id:                             "gpt-4.1-nano-latest",
+		Id:                             "gpt-4.1-nano",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        1000,
 		Cached_prompt_text_token_price: 250,
 		Completion_text_token_price:    4000,
 	})
 	mst.LanguageModels = append(mst.LanguageModels, &LLMOpenaiLanguageModel{
-		Id:                             "gpt-4.1-mini-latest",
+		Id:                             "gpt-4.1-mini",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        4000,
 		Cached_prompt_text_token_price: 1000,
@@ -127,7 +127,7 @@ func (mst *LLMOpenai) ReloadModels(caller *ToolCaller) error {
 	})
 
 	mst.LanguageModels = append(mst.LanguageModels, &LLMOpenaiLanguageModel{
-		Id:                             "gpt-4o-mini-latest",
+		Id:                             "gpt-4o-mini",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        1500,
 		Cached_prompt_text_token_price: 750,
@@ -150,7 +150,7 @@ func (mst *LLMOpenai) GetPricingString(model string) string {
 
 	convert_to_dolars := float64(10000)
 
-	lang, img := mst.FindProviderModel(model)
+	lang, img := mst.FindModel(model)
 	if lang != nil {
 		//in, cached, out, image
 		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
