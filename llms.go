@@ -192,7 +192,7 @@ type LLMTranscribe struct {
 type LLMs struct {
 	router *ToolsRouter
 
-	Requests []LLMComplete
+	Cache []LLMComplete
 }
 
 func NewLLMs(router *ToolsRouter) (*LLMs, error) {
@@ -200,9 +200,9 @@ func NewLLMs(router *ToolsRouter) (*LLMs, error) {
 
 	//open
 	{
-		fl, err := os.ReadFile("apps/requests.json")
+		fl, err := os.ReadFile("apps/llms_cache.json")
 		if err == nil {
-			json.Unmarshal(fl, &llms.Requests)
+			json.Unmarshal(fl, &llms.Cache)
 		}
 	}
 	return llms, nil
@@ -238,9 +238,9 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 	}
 
 	//find in cache
-	for i := range llms.Requests {
-		if llms.Requests[i].Cmp(st) {
-			*st = llms.Requests[i]
+	for i := range llms.Cache {
+		if llms.Cache[i].Cmp(st) {
+			*st = llms.Cache[i]
 			return nil
 		}
 	}
@@ -269,8 +269,8 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 
 	//add & save cache
 	{
-		llms.Requests = append(llms.Requests, *st)
-		_, err := Tools_WriteJSONFile("apps/requests.json", llms.Requests)
+		llms.Cache = append(llms.Cache, *st)
+		_, err := Tools_WriteJSONFile("apps/llms_cache.json", llms.Cache)
 		llms.router.log.Error(err)
 	}
 
