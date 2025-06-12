@@ -170,7 +170,7 @@ func (app *ToolsApp) Tick() error {
 				codeHash = Tools_GetFileTime(promptsFilePath) //refresh
 			}
 
-			err = app.Prompts.Generate(app.Process.Compile.GetFolderPath(), app.router)
+			err = app.Prompts.Generate(app.Process.Compile.AppName, app.router)
 			if err != nil {
 				return err
 			}

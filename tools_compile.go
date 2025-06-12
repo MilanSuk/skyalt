@@ -95,7 +95,7 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 
 	app.CodeHash = codeHash
 
-	msg := router.AddRecompileMsg(app.GetFolderPath())
+	msg := router.AddRecompileMsg(app.AppName)
 	defer msg.Done()
 
 	msg.progress_label = "Generating tools code"

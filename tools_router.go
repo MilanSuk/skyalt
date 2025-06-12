@@ -272,7 +272,7 @@ func (router *ToolsRouter) CallAsync(ui_uid uint64, appName string, funcName str
 	return msg
 }
 
-func (router *ToolsRouter) AddRebuildMsg(appName string) *ToolsRouterMsg {
+/*func (router *ToolsRouter) AddRebuildMsg(appName string) *ToolsRouterMsg {
 	msg_id := router.msgs_counter.Add(1)
 	msg := &ToolsRouterMsg{msg_id: msg_id, user_uid: "_rebuild_", ui_uid: 0, appName: appName, funcName: "_prompt_", fnDone: nil, start_time: Tools_Time()}
 
@@ -281,7 +281,7 @@ func (router *ToolsRouter) AddRebuildMsg(appName string) *ToolsRouterMsg {
 	router.lock.Unlock()
 
 	return msg
-}
+}*/
 
 /*func (router *ToolsRouter) FindRepromptMsg(appName string) *ToolsRouterMsg {
 	router.lock.Lock()

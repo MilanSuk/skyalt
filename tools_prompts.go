@@ -229,7 +229,7 @@ func (app *ToolsPrompts) Reload(folderPath string) (bool, error) {
 	return saveFile, nil
 }
 
-func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error {
+func (app *ToolsPrompts) Generate(appName string, router *ToolsRouter) error {
 
 	defer func() {
 		//reset
@@ -249,7 +249,7 @@ func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error 
 	comp.Reasoning_effort = ""
 	comp.Max_iteration = 1
 
-	msg := router.AddRecompileMsg(folderPath)
+	msg := router.AddRecompileMsg(appName)
 	defer msg.Done()
 
 	//generate code
