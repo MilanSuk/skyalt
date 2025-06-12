@@ -162,7 +162,6 @@ func (app *ToolsApp) Tick() error {
 		codeHash := Tools_GetFileTime(promptsFilePath)
 
 		if app.Process.Compile.NeedCompile(codeHash) {
-
 			saved, err := app.Prompts.Reload(app.Process.Compile.GetFolderPath())
 			if err != nil {
 				return err

@@ -149,6 +149,7 @@ type LLMComplete struct {
 	Out_last_reasoning_message string
 
 	Out_usage LLMMsgUsage
+	Out_model string
 
 	delta func(msg *ChatMsg)
 }
@@ -212,7 +213,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 
 	st.Provider = "mistral" //read from settings ....
 
-	//find
+	//find in cache
 	for i := range llms.Requests {
 		if llms.Requests[i].Cmp(st) {
 			*st = llms.Requests[i]
@@ -236,7 +237,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 		return fmt.Errorf("provider '%s' not found", st.Provider)
 	}
 
-	//add & save
+	//add & save cache
 	{
 		llms.Requests = append(llms.Requests, *st)
 		_, err := Tools_WriteJSONFile("apps/requests.json", llms.Requests)

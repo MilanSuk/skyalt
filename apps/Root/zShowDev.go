@@ -64,7 +64,8 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		Message   string
 		Reasoning string
 
-		Code string
+		Code  string
+		Model string
 
 		//from code
 		Name   string
@@ -384,14 +385,14 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 					//Price
 					{
-						tx := SideDiv.AddText(0, 2, 1, 1, fmt.Sprintf("<i>$%.3f", prompt.Usage.Prompt_price+prompt.Usage.Input_cached_price+prompt.Usage.Completion_price+prompt.Usage.Reasoning_price))
+						tx := SideDiv.AddText(0, 2, 1, 1, fmt.Sprintf("<i>%s, $%.3f", prompt.Model, prompt.Usage.Prompt_price+prompt.Usage.Input_cached_price+prompt.Usage.Completion_price+prompt.Usage.Reasoning_price))
 						tx.Align_h = 2
 					}
 
 					//Errors
 					{
 						if len(prompt.Errors) > 0 {
-							SideDiv.AddText(0, 3, 1, 1, "Code errors").Align_h = 1
+							SideDiv.AddText(0, 3, 1, 1, "Code errors:")
 							SideDiv.SetRowFromSub(4, 1, 5)
 							ErrsDiv := SideDiv.AddLayout(0, 4, 1, 1)
 							ErrsDiv.SetColumn(0, 1, 100)

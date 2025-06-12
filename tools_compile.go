@@ -268,9 +268,10 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 			var codeErrors []ToolsCodeError
 			lines := strings.Split(stderr.String(), "\n")
 			for _, line := range lines {
-				itErr, _ := _ToolsAppCompile_parseErrorString(line)
-				codeErrors = append(codeErrors, itErr)
-
+				itErr, err := _ToolsAppCompile_parseErrorString(line)
+				if err == nil {
+					codeErrors = append(codeErrors, itErr)
+				}
 			}
 
 			return codeErrors, fmt.Errorf("compiler failed: %s", stderr.String())

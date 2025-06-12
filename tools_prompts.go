@@ -31,7 +31,8 @@ type ToolsPrompt struct {
 	Message   string
 	Reasoning string
 
-	Code string
+	Code  string
+	Model string
 
 	//from code
 	Name   string
@@ -57,16 +58,7 @@ func (prompt *ToolsPrompt) updateSchema() error {
 	return nil
 }
 
-func (prompt *ToolsPrompt) GetErrors(file string) (errs []ToolsCodeError) {
-	for _, er := range prompt.Errors {
-		if er.File == file {
-			errs = append(errs, er)
-		}
-	}
-	return
-}
-
-func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, usage *LLMMsgUsage) {
+func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, usage *LLMMsgUsage, model string) {
 
 	re := regexp.MustCompile("(?s)```(?:go|golang)\n(.*?)\n```")
 	matches := re.FindAllStringSubmatch(final_msg, -1)
@@ -83,6 +75,7 @@ func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, us
 	prompt.Message = final_msg
 	prompt.Reasoning = reasoning_msg
 	prompt.Usage = *usage
+	prompt.Model = model
 
 	/*if loadName {
 		prompt.Name, _ = _ToolsPrompt_getFileName(prompt.Code)
@@ -110,14 +103,26 @@ func (app *ToolsPrompts) Destroy() error {
 }
 
 func (app *ToolsPrompts) SetCodeErrors(errs []ToolsCodeError) {
-	for _, er := range errs {
-		file_name := strings.TrimRight(er.File, filepath.Ext(er.File))
 
+	//reset
+	for _, prompt := range app.Prompts {
+		prompt.Errors = nil
+	}
+
+	//add
+	for _, er := range errs {
+		file_name := strings.TrimRight(filepath.Base(er.File), filepath.Ext(er.File))
+
+		found := false
 		for _, prompt := range app.Prompts {
 			if prompt.Name == file_name {
 				prompt.Errors = append(prompt.Errors, er)
+				found = true
 				break
 			}
+		}
+		if !found {
+			fmt.Printf("Code file '%s' not found\n", er.File)
 		}
 	}
 }
@@ -236,7 +241,6 @@ func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error 
 	storagePrompt := app.FindPromptName("Storage")
 
 	var comp LLMComplete
-	comp.Provider = "xai"
 	comp.Temperature = 0.2
 	comp.Max_tokens = 65536
 	comp.Top_p = 0.95 //1.0
@@ -276,7 +280,7 @@ func (app *ToolsPrompts) Generate(folderPath string, router *ToolsRouter) error 
 			return err
 		}
 
-		prompt.setMessage(comp.Out_last_final_message, comp.Out_last_reasoning_message, &comp.Out_usage)
+		prompt.setMessage(comp.Out_last_final_message, comp.Out_last_reasoning_message, &comp.Out_usage, comp.Out_model)
 	}
 
 	return nil
@@ -335,9 +339,7 @@ type ExampleStruct struct {
 }
 
 func Load<ExampleStruct>() (*ExampleStruct, error) {
-	st := &ExampleStruct{}
-
-	//<set 'st' default values here>
+	st := &ExampleStruct{}	//set default values here
 
 	return ReadJSONFile("ExampleStruct.json", st)
 }

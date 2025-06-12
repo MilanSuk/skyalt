@@ -279,6 +279,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 	if xai.FastMode {
 		model += "-fast"
 	}
+	st.Out_model = model
 
 	//Tools
 	var tools []*ToolsOpenAI_completion_tool

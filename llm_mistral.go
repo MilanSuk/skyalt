@@ -185,6 +185,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 	}
 
 	model := "devstral-small-latest"
+	st.Out_model = model
 
 	//Tools
 	var tools []*ToolsOpenAI_completion_tool
