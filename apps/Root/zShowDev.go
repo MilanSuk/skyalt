@@ -237,18 +237,20 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 			{
 				HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
-				HeaderDiv.SetColumn(0, 3, 100)
+				HeaderDiv.SetColumn(1, 3, 100)
 				HeaderDiv.ScrollV.Hide = true
 				HeaderDiv.ScrollH.Narrow = true
 
-				HeaderDiv.AddText(0, 0, 1, 1, "Generating code for <i>"+sdk_app.Generating_name)
-
-				CloseBt := HeaderDiv.AddButton(1, 0, 1, 1, "X")
+				CloseBt := HeaderDiv.AddButton(0, 0, 1, 1, ">>")
+				CloseBt.Tooltip = "Close side panel"
 				CloseBt.Background = 0.25
 				CloseBt.clicked = func() error {
 					app.Dev.ShowSide = false //hide
 					return nil
 				}
+
+				HeaderDiv.AddText(1, 0, 1, 1, "Generating code for <i>"+sdk_app.Generating_name)
+
 			}
 
 			//....
@@ -278,16 +280,23 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				}
 
 				HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
-				HeaderDiv.SetColumn(0, 3, 100)
-				HeaderDiv.SetColumn(1, 1, 1)
-				HeaderDiv.SetColumnFromSub(2, 5, 100)
+				HeaderDiv.SetColumn(1, 3, 100)
+				HeaderDiv.SetColumnFromSub(3, 5, 100)
 				HeaderDiv.ScrollV.Hide = true
 				HeaderDiv.ScrollH.Narrow = true
 
-				HeaderDiv.AddCombo(0, 0, 1, 1, &app.Dev.SideFile, labels, values)
+				CloseBt := HeaderDiv.AddButton(0, 0, 1, 1, ">>")
+				CloseBt.Tooltip = "Close side panel"
+				CloseBt.Background = 0.25
+				CloseBt.clicked = func() error {
+					app.Dev.ShowSide = false //hide
+					return nil
+				}
+
+				HeaderDiv.AddCombo(1, 0, 1, 1, &app.Dev.SideFile, labels, values)
 
 				{
-					TabsDiv := HeaderDiv.AddLayout(2, 0, 1, 1)
+					TabsDiv := HeaderDiv.AddLayout(3, 0, 1, 1)
 					TabsDiv.SetColumn(0, 2, 3)
 					TabsDiv.SetColumn(1, 2, 3)
 					TabsDiv.SetColumn(2, 2, 3)
@@ -333,12 +342,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					}
 				}
 
-				CloseBt := HeaderDiv.AddButton(3, 0, 1, 1, "X")
-				CloseBt.Background = 0.25
-				CloseBt.clicked = func() error {
-					app.Dev.ShowSide = false //hide
-					return nil
-				}
 			}
 
 			if app.Dev.SideFile != "" {
