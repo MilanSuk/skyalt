@@ -150,7 +150,7 @@ func (b *WinPaintBuff) AddCircle(coord OsV4, cd color.RGBA, width int) {
 }
 
 func (b *WinPaintBuff) AddImage(path WinImagePath, screen OsV4, cd color.RGBA, align OsV2, Translate_x, Translate_y, Scale_x, Scale_y *float64, errCd color.RGBA, cell int) {
-	img := b.win.AddImage(path)
+	img := b.win.images.AddImage(path)
 
 	origSize := img.origSize
 

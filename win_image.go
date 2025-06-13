@@ -17,11 +17,15 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
+	"slices"
+	"sync"
+	"time"
 
 	"golang.org/x/image/bmp"
 	"golang.org/x/image/tiff"
@@ -49,10 +53,12 @@ type WinImage struct {
 	texture *WinTexture
 
 	lastDrawTick int64
+
+	file_timestamp int64
 }
 
 func NewWinImage(path WinImagePath, win *Win) *WinImage {
-	img := &WinImage{path: path}
+	img := &WinImage{path: path, file_timestamp: -1}
 
 	img.path = path
 
@@ -62,7 +68,11 @@ func NewWinImage(path WinImagePath, win *Win) *WinImage {
 		win.SetRedrawNewImage()
 	}
 
-	img.err = path.GetBlob(fnDone)
+	if path.fnGetBlob != nil {
+		img.err = path.fnGetBlob(fnDone)
+	} else {
+		img.err = fmt.Errorf("fnGetBlob is nil")
+	}
 
 	return img
 }
@@ -85,11 +95,13 @@ func (img *WinImage) GetBytes() int {
 	return 0
 }
 
-func (img *WinImage) Destroy() error {
-	return img.FreeTexture()
+func (img *WinImage) Destroy() {
+	if img.texture != nil {
+		img.FreeTexture()
+	}
 }
 
-func (img *WinImage) Maintenance(win *Win) (bool, error) {
+func (img *WinImage) Maintenance() (bool, error) {
 	// free un-used
 	if img.texture != nil && !OsIsTicksIn(img.lastDrawTick, 60000) {
 		img.FreeTexture()
@@ -131,4 +143,116 @@ func (img *WinImage) Draw(coord OsV4, depth int, cd color.RGBA) string {
 	}
 
 	return ""
+}
+
+type WinImages struct {
+	win    *Win
+	images []*WinImage
+	lock   sync.Mutex
+}
+
+func NewWinImages(win *Win) *WinImages {
+	img := &WinImages{win: win}
+
+	//hot reload
+	go func() {
+		for {
+			img._hotReload()
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	return img
+}
+
+func (imgs *WinImages) Destroy() {
+	imgs.lock.Lock()
+	defer imgs.lock.Unlock()
+
+	for _, it := range imgs.images {
+		it.Destroy()
+	}
+}
+
+func (imgs *WinImages) Maintenance() {
+	imgs.lock.Lock()
+	defer imgs.lock.Unlock()
+
+	for i := len(imgs.images) - 1; i >= 0; i-- {
+		ok, _ := imgs.images[i].Maintenance()
+		if !ok {
+			imgs.images = slices.Delete(imgs.images, i, i+1)
+		}
+	}
+}
+
+func (imgs *WinImages) NumTextures() int {
+	imgs.lock.Lock()
+	defer imgs.lock.Unlock()
+
+	n := 0
+	for _, img := range imgs.images {
+		if img.texture != nil {
+			n++
+		}
+	}
+	return n
+}
+
+func (imgs *WinImages) GetImagesBytes() int {
+	imgs.lock.Lock()
+	defer imgs.lock.Unlock()
+
+	n := 0
+	for _, img := range imgs.images {
+		n += img.GetBytes()
+	}
+	return n
+}
+
+func (imgs *WinImages) AddImage(path WinImagePath) *WinImage {
+	imgs.lock.Lock()
+	defer imgs.lock.Unlock()
+
+	//find
+	for _, img := range imgs.images {
+		if img.path.Cmp(&path) {
+			return img
+		}
+	}
+
+	//add
+	img := NewWinImage(path, imgs.win)
+	imgs.images = append(imgs.images, img)
+	return img
+}
+
+func (imgs *WinImages) _hotReload() {
+	imgs.lock.Lock()
+	defer imgs.lock.Unlock()
+
+	for i := len(imgs.images) - 1; i >= 0; i-- {
+		img := imgs.images[i]
+
+		if img.path.fnGetTimestamp != nil {
+			timestamp, err := img.path.fnGetTimestamp()
+			if err == nil {
+				if img.file_timestamp <= 0 {
+					img.file_timestamp = timestamp //1st time
+				} else {
+					if img.file_timestamp != timestamp {
+						imgs.images = slices.Delete(imgs.images, i, i+1)
+						imgs.win.SetRedrawNewImage()
+					}
+				}
+			}
+		}
+	}
+
+	for i := len(imgs.images) - 1; i >= 0; i-- {
+		ok, _ := imgs.images[i].Maintenance()
+		if !ok {
+			imgs.images = slices.Delete(imgs.images, i, i+1)
+		}
+	}
 }

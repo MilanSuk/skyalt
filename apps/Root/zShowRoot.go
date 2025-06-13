@@ -185,7 +185,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					bt.Background = 1
 				}
 				bt.Tooltip = app.Name
-				bt.IconPath = fmt.Sprintf("apps/%s/icon.png", app.Name)
+				bt.IconPath = fmt.Sprintf("apps/%s/icon", app.Name)
 				bt.Icon_margin = 0.4
 
 				bt.clicked = func() error {

@@ -19,19 +19,19 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"os"
 )
 
 type WinImagePath struct {
-	uid       string
-	fnGetBlob func(fnDone func(bytes []byte, err error)) error
+	uid            string
+	fnGetBlob      func(fnDone func(bytes []byte, err error)) error
+	fnGetTimestamp func() (int64, error)
 }
 
 func InitWinImagePath_blob(blob []byte) WinImagePath {
 	hash := sha256.Sum256(blob)
 
-	uid := "blob: " + hex.EncodeToString(hash[:])
+	uid := "hash: " + hex.EncodeToString(hash[:])
 	fnGetBlob := func(fnDone func(bytes []byte, err error)) error {
 		fnDone(blob, nil)
 		return nil
@@ -39,14 +39,21 @@ func InitWinImagePath_blob(blob []byte) WinImagePath {
 	return WinImagePath{uid: uid, fnGetBlob: fnGetBlob}
 }
 func InitWinImagePath_file(path string) WinImagePath {
-	uid := "file: " + path
+	uid := path
 	fnGetBlob := func(fnDone func(bytes []byte, err error)) error {
 		go func() {
 			fnDone(os.ReadFile(path))
 		}()
 		return nil
 	}
-	return WinImagePath{uid: uid, fnGetBlob: fnGetBlob}
+	fnGetTimestamp := func() (int64, error) {
+		inf, err := os.Stat(path)
+		if err == nil && inf != nil {
+			return inf.ModTime().UnixNano(), nil //ok
+		}
+		return -1, err
+	}
+	return WinImagePath{uid: uid, fnGetBlob: fnGetBlob, fnGetTimestamp: fnGetTimestamp}
 }
 func InitWinImagePath_load(load_uid string, fnGetBlob func(fnDone func(bytes []byte, err error)) error) WinImagePath {
 	uid := "func: " + load_uid
@@ -59,12 +66,4 @@ func (ip *WinImagePath) GetString() string {
 
 func (a *WinImagePath) Cmp(b *WinImagePath) bool {
 	return a.uid == b.uid
-}
-
-func (ip *WinImagePath) GetBlob(fnDone func(bytes []byte, err error)) error {
-	if ip.fnGetBlob != nil {
-		return ip.fnGetBlob(fnDone)
-	}
-
-	return fmt.Errorf("fnGetBlob() is nil")
 }
