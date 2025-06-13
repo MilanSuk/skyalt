@@ -150,12 +150,22 @@ func (router *ToolsRouter) Save() {
 
 func (router *ToolsRouter) FindApp(appName string) *ToolsApp {
 	router.lock.Lock()
-	defer router.lock.Unlock()
-
 	app := router.apps[appName]
+	router.lock.Unlock()
+
+	if app == nil {
+		router._reloadAppList()
+
+		//try again
+		router.lock.Lock()
+		app = router.apps[appName]
+		router.lock.Unlock()
+	}
+
 	if app == nil {
 		router.log.Error(fmt.Errorf("app '%s' not found", appName))
 	}
+
 	return app
 }
 
@@ -804,42 +814,46 @@ func (router *ToolsRouter) RunNet() {
 	}
 }
 
-func (router *ToolsRouter) _hotReload() {
+func (router *ToolsRouter) _reloadAppList() {
 	files, err := os.ReadDir("apps")
 	if router.log.Error(err) != nil {
 		return
 	}
 
 	router.lock.Lock()
-	{
-		//add new apps
-		for _, info := range files {
-			if !info.IsDir() {
-				continue
-			}
+	defer router.lock.Unlock()
 
-			appName := info.Name()
-
-			_, found := router.apps[appName]
-			if !found {
-				router.apps[appName] = NewToolsApp(appName, router)
-			}
+	//add new apps
+	for _, info := range files {
+		if !info.IsDir() {
+			continue
 		}
-		//remove deleted apps
-		for appName := range router.apps {
-			found := false
-			for _, info := range files {
-				if info.IsDir() && appName == info.Name() {
-					found = true
-					break
-				}
-			}
-			if !found {
-				delete(router.apps, appName)
-			}
+
+		appName := info.Name()
+
+		_, found := router.apps[appName]
+		if !found {
+			router.apps[appName] = NewToolsApp(appName, router)
 		}
 	}
-	router.lock.Unlock()
+	//remove deleted apps
+	for appName := range router.apps {
+		found := false
+		for _, info := range files {
+			if info.IsDir() && appName == info.Name() {
+				found = true
+				break
+			}
+		}
+		if !found {
+			delete(router.apps, appName)
+		}
+	}
+}
+
+func (router *ToolsRouter) _hotReload() {
+
+	router._reloadAppList()
 
 	//ticks
 	for appName, app := range router.apps {
