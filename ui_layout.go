@@ -626,15 +626,6 @@ func (layout *Layout) _relayoutInner() {
 
 	if layout.resizeFromPaintText() {
 		layout.updateCoord(0, 0, 1, 1)
-
-		//updateCoord() may changed .canvas(start, size), so 'tx.coordText' needs to be updated
-		if layout.UserCRFromText != nil {
-			tx := layout.UserCRFromText
-			tx.coordText = layout.canvas.Crop(layout.ui.CellWidth(tx.Margin))
-			if tx.coordText.Size.X == 0 {
-				tx.coordText.Size.X = layout.parent.canvas.Size.X - 2*layout.ui.CellWidth(tx.Margin) //from parent
-			}
-		}
 	}
 
 	if layout.IsDialog() {
@@ -1086,11 +1077,6 @@ func (layout *Layout) resizeFromPaintText() (changed bool) {
 			if layout.ui.edit.Is(layout) {
 				value = layout.ui.edit.temp
 			}
-		}
-
-		tx.coordText = layout.canvas.Crop(layout.ui.CellWidth(tx.Margin))
-		if tx.coordText.Size.X == 0 {
-			tx.coordText.Size.X = layout.parent.canvas.Size.X - 2*layout.ui.CellWidth(tx.Margin) //from parent
 		}
 
 		prop := InitWinFontPropsDef(layout.Cell())
@@ -1759,6 +1745,15 @@ func (layout *Layout) updateCoord(rx, ry, rw, rh float64) {
 	layout.canvas.Size.X = layout.cols.OutputAll()
 	layout.canvas.Size.Y = layout.rows.OutputAll()
 	layout.canvas = layout.canvas.Extend(layout.view)
+
+	//update text
+	txt := layout.UserCRFromText
+	if txt != nil {
+		txt.coordText = layout.canvas.Crop(layout.ui.CellWidth(txt.Margin))
+		if txt.coordText.Size.X == 0 {
+			txt.coordText.Size.X = layout.parent.canvas.Size.X - 2*layout.ui.CellWidth(txt.Margin) //from parent
+		}
+	}
 }
 
 func (layout *Layout) GetGridMax(minSize OsV2) OsV2 {
