@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"time"
 )
@@ -79,7 +80,17 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			newAppBt.Background = 0.25
 			newAppBt.clicked = func() error {
 
-				//open dialog ...........................
+				appName := st.findUniqueAppName("app")
+				if appName != "" {
+					os.MkdirAll(filepath.Join("..", appName), os.ModePerm)
+					os.WriteFile(filepath.Join("..", appName, "skyalt"), []byte(""), 0644)
+
+					//refresh apps & select and set new one
+					source_root.refreshApps()
+					source_root.ShowSettings = false
+					source_root.Selected_app_i = len(source_root.Apps) - 1
+					source_root.Apps[len(source_root.Apps)-1].Dev.Enable = true
+				}
 				return nil
 			}
 		}
@@ -342,6 +353,19 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	return nil
+}
+
+func (st *ShowRoot) findUniqueAppName(prefix string) string {
+	id := 1
+	for id < 1000 {
+		name := fmt.Sprintf("%s_%d", prefix, id)
+		if _, err := os.Stat(filepath.Join("..", name)); os.IsNotExist(err) {
+			return name
+		}
+		id++
+	}
+
+	return ""
 }
 
 func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error {
