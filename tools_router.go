@@ -873,6 +873,8 @@ func (router *ToolsRouter) _reloadAppList() {
 			}
 		}
 		if !found {
+			router.apps[appName].Destroy() //exit
+
 			delete(router.apps, appName)
 		}
 	}
