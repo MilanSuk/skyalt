@@ -1085,19 +1085,18 @@ func (layout *Layout) resizeFromPaintText() (changed bool) {
 		var mx, my int
 		if tx.Multiline {
 			max_line_px := layout.ui._UiText_getMaxLinePx(tx.coordText.Size.X, tx.Multiline, tx.Linewrapping)
-
 			mx, my = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
 		} else {
 			mx = layout.ui.win.GetTextSize(-1, value, prop).X
 			my = 1
 		}
 		sizePx := OsV2{mx, my * prop.lineH}
-
-		sizePx.X += layout.ui.CellWidth(tx.Margin) * 2
+		/*sizePx.X += layout.ui.CellWidth(tx.Margin) * 2
 		sizePx.Y += layout.ui.CellWidth(tx.Margin) * 2
-
 		size_x := float64(sizePx.X) / float64(layout.Cell())
-		size_y := float64(sizePx.Y) / float64(layout.Cell())
+		size_y := float64(sizePx.Y) / float64(layout.Cell())*/
+		size_x := float64(sizePx.X)/float64(layout.Cell()) + 2*tx.Margin
+		size_y := float64(sizePx.Y)/float64(layout.Cell()) + 2*tx.Margin
 
 		if !tx.Multiline {
 			size.Y += 0.5 //make space for narrow h-scroll
@@ -1791,6 +1790,10 @@ func (layout *Layout) updateArray(window OsV2, endGrid OsV2) {
 }
 
 func (layout *Layout) updateGridAndScroll(screen *OsV2, gridMax OsV2, makeSmallerX *bool, makeSmallerY *bool) bool {
+
+	if screen.Y == 1560 {
+		fmt.Println("df")
+	}
 
 	// update cols/rows
 	layout.updateArray(*screen, gridMax)

@@ -819,6 +819,10 @@ func _UiText_RemoveFormating(str string) string {
 }
 
 func (ui *Ui) _UiText_getMaxLinePx(max_px int, multi_line, line_wrapping bool) int {
+	if max_px < 0 {
+		max_px = -1
+	}
+
 	max_line_px := -1
 	if multi_line && line_wrapping {
 		max_line_px = max_px

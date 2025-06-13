@@ -131,7 +131,7 @@ func (arr *UiLayoutArray) Convert(cell int, start int, end int) OsV2 {
 func (arr *UiLayoutArray) ConvertMax(cell int, start int, end int) OsV2 {
 	var ret OsV2
 
-	for i := 0; i < end; i++ {
+	for i := range end {
 		ok := (i < arr.NumInputs())
 
 		var v int

@@ -461,14 +461,10 @@ func (gph *WinGph) GetTextMax(str string, const_max_line_px int, prop WinFontPro
 		lines = append(lines, WinGphLine{s: start_p, e: len(str)})
 	}
 
-	//compute max width
+	//compute max width from all lines
 	max_size_x := 0
 	for _, ln := range lines {
-		max_size_x = OsMax(max_size_x, txt.GetRangePx(ln.s, ln.e))
-	}
-
-	if const_max_line_px > 0 && max_size_x < const_max_line_px {
-		max_size_x++ //extra pixel
+		max_size_x = OsMax(max_size_x, txt.GetRangePx(ln.s, ln.e)+1)
 	}
 
 	it := &WinGphItemTextMax{text: str, const_max_line_px: const_max_line_px, prop: prop, lines: lines, max_size_x: max_size_x}
