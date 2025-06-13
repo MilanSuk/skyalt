@@ -72,12 +72,37 @@ func NewToolsApp(appName string, router *ToolsRouter) *ToolsApp {
 }
 
 func (app *ToolsApp) Destroy() error {
-	err := app.Process.Destroy()
+	err := app.Process.Destroy(false)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (app *ToolsApp) Rename(newName string) (string, error) {
+
+	oldName := app.Process.Compile.appName
+
+	//check
+	newName = _ToolsPrompt_getValidFileName(newName)
+	if newName == "" {
+		return oldName, fmt.Errorf("Rename failed: empty newName")
+	}
+
+	app.lock.Lock()
+	defer app.lock.Unlock()
+
+	//stop
+	app.Process.Destroy(true)
+
+	//rename
+	err := os.Rename(filepath.Join("apps", oldName), filepath.Join("apps", newName))
+	if err != nil {
+		return oldName, fmt.Errorf("Rename failed: empty newName")
+	}
+
+	return newName, nil
 }
 
 func (app *ToolsApp) _save() error {
@@ -170,7 +195,7 @@ func (app *ToolsApp) Tick() error {
 				codeHash = Tools_GetFileTime(promptsFilePath) //refresh
 			}
 
-			err = app.Prompts.Generate(app.Process.Compile.AppName, app.router)
+			err = app.Prompts.Generate(app.Process.Compile.appName, app.router)
 			if err != nil {
 				return err
 			}

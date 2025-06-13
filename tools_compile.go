@@ -35,19 +35,19 @@ type ToolsCodeError struct {
 }
 
 type ToolsAppCompile struct {
-	AppName string
+	appName string
 
 	Error    string
 	CodeHash int64
 }
 
 func NewToolsAppCompile(appName string) *ToolsAppCompile {
-	app := &ToolsAppCompile{AppName: appName}
+	app := &ToolsAppCompile{appName: appName}
 	return app
 }
 
 func (app *ToolsAppCompile) GetFolderPath() string {
-	return filepath.Join("apps", app.AppName)
+	return filepath.Join("apps", app.appName)
 }
 
 func (app *ToolsAppCompile) GetBinName() string {
@@ -95,7 +95,7 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 
 	app.CodeHash = codeHash
 
-	msg := router.AddRecompileMsg(app.AppName)
+	msg := router.AddRecompileMsg(app.appName)
 	defer msg.Done()
 
 	msg.progress_label = "Generating tools code"

@@ -46,7 +46,7 @@ func (app *ToolsAppProcess) IsRunning() bool {
 	return app.cmd != nil && !app.cmd_exited
 }
 
-func (app *ToolsAppProcess) Destroy() error {
+func (app *ToolsAppProcess) Destroy(waitTillEnd bool) error {
 	if app.IsRunning() {
 		cl, err := NewToolsClient("localhost", app.port)
 		if err != nil {
@@ -55,6 +55,12 @@ func (app *ToolsAppProcess) Destroy() error {
 		err = cl.WriteArray([]byte("exit"))
 		if err != nil {
 			return err
+		}
+	}
+
+	if waitTillEnd {
+		if !app.cmd_exited {
+			app.WaitUntilExited()
 		}
 	}
 
@@ -83,7 +89,7 @@ func (app *ToolsAppProcess) CheckRun(router *ToolsRouter) error {
 		app.cmd = nil
 
 		//start
-		cmd := exec.Command("./"+app.Compile.GetBinName(), app.Compile.AppName, strconv.Itoa(router.server.port))
+		cmd := exec.Command("./"+app.Compile.GetBinName(), app.Compile.appName, strconv.Itoa(router.server.port))
 		cmd.Dir = app.Compile.GetFolderPath()
 		OutStr := new(strings.Builder)
 		ErrStr := new(strings.Builder)

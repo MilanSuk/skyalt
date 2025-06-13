@@ -399,6 +399,7 @@ func main() {
 								go func() {
 									ui := _newUIItem(0, 0, 1, 1)
 									ui.UID = caller.ui_uid
+									ui.base = true
 
 									if len(paramsJs) == 0 {
 										paramsJs = []byte("{}")
@@ -805,6 +806,37 @@ func callFuncPrint(str string) {
 	}
 }
 
+func callFuncRenameApp(oldName, newName string) (string, error) {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("rename_app"))
+		if Tool_Error(err) == nil {
+			err = cl.WriteArray([]byte(oldName))
+			if Tool_Error(err) == nil {
+				err = cl.WriteArray([]byte(newName))
+				if Tool_Error(err) == nil {
+
+					newNameBytes, err := cl.ReadArray()
+					if Tool_Error(err) == nil {
+
+						errBytes, err := cl.ReadArray()
+						if Tool_Error(err) == nil {
+							if len(errBytes) > 0 {
+								return oldName, errors.New(string(errBytes))
+							}
+							return string(newNameBytes), nil
+						}
+
+					}
+				}
+			}
+		}
+	}
+	return oldName, err
+}
+
 func (caller *ToolCaller) _addCmd(cmd ToolCmd) {
 	caller.cmds = append(caller.cmds, cmd)
 }
@@ -841,6 +873,18 @@ func (ui *UI) _computeUID(parent *UI, name string) {
 func (parent *UI) _addUISub(ui *UI, name string) {
 	parent.Items = append(parent.Items, ui)
 	ui._computeUID(parent, name)
+}
+
+func (parent *UI) _addUISubCol(sub *UI, width float64) {
+	parent._addUISub(sub, "")
+
+	if width < 0 {
+		parent.SetColumnFromSub(parent.temp_col, 1, 10)
+	} else {
+		parent.SetColumn(parent.temp_col, width, width)
+	}
+
+	parent.temp_col++
 }
 
 func _callTool(funcName string, fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) (*UI, error) {
@@ -1459,7 +1503,94 @@ type UI struct {
 	Paint []UIPaint `json:",omitempty"`
 
 	changed func(newParams []byte) error
+
+	base               bool
+	temp_col, temp_row int
 }
+
+func (ui *UI) addText(width float64, label string) *UIText {
+	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+	item.layout.Text = item
+	ui._addUISubCol(item.layout, width)
+
+	return item
+}
+func (ui *UI) addEditboxString(width float64, value *string) *UIEditbox {
+	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.Editbox = item
+	ui._addUISubCol(item.layout, width)
+
+	return item
+}
+func (ui *UI) addEditboxInt(width float64, value *int) *UIEditbox {
+	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.Editbox = item
+	ui._addUISubCol(item.layout, width)
+
+	return item
+}
+func (ui *UI) addEditboxFloat(width float64, value *float64, precision int) *UIEditbox {
+	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.Editbox = item
+	ui._addUISubCol(item.layout, width)
+
+	return item
+}
+func (ui *UI) addButton(width float64, label string) *UIButton {
+	item := &UIButton{Label: label, Background: 1, Align: 1, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.Button = item
+	ui._addUISubCol(item.layout, width)
+
+	return item
+}
+func (ui *UI) addUI(width float64) *UI {
+	item := _newUIItem(ui.temp_col, 0, 1, 1)
+	item.base = true
+	ui._addUISubCol(item, width)
+	return item
+}
+
+func (ui *UI) addRow(height float64) *UI { //'height: -1' => auto-resize based on row content
+	if height < 0 {
+		ui.SetRowFromSub(ui.temp_row, 1, 10)
+	} else {
+		ui.SetRow(ui.temp_row, height, height)
+	}
+
+	if ui.base {
+		ui.SetColumn(0, 1, 100)
+	}
+
+	rowUi := _newUIItem(0, ui.temp_row, 1, 1)
+	ui._addUISub(rowUi, "")
+	return rowUi
+}
+
+/*
+api.go:
+
+//pouze základní structs + funcs(with comments) .....
+
+*/
+
+/*
+Example: .......
+func (st *Example) run(caller *ToolCaller, ui *UI) error {
+	person := LoadPersonInfo()
+
+	desc_width := 5	//description column width
+
+	r := ui.addRow()	//add new row
+	r.addText(desc_width, "Born")	//add description
+	r.addEditboxInt(-1, &person.Born)	//add editable text field
+
+	r = ui.addRow()
+	r.addText(desc_width, "Height")
+	r.addEditboxInt(-1, &person.Height)
+
+	return nil
+}
+*/
 
 type UIText struct {
 	layout  *UI
@@ -1702,7 +1833,6 @@ type UIList struct {
 	layout *UI
 
 	AutoSpacing bool
-	//Items       []*UI
 }
 
 type UIGridSize struct {
@@ -2241,12 +2371,24 @@ func (ui *UI) Paint_Brush(cd color.RGBA, pts []UIPaintBrushPoint) {
 	}})
 }
 
+type LLMMsgUsage struct {
+	Prompt_tokens       int
+	Input_cached_tokens int
+	Completion_tokens   int
+	Reasoning_tokens    int
+
+	Prompt_price       float64
+	Input_cached_price float64
+	Completion_price   float64
+	Reasoning_price    float64
+}
 type LLMCompletion struct {
 	UID string
 
+	Model             string
 	Temperature       float64
-	Max_tokens        int
 	Top_p             float64
+	Max_tokens        int
 	Frequency_penalty float64
 	Presence_penalty  float64
 	Reasoning_effort  string //"low", "medium", "high"
@@ -2262,9 +2404,12 @@ type LLMCompletion struct {
 
 	Max_iteration int
 
-	Out_StatusCode   int
-	Out_messages     []byte //[]*ChatMsg
-	Out_last_message string
+	Out_StatusCode             int
+	Out_messages               []byte //[]*ChatMsg
+	Out_last_final_message     string
+	Out_last_reasoning_message string
+
+	Out_usage LLMMsgUsage
 
 	delta func(msgJs []byte) //msg *ChatMsg
 }

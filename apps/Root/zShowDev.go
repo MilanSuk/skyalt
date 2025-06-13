@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,9 +13,6 @@ import (
 type ShowDev struct {
 	AppName string
 }
-
-//remove 'z' from files ....
-//all struct and utils must be in Structures.go ....
 
 func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	source_root, err := NewRoot("")
@@ -107,13 +105,27 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		diff := (string(filePromptsStr) != app.Dev.Prompts)
 
 		HeaderDiv := MainDiv.AddLayout(1, 0, 1, 1)
-		HeaderDiv.SetColumn(0, 1, 100)
-		HeaderDiv.SetColumn(1, 3, 3)
+		HeaderDiv.SetColumn(1, 1, 100)
 		HeaderDiv.SetColumn(2, 3, 3)
+		HeaderDiv.SetColumn(3, 3, 3)
 
-		HeaderDiv.AddText(0, 0, 1, 1, app.Name)
+		//app settings
+		SettingsDia := HeaderDiv.AddDialog("app_settings")
+		st.buildSettings(SettingsDia, app, caller)
+		SettingsBt := HeaderDiv.AddButton(0, 0, 1, 1, "")
+		SettingsBt.Background = 0.5
+		SettingsBt.IconPath = "resources/settings.png"
+		SettingsBt.Icon_margin = 0.2
+		SettingsBt.Icon_align = 1
+		SettingsBt.Tooltip = "Show app Settings"
+		SettingsBt.clicked = func() error {
+			SettingsDia.OpenRelative(SettingsBt.layout, caller)
+			return nil
+		}
 
-		CancelBt := HeaderDiv.AddButton(1, 0, 1, 1, "Cancel")
+		HeaderDiv.AddText(1, 0, 1, 1, app.Name)
+
+		CancelBt := HeaderDiv.AddButton(2, 0, 1, 1, "Cancel")
 		CancelBt.Background = 0.5
 		CancelBt.ConfirmQuestion = "Are you sure?"
 		CancelBt.Tooltip = "Trash changes"
@@ -121,7 +133,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			app.Dev.Prompts = string(filePromptsStr)
 			return nil
 		}
-		SaveBt := HeaderDiv.AddButton(2, 0, 1, 1, "Save")
+		SaveBt := HeaderDiv.AddButton(3, 0, 1, 1, "Save")
 		SaveBt.Tooltip = "Save & Generate code"
 		SaveBt.clicked = func() error {
 			os.WriteFile(prompts_path, []byte(app.Dev.Prompts), 0644)
@@ -129,7 +141,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		}
 
 		if isGenerating {
-			xx := 3
+			xx := 4
 			if !app.Dev.ShowSide {
 				HeaderDiv.SetColumn(xx, 3, 3)
 				CompBt := HeaderDiv.AddButton(xx, 0, 1, 1, "Generating")
@@ -204,25 +216,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		}
 	}
 
-	//app icon, change name, delete app
-	/*{
-		HeaderDiv := MainDiv.AddLayout(1, y, 1, 1)
-		HeaderDiv.SetColumn(0, 2, 2)
-		HeaderDiv.SetColumn(1, 1, 1)
-
-		//app name
-		//....
-
-		//delete app
-		//....
-
-		//change icon
-		path := filepath.Join("apps", app.Name, "icon.png")
-		IconBt := HeaderDiv.AddFilePickerButton(1, 0, 1, 1, &path, false, false)
-		IconBt.Preview = true
-		y++
-	}*/
-
 	//Side panel
 	if app.Dev.ShowSide {
 
@@ -253,7 +246,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 			}
 
-			//....
 			tx := SideDiv.AddText(0, 1, 1, 1, string(sdk_app.Generating_msg))
 			//tx.Linewrapping = false
 			tx.Align_v = 0
@@ -419,4 +411,79 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	return nil
+}
+
+func (st *ShowDev) buildSettings(dia *UIDialog, app *RootApp, caller *ToolCaller) {
+
+	ui := &dia.UI
+
+	ui.SetColumn(0, 2, 2)
+	ui.SetColumn(1, 3, 7)
+	y := 0
+
+	//label
+	ui.AddTextLabel(0, y, 2, 1, "Settings").Align_h = 1
+	y++
+
+	//edit app name
+	ui.AddText(0, y, 1, 1, "Rename")
+	name := app.Name
+	RenameEd := ui.AddEditboxString(1, y, 1, 1, &name)
+	RenameEd.changed = func() error {
+		newName, err := callFuncRenameApp(app.Name, name)
+		if err == nil {
+			app.Name = newName
+		}
+		return err
+	}
+	y++
+
+	y++ //space
+
+	//change icon
+	ui.AddText(0, y, 1, 1, "Icon")
+	dstPath := filepath.Join("apps", app.Name, "icon")
+	srcPath := dstPath
+	IconBt := ui.AddFilePickerButton(1, y, 1, 1, &srcPath, false, false)
+	IconBt.changed = func() error {
+		return st._copyFile(filepath.Join("..", app.Name, "icon"), srcPath)
+	}
+	y++
+	IconBt.Preview = true
+
+	y++ //space
+
+	//delete app
+	DeleteBt := ui.AddButton(0, y, 2, 1, "Delete app")
+	y++
+	//DeleteBt.Cd = UI_GetPalette().E
+	DeleteBt.ConfirmQuestion = fmt.Sprintf("Are you sure you want to permanently delete '%s' app", app.Name)
+	DeleteBt.clicked = func() error {
+		os.RemoveAll(filepath.Join("..", app.Name))
+		dia.Close(caller)
+		return nil
+	}
+}
+
+func (st *ShowDev) _copyFile(dst, src string) (err error) {
+	in, err := os.Open(src)
+	if err != nil {
+		return
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return
+	}
+	defer func() {
+		cerr := out.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+	if _, err = io.Copy(out, in); err != nil {
+		return
+	}
+	err = out.Sync()
+	return
 }

@@ -457,6 +457,33 @@ func (router *ToolsRouter) RunNet() {
 							}
 						}
 					}
+
+				case "rename_app":
+					oldName, err := cl.ReadArray()
+					if router.log.Error(err) == nil {
+						newNameBytes, err := cl.ReadArray()
+						if router.log.Error(err) == nil {
+							app := router.FindApp(string(oldName))
+							if app != nil {
+								newName, renameErr := app.Rename(string(newNameBytes))
+								if renameErr == nil {
+									router._reloadAppList()
+								}
+
+								//send back
+								err = cl.WriteArray([]byte(newName))
+								router.log.Error(err)
+
+								var errBytes []byte
+								if renameErr != nil {
+									errBytes = []byte(renameErr.Error())
+								}
+								err = cl.WriteArray(errBytes)
+								router.log.Error(err)
+							}
+						}
+					}
+
 				case "progress":
 					msg_id, err := cl.ReadInt()
 					if router.log.Error(err) == nil {
