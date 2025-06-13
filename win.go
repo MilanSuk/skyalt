@@ -89,7 +89,7 @@ type Win struct {
 	cursorTimeLastBlink float64
 	cursorCdA           byte
 
-	images []*WinImage
+	images *WinImages
 
 	gph *WinGph
 
@@ -106,6 +106,8 @@ func NewWin() (*Win, error) {
 	win := &Win{}
 
 	win.buff = NewWinPaintBuff(win)
+
+	win.images = NewWinImages(win)
 
 	var err error
 	win.io, err = NewWinIO()
@@ -170,6 +172,8 @@ func (win *Win) Destroy() error {
 	for _, cur := range win.cursors {
 		sdl.FreeCursor(cur.cursor)
 	}
+
+	win.images.Destroy()
 
 	win.gph.Destroy()
 
@@ -284,45 +288,6 @@ func (win *Win) SaveScreenshot() error {
 	}
 
 	return nil
-}
-
-func (win *Win) NumTextures() int {
-	n := 0
-	for _, it := range win.images {
-		if it.texture != nil {
-			n++
-		}
-	}
-	return n
-}
-
-func (win *Win) GetImagesBytes() int {
-	n := 0
-	for _, it := range win.images {
-		n += it.GetBytes()
-	}
-	return n
-}
-
-func (win *Win) FindImage(path WinImagePath) *WinImage {
-	for _, it := range win.images {
-		if it.path.Cmp(&path) {
-			return it
-		}
-	}
-	return nil
-}
-
-func (win *Win) AddImage(path WinImagePath) *WinImage {
-	img := win.FindImage(path)
-	if img != nil {
-		return img
-	}
-
-	//add
-	img = NewWinImage(path, win)
-	win.images = append(win.images, img)
-	return img
 }
 
 var g_dropPath string //dirty trick, because, when drop, the mouse position is invalid
@@ -482,12 +447,7 @@ func (win *Win) Event() (bool, bool, error) {
 }
 
 func (win *Win) Maintenance() {
-	for i := len(win.images) - 1; i >= 0; i-- {
-		ok, _ := win.images[i].Maintenance(win)
-		if !ok {
-			win.images = append(win.images[:i], win.images[i+1:]...)
-		}
-	}
+	win.images.Maintenance()
 
 	win.gph.Maintenance()
 }
@@ -732,7 +692,7 @@ func (win *Win) renderStats() {
 	runtime.ReadMemStats(&mem)
 	text := fmt.Sprintf("FPS(worst: %.1f, best: %.1f, avg: %.1f), Memory(%d imgs: %.2fMB, process: %.2fMB), Threads(%d), Text(live: %d, created: %d, removed: %d)",
 		win.stat.out_worst_fps, win.stat.out_best_fps, win.stat.out_avg_fps,
-		win.NumTextures(), float64(win.GetImagesBytes())/1024/1024, float64(mem.Sys)/1024/1024, runtime.NumGoroutine(),
+		win.images.NumTextures(), float64(win.images.GetImagesBytes())/1024/1024, float64(mem.Sys)/1024/1024, runtime.NumGoroutine(),
 		len(win.gph.texts), win.gph.texts_num_created, win.gph.texts_num_remove)
 
 	sz := win.GetTextSize(-1, text, props)
@@ -854,6 +814,7 @@ func (win *Win) DrawPolyStart(start OsV2, poly *WinGphItemPoly, depth int, cd co
 	win.DrawPolyRect(OsV4{Start: start, Size: poly.size}, poly, depth, cd)
 }
 
+// single line only!
 func (win *Win) DrawText(ln string, prop WinFontProps, frontCd color.RGBA, coord OsV4, depth int, align OsV2, yLine, numLines int) { // single line
 	item := win.gph.GetText(prop, ln)
 	if item != nil {
