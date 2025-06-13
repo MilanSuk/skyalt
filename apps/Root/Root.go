@@ -51,6 +51,11 @@ func NewRoot(file string) (*Root, error) {
 	return LoadFile(file, "Root", "json", st, true)
 }
 
+func (root *Root) IsAppExist(name string) bool {
+	_, err := os.Stat(filepath.Join("..", name))
+	return err == nil && !os.IsNotExist(err)
+}
+
 func (root *Root) refreshApps() (*RootApp, error) {
 	fls, err := os.ReadDir("..")
 	if err != nil {

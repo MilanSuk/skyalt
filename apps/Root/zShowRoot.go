@@ -80,7 +80,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			newAppBt.Background = 0.25
 			newAppBt.clicked = func() error {
 
-				appName := st.findUniqueAppName("app")
+				appName := st.findUniqueAppName("app", source_root)
 				if appName != "" {
 					os.MkdirAll(filepath.Join("..", appName), os.ModePerm)
 					os.WriteFile(filepath.Join("..", appName, "skyalt"), []byte(""), 0644)
@@ -355,11 +355,11 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	return nil
 }
 
-func (st *ShowRoot) findUniqueAppName(prefix string) string {
+func (st *ShowRoot) findUniqueAppName(prefix string, root *Root) string {
 	id := 1
 	for id < 1000 {
 		name := fmt.Sprintf("%s_%d", prefix, id)
-		if _, err := os.Stat(filepath.Join("..", name)); os.IsNotExist(err) {
+		if !root.IsAppExist(name) {
 			return name
 		}
 		id++
