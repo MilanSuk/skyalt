@@ -626,6 +626,15 @@ func (layout *Layout) _relayoutInner() {
 
 	if layout.resizeFromPaintText() {
 		layout.updateCoord(0, 0, 1, 1)
+
+		//updateCoord() may changed .canvas(start, size), so 'tx.coordText' needs to be updated
+		if layout.UserCRFromText != nil {
+			tx := layout.UserCRFromText
+			tx.coordText = layout.canvas.Crop(layout.ui.CellWidth(tx.Margin))
+			if tx.coordText.Size.X == 0 {
+				tx.coordText.Size.X = layout.parent.canvas.Size.X - 2*layout.ui.CellWidth(tx.Margin) //from parent
+			}
+		}
 	}
 
 	if layout.IsDialog() {
@@ -1080,7 +1089,6 @@ func (layout *Layout) resizeFromPaintText() (changed bool) {
 		}
 
 		tx.coordText = layout.canvas.Crop(layout.ui.CellWidth(tx.Margin))
-
 		if tx.coordText.Size.X == 0 {
 			tx.coordText.Size.X = layout.parent.canvas.Size.X - 2*layout.ui.CellWidth(tx.Margin) //from parent
 		}
@@ -1152,6 +1160,10 @@ func (layout *Layout) textComp() {
 		if tx != nil {
 			prop := InitWinFontPropsDef(layout.Cell())
 			prop.formating = tx.Formating
+
+			/*if strings.HasPrefix(tx.Text, "```go\npackage main") {
+				fmt.Println("daerer")
+			}*/
 
 			var coordText OsV4
 			if layout.UserCRFromText != nil {
@@ -1713,6 +1725,7 @@ func (layout *Layout) updateCoord(rx, ry, rw, rh float64) {
 		// move start by scroll
 		layout.view.Start.X -= layout.parent.scrollH.GetWheel() //parent scroll
 		layout.view.Start.Y -= layout.parent.scrollV.GetWheel()
+
 	}
 
 	// crop
