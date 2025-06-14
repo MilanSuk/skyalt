@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strconv"
@@ -21,7 +22,7 @@ const g_ShowChat_prompt_height = 7
 
 func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 
-	source_chat, err := NewChat(fmt.Sprintf("../%s/Chats/%s", st.AppName, st.ChatFileName))
+	source_chat, err := NewChat(filepath.Join("..", st.AppName, "Chats", st.ChatFileName))
 	if err != nil {
 		return err
 	}

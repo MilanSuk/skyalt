@@ -45,7 +45,7 @@ func (wsp *LLMWhispercpp) IsFolderExists(fileName string) bool {
 }
 
 func (wsp *LLMWhispercpp) getModelPath(model_name string) string {
-	return filepath.Join("models/", model_name+".bin")
+	return filepath.Join("models", model_name+".bin")
 }
 
 func (wsp *LLMWhispercpp) GetUrlInference() string {

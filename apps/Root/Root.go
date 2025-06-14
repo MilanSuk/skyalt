@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -110,64 +109,9 @@ func (root *Root) refreshApps() (*RootApp, error) {
 	return nil, nil
 }
 
-/*func (app *RootApp) _refreshFiles() error {
-
-	fls, err := os.ReadDir(app.GetFolderPath())
-	if err != nil {
-		return err
-	}
-	//add new tool/storage(.go)
-	for _, fl := range fls {
-		if fl.IsDir() || filepath.Ext(fl.Name()) != ".go" || fl.Name() == "main.go" || fl.Name() == "Storage.go" {
-			continue
-		}
-
-		toolName, _ := strings.CutSuffix(fl.Name(), ".go")
-		found := false
-		for _, tool := range app.Dev.Tools {
-			if tool.Name == toolName {
-				found = true
-				break
-			}
-		}
-		if !found {
-			app.Dev.Tools = append(app.Dev.Tools, &RootTool{Name: toolName})
-		}
-	}
-	//remove deleted tool/structs(.go)
-	for i := len(app.Dev.Tools) - 1; i >= 0; i-- {
-		if app.Dev.Tools[i].Name == "" {
-			continue
-		}
-
-		found := false
-		for _, fl := range fls {
-			if fl.IsDir() || filepath.Ext(fl.Name()) != ".go" || fl.Name() == "main.go" || fl.Name() == "Structures.go" {
-				continue
-			}
-
-			toolName, _ := strings.CutSuffix(fl.Name(), ".go")
-			if toolName == app.Dev.Tools[i].Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			app.Dev.Tools = slices.Delete(app.Dev.Tools, i, i+1)
-		}
-	}
-
-	//at least one tool
-	if len(app.Dev.Tools) == 0 {
-		app.Dev.Tools = append(app.Dev.Tools, &RootTool{})
-	}
-
-	return nil
-}*/
-
 func (app *RootApp) refreshChats(caller *ToolCaller) (*Chat, string, error) {
 
-	chats_folder := fmt.Sprintf("../%s/Chats", app.Name)
+	chats_folder := filepath.Join("..", app.Name, "Chats")
 	if _, err := os.Stat(chats_folder); os.IsNotExist(err) {
 		//no chat folder
 		app.Chats = nil
@@ -223,7 +167,7 @@ func (app *RootApp) refreshChats(caller *ToolCaller) (*Chat, string, error) {
 	//update and return
 	if app.Selected_chat_i >= 0 {
 		fileName := app.Chats[app.Selected_chat_i].FileName
-		sourceChat, err := NewChat(fmt.Sprintf("../%s/Chats/%s", app.Name, fileName))
+		sourceChat, err := NewChat(filepath.Join("..", app.Name, "Chats", fileName))
 		if err != nil {
 			return nil, "", err
 		}
