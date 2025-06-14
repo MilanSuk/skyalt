@@ -1091,12 +1091,12 @@ func (layout *Layout) resizeFromPaintText() (changed bool) {
 			my = 1
 		}
 		sizePx := OsV2{mx, my * prop.lineH}
-		/*sizePx.X += layout.ui.CellWidth(tx.Margin) * 2
+		sizePx.X += layout.ui.CellWidth(tx.Margin) * 2
 		sizePx.Y += layout.ui.CellWidth(tx.Margin) * 2
 		size_x := float64(sizePx.X) / float64(layout.Cell())
-		size_y := float64(sizePx.Y) / float64(layout.Cell())*/
-		size_x := float64(sizePx.X)/float64(layout.Cell()) + 2*tx.Margin
-		size_y := float64(sizePx.Y)/float64(layout.Cell()) + 2*tx.Margin
+		size_y := float64(sizePx.Y) / float64(layout.Cell())
+		//	size_x := float64(sizePx.X)/float64(layout.Cell()) + 2*tx.Margin
+		//	size_y := float64(sizePx.Y)/float64(layout.Cell()) + 2*tx.Margin
 
 		if !tx.Multiline {
 			size.Y += 0.5 //make space for narrow h-scroll
@@ -1145,10 +1145,6 @@ func (layout *Layout) textComp() {
 		if tx != nil {
 			prop := InitWinFontPropsDef(layout.Cell())
 			prop.formating = tx.Formating
-
-			/*if strings.HasPrefix(tx.Text, "```go\npackage main") {
-				fmt.Println("daerer")
-			}*/
 
 			var coordText OsV4
 			if layout.UserCRFromText != nil {

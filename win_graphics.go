@@ -444,7 +444,7 @@ func (gph *WinGph) GetTextMax(str string, const_max_line_px int, prop WinFontPro
 		} else {
 			px := txt.GetRangePx(start_p, p+1)
 
-			if const_max_line_px > 0 && px >= const_max_line_px {
+			if const_max_line_px > 0 && px > const_max_line_px {
 				s, _ := _UiText_CursorWordRange(str, p-1)
 				for s > 0 && txt.skips[s-1] {
 					s--
@@ -464,7 +464,7 @@ func (gph *WinGph) GetTextMax(str string, const_max_line_px int, prop WinFontPro
 	//compute max width from all lines
 	max_size_x := 0
 	for _, ln := range lines {
-		max_size_x = OsMax(max_size_x, txt.GetRangePx(ln.s, ln.e)) //+1?
+		max_size_x = OsMax(max_size_x, txt.GetRangePx(ln.s, ln.e))
 	}
 
 	it := &WinGphItemTextMax{text: str, const_max_line_px: const_max_line_px, prop: prop, lines: lines, max_size_x: max_size_x}
