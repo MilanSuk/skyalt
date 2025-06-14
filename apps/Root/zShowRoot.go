@@ -53,8 +53,9 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	{
 		AppsDiv := ui.AddLayout(0, 0, 1, 1)
 		AppsDiv.SetColumn(0, 1, 100)
-		AppsDiv.SetRow(1, 1, 100)
 		AppsDiv.Back_cd = UI_GetPalette().GetGrey(0.1)
+
+		y := 0
 
 		//Logo
 		{
@@ -62,7 +63,8 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			st.buildAbout(&AboutDia.UI)
 
 			//logo := HeaderDiv.AddImagePath(x, 0, 1, 1, "resources/logo_small.png")
-			logoBt := AppsDiv.AddButton(0, 0, 1, 1, "")
+			logoBt := AppsDiv.AddButton(0, y, 1, 1, "")
+			y++
 			logoBt.Icon_align = 1
 			logoBt.Background = 0.2
 			logoBt.IconPath = "resources/logo_small.png"
@@ -74,100 +76,23 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
-		//create an app
-		{
-			newAppBt := AppsDiv.AddButton(0, 2, 1, 1, "<h1>+")
-			newAppBt.Tooltip = "Create new app"
-			newAppBt.Background = 0.25
-			newAppBt.clicked = func() error {
-
-				appName := st.findUniqueAppName("app", source_root)
-				if appName != "" {
-					os.MkdirAll(filepath.Join("..", appName), os.ModePerm)
-					os.WriteFile(filepath.Join("..", appName, "skyalt"), []byte(""), 0644)
-
-					//refresh apps & select and set new one
-					source_root.refreshApps()
-					source_root.ShowSettings = false
-					source_root.Selected_app_i = len(source_root.Apps) - 1
-					source_root.Apps[len(source_root.Apps)-1].Dev.Enable = true
-				}
-				return nil
-			}
-		}
-
-		//Settings
-		{
-			setBt := AppsDiv.AddButton(0, 3, 1, 1, "")
-			setBt.IconPath = "resources/settings.png"
-			setBt.Icon_margin = 0.2
-			setBt.Icon_align = 1
-			setBt.Tooltip = "Show Settings"
-			setBt.Background = 0.25
-			if source_root.ShowSettings {
-				setBt.Background = 1
-			}
-			setBt.clicked = func() error {
-				source_root.ShowSettings = !source_root.ShowSettings
-				return nil
-			}
-		}
-
-		//Log/Errors
-		{
-			logs := callFuncGetLogs()
-			LogsDia := AppsDiv.AddDialog("progress")
-			st.buildLog(&LogsDia.UI, logs, caller)
-
-			LogBt := AppsDiv.AddButton(0, 4, 1, 1, "LOG")
-			LogBt.Background = 0.25
-			if len(logs) > 0 && logs[len(logs)-1].Time > source_root.Last_log_time {
-				LogBt.Background = 1
-				LogBt.Cd = UI_GetPalette().E
-			}
-			LogBt.clicked = func() error {
-				LogsDia.OpenRelative(LogBt.layout, caller)
-
-				if len(logs) > 0 {
-					source_root.Last_log_time = logs[len(logs)-1].Time
-				}
-				return nil
-			}
-		}
-
-		//Progress
-		{
-			msgs := callFuncGetMsgs()
-			if len(msgs) > 0 {
-				ProgressDia := AppsDiv.AddDialog("progress")
-				ProgressDia.UI.SetColumn(0, 5, 15)
-				ProgressDia.UI.SetRowFromSub(0, 1, 10)
-				st.buildThreads(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs)
-
-				ProgressBt := AppsDiv.AddButton(0, 5, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
-				ProgressBt.Background = 0
-				ProgressBt.clicked = func() error {
-					ProgressDia.OpenRelative(ProgressBt.layout, caller)
-					return nil
-				}
-			}
-		}
-
 		//Apps
 		{
-			Apps2Div := AppsDiv.AddLayout(0, 1, 1, 1)
+			AppsDiv.SetRow(y, 1, 100)
+			Apps2Div := AppsDiv.AddLayout(0, y, 1, 1)
+			y++
 			Apps2Div.SetColumn(0, 1, 100)
 			Apps2Div.ScrollV.Narrow = true
 			Apps2Div.SetColumn(0, 1, 100)
-			y := 0
+			yy := 0
 			for i, app := range source_root.Apps {
 				var bt *UIButton
 
 				if i == source_root.Selected_app_i && !source_root.ShowSettings {
 					dd := 0.8
-					Apps2Div.SetRowFromSub(y, 1, 100)
+					Apps2Div.SetRowFromSub(yy, 1, 100)
 
-					BtDiv := Apps2Div.AddLayout(0, y, 1, 1)
+					BtDiv := Apps2Div.AddLayout(0, yy, 1, 1)
 					BtDiv.SetColumn(0, 1, 100)
 					BtDiv.SetRow(0, d, d)
 					BtDiv.SetRow(1, dd, dd)
@@ -192,9 +117,9 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					}
 
 				} else {
-					Apps2Div.SetRow(y, d, d)
+					Apps2Div.SetRow(yy, d, d)
 
-					bt = Apps2Div.AddButton(0, y, 1, 1, "")
+					bt = Apps2Div.AddButton(0, yy, 1, 1, "")
 				}
 
 				bt.Icon_align = 1
@@ -226,9 +151,93 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					return nil
 				}
 
-				y++
+				yy++
 			}
 		}
+
+		//Progress
+		{
+			msgs := callFuncGetMsgs()
+			if len(msgs) > 0 {
+				ProgressDia := AppsDiv.AddDialog("progress")
+				ProgressDia.UI.SetColumn(0, 5, 15)
+				ProgressDia.UI.SetRowFromSub(0, 1, 10)
+				st.buildThreads(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs)
+
+				ProgressBt := AppsDiv.AddButton(0, y, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
+				y++
+				ProgressBt.Background = 0
+				ProgressBt.clicked = func() error {
+					ProgressDia.OpenRelative(ProgressBt.layout, caller)
+					return nil
+				}
+			}
+		}
+
+		//create an app
+		{
+			newAppBt := AppsDiv.AddButton(0, y, 1, 1, "<h1>+")
+			y++
+			newAppBt.Tooltip = "Create new app"
+			newAppBt.Background = 0.25
+			newAppBt.clicked = func() error {
+
+				appName := st.findUniqueAppName("app", source_root)
+				if appName != "" {
+					os.MkdirAll(filepath.Join("..", appName), os.ModePerm)
+					os.WriteFile(filepath.Join("..", appName, "skyalt"), []byte(""), 0644)
+
+					//refresh apps & select and set new one
+					source_root.refreshApps()
+					source_root.ShowSettings = false
+					source_root.Selected_app_i = len(source_root.Apps) - 1
+					source_root.Apps[len(source_root.Apps)-1].Dev.Enable = true
+				}
+				return nil
+			}
+		}
+
+		//Settings
+		{
+			setBt := AppsDiv.AddButton(0, y, 1, 1, "")
+			y++
+			setBt.IconPath = "resources/settings.png"
+			setBt.Icon_margin = 0.2
+			setBt.Icon_align = 1
+			setBt.Tooltip = "Show Settings"
+			setBt.Background = 0.25
+			if source_root.ShowSettings {
+				setBt.Background = 1
+			}
+			setBt.clicked = func() error {
+				source_root.ShowSettings = !source_root.ShowSettings
+				return nil
+			}
+		}
+
+		//Log/Errors
+		{
+			logs := callFuncGetLogs()
+			LogsDia := AppsDiv.AddDialog("progress")
+			st.buildLog(&LogsDia.UI, logs, caller)
+
+			LogBt := AppsDiv.AddButton(0, y, 1, 1, "LOG")
+			y++
+			LogBt.Background = 0.25
+			if len(logs) > 0 && logs[len(logs)-1].Time > source_root.Last_log_time {
+				LogBt.Background = 1
+				LogBt.Cd = UI_GetPalette().E
+			}
+			LogBt.clicked = func() error {
+				LogsDia.OpenRelative(LogBt.layout, caller)
+
+				if len(logs) > 0 {
+					source_root.Last_log_time = logs[len(logs)-1].Time
+				}
+				return nil
+			}
+		}
+
 	}
 
 	if source_root.ShowSettings {
