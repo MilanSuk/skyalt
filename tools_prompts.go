@@ -367,7 +367,7 @@ func LoadExampleStruct() (*ExampleStruct, error) {
 }
 
 func (app *ToolsPrompts) _getAPIFile() (string, error) {
-	fl, err := os.ReadFile("apps/main.go")
+	fl, err := os.ReadFile("sdk/main.go")
 	if err != nil {
 		return "", err
 	}

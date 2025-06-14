@@ -223,7 +223,7 @@ func (app *ToolsApp) Tick() error {
 		//add new tools
 		codeHash := int64(0)
 		//main.go
-		codeHash += Tools_GetFileTime("apps/main.go")
+		codeHash += Tools_GetFileTime("sdk/main.go")
 
 		for _, info := range files {
 
