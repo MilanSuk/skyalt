@@ -200,7 +200,7 @@ func NewLLMs(router *ToolsRouter) (*LLMs, error) {
 
 	//open
 	{
-		fl, err := os.ReadFile("apps/llms_cache.json")
+		fl, err := os.ReadFile("temp/llms_cache.json")
 		if err == nil {
 			json.Unmarshal(fl, &llms.Cache)
 		}
@@ -270,7 +270,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 	//add & save cache
 	{
 		llms.Cache = append(llms.Cache, *st)
-		_, err := Tools_WriteJSONFile("apps/llms_cache.json", llms.Cache)
+		_, err := Tools_WriteJSONFile("temp/llms_cache.json", llms.Cache)
 		llms.router.log.Error(err)
 	}
 
