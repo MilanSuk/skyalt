@@ -24,7 +24,7 @@ func (st *ShowActivityStatistic) run(caller *ToolCaller, ui *UI) error {
 	ui.SetColumn(0, 1, 100)
 	ui.SetRow(1, 2.5, 2.5)
 
-	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Statistic - %s", caller.ConvertTextDate(int64(activity.Date))))
+	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Statistic - %s", ConvertTextDate(int64(activity.Date))))
 
 	ui.Back_cd = UI_GetPalette().GetGrey(0.1)
 

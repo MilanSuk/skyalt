@@ -34,7 +34,7 @@ func (st *ShowActivityMap) run(caller *ToolCaller, ui *UI) error {
 	ui.SetColumn(0, 1, 100)
 	ui.SetRow(1, 10, 10)
 
-	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Map - %s", caller.ConvertTextDate(int64(activity.Date))))
+	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Map - %s", ConvertTextDate(int64(activity.Date))))
 
 	mp := ui.AddOsmMap(0, 1, 1, 1, &st.Out_CamLon, &st.Out_CamLat, &st.Out_CamZoom)
 	if len(segments) > 0 {
