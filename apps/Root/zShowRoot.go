@@ -147,7 +147,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 				if i == source_root.Selected_app_i && !source_root.ShowSettings {
 					dd := 0.8
-					Apps2Div.SetRow(y, d+dd, d+dd)
+					Apps2Div.SetRowFromSub(y, 1, 100)
 
 					BtDiv := Apps2Div.AddLayout(0, y, 1, 1)
 					BtDiv.SetColumn(0, 1, 100)
