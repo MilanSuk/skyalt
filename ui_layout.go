@@ -1790,11 +1790,6 @@ func (layout *Layout) updateArray(window OsV2, endGrid OsV2) {
 }
 
 func (layout *Layout) updateGridAndScroll(screen *OsV2, gridMax OsV2, makeSmallerX *bool, makeSmallerY *bool) bool {
-
-	if screen.Y == 1560 {
-		fmt.Println("df")
-	}
-
 	// update cols/rows
 	layout.updateArray(*screen, gridMax)
 

@@ -136,7 +136,7 @@ func (arr *UiLayoutArray) ConvertMax(cell int, start int, end int) OsV2 {
 
 		var v int
 		if ok {
-			v = int(OsMaxFloat(arr.inputs[i].min, arr.inputs[i].max) * float64(cell))
+			v = OsRoundHalf(OsMaxFloat(arr.inputs[i].min, arr.inputs[i].max) * float64(cell))
 		} else {
 			v = cell
 		}
@@ -151,7 +151,7 @@ func (arr *UiLayoutArray) ConvertMax(cell int, start int, end int) OsV2 {
 	return ret
 }
 
-func (arr *UiLayoutArray) GetCellPos(rel_px_pos int, cell int) int {
+/*func (arr *UiLayoutArray) GetCellPos(rel_px_pos int, cell int) int {
 	if rel_px_pos < 0 {
 		return 0
 	}
@@ -168,7 +168,7 @@ func (arr *UiLayoutArray) GetCellPos(rel_px_pos int, cell int) int {
 	}
 
 	return len(arr.outputs) + (rel_px_pos-allPixelsLast)/cell
-}
+}*/
 
 func (arr *UiLayoutArray) GetCloseCellPos(rel_px_pos int) int {
 	if rel_px_pos < 0 {
@@ -234,7 +234,7 @@ func (arr *UiLayoutArray) makeLarger(cell int, window int, allPixels int, fill b
 		hasSpace = false
 		for i := 0; i < len(arr.outputs) && allPixels < window; i++ {
 			if arr.fills[i] == fill {
-				maxAdd := int(arr.inputs[i].max*float64(cell)) - int(arr.outputs[i])
+				maxAdd := OsRoundHalf(arr.inputs[i].max*float64(cell)) - int(arr.outputs[i])
 				add := OsClamp(tryAdd, 0, maxAdd)
 
 				arr.outputs[i] += add
@@ -256,25 +256,25 @@ func (arr *UiLayoutArray) Update(cell int, window int) {
 	//project in -> out
 	for i := range arr.inputs {
 		//min
-		minV := float64(arr.inputs[i].min)
+		minV := arr.inputs[i].min
 		minV = OsClampFloat(minV, 0.001, 100000000)
 
 		if arr.inputs[i].resize == nil {
 			// max
 			maxV := minV
 			if arr.inputs[i].max > 0 {
-				maxV = float64(arr.inputs[i].max)
+				maxV = arr.inputs[i].max
 				maxV = OsMaxFloat(minV, maxV)
 			}
 
 			arr.inputs[i].min = minV
 			arr.inputs[i].max = maxV
 		} else {
-			resV := float64(arr.inputs[i].resize.value)
+			resV := arr.inputs[i].resize.value
 			resV = OsMaxFloat(resV, minV)
 
 			if arr.inputs[i].max > 0 {
-				maxV := float64(arr.inputs[i].max)
+				maxV := arr.inputs[i].max
 				maxV = OsMaxFloat(minV, maxV)
 
 				resV = OsClampFloat(resV, minV, maxV)
@@ -290,7 +290,7 @@ func (arr *UiLayoutArray) Update(cell int, window int) {
 	//sum
 	allPixels := 0
 	for i := range arr.outputs {
-		arr.outputs[i] = int(arr.inputs[i].min * float64(cell))
+		arr.outputs[i] = OsRoundHalf(arr.inputs[i].min * float64(cell))
 		allPixels += int(arr.outputs[i])
 	}
 

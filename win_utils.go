@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"math"
 	"strings"
 	"time"
 )
@@ -150,6 +151,6 @@ func OsRoundUp(v float64) int {
 	return int(v)
 }
 
-func OsRoundHalf(v float64) float64 {
-	return OsRoundDown(v + OsTrnFloat(v < 0, -0.5, 0.5))
+func OsRoundHalf(v float64) int {
+	return int(math.Round(v))
 }
