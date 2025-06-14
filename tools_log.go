@@ -24,9 +24,9 @@ import (
 )
 
 type ToolsLogItem struct {
-	stack     string
-	err       error
-	time_unix int64
+	Stack string
+	Msg   string
+	Time  float64
 }
 
 type ToolsLog struct {
@@ -41,6 +41,16 @@ func (lg *ToolsLog) Clear() {
 	lg.errors = nil
 }
 
+func (lg *ToolsLog) Get(start_i int) []ToolsLogItem {
+	lg.lock.Lock()
+	defer lg.lock.Unlock()
+
+	if start_i < 0 || start_i >= len(lg.errors) {
+		return nil
+	}
+	return lg.errors[start_i:]
+}
+
 func (lg *ToolsLog) Error(err error) error {
 	if err != nil {
 		lg.lock.Lock()
@@ -48,26 +58,9 @@ func (lg *ToolsLog) Error(err error) error {
 
 		stack := string(debug.Stack())
 
-		lg.errors = append(lg.errors, ToolsLogItem{stack: stack, err: err, time_unix: time.Now().Unix()})
+		lg.errors = append(lg.errors, ToolsLogItem{Stack: stack, Msg: err.Error(), Time: float64(time.Now().UnixMicro()) / 1000000})
 
 		fmt.Printf("\033[31m%s error: %v\nstack:%s\033[0m\n", lg.Name, err, stack)
 	}
 	return err
-}
-func (lg *ToolsLog) GetList(oldest_time_unix int64) []ToolsLogItem {
-	lg.lock.Lock()
-	defer lg.lock.Unlock()
-
-	start_i := -1
-	for i := range lg.errors {
-		if lg.errors[i].time_unix > oldest_time_unix {
-			start_i = i
-			break
-		}
-	}
-
-	if start_i < 0 {
-		return nil
-	}
-	return lg.errors[start_i:]
 }

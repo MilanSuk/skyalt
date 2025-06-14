@@ -233,6 +233,12 @@ type ToolUI struct {
 	lock sync.Mutex
 }
 
+type SdkLog struct {
+	Stack string
+	Msg   string
+	Time  float64
+}
+
 var g_uis_lock sync.Mutex
 var g_uis map[uint64]*ToolUI //[ui_uid]
 
@@ -242,6 +248,9 @@ var g_files_lock sync.Mutex
 var g_main ToolProgram
 
 var g_dev ToolDeviceSettings
+
+var g_logs []SdkLog
+var g_logs_lock sync.Mutex
 
 func main() {
 	log.SetFlags(log.Llongfile) //log.LstdFlags | log.Lshortfile
@@ -619,7 +628,7 @@ func (msg *SdkMsg) GetLabel() string {
 	return label
 }
 
-func GetMsgs() []SdkMsg {
+func callFuncGetMsgs() []SdkMsg {
 	var msgs []SdkMsg
 
 	cl, err := NewToolClient("localhost", g_main.router_port)
@@ -637,6 +646,35 @@ func GetMsgs() []SdkMsg {
 	}
 
 	return msgs
+}
+
+func callFuncGetLogs() []SdkLog {
+	g_logs_lock.Lock()
+	defer g_logs_lock.Unlock()
+
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("get_logs"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteInt(uint64(len(g_logs))) //sync only latest
+			if Tool_Error(err) == nil {
+
+				logsJs, err := cl.ReadArray()
+				if Tool_Error(err) == nil {
+					var logs []SdkLog
+					err = json.Unmarshal(logsJs, &logs)
+					if Tool_Error(err) == nil {
+						g_logs = append(g_logs, logs...)
+					}
+				}
+			}
+		}
+	}
+
+	return g_logs
 }
 
 func callFuncMsgStop(msg_id string) {
@@ -1155,7 +1193,7 @@ func Layout_ConvertTextTime(unix_sec int64) string {
 	return fmt.Sprintf("%.02d:%.02d", tm.Hour(), tm.Minute())
 }
 
-func (caller *ToolCaller) ConvertTextDate(unix_sec int64) string {
+func ConvertTextDate(unix_sec int64) string {
 	tm := time.Unix(unix_sec, 0)
 
 	switch UI_GetDateFormat() {
@@ -1177,8 +1215,8 @@ func (caller *ToolCaller) ConvertTextDate(unix_sec int64) string {
 
 	return ""
 }
-func (caller *ToolCaller) ConvertTextDateTime(unix_sec int64) string {
-	return caller.ConvertTextDate(unix_sec) + " " + Layout_ConvertTextTime(unix_sec)
+func ConvertTextDateTime(unix_sec int64) string {
+	return ConvertTextDate(unix_sec) + " " + Layout_ConvertTextTime(unix_sec)
 }
 
 func OsCopyFile(dst, src string) error {

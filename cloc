@@ -2,7 +2,7 @@
 #prints number of lines
 
 echo " --- --- main --- ---"
-cloc --by-file --unix --include-ext=go --exclude-dir=apps,resources .
+cloc --by-file --unix --include-ext=go --exclude-dir=apps,resources,sdk .
 
 echo " --- --- apps --- ---"
 cloc --by-file --unix --include-ext=go --not-match-f="main.go" apps

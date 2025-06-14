@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -112,21 +113,38 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
-		//Error
+		//Log/Errors
 		{
-			//....
+			logs := callFuncGetLogs()
+			LogsDia := AppsDiv.AddDialog("progress")
+			st.buildLog(&LogsDia.UI, logs, caller)
+
+			LogBt := AppsDiv.AddButton(0, 4, 1, 1, "LOG")
+			LogBt.Background = 0.25
+			if len(logs) > 0 && logs[len(logs)-1].Time > source_root.Last_log_time {
+				LogBt.Background = 1
+				LogBt.Cd = UI_GetPalette().E
+			}
+			LogBt.clicked = func() error {
+				LogsDia.OpenRelative(LogBt.layout, caller)
+
+				if len(logs) > 0 {
+					source_root.Last_log_time = logs[len(logs)-1].Time
+				}
+				return nil
+			}
 		}
 
 		//Progress
 		{
-			msgs := GetMsgs()
+			msgs := callFuncGetMsgs()
 			if len(msgs) > 0 {
 				ProgressDia := AppsDiv.AddDialog("progress")
 				ProgressDia.UI.SetColumn(0, 5, 15)
 				ProgressDia.UI.SetRowFromSub(0, 1, 10)
 				st.buildThreads(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs)
 
-				ProgressBt := AppsDiv.AddButton(0, 4, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
+				ProgressBt := AppsDiv.AddButton(0, 5, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
 				ProgressBt.Background = 0
 				ProgressBt.clicked = func() error {
 					ProgressDia.OpenRelative(ProgressBt.layout, caller)
@@ -255,7 +273,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 						}
 
 						fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
-						source_chat, err = NewChat(fmt.Sprintf("../%s/Chats/%s", app.Name, fileName))
+						source_chat, err = NewChat(filepath.Join("..", app.Name, "Chats", fileName))
 						if err != nil {
 							return nil
 						}
@@ -309,18 +327,17 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 						btClose.clicked = func() error {
 
 							//create "trash" folder
-							os.MkdirAll(fmt.Sprintf("../%s/Chats/trash", app.Name), os.ModePerm)
+							os.MkdirAll(filepath.Join("..", app.Name, "Chats", "trash"), os.ModePerm)
 
 							//copy file
-							err = OsCopyFile(fmt.Sprintf("../%s/Chats/trash/%s", app.Name, app.Chats[i].FileName),
-								fmt.Sprintf("../%s/Chats/%s", app.Name, app.Chats[i].FileName))
-
+							err = OsCopyFile(filepath.Join("..", app.Name, "Chats", "trash", app.Chats[i].FileName),
+								filepath.Join("..", app.Name, "Chats", app.Chats[i].FileName))
 							if err != nil {
 								return err
 							}
 
 							//remove file
-							os.Remove(fmt.Sprintf("../%s/Chats/%s", app.Name, app.Chats[i].FileName))
+							os.Remove(filepath.Join("..", app.Name, "Chats", app.Chats[i].FileName))
 
 							app.Chats = slices.Delete(app.Chats, i, i+1)
 							if i < app.Selected_chat_i {
@@ -550,6 +567,47 @@ func (st *ShowRoot) buildAbout(ui *UI) {
 	y++
 }
 
+func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
+
+	if len(logs) > 50 {
+		logs = logs[:50] //cut
+	}
+
+	ui.AddTextLabel(0, 0, 1, 1, "Logs")
+
+	ui.SetColumn(0, 1, 30)
+	ui.SetRowFromSub(1, 1, 15)
+	list := ui.AddLayoutList(0, 1, 1, 1, false)
+
+	for _, it := range logs {
+
+		RowDiv := list.AddItem()
+
+		RowDiv.SetColumn(0, 1, 4)
+		RowDiv.SetColumn(1, 1, 26)
+		RowDiv.AddText(0, 0, 1, 1, ConvertTextDateTime(int64(it.Time)))
+		tx := RowDiv.AddText(1, 0, 1, 1, it.Msg)
+		tx.Tooltip = it.Stack
+	}
+
+	CopyBt := ui.AddButton(0, 2, 1, 1, "Copy to clipboard")
+	CopyBt.Background = 0.5
+	CopyBt.clicked = func() error {
+		var str strings.Builder
+		for _, it := range logs {
+			str.WriteString("Msg:")
+			str.WriteString(it.Msg)
+			str.WriteString("\n")
+			str.WriteString("Stack:")
+			str.WriteString(it.Stack)
+			str.WriteString("\n")
+		}
+
+		caller.SetClipboardText(str.String())
+		return nil
+	}
+}
+
 func (st *ShowRoot) buildThreads(ui *UI, msgs []SdkMsg) {
 	y := 0
 	ui.SetColumn(0, 3, 100)
@@ -569,20 +627,4 @@ func (st *ShowRoot) buildThreads(ui *UI, msgs []SdkMsg) {
 		}
 		y++
 	}
-
-	//Errors ....
-	/*errs := router.log.GetList(time.Now().Unix() - 10)
-	for _, er := range errs {
-		tx := ui.AddText(0, y, 2, 1, "Error: "+er.err.Error())
-		tx.Cd = UI_GetPalette().E
-		y++
-	}
-
-	if y > 0 {
-		if y == len(errs) {
-			ui.SetRefreshDelay(3) //errors
-		} else {
-			ui.SetRefreshDelay(1) //update
-		}
-	}*/
 }

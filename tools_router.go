@@ -594,6 +594,30 @@ func (router *ToolsRouter) RunNet() {
 						router.log.Error(err)
 					}
 
+				case "get_logs":
+					start_i, err := cl.ReadInt()
+					if router.log.Error(err) == nil {
+						logs := router.log.Get(int(start_i))
+						logsJs, err := json.Marshal(logs)
+						router.log.Error(err)
+						err = cl.WriteArray(logsJs)
+						router.log.Error(err)
+					}
+
+					var msgs []SdkMsg
+					rmsgs := router.GetSortedMsgs()
+					for _, m := range rmsgs {
+						if m.drawit {
+							msgs = append(msgs, SdkMsg{Id: m.user_uid, AppName: m.appName, FuncName: m.funcName, Progress_label: m.progress_label, Progress_done: m.progress_done, Start_time: m.start_time})
+						}
+					}
+
+					msgsJs, err := json.Marshal(msgs)
+					if router.log.Error(err) == nil {
+						err = cl.WriteArray(msgsJs)
+						router.log.Error(err)
+					}
+
 				case "set_msg_name":
 					user_uid, err := cl.ReadInt()
 					if router.log.Error(err) == nil {

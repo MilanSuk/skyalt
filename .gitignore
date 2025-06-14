@@ -5,6 +5,8 @@ root.json
 ini.json
 layouts.json
 
+temp/
+
 apps/Activities/*.json
 apps/Activities/*.bin
 apps/Activities/main.go

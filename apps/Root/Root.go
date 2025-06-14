@@ -42,6 +42,8 @@ type Root struct {
 
 	Apps           []*RootApp
 	Selected_app_i int
+
+	Last_log_time float64
 }
 
 func NewRoot(file string) (*Root, error) {
