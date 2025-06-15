@@ -252,7 +252,7 @@ func (app *ToolsPrompts) Generate(appName string, router *ToolsRouter) error {
 	comp.Presence_penalty = 0
 	comp.Reasoning_effort = ""
 	comp.Max_iteration = 1
-	comp.Model = "gpt-4.1-nano"
+	comp.Model = "gpt-4.1-mini"
 
 	msg := router.AddRecompileMsg(appName)
 	defer msg.Done()
@@ -354,7 +354,9 @@ func (app *ToolsPrompts) _getStructureMsg(structPrompt *ToolsPrompt) (string, st
 
 	systemMessage += "Based on user message, rewrite storage.go file. Your job is to design structures. Write additional functions only if user ask for them. You may write multiple structures.\n"
 
-	systemMessage += "Structures can not have pointers, because they will be saved as JSON, so instead of pointer(s) use ID which is saved in map[interger or string ID].\n"
+	systemMessage += "Structure attributes can not have pointers, because they will be saved as JSON, so instead of pointer(s) use ID which is saved in map[interger or string ID].\n"
+
+	systemMessage += "Load<name_of_struct>() functions always returns pointer, not array."
 
 	systemMessage += "Do not call os.ReadFile() + json.Unmarshal(), instead call ReadJSONFile(). Do not call os.WriteFile(), saving structures into disk is automatic."
 
