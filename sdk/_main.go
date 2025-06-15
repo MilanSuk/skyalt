@@ -919,7 +919,7 @@ func (parent *UI) _addUISubCol(sub *UI, width float64) {
 	if width < 0 {
 		parent.SetColumnFromSub(parent.temp_col, 1, 50)
 	} else {
-		min_width := 1
+		min_width := 1.0
 		if width < min_width {
 			min_width = width
 		}
