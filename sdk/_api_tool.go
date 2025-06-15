@@ -116,3 +116,9 @@ type UIButton struct {
 }
 
 func (ui *UI) addButton(width float64, label string) *UIButton
+
+// accepts unix time and returns date(formated by user)
+func SdkGetDate(unix_sec int64) string
+
+// accepts unix time and returns date(formated by user) + hour + minute + seconds
+func SdkGetDateTime(unix_sec int64) string

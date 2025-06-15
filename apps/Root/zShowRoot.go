@@ -594,7 +594,7 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 
 		RowDiv.SetColumn(0, 1, 4)
 		RowDiv.SetColumn(1, 1, 26)
-		RowDiv.AddText(0, 0, 1, 1, ConvertTextDateTime(int64(it.Time)))
+		RowDiv.AddText(0, 0, 1, 1, SdkGetDateTime(int64(it.Time)))
 		tx := RowDiv.AddText(1, 0, 1, 1, it.Msg)
 		tx.Tooltip = it.Stack
 	}

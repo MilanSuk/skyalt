@@ -38,7 +38,7 @@ func (st *ExportActivitiesIntoFolder) run(caller *ToolCaller, ui *UI) error {
 	y := 3
 	for _, id := range sorted {
 		it := source_activities.Activities[id]
-		ui.AddText(0, y, 1, 1, ConvertTextDate(int64(it.Date)))
+		ui.AddText(0, y, 1, 1, SdkGetDate(int64(it.Date)))
 		ui.AddText(1, y, 1, 1, it.Type)
 		ui.AddText(2, y, 1, 1, it.Description)
 		y++

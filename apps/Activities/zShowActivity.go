@@ -23,7 +23,7 @@ func (st *ShowActivity) run(caller *ToolCaller, ui *UI) error {
 	ui.SetColumn(0, 2, 4)
 	ui.SetColumn(1, 3, 16)
 
-	ui.AddTextLabel(0, 0, 2, 1, fmt.Sprintf("Edit - %s", ConvertTextDate(int64(activity.Date))))
+	ui.AddTextLabel(0, 0, 2, 1, fmt.Sprintf("Edit - %s", SdkGetDate(int64(activity.Date))))
 
 	y := 1
 	ui.AddText(0, y, 1, 1, "Type")

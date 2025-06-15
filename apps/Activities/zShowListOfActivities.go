@@ -57,7 +57,7 @@ func (st *ShowListOfActivities) run(caller *ToolCaller, ui *UI) error {
 		tm := time.Duration(it.Duration * float64(time.Second))
 
 		LineDiv := _GetListOfActivities_SetRow(ui.AddLayout(0, y, 1, 1), id)
-		LineDiv.AddText(0, 0, 1, 1, ConvertTextDateTime(int64(it.Date)))
+		LineDiv.AddText(0, 0, 1, 1, SdkGetDateTime(int64(it.Date)))
 		cb := LineDiv.AddCombo(1, 0, 1, 1, &it.Type, source_activities.GetTypeLabels(), source_activities.GetTypeValues())
 		cb.changed = func() error {
 			return nil

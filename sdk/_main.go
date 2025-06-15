@@ -1188,12 +1188,7 @@ func Layout_GetDayTextShort(day int) string {
 	return ""
 }
 
-func Layout_ConvertTextTime(unix_sec int64) string {
-	tm := time.Unix(unix_sec, 0)
-	return fmt.Sprintf("%.02d:%.02d", tm.Hour(), tm.Minute())
-}
-
-func ConvertTextDate(unix_sec int64) string {
+func SdkGetDate(unix_sec int64) string {
 	tm := time.Unix(unix_sec, 0)
 
 	switch UI_GetDateFormat() {
@@ -1215,8 +1210,10 @@ func ConvertTextDate(unix_sec int64) string {
 
 	return ""
 }
-func ConvertTextDateTime(unix_sec int64) string {
-	return ConvertTextDate(unix_sec) + " " + Layout_ConvertTextTime(unix_sec)
+func SdkGetDateTime(unix_sec int64) string {
+	tm := time.Unix(unix_sec, 0)
+
+	return SdkGetDate(unix_sec) + " " + fmt.Sprintf("%.02d:%.02d:%.02d", tm.Hour(), tm.Minute(), tm.Second())
 }
 
 func OsCopyFile(dst, src string) error {

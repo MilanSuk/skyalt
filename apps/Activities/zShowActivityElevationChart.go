@@ -33,7 +33,7 @@ func (st *ShowActivityElevationChart) run(caller *ToolCaller, ui *UI) error {
 	ui.SetColumn(0, 1, 100)
 	ui.SetRow(1, 10, 10)
 
-	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Elevation - %s", ConvertTextDate(int64(activity.Date))))
+	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Elevation - %s", SdkGetDate(int64(activity.Date))))
 
 	line := UIChartLine{Label: "Elevation", Cd: color.RGBA{0, 0, 0, 255}}
 

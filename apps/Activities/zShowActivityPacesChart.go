@@ -32,7 +32,7 @@ func (st *ShowActivityPacesChart) run(caller *ToolCaller, ui *UI) error {
 	ui.SetColumn(0, 1, 100)
 	ui.SetRow(1, 10, 10)
 
-	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Paces - %s", ConvertTextDate(int64(activity.Date))))
+	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Paces - %s", SdkGetDate(int64(activity.Date))))
 
 	var columns []UIChartColumn
 	var x_labels []string
