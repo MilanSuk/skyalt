@@ -60,7 +60,7 @@ func (prompt *ToolsPrompt) updateSchema() error {
 
 func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, usage *LLMMsgUsage, model string) {
 
-	re := regexp.MustCompile("(?s)```(?:go|golang)\n(.*?)\n```")
+	re := regexp.MustCompile("(?s)```(?:go|golang)(.*?)```")
 	matches := re.FindAllStringSubmatch(final_msg, -1)
 
 	var goCode strings.Builder
@@ -71,7 +71,11 @@ func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, us
 		}
 	}
 
-	prompt.Code = strings.TrimSpace(goCode.String())
+	if goCode.Len() > 0 {
+		prompt.Code = strings.TrimSpace(goCode.String())
+	} else {
+		prompt.Code = final_msg
+	}
 	prompt.Message = final_msg
 	prompt.Reasoning = reasoning_msg
 	prompt.Usage = *usage
@@ -322,7 +326,10 @@ func (app *ToolsPrompts) WriteFiles(folderPath string) error {
 	}
 
 	for _, prompt := range app.Prompts {
-		prompt.updateSchema()
+		err := prompt.updateSchema()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -330,28 +337,20 @@ func (app *ToolsPrompts) WriteFiles(folderPath string) error {
 
 func (app *ToolsPrompts) _getStructureMsg(structPrompt *ToolsPrompt) (string, string, error) {
 
-	apisFile := `func ReadJSONFile[T any](path string, defaultValues *T) (*T, error)
-`
-	storageFile := `
-package main
+	apisFile, err := os.ReadFile("sdk/_api_storage.go")
+	if err != nil {
+		return "", "", err
+	}
 
-type ExampleStruct struct {
-	//<attributes>
-}
-
-func LoadExampleStruct() (*ExampleStruct, error) {
-	st := &ExampleStruct{}	//set default values here
-
-	return ReadJSONFile("ExampleStruct.json", st)
-}
-
-//<structures functions here>
-`
+	exampleFile, err := os.ReadFile("sdk/_example_storage.go")
+	if err != nil {
+		return "", "", err
+	}
 
 	systemMessage := "You are a programmer. You write code in Go language. Here is the list of files in project folder.\n"
 
-	systemMessage += "file - apis.go:\n```go" + apisFile + "```\n"
-	systemMessage += "file - storage.go:\n```go" + storageFile + "```\n"
+	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
+	systemMessage += "file - storage.go:\n```go" + string(exampleFile) + "```\n"
 
 	systemMessage += "Based on user message, rewrite storage.go file. Your job is to design structures. Write additional functions only if user ask for them. You may write multiple structures.\n"
 
@@ -366,35 +365,14 @@ func LoadExampleStruct() (*ExampleStruct, error) {
 	return systemMessage, userMessage, nil
 }
 
-func (app *ToolsPrompts) _getAPIFile() (string, error) {
-	fl, err := os.ReadFile("sdk/main.go")
-	if err != nil {
-		return "", err
-	}
-	mainGo := string(fl)
-
-	structsStarts := strings.Index(mainGo, "//--- Ui ---")
-	structsEnd := structsStarts + strings.Index(mainGo[structsStarts:], "\nfunc")
-
-	code := string(mainGo[structsStarts+len("//--- Ui ---") : structsEnd]) //add structs
-
-	lines := strings.Split(mainGo[structsEnd:], "\n")
-	for _, ln := range lines {
-		if strings.HasPrefix(ln, "func (") {
-			code += ln + "\n"
-		}
-	}
-
-	code = strings.ReplaceAll(code, "`json:\",omitempty\"`", "")
-	code = strings.Trim(code, "\n ")
-
-	//fmt.Println(code)
-
-	return code, nil
-}
-
 func (app *ToolsPrompts) _getToolMsg(prompt *ToolsPrompt, structPrompt *ToolsPrompt) (string, string, error) {
-	apisFile, err := app._getAPIFile()
+
+	apisFile, err := os.ReadFile("sdk/_api_tool.go")
+	if err != nil {
+		return "", "", err
+	}
+
+	exampleFile, err := os.ReadFile("sdk/_example_tool.go")
 	if err != nil {
 		return "", "", err
 	}
@@ -416,31 +394,14 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 }
 `, prompt.Name, prompt.Name)
 
-	/*toolsNames := ""
-	for i, it := range app.Prompts {
-		if it.Name == "" || it.Name == prompt.Name {
-			continue
-		}
-		toolsNames += it.Name
-		if i+1 < len(app.Prompts) {
-			toolsNames += ", "
-		} else {
-			toolsNames += "."
-		}
-	}*/
-
 	systemMessage := "You are a programmer. You write code in Go language. Here is the list of files in project folder.\n"
 
-	systemMessage += "file - apis.go:\n```go" + apisFile + "```\n"
+	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
 	systemMessage += "file - storage.go:\n```go" + storageFile + "```\n"
+	systemMessage += "file - example.go:\n```go" + string(exampleFile) + "```\n"
 	systemMessage += "file - tool.go:\n```go" + toolFile + "```\n"
 
-	systemMessage += "Based on user message, rewrite tool.go file. Your job is to design function(tool).\n"
-
-	/*systemMessage += "Rename 'ExampleTool' with tools name based on user prompt. Don't use the word 'tool' in the name."
-	if toolsNames != "" {
-		systemMessage += "Here are the names of tools which already exists, don't use them:" + toolsNames + "\n"
-	}*/
+	systemMessage += "Based on user message, rewrite tool.go file. Your job is to design function(tool). Look into example.go to understand how APIs and storage functions work.\n"
 
 	systemMessage += "Figure out <tool's arguments> based on user prompt. They are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with upper letter. Every argument must have description as comment.\n"
 

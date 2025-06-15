@@ -175,7 +175,7 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 		)
 		`)*/
 
-		mainGo, err := os.ReadFile("sdk/main.go")
+		mainGo, err := os.ReadFile("sdk/_main.go")
 		if err != nil {
 			return nil, err
 		}
