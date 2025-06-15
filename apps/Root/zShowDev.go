@@ -133,7 +133,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			app.Dev.Prompts = string(filePromptsStr)
 			return nil
 		}
-		SaveBt := HeaderDiv.AddButton(3, 0, 1, 1, "Save")
+		SaveBt := HeaderDiv.AddButton(3, 0, 1, 1, "Generate")
 		SaveBt.Tooltip = "Save & Generate code"
 		SaveBt.clicked = func() error {
 			os.WriteFile(prompts_path, []byte(app.Dev.Prompts), 0644)
@@ -184,7 +184,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		MainDiv.SetRowFromSub(2, 1, 10)
 		FooterDiv := MainDiv.AddLayout(1, 2, 1, 1)
 		FooterDiv.SetColumn(0, 1, 100)
-		FooterDiv.SetColumn(1, 1, 3)
+		FooterDiv.SetColumn(1, 1, 4)
 		FooterDiv.SetRowFromSub(0, 1, 5)
 		tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#<NameOfTool> //Describe app's feature.")
 		tx.Align_v = 0
@@ -196,7 +196,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			for _, it := range sdk_app.Prompts {
 				sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price
 			}
-			tx := FooterDiv.AddText(1, 0, 1, 1, fmt.Sprintf("<i>Total: $%.3f", sum))
+			tx := FooterDiv.AddText(1, 0, 1, 1, fmt.Sprintf("<i>Total: $%f", sum))
 			tx.Align_v = 0
 			tx.Align_h = 2
 		}
@@ -370,7 +370,21 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					default:
 						fl, err := os.ReadFile(filepath.Join("..", app.Name, app.Dev.SideFile))
 						if err == nil {
-							tx := SideDiv.AddText(0, 1, 1, 1, string(fl))
+
+							code := string(fl)
+							if len(prompt.Errors) > 0 {
+								errCd := UI_GetPalette().E
+								lines := strings.Split(string(fl), "\n")
+								for _, er := range prompt.Errors {
+									if er.Line >= 1 && er.Line <= len(lines) {
+										lines[er.Line-1] = fmt.Sprintf("<rgba%d,%d,%d,255>%s</rgba>", errCd.R, errCd.G, errCd.B, lines[er.Line-1])
+									}
+								}
+
+								code = strings.Join(lines, "\n")
+							}
+
+							tx := SideDiv.AddText(0, 1, 1, 1, code)
 							tx.Linewrapping = false
 							tx.Align_v = 0
 							tx.layout.Back_cd = codeBackCd
@@ -380,7 +394,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 					//Price
 					{
-						tx := SideDiv.AddText(0, 2, 1, 1, fmt.Sprintf("<i>%s, $%.3f", prompt.Model, prompt.Usage.Prompt_price+prompt.Usage.Input_cached_price+prompt.Usage.Completion_price+prompt.Usage.Reasoning_price))
+						tx := SideDiv.AddText(0, 2, 1, 1, fmt.Sprintf("<i>%s, $%f", prompt.Model, prompt.Usage.Prompt_price+prompt.Usage.Input_cached_price+prompt.Usage.Completion_price+prompt.Usage.Reasoning_price))
 						tx.Align_h = 2
 					}
 
@@ -390,9 +404,11 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 							SideDiv.AddText(0, 3, 1, 1, "Code errors:")
 							SideDiv.SetRowFromSub(4, 1, 5)
 							ErrsDiv := SideDiv.AddLayout(0, 4, 1, 1)
-							ErrsDiv.SetColumn(0, 1, 100)
+							ErrsDiv.ScrollH.Narrow = true
+							ErrsDiv.SetColumnFromSub(0, 1, 100)
 							for i, er := range prompt.Errors {
 								tx := ErrsDiv.AddText(0, i, 1, 1, fmt.Sprintf("%d:%d: %s", er.Line, er.Col, er.Msg))
+								tx.Linewrapping = false
 								tx.Cd = UI_GetPalette().E
 							}
 						}
