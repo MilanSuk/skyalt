@@ -183,10 +183,6 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 		return err
 	}
 
-	if st.Model == "" {
-		st.Model = "gpt-4.1-nano"
-	}
-
 	//Tools
 	var tools []*ToolsOpenAI_completion_tool
 	var app *ToolsApp

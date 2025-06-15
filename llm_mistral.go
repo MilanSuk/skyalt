@@ -183,10 +183,6 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 		return err
 	}
 
-	if st.Model == "" {
-		st.Model = "devstral-small-latest"
-	}
-
 	//Tools
 	var tools []*ToolsOpenAI_completion_tool
 	var app *ToolsApp

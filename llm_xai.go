@@ -91,8 +91,7 @@ func (xai *LLMxAI) Check() error {
 func (xai *LLMxAI) FindModel(name string) (*LLMxAILanguageModel, *LLMxAIImageModel) {
 	name = strings.ToLower(name)
 
-	if name == "" {
-		name = "grok-3"
+	if name == "grok-3" {
 		if !xai.SmartMode {
 			name += "-mini"
 		}
