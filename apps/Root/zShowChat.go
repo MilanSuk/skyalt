@@ -991,7 +991,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				out := msg.Usage.Completion_price + msg.Usage.Reasoning_price
 				inf := fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s sec\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
 					msg.Provider+":"+msg.Model,
-					ConvertTextDateTime(int64(msg.CreatedTimeSec)),
+					SdkGetDateTime(int64(msg.CreatedTimeSec)),
 					strconv.FormatFloat(msg.TimeToFirstToken, 'f', 3, 64),
 					strconv.FormatFloat(msg.Time, 'f', 3, 64),
 					strconv.FormatFloat(msg.GetSpeed(), 'f', 3, 64),
