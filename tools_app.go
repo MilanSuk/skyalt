@@ -51,8 +51,7 @@ type ToolsApp struct {
 	storage_changes int64
 }
 
-func NewToolsApp(appName string, router *ToolsRouter) *ToolsApp {
-
+func NewToolsApp(appName string, router *ToolsRouter) (*ToolsApp, error) {
 	app := &ToolsApp{router: router}
 	app.Tools = make(map[string]*ToolsAppItem)
 
@@ -60,21 +59,35 @@ func NewToolsApp(appName string, router *ToolsRouter) *ToolsApp {
 
 	promptsFilePath := filepath.Join("apps", appName, "skyalt")
 	if Tools_FileExists(promptsFilePath) {
-		app.Prompts = NewToolsPrompts()
+		prompts, err := NewToolsPrompts(app.Process.Compile.GetFolderPath())
+		if err != nil {
+			return nil, err
+		}
+		app.Prompts = prompts
 	}
 
 	fl, err := os.ReadFile(app.GetToolsJsonPath())
 	if err == nil {
-		json.Unmarshal(fl, app)
+		err = json.Unmarshal(fl, app)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return app
+	return app, nil
 }
 
 func (app *ToolsApp) Destroy() error {
 	err := app.Process.Destroy(false)
 	if err != nil {
 		return err
+	}
+
+	if app.Prompts != nil {
+		err = app.Prompts.Destroy()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -170,50 +183,57 @@ func (app *ToolsApp) CheckRun() error {
 		return fmt.Errorf("'%s' app has compilation error: %s", app.Process.Compile.GetFolderPath(), app.Process.cmd_error)
 	}
 
-	if app.Process.Compile.CodeHash == 0 {
+	if app.Process.Compile.CodeFileTime == 0 {
 		return fmt.Errorf("'%s' app is waiting for compilation", app.Process.Compile.GetFolderPath())
 	}
 
 	return app.Process.CheckRun(app.router)
 }
 
+func (app *ToolsApp) Generate() error {
+	promptsFilePath := filepath.Join(app.Process.Compile.GetFolderPath(), "skyalt")
+	promptsFileTime := Tools_GetFileTime(promptsFilePath)
+
+	secretsFilePath := filepath.Join(app.Process.Compile.GetFolderPath(), "secrets")
+	secretsFileTime := Tools_GetFileTime(secretsFilePath)
+
+	saved, err := app.Prompts.Reload(app.Process.Compile.GetFolderPath())
+	if err != nil {
+		return err
+	}
+	if saved {
+		promptsFileTime = Tools_GetFileTime(promptsFilePath) //refresh
+	}
+
+	err = app.Prompts.Generate(app.Process.Compile.appName, app.router)
+	if err != nil {
+		return err
+	}
+
+	secrets, err := NewToolsSecrets(secretsFilePath)
+	if err != nil {
+		return err
+	}
+
+	err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
+	if err != nil {
+		return err
+	}
+
+	codeErrors, _ := app.Process.Compile.Compile(promptsFileTime, app.router, app.Destroy)
+	app.Prompts.SetCodeErrors(codeErrors)
+
+	app.Prompts.PromptsFileTime = promptsFileTime
+	app.Prompts.SecretsFileTime = secretsFileTime
+
+	return app._save()
+}
+
 func (app *ToolsApp) Tick() error {
 
 	saveIt := false
 
-	if app.Prompts != nil {
-
-		promptsFilePath := filepath.Join(app.Process.Compile.GetFolderPath(), "skyalt")
-		codeHash := Tools_GetFileTime(promptsFilePath)
-
-		if app.Process.Compile.NeedCompile(codeHash) {
-			saved, err := app.Prompts.Reload(app.Process.Compile.GetFolderPath())
-			if err != nil {
-				return err
-			}
-			if saved {
-				codeHash = Tools_GetFileTime(promptsFilePath) //refresh
-			}
-
-			err = app.Prompts.Generate(app.Process.Compile.appName, app.router)
-			if err != nil {
-				return err
-			}
-
-			err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath())
-			if err != nil {
-				return err
-			}
-
-			codeErrors, _ := app.Process.Compile.Compile(codeHash, app.router, app.Destroy)
-			app.Prompts.SetCodeErrors(codeErrors)
-
-			saveIt = true
-		}
-
-		app.Prompts.PromptsFileTime = codeHash
-
-	} else {
+	if app.Prompts == nil {
 
 		files, err := os.ReadDir(app.Process.Compile.GetFolderPath())
 		if err != nil {
@@ -221,9 +241,9 @@ func (app *ToolsApp) Tick() error {
 		}
 
 		//add new tools
-		codeHash := int64(0)
+		codeFileTime := int64(0)
 		//main.go
-		codeHash += Tools_GetFileTime("sdk/_main.go")
+		codeFileTime += Tools_GetFileTime("sdk/sdk.go")
 
 		for _, info := range files {
 
@@ -232,7 +252,7 @@ func (app *ToolsApp) Tick() error {
 			}
 
 			fileTime := Tools_GetFileTime(filepath.Join(app.Process.Compile.GetFolderPath(), info.Name()))
-			codeHash += fileTime
+			codeFileTime += fileTime
 
 			if !strings.HasPrefix(info.Name(), "z") {
 				continue
@@ -292,8 +312,8 @@ func (app *ToolsApp) Tick() error {
 			}
 		}
 
-		if app.Process.Compile.NeedCompile(codeHash) {
-			_, err := app.Process.Compile.Compile(codeHash, app.router, app.Destroy)
+		if app.Process.Compile.NeedCompile(codeFileTime) {
+			_, err := app.Process.Compile.Compile(codeFileTime, app.router, app.Destroy)
 			if err != nil {
 				return err
 			}

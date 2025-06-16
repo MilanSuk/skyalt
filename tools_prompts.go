@@ -88,6 +88,7 @@ func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, us
 
 type ToolsPrompts struct {
 	PromptsFileTime int64
+	SecretsFileTime int64
 
 	Prompts  []*ToolsPrompt
 	Err      string
@@ -97,9 +98,9 @@ type ToolsPrompts struct {
 	Generating_msg  string
 }
 
-func NewToolsPrompts() *ToolsPrompts {
+func NewToolsPrompts(folderPath string) (*ToolsPrompts, error) {
 	app := &ToolsPrompts{}
-	return app
+	return app, nil
 }
 
 func (app *ToolsPrompts) Destroy() error {
@@ -291,7 +292,7 @@ func (app *ToolsPrompts) Generate(appName string, router *ToolsRouter) error {
 	return nil
 }
 
-func (app *ToolsPrompts) WriteFiles(folderPath string) error {
+func (app *ToolsPrompts) WriteFiles(folderPath string, secrets *ToolsSecrets) error {
 
 	//remove all .go files
 	{
@@ -315,10 +316,12 @@ func (app *ToolsPrompts) WriteFiles(folderPath string) error {
 			continue
 		}
 
+		new_code := secrets.ReplaceAliases(prompt.Code)
+
 		path := filepath.Join(folderPath, prompt.Name+".go")
-		oldFl, _ := os.ReadFile(path)
-		if string(oldFl) != prompt.Code { //note: command goimports may edited the code :(
-			err := os.WriteFile(path, []byte(prompt.Code), 0644)
+		old_code, _ := os.ReadFile(path)
+		if string(old_code) != new_code { //note: command goimports may edited the code :(
+			err := os.WriteFile(path, []byte(new_code), 0644)
 			if err != nil {
 				return err
 			}

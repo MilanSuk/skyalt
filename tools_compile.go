@@ -37,8 +37,8 @@ type ToolsCodeError struct {
 type ToolsAppCompile struct {
 	appName string
 
-	Error    string
-	CodeHash int64
+	Error        string
+	CodeFileTime int64
 }
 
 func NewToolsAppCompile(appName string) *ToolsAppCompile {
@@ -51,16 +51,16 @@ func (app *ToolsAppCompile) GetFolderPath() string {
 }
 
 func (app *ToolsAppCompile) GetBinName() string {
-	return strconv.FormatInt(app.CodeHash, 10) + ".bin"
+	return strconv.FormatInt(app.CodeFileTime, 10) + ".bin"
 }
 
-func (app *ToolsAppCompile) NeedCompile(codeHash int64) bool {
-	return app.CodeHash != codeHash || (app.Error == "" && !Tools_FileExists(filepath.Join(app.GetFolderPath(), app.GetBinName())))
+func (app *ToolsAppCompile) NeedCompile(codeFileTime int64) bool {
+	return app.CodeFileTime != codeFileTime || (app.Error == "" && !Tools_FileExists(filepath.Join(app.GetFolderPath(), app.GetBinName())))
 }
 
-func (app *ToolsAppCompile) Compile(codeHash int64, router *ToolsRouter, stopProcess func() error) ([]ToolsCodeError, error) {
+func (app *ToolsAppCompile) Compile(codeFileTime int64, router *ToolsRouter, stopProcess func() error) ([]ToolsCodeError, error) {
 
-	codeErrors, err := app._compile(codeHash, router)
+	codeErrors, err := app._compile(codeFileTime, router)
 	if err == nil {
 		err := stopProcess() //stop it
 		if err != nil {
@@ -89,11 +89,11 @@ func (app *ToolsAppCompile) Compile(codeHash int64, router *ToolsRouter, stopPro
 	return codeErrors, err
 }
 
-func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]ToolsCodeError, error) {
+func (app *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter) ([]ToolsCodeError, error) {
 
 	app.Error = ""
 
-	app.CodeHash = codeHash
+	app.CodeFileTime = codeFileTime
 
 	msg := router.AddRecompileMsg(app.appName)
 	defer msg.Done()
@@ -175,7 +175,7 @@ func (app *ToolsAppCompile) _compile(codeHash int64, router *ToolsRouter) ([]Too
 		)
 		`)*/
 
-		mainGo, err := os.ReadFile("sdk/_main.go")
+		mainGo, err := os.ReadFile("sdk/sdk.go")
 		if err != nil {
 			return nil, err
 		}

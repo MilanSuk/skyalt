@@ -458,6 +458,16 @@ func (router *ToolsRouter) RunNet() {
 						}
 					}
 
+				case "generate_app":
+					appName, err := cl.ReadArray()
+					if router.log.Error(err) == nil {
+						app := router.FindApp(string(appName))
+						if app != nil {
+							app.Generate() //err ....
+						}
+
+					}
+
 				case "rename_app":
 					oldName, err := cl.ReadArray()
 					if router.log.Error(err) == nil {
@@ -884,7 +894,10 @@ func (router *ToolsRouter) _reloadAppList() {
 
 		_, found := router.apps[appName]
 		if !found {
-			router.apps[appName] = NewToolsApp(appName, router)
+			app, err := NewToolsApp(appName, router)
+			if router.log.Error(err) == nil {
+				router.apps[appName] = app
+			}
 		}
 	}
 	//remove deleted apps

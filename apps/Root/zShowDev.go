@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,7 +37,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	MainDiv.SetColumn(1, 10, 20)
 	MainDiv.SetColumn(2, 1, 100)
 	MainDiv.SetRow(1, 1, 100)
-	MainDiv.SetRow(2, 2, 2)
 
 	type SdkLLMMsgUsage struct {
 		Prompt_tokens       int
@@ -74,6 +74,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	}
 	type SdkToolsPrompts struct {
 		PromptsFileTime int64
+		SecretsFileTime int64
 
 		Prompts  []*SdkToolsPrompt
 		Err      string
@@ -93,21 +94,28 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	isGenerating := (sdk_app.Generating_name != "")
-	{
-		prompts_path := filepath.Join("..", app.Name, "skyalt")
-		filePromptsStr, _ := os.ReadFile(prompts_path)
+	prompts_path := filepath.Join("..", app.Name, "skyalt")
+	secrets_path := filepath.Join("..", app.Name, "secrets")
 
-		if app.Dev.PromptsFileTime != sdk_app.PromptsFileTime {
-			app.Dev.Prompts = string(filePromptsStr) //rewrite from file
-			app.Dev.PromptsFileTime = sdk_app.PromptsFileTime
+	promptsFileTime := _getFileTime(prompts_path)
+	secretsFileTime := _getFileTime(secrets_path)
+
+	filePrompts, _ := os.ReadFile(prompts_path)
+	fileSecretsCipher, _ := os.ReadFile(secrets_path)
+
+	var fileSecrets string
+	if len(fileSecretsCipher) > 0 {
+		plain, err := SdkDecryptAESGCM(fileSecretsCipher)
+		if err != nil {
+			return err
 		}
+		fileSecrets = string(plain)
+	}
 
-		diff := (string(filePromptsStr) != app.Dev.Prompts)
-
+	{
 		HeaderDiv := MainDiv.AddLayout(1, 0, 1, 1)
 		HeaderDiv.SetColumn(1, 1, 100)
-		HeaderDiv.SetColumn(2, 3, 3)
-		HeaderDiv.SetColumn(3, 3, 3)
+		HeaderDiv.SetColumn(2, 4, 4)
 
 		//app settings
 		SettingsDia := HeaderDiv.AddDialog("app_settings")
@@ -125,26 +133,101 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 		HeaderDiv.AddText(1, 0, 1, 1, app.Name)
 
-		CancelBt := HeaderDiv.AddButton(2, 0, 1, 1, "Cancel")
-		CancelBt.Background = 0.5
-		CancelBt.ConfirmQuestion = "Are you sure?"
-		CancelBt.Tooltip = "Trash changes"
-		CancelBt.clicked = func() error {
-			app.Dev.Prompts = string(filePromptsStr)
+		{
+			TabsDiv := HeaderDiv.AddLayout(2, 0, 1, 1)
+			TabsDiv.SetColumn(0, 2, 2)
+			TabsDiv.SetColumn(1, 2, 2)
+			TabsDiv.Back_cd = UI_GetPalette().GetGrey(0.1)
+			TabsDiv.Back_rounding = true
+
+			PromptsBt := TabsDiv.AddButton(0, 0, 1, 1, "Prompts")
+			PromptsBt.Background = 0.0
+			PromptsBt.clicked = func() error {
+				app.Dev.MainMode = "prompts"
+				return nil
+			}
+
+			SecretsBt := TabsDiv.AddButton(1, 0, 1, 1, "Secrets")
+			SecretsBt.Background = 0.0
+			SecretsBt.clicked = func() error {
+				app.Dev.MainMode = "secrets"
+				return nil
+			}
+
+			switch app.Dev.MainMode {
+			case "secrets":
+				SecretsBt.Background = 1
+			default: //"code"
+				PromptsBt.Background = 1
+			}
+		}
+
+	}
+
+	if app.Dev.MainMode == "secrets" {
+		ed := MainDiv.AddEditboxString(1, 1, 1, 1, &fileSecrets)
+		ed.Align_v = 0
+		ed.Linewrapping = true
+		ed.Multiline = true
+		ed.layout.Enable = !isGenerating
+		ed.AutoSave = true //refresh "Save button"
+		ed.changed = func() error {
+			cipher, err := SdkEncryptAESGCM([]byte(fileSecrets))
+			if err != nil {
+				return err
+			}
+			if !bytes.Equal([]byte(fileSecrets), []byte(cipher)) {
+				err = os.WriteFile(secrets_path, []byte(cipher), 0644)
+				if err != nil {
+					return err
+				}
+			}
 			return nil
 		}
-		SaveBt := HeaderDiv.AddButton(3, 0, 1, 1, "Generate")
-		SaveBt.Tooltip = "Save & Generate code"
-		SaveBt.clicked = func() error {
-			os.WriteFile(prompts_path, []byte(app.Dev.Prompts), 0644)
+	} else {
+
+		prompts := string(filePrompts)
+
+		ed := MainDiv.AddEditboxString(1, 1, 1, 1, &prompts)
+		ed.Align_v = 0
+		ed.Linewrapping = true
+		ed.Multiline = true
+		ed.layout.Enable = !isGenerating
+		ed.AutoSave = true //refresh "Save button"
+		ed.changed = func() error {
+			if !bytes.Equal(filePrompts, []byte(prompts)) {
+				err = os.WriteFile(prompts_path, []byte(prompts), 0644)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}
+
+	//save
+	{
+		diff := (promptsFileTime != sdk_app.PromptsFileTime || secretsFileTime != sdk_app.SecretsFileTime)
+
+		SaveDiv := MainDiv.AddLayout(1, 2, 1, 1)
+		SaveDiv.SetColumn(0, 1, 100)
+		SaveDiv.SetColumn(1, 3, 3)
+
+		GenerateBt := SaveDiv.AddButton(1, 0, 1, 1, "Generate")
+		GenerateBt.Tooltip = "Save & Generate code"
+		GenerateBt.clicked = func() error {
+
+			app.Dev.PromptsHistory = append(app.Dev.PromptsHistory, string(filePrompts))
+
+			callFuncGenerate(app.Name)
 			return nil
 		}
 
 		if isGenerating {
-			xx := 4
+			xx := 2
 			if !app.Dev.ShowSide {
-				HeaderDiv.SetColumn(xx, 3, 3)
-				CompBt := HeaderDiv.AddButton(xx, 0, 1, 1, "Generating")
+				SaveDiv.SetColumn(xx, 3, 3)
+				CompBt := SaveDiv.AddButton(xx, 0, 1, 1, "Generating")
 				CompBt.Tooltip = "Show generation"
 				CompBt.clicked = func() error {
 					app.Dev.ShowSide = true
@@ -153,8 +236,8 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				xx++
 			}
 
-			HeaderDiv.SetColumn(xx, 3, 3)
-			StopBt := HeaderDiv.AddButton(xx, 0, 1, 1, "Stop")
+			SaveDiv.SetColumn(xx, 3, 3)
+			StopBt := SaveDiv.AddButton(xx, 0, 1, 1, "Stop")
 			StopBt.Cd = UI_GetPalette().E
 			StopBt.Tooltip = "Stop generating"
 			StopBt.clicked = func() error {
@@ -164,25 +247,15 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			xx++
 		}
 
-		SaveBt.layout.Enable = diff && !isGenerating
-		CancelBt.layout.Enable = diff && !isGenerating
+		GenerateBt.layout.Enable = diff && !isGenerating
 
-		//back/forward buttons ....
-	}
-
-	{
-		ed := MainDiv.AddEditboxString(1, 1, 1, 1, &app.Dev.Prompts)
-		ed.Align_v = 0
-		ed.Linewrapping = true
-		ed.Multiline = true
-		ed.layout.Enable = !isGenerating
-		ed.AutoSave = true //refresh "Save button"
+		//history back/forward buttons ....
 	}
 
 	//Note
 	{
-		MainDiv.SetRowFromSub(2, 1, 10)
-		FooterDiv := MainDiv.AddLayout(1, 2, 1, 1)
+		MainDiv.SetRowFromSub(3, 1, 10)
+		FooterDiv := MainDiv.AddLayout(1, 3, 1, 1)
 		FooterDiv.SetColumn(0, 1, 100)
 		FooterDiv.SetColumn(1, 1, 4)
 		FooterDiv.SetRowFromSub(0, 1, 5)
@@ -502,4 +575,12 @@ func (st *ShowDev) _copyFile(dst, src string) (err error) {
 	}
 	err = out.Sync()
 	return
+}
+
+func _getFileTime(path string) int64 {
+	inf, err := os.Stat(path)
+	if err == nil && inf != nil {
+		return inf.ModTime().UnixNano()
+	}
+	return 0
 }
