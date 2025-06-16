@@ -18,11 +18,11 @@ func (app *RootApp) GetFolderPath() string {
 type RootDev struct {
 	Enable bool
 
-	Prompts         string
-	PromptsFileTime int64
+	PromptsHistory []string
 
 	ShowSide bool
 	SideFile string //Name.go
+	MainMode string //"prompts", "secrets"
 	SideMode string //"schema", "code", "msg"
 }
 
