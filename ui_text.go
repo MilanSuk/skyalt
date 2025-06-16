@@ -58,7 +58,7 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 	}
 
 	//draw selection
-	cdSelection := ui.router.sync.GetPalette().GetGrey(0.5)
+	cdSelection := Color_Aprox(ui.router.sync.GetPalette().B, frontCd, 0.3)
 	var range_sx, range_ex int
 	if selection || editable {
 		if edit.Is(layout) {
