@@ -465,8 +465,16 @@ func (router *ToolsRouter) RunNet() {
 						if app != nil {
 							app.Generate() //err ....
 						}
-
 					}
+
+				case "get_llm_usage":
+					usage := router.llms.GetUsage()
+
+					usageJs, err := json.Marshal(usage)
+					router.log.Error(err)
+
+					err = cl.WriteArray(usageJs)
+					router.log.Error(err)
 
 				case "rename_app":
 					oldName, err := cl.ReadArray()

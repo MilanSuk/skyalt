@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -215,6 +216,21 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
+		//Spendings
+		{
+			usageJs := callFuncGetLLMUsage()
+			UsageDia := AppsDiv.AddDialog("usage")
+			st.buildUsage(&UsageDia.UI, usageJs, caller)
+
+			UsageBt := AppsDiv.AddButton(0, y, 1, 1, "$")
+			y++
+			UsageBt.Background = 0.25
+			UsageBt.Tooltip = "Spendings"
+			UsageBt.clicked = func() error {
+				UsageDia.OpenRelative(UsageBt.layout, caller)
+				return nil
+			}
+		}
 		//Log/Errors
 		{
 			logs := callFuncGetLogs()
@@ -574,6 +590,51 @@ func (st *ShowRoot) buildAbout(ui *UI) {
 	License := ui.AddText(0, y, 1, 1, "This program is distributed under the terms of Apache License, Version 2.0.")
 	License.Align_h = 1
 	y++
+}
+
+func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte, caller *ToolCaller) {
+	type LLMMsgInfo struct {
+		Model       string
+		Time        float64
+		Total_price float64
+	}
+
+	var usage []LLMMsgInfo
+	err := json.Unmarshal(usageJs, &usage)
+	if err != nil {
+		//err ....
+		return
+	}
+
+	ui.SetColumn(0, 1, 10)
+	ui.SetRow(0, 1, 15)
+	ListDiv := ui.AddLayout(0, 0, 1, 1)
+	ListDiv.SetColumnFromSub(0, 1, 6)
+	ListDiv.SetColumnFromSub(1, 1, 5)
+	ListDiv.SetColumnFromSub(2, 1, 4)
+
+	y := 0
+	total := 0.0
+	for i := len(usage) - 1; i >= 0; i-- {
+		it := &usage[i]
+
+		ListDiv.AddText(0, y, 1, 1, it.Model)
+		ListDiv.AddText(1, y, 1, 1, SdkGetDateTime(int64(it.Time)))
+		ListDiv.AddText(2, y, 1, 1, fmt.Sprintf("$%f", it.Total_price))
+		total += it.Total_price
+		y++
+	}
+
+	ui.SetRow(1, 0.1, 0.1)
+	ui.AddDivider(0, 1, 1, 1, true)
+
+	//Sum
+	ui.AddText(0, 2, 1, 1, fmt.Sprintf("Total(%d): $%f", len(usage), total)).Align_h = 2
+
+	//Note
+	noteTx := ui.AddText(0, 3, 1, 1, "<i>numbers may not be accurate.")
+	noteTx.Align_h = 1
+	noteTx.Cd = UI_GetPalette().GetGrey(0.5)
 }
 
 func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {

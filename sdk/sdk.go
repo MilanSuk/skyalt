@@ -860,6 +860,22 @@ func callFuncPrint(str string) {
 	}
 }
 
+func callFuncGetLLMUsage() []byte {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("get_llm_usage"))
+		if Tool_Error(err) == nil {
+			dataJs, err := cl.ReadArray()
+			if Tool_Error(err) == nil {
+				return dataJs
+			}
+		}
+	}
+	return []byte("[]")
+}
+
 func callFuncRenameApp(oldName, newName string) (string, error) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
@@ -2548,6 +2564,7 @@ type LLMCompletion struct {
 	Out_messages               []byte //[]*ChatMsg
 	Out_last_final_message     string
 	Out_last_reasoning_message string
+	Out_time                   float64
 
 	Out_usage LLMMsgUsage
 

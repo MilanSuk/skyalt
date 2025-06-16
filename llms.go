@@ -97,6 +97,12 @@ type ChatMsgs struct {
 	Messages []*ChatMsg
 }
 
+type LLMMsgInfo struct {
+	Model       string
+	Time        float64
+	Total_price float64
+}
+
 type LLMMsgUsage struct {
 	Prompt_tokens       int
 	Input_cached_tokens int
@@ -109,6 +115,9 @@ type LLMMsgUsage struct {
 	Reasoning_price    float64
 }
 
+func (u *LLMMsgUsage) TotalPrice() float64 {
+	return u.Prompt_price + u.Input_cached_price + u.Completion_price + u.Reasoning_price
+}
 func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 	dst.Prompt_tokens += src.Prompt_tokens
 	dst.Input_cached_tokens += src.Input_cached_tokens
@@ -148,6 +157,7 @@ type LLMComplete struct {
 	Out_last_final_message     string
 	Out_last_reasoning_message string
 	Out_usage                  LLMMsgUsage
+	Out_time                   float64 //sec
 
 	delta func(msg *ChatMsg)
 }
@@ -267,6 +277,8 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 		return fmt.Errorf("provider not found")
 	}
 
+	st.Out_time = float64(time.Now().UnixMicro()) / 1000000
+
 	//add & save cache
 	{
 		llms.Cache = append(llms.Cache, *st)
@@ -275,6 +287,14 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 	}
 
 	return nil
+}
+
+func (llms *LLMs) GetUsage() []LLMMsgInfo {
+	var ret []LLMMsgInfo
+	for _, it := range llms.Cache {
+		ret = append(ret, LLMMsgInfo{Model: it.Model, Time: it.Out_time, Total_price: it.Out_usage.TotalPrice()})
+	}
+	return ret
 }
 
 func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *ToolsRouterMsg) error {
