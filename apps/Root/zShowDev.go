@@ -185,7 +185,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			return nil
 		}
 	} else {
-
 		prompts := string(filePrompts)
 
 		ed := MainDiv.AddEditboxString(1, 1, 1, 1, &prompts)
@@ -205,63 +204,19 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		}
 	}
 
-	//save
 	{
-		diff := (promptsFileTime != sdk_app.PromptsFileTime || secretsFileTime != sdk_app.SecretsFileTime)
-
-		SaveDiv := MainDiv.AddLayout(1, 2, 1, 1)
-		SaveDiv.SetColumn(0, 1, 100)
-		SaveDiv.SetColumn(1, 3, 3)
-
-		GenerateBt := SaveDiv.AddButton(1, 0, 1, 1, "Generate")
-		GenerateBt.Tooltip = "Save & Generate code"
-		GenerateBt.clicked = func() error {
-
-			app.Dev.PromptsHistory = append(app.Dev.PromptsHistory, string(filePrompts))
-
-			callFuncGenerate(app.Name)
-			return nil
-		}
-
-		if isGenerating {
-			xx := 2
-			if !app.Dev.ShowSide {
-				SaveDiv.SetColumn(xx, 3, 3)
-				CompBt := SaveDiv.AddButton(xx, 0, 1, 1, "Generating")
-				CompBt.Tooltip = "Show generation"
-				CompBt.clicked = func() error {
-					app.Dev.ShowSide = true
-					return nil
-				}
-				xx++
-			}
-
-			SaveDiv.SetColumn(xx, 3, 3)
-			StopBt := SaveDiv.AddButton(xx, 0, 1, 1, "Stop")
-			StopBt.Cd = UI_GetPalette().E
-			StopBt.Tooltip = "Stop generating"
-			StopBt.clicked = func() error {
-				//....
-				return nil
-			}
-			xx++
-		}
-
-		GenerateBt.layout.Enable = diff && !isGenerating
-
-		//history back/forward buttons ....
-	}
-
-	//Note
-	{
-		MainDiv.SetRowFromSub(3, 1, 10)
-		FooterDiv := MainDiv.AddLayout(1, 3, 1, 1)
+		MainDiv.SetRowFromSub(2, 1, 10)
+		FooterDiv := MainDiv.AddLayout(1, 2, 1, 1)
 		FooterDiv.SetColumn(0, 1, 100)
 		FooterDiv.SetColumn(1, 1, 4)
-		FooterDiv.SetRowFromSub(0, 1, 5)
-		tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#<NameOfTool> //Describe app's feature.")
-		tx.Align_v = 0
-		tx.Cd = UI_GetPalette().GetGrey(0.5)
+		//FooterDiv.SetRowFromSub(0, 1, 5)
+
+		//Note
+		{
+			tx := FooterDiv.AddText(0, 0, 1, 2, "#storage //Describe structures for saving data.\n#<NameOfTool> //Describe app's feature.")
+			tx.Align_v = 1
+			tx.Cd = UI_GetPalette().GetGrey(0.5)
+		}
 
 		//Total price
 		{
@@ -269,12 +224,52 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			for _, it := range sdk_app.Prompts {
 				sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price
 			}
-			tx := FooterDiv.AddText(1, 0, 1, 1, fmt.Sprintf("<i>Total: $%f", sum))
+			tx := FooterDiv.AddText(1, 1, 1, 1, fmt.Sprintf("<i>Total: $%f", sum))
 			tx.Align_v = 0
 			tx.Align_h = 2
 		}
 
-		//Total errors
+		//save
+		{
+			diff := (promptsFileTime != sdk_app.PromptsFileTime || secretsFileTime != sdk_app.SecretsFileTime)
+
+			SaveDiv := FooterDiv.AddLayout(1, 0, 1, 1)
+			SaveDiv.SetColumn(0, 1, 100)
+
+			if isGenerating {
+				if !app.Dev.ShowSide {
+					CompBt := SaveDiv.AddButton(0, 0, 1, 1, "Generating")
+					CompBt.Tooltip = "Show generation"
+					CompBt.clicked = func() error {
+						app.Dev.ShowSide = true
+						return nil
+					}
+				} else {
+					StopBt := SaveDiv.AddButton(0, 0, 1, 1, "Stop")
+					StopBt.Cd = UI_GetPalette().E
+					StopBt.Tooltip = "Stop generating"
+					StopBt.clicked = func() error {
+						//....
+						return nil
+					}
+				}
+			} else {
+				GenerateBt := SaveDiv.AddButton(0, 0, 1, 1, "Generate")
+				GenerateBt.Tooltip = "Save & Generate code"
+				GenerateBt.clicked = func() error {
+
+					app.Dev.PromptsHistory = append(app.Dev.PromptsHistory, string(filePrompts))
+
+					callFuncGenerate(app.Name)
+					return nil
+				}
+				GenerateBt.layout.Enable = diff
+			}
+
+			//history back/forward buttons ....
+		}
+
+		//Errors
 		{
 			n_errors := 0
 			for _, it := range sdk_app.Prompts {
@@ -283,8 +278,17 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				}
 			}
 			if n_errors > 0 {
-				tx := FooterDiv.AddText(0, 1, 1, 1, fmt.Sprintf("%d file(s) has compilation error(s)", n_errors))
+				tx := FooterDiv.AddText(0, 2, 1, 1, fmt.Sprintf("%d file(s) has compilation error(s)", n_errors))
 				tx.Cd = UI_GetPalette().E
+
+				FixBt := FooterDiv.AddButton(1, 2, 1, 1, "Fix it")
+				FixBt.Cd = UI_GetPalette().E
+				FixBt.Tooltip = "LLM will try to fix the error(s)"
+				FixBt.clicked = func() error {
+					//....
+					//callFuncGenerateFix(app.Name)
+					return nil
+				}
 			}
 		}
 	}
