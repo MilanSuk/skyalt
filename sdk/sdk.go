@@ -18,6 +18,9 @@ package main
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
@@ -831,6 +834,19 @@ func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, funcNam
 	return nil, nil, fmt.Errorf("connection failed")
 }
 
+func callFuncGenerate(app_name string) {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("generate_app"))
+		if Tool_Error(err) == nil {
+			err = cl.WriteArray([]byte(app_name))
+			Tool_Error(err)
+		}
+	}
+}
+
 func callFuncPrint(str string) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
@@ -873,6 +889,91 @@ func callFuncRenameApp(oldName, newName string) (string, error) {
 		}
 	}
 	return oldName, err
+}
+
+func SdkGetSecret(alias string) string {
+	cipher, err := os.ReadFile("secrets")
+	if err == nil {
+		plain, err := SdkDecryptAESGCM(cipher)
+		if err != nil {
+			Tool_Error(err)
+			return ""
+		}
+
+		lines := strings.Split(string(plain), "\n")
+		for _, ln := range lines {
+			ln = strings.TrimSpace(ln)
+			if ln == "" {
+				continue //skip empty
+			}
+
+			d := strings.IndexAny(ln, " \t")
+			if d >= 0 {
+				alis := strings.TrimSpace(ln[:d])
+				value := strings.TrimSpace(ln[d:])
+
+				if alis == alias {
+					return value
+				}
+			}
+		}
+	}
+
+	Tool_Error(fmt.Errorf("alias '%s' not found", alias))
+	return ""
+}
+
+func _keyAESGCM() [32]byte {
+	pass := "skyalt"
+	return sha256.Sum256([]byte(pass))
+}
+func SdkEncryptAESGCM(plainText []byte) ([]byte, error) {
+	key := _keyAESGCM()
+
+	block, err := aes.NewCipher(key[:])
+	if err != nil {
+		return nil, err
+	}
+
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, aesGCM.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+
+	ciphertext := aesGCM.Seal(nil, nonce, plainText, nil)
+	return append(nonce, ciphertext...), nil
+}
+
+func SdkDecryptAESGCM(cipherText []byte) ([]byte, error) {
+	key := _keyAESGCM()
+
+	block, err := aes.NewCipher(key[:])
+	if err != nil {
+		return nil, err
+	}
+
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := aesGCM.NonceSize()
+	if len(cipherText) < nonceSize {
+		return nil, fmt.Errorf("cipherText too short")
+	}
+
+	nonce, ciphertext := cipherText[:nonceSize], cipherText[nonceSize:]
+	plainText, err := aesGCM.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return plainText, nil
 }
 
 func (caller *ToolCaller) _addCmd(cmd ToolCmd) {
