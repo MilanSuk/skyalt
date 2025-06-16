@@ -10,4 +10,4 @@ func LoadExampleStruct() (*ExampleStruct, error) { //name must starts with "Load
 	return ReadJSONFile("ExampleStruct.json", st)
 }
 
-//<structures functions here>
+//<other storage functions here>
