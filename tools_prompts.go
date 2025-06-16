@@ -361,7 +361,7 @@ func (app *ToolsPrompts) _getStructureMsg(structPrompt *ToolsPrompt) (string, st
 
 	systemMessage += "Load<name_of_struct>() functions always returns pointer, not array."
 
-	systemMessage += "Do not call os.ReadFile() + json.Unmarshal(), instead call ReadJSONFile(). Do not call os.WriteFile(), saving structures into disk is automatic."
+	systemMessage += "Do not call os.ReadFile() + json.Unmarshal(), instead call ReadJSONFile(). Do not call os.WriteFile(), saving data in structures into disk is automatic."
 
 	//maybe add old file structures, because it's needed that struct and attributes names are same ...............
 
