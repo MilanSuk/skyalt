@@ -10,6 +10,7 @@ temp/
 apps/Activities/*.json
 apps/Activities/*.bin
 apps/Activities/main.go
+apps/Activities/secrets
 apps/Activities/.vscode/
 apps/Activities/Chats/
 apps/Activities/Activities/
@@ -17,6 +18,7 @@ apps/Activities/Activities/
 apps/Device/*.json
 apps/Device/*.bin
 apps/Device/main.go
+apps/Device/secrets
 apps/Device/.vscode/
 apps/Device/Chats/
 apps/Device/*.sqlite
@@ -26,24 +28,28 @@ apps/Device/*.sqlite-wal
 apps/Emails/*.json
 apps/Emails/*.bin
 apps/Emails/main.go
+apps/Emails/secrets
 apps/Emails/.vscode/
 apps/Emails/Chats/
 
 apps/Events/*.json
 apps/Events/*.bin
 apps/Events/main.go
+apps/Events/secrets
 apps/Events/.vscode/
 apps/Events/Chats/
 
 apps/Root/*.json
 apps/Root/*.bin
 apps/Root/main.go
+apps/Root/secrets
 apps/Root/.vscode/
 apps/Root/Chats/
 
 apps/Tools/*.json
 apps/Tools/*.bin
 apps/Tools/main.go
+apps/Tools/secrets
 apps/Tools/.vscode/
 apps/Tools/Chats/
 
