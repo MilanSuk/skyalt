@@ -323,12 +323,8 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 	last_final_msg := ""
 	last_reasoning_msg := ""
 
-	max_iter := st.Max_iteration
-	if max_iter <= 0 {
-		max_iter = 20
-	}
 	iter := 0
-	for iter < max_iter {
+	for iter < st.Max_iteration {
 		//convert msgs to OpenAI
 		var messages []interface{}
 		messages = append(messages, OpenAI_completion_msgSystem{Role: "system", Content: st.SystemMessage})
@@ -542,8 +538,8 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 		iter++
 	}
 
-	st.Out_last_final_message = last_final_msg
-	st.Out_last_reasoning_message = last_reasoning_msg
+	st.Out_answer = last_final_msg
+	st.Out_reasoning = last_reasoning_msg
 
 	//print
 	{
