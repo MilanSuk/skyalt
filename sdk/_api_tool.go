@@ -122,3 +122,28 @@ func SdkGetDate(unix_sec int64) string
 
 // accepts unix time and returns date(formated by user) + hour + minute + seconds
 func SdkGetDateTime(unix_sec int64) string
+
+type LLMCompletion struct {
+	Model             string
+	Temperature       float64
+	Top_p             float64
+	Max_tokens        int
+	Frequency_penalty float64
+	Presence_penalty  float64
+	Reasoning_effort  string //"low", "medium", "high"
+
+	SystemMessage string
+	UserMessage   string
+	UserFiles     []string
+
+	Response_format string //"", "json_object"
+
+	Out_answer    string
+	Out_reasoning string
+}
+
+func NewLLMCompletion(systemMessage string, userMessage string) *LLMCompletion {
+	return &LLMCompletion{Temperature: 0.2, Max_tokens: 16384, Top_p: 0.95, SystemMessage: systemMessage, UserMessage: userMessage}
+}
+
+func (comp *LLMCompletion) Run(caller *ToolCaller) error

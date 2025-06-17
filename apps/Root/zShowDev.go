@@ -260,7 +260,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 					app.Dev.PromptsHistory = append(app.Dev.PromptsHistory, string(filePrompts))
 
-					callFuncGenerate(app.Name)
+					callFuncGenerateApp(app.Name)
 					return nil
 				}
 				GenerateBt.layout.Enable = diff
@@ -285,8 +285,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				FixBt.Cd = UI_GetPalette().E
 				FixBt.Tooltip = "LLM will try to fix the error(s)"
 				FixBt.clicked = func() error {
-					//....
-					//callFuncGenerateFix(app.Name)
+					callFuncRepairApp(app.Name)
 					return nil
 				}
 			}

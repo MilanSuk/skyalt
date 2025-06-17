@@ -834,12 +834,24 @@ func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, funcNam
 	return nil, nil, fmt.Errorf("connection failed")
 }
 
-func callFuncGenerate(app_name string) {
+func callFuncGenerateApp(app_name string) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
 		err = cl.WriteArray([]byte("generate_app"))
+		if Tool_Error(err) == nil {
+			err = cl.WriteArray([]byte(app_name))
+			Tool_Error(err)
+		}
+	}
+}
+func callFuncRepairApp(app_name string) {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("repair_app"))
 		if Tool_Error(err) == nil {
 			err = cl.WriteArray([]byte(app_name))
 			Tool_Error(err)
@@ -2539,8 +2551,6 @@ type LLMMsgUsage struct {
 	Reasoning_price    float64
 }
 type LLMCompletion struct {
-	UID string
-
 	Model             string
 	Temperature       float64
 	Top_p             float64
@@ -2556,19 +2566,24 @@ type LLMCompletion struct {
 	UserMessage      string
 	UserFiles        []string
 
-	Response_format string
+	Response_format string //"", "json_object"
 
 	Max_iteration int
 
-	Out_StatusCode             int
-	Out_messages               []byte //[]*ChatMsg
-	Out_last_final_message     string
-	Out_last_reasoning_message string
-	Out_time                   float64
+	Out_StatusCode int
+	Out_messages   []byte //[]*ChatMsg
+	Out_time       float64
+
+	Out_answer    string
+	Out_reasoning string
 
 	Out_usage LLMMsgUsage
 
 	delta func(msgJs []byte) //msg *ChatMsg
+}
+
+func NewLLMCompletion(systemMessage string, userMessage string) *LLMCompletion {
+	return &LLMCompletion{Temperature: 0.2, Max_tokens: 16384, Top_p: 0.95, SystemMessage: systemMessage, UserMessage: userMessage}
 }
 
 func (comp *LLMCompletion) Run(caller *ToolCaller) error {
@@ -2619,8 +2634,6 @@ func (comp *LLMCompletion) Run(caller *ToolCaller) error {
 }
 
 type LLMTranscribe struct {
-	UID string
-
 	AudioBlob    []byte
 	BlobFileName string //ext.... (blob.wav, blob.mp3)
 

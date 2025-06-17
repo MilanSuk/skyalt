@@ -205,7 +205,7 @@ func (app *ToolsApp) Generate() error {
 		promptsFileTime = Tools_GetFileTime(promptsFilePath) //refresh
 	}
 
-	err = app.Prompts.Generate(app.Process.Compile.appName, app.router)
+	err = app.Prompts.GenerateCode(app.Process.Compile.appName, app.router)
 	if err != nil {
 		return err
 	}
@@ -229,12 +229,20 @@ func (app *ToolsApp) Generate() error {
 	return app._save()
 }
 
+func (app *ToolsApp) Repair() error {
+	if app.Prompts != nil {
+		//...... app.Prompts.RepairCode(app.router)
+		return app._save()
+	}
+
+	return nil
+}
+
 func (app *ToolsApp) Tick() error {
 
 	saveIt := false
 
 	if app.Prompts == nil {
-
 		files, err := os.ReadDir(app.Process.Compile.GetFolderPath())
 		if err != nil {
 			return err

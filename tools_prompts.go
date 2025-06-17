@@ -234,7 +234,37 @@ func (app *ToolsPrompts) Reload(folderPath string) (bool, error) {
 	return saveFile, nil
 }
 
-func (app *ToolsPrompts) Generate(appName string, router *ToolsRouter) error {
+func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *ToolsPrompt, comp *LLMComplete, msg *ToolsRouterMsg, router *ToolsRouter) error {
+	var err error
+	if prompt == storagePrompt {
+		comp.SystemMessage, comp.UserMessage, err = app._getStorageMsg(storagePrompt)
+		if err != nil {
+			return err
+		}
+	} else {
+		comp.SystemMessage, comp.UserMessage, err = app._getToolMsg(prompt, storagePrompt)
+		if err != nil {
+			return err
+		}
+	}
+
+	comp.delta = func(msg *ChatMsg) {
+		app.Generating_name = prompt.Name
+		if msg.Content.Calls != nil {
+			app.Generating_msg = msg.Content.Calls.Content
+		}
+	}
+
+	err = router.llms.Complete(comp, msg)
+	if err != nil {
+		return err
+	}
+
+	prompt.setMessage(comp.Out_answer, comp.Out_reasoning, &comp.Out_usage, comp.Model)
+	return nil
+}
+
+func (app *ToolsPrompts) GenerateCode(appName string, router *ToolsRouter) error {
 
 	defer func() {
 		//reset
@@ -242,8 +272,11 @@ func (app *ToolsPrompts) Generate(appName string, router *ToolsRouter) error {
 		app.Generating_msg = ""
 	}()
 
-	//find structure
+	//find Storage
 	storagePrompt := app.FindPromptName("Storage")
+	if storagePrompt == nil {
+		return fmt.Errorf("'Storage' prompt not found")
+	}
 
 	var comp LLMComplete
 	comp.Temperature = 0.2
@@ -258,35 +291,48 @@ func (app *ToolsPrompts) Generate(appName string, router *ToolsRouter) error {
 	msg := router.AddRecompileMsg(appName)
 	defer msg.Done()
 
-	//generate code
-	for _, prompt := range app.Prompts {
-
-		var err error
-		if prompt == storagePrompt {
-			comp.SystemMessage, comp.UserMessage, err = app._getStructureMsg(storagePrompt)
-			if err != nil {
-				return err
-			}
-		} else {
-			comp.SystemMessage, comp.UserMessage, err = app._getToolMsg(prompt, storagePrompt)
-			if err != nil {
-				return err
-			}
-		}
-
-		comp.delta = func(msg *ChatMsg) {
-			app.Generating_name = prompt.Name
-			if msg.Content.Calls != nil {
-				app.Generating_msg = msg.Content.Calls.Content
-			}
-		}
-
-		err = router.llms.Complete(&comp, msg)
+	//generate storage code first
+	{
+		err := app.generatePromptCode(storagePrompt, storagePrompt, &comp, msg, router)
 		if err != nil {
 			return err
 		}
+	}
 
-		prompt.setMessage(comp.Out_last_final_message, comp.Out_last_reasoning_message, &comp.Out_usage, comp.Model)
+	//then generate tools code
+	for _, prompt := range app.Prompts {
+		if prompt == storagePrompt {
+			continue
+		}
+
+		err := app.generatePromptCode(prompt, storagePrompt, &comp, msg, router)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (app *ToolsPrompts) RepairCode(secrets *ToolsSecrets, router *ToolsRouter) error {
+
+	//find Storage
+	storagePrompt := app.FindPromptName("Storage")
+	if storagePrompt == nil {
+		return fmt.Errorf("'Storage' prompt not found")
+	}
+
+	//first fix Storage ....
+
+	//přepsat re-generate aby se netahal starý kód z LLM cache ....
+
+	for _, prompt := range app.Prompts {
+		if len(prompt.Errors) == 0 {
+			continue
+		}
+
+		//new_code := secrets.ReplaceAliases(prompt.Code)
+
 	}
 
 	return nil
@@ -338,7 +384,7 @@ func (app *ToolsPrompts) WriteFiles(folderPath string, secrets *ToolsSecrets) er
 	return nil
 }
 
-func (app *ToolsPrompts) _getStructureMsg(structPrompt *ToolsPrompt) (string, string, error) {
+func (app *ToolsPrompts) _getStorageMsg(structPrompt *ToolsPrompt) (string, string, error) {
 
 	apisFile, err := os.ReadFile("sdk/_api_storage.go")
 	if err != nil {
