@@ -108,8 +108,6 @@ func NewToolsRouter(start_port int) (*ToolsRouter, error) {
 	if err != nil {
 		return nil, err
 	}
-	//router._hotReload() //this blocks, so welcome anim will not show up .........
-	//router.sync.Upload_deviceDefaultDPI()
 
 	//hot reload
 	go func() {
@@ -464,6 +462,15 @@ func (router *ToolsRouter) RunNet() {
 						app := router.FindApp(string(appName))
 						if app != nil {
 							app.Generate() //err ....
+						}
+					}
+
+				case "repair_app":
+					appName, err := cl.ReadArray()
+					if router.log.Error(err) == nil {
+						app := router.FindApp(string(appName))
+						if app != nil {
+							app.Repair() //err ....
 						}
 					}
 

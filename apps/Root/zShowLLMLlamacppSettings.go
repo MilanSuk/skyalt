@@ -4,31 +4,30 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 )
 
-// Show Whisper.cpp settings.
-type ShowLLMWhispercppSettings struct {
+// Show Llama.cpp settings.
+type ShowLLMLlamacppSettings struct {
 }
 
-func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
-	source_wsp, err := NewLLMWhispercpp("")
+func (st *ShowLLMLlamacppSettings) run(caller *ToolCaller, ui *UI) error {
+	source_llama, err := NewLLMLlamacpp("")
 	if err != nil {
 		return err
 	}
 
-	source_wsp.Check()
+	source_llama.Check()
 
 	ui.SetColumn(0, 1, 5)
 	ui.SetColumn(1, 1, 20)
 
-	ui.AddTextLabel(0, 0, 2, 1, "Whisper.cpp")
+	ui.AddTextLabel(0, 0, 2, 1, "Llama.cpp")
 
 	y := 1
 
 	wChanged := func() error {
-		source_wsp.Check() //reload models
+		source_llama.Check() //reload models
 		return nil
 	}
 
@@ -40,12 +39,12 @@ func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
 		AddrDiv.SetColumn(2, 1, 4)
 		AddrDiv.SetColumn(3, 0, 4)
 
-		ad := AddrDiv.AddEditboxString(0, 0, 1, 1, &source_wsp.Address)
+		ad := AddrDiv.AddEditboxString(0, 0, 1, 1, &source_llama.Address)
 		ad.changed = wChanged
-		if source_wsp.Address == "" {
+		if source_llama.Address == "" {
 			ad.Error = "Empty"
 		}
-		pt := AddrDiv.AddEditboxInt(1, 0, 1, 1, &source_wsp.Port)
+		pt := AddrDiv.AddEditboxInt(1, 0, 1, 1, &source_llama.Port)
 		pt.changed = wChanged
 
 		TestOKDia := ui.AddDialog("test_ok")
@@ -62,7 +61,7 @@ func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
 
 		TestBt := AddrDiv.AddButton(2, 0, 1, 1, "Test")
 		TestBt.clicked = func() error {
-			status, err := st.SetModel("", source_wsp)
+			status, err := st.SetModel("", source_llama)
 			if err == nil && status == 200 {
 				TestOKDia.OpenRelative(TestBt.layout, caller)
 			} else {
@@ -74,26 +73,22 @@ func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
 	y++
 
 	ui.AddText(0, y, 1, 1, "Command example")
-	ui.AddText(1, y, 1, 1, fmt.Sprintf("./server --port %d -m models/ggml-base.en.bin", source_wsp.Port))
+	ui.AddText(1, y, 1, 1, fmt.Sprintf("./llama-server --port %d -m models/llama-3.2-1b-instruct-q8_0.gguf", source_llama.Port))
 	y++
 
 	return nil
 }
 
-func (wsp *ShowLLMWhispercppSettings) SetModel(model string, source *LLMWhispercpp) (int, error) {
+func (llama *ShowLLMLlamacppSettings) SetModel(model string, source *LLMLlamacpp) (int, error) {
 	source.lock.Lock()
 	defer source.lock.Unlock()
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	writer.WriteField("model", source.getModelPath(model))
-	writer.Close()
-
-	req, err := http.NewRequest(http.MethodPost, source.GetUrlLoadModel(), body)
+	body := bytes.NewReader(nil)
+	req, err := http.NewRequest(http.MethodGet, source.GetUrlHealth(), body)
 	if err != nil {
 		return -1, fmt.Errorf("NewRequest() failed: %w", err)
 	}
-	req.Header.Add("Content-Type", writer.FormDataContentType())
+	req.Header.Add("Content-Type", "application/json")
 
 	client := &http.Client{}
 	res, err := client.Do(req)

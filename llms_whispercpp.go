@@ -6,15 +6,8 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
-	"path/filepath"
 	"sync"
 )
-
-type LLMWhispercppModel struct {
-	Label string
-	Path  string
-}
 
 // Whisper.cpp settings.
 type LLMWhispercpp struct {
@@ -35,23 +28,11 @@ func NewLLMWhispercpp() *LLMWhispercpp {
 
 func (wsp *LLMWhispercpp) Check() error {
 	if wsp.Address == "" {
-		return fmt.Errorf("whisper address is empty")
+		return fmt.Errorf("whispercpp address is empty")
 	}
 
 	return nil
 }
-func (wsp *LLMWhispercpp) IsFolderExists(fileName string) bool {
-	info, err := os.Stat(fileName)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return info.IsDir()
-}
-
-func (wsp *LLMWhispercpp) getModelPath(model_name string) string {
-	return filepath.Join("models", model_name+".bin")
-}
-
 func (wsp *LLMWhispercpp) GetUrlInference() string {
 	return fmt.Sprintf("%s:%d/inference", wsp.Address, wsp.Port)
 }
@@ -60,10 +41,11 @@ func (wsp *LLMWhispercpp) GetUrlLoadModel() string {
 }
 
 func (wsp *LLMWhispercpp) Transcribe(st *LLMTranscribe) error {
+	err := wsp.Check()
+	if err != nil {
+		return err
+	}
 
-	wsp.Check()
-
-	var err error
 	st.Out_Output, st.Out_StatusCode, err = LLMWhispercppTranscribe_Transcribe(st.AudioBlob, st.Model, st.Temperature, st.Response_format, wsp)
 	if err != nil {
 		return err

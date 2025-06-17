@@ -518,6 +518,8 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 			y++
 		}
 
+		y++ //space
+
 		//Whisper.cpp
 		{
 			setDia := ui.AddDialog("whispercpp_settings")
@@ -533,11 +535,38 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 				return nil
 			}
 
-			source_wsp, err := NewLLMWhispercpp_wsp("")
+			source_wsp, err := NewLLMWhispercpp("")
 			if err != nil {
 				return err
 			}
 			err = source_wsp.Check()
+			if err != nil {
+				bt.Cd = UI_GetPalette().E
+				bt.Tooltip = "Error: " + err.Error()
+			}
+			y++
+		}
+
+		//Llama.cpp
+		{
+			setDia := ui.AddDialog("llamacpp_settings")
+			setDia.UI.SetColumn(0, 1, 20)
+			setDia.UI.SetRowFromSub(0, 1, 100)
+			setDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMLlamacppSettings{}).run, caller)
+
+			bt := ui.AddButton(1, y, 1, 1, "Llama.cpp")
+			//bt.Align = 0
+			bt.Background = 0.5
+			bt.clicked = func() error {
+				setDia.OpenCentered(caller)
+				return nil
+			}
+
+			source_llama, err := NewLLMLlamacpp("")
+			if err != nil {
+				return err
+			}
+			err = source_llama.Check()
 			if err != nil {
 				bt.Cd = UI_GetPalette().E
 				bt.Tooltip = "Error: " + err.Error()

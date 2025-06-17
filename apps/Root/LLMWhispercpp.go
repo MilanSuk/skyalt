@@ -2,15 +2,9 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"sync"
 )
-
-type LLMWhispercppModel struct {
-	Label string
-	Path  string
-}
 
 // Whisper.cpp settings.
 type LLMWhispercpp struct {
@@ -20,7 +14,7 @@ type LLMWhispercpp struct {
 	Port    int
 }
 
-func NewLLMWhispercpp_wsp(file string) (*LLMWhispercpp, error) {
+func NewLLMWhispercpp(file string) (*LLMWhispercpp, error) {
 	st := &LLMWhispercpp{}
 
 	st.Address = "http://localhost"
@@ -31,19 +25,11 @@ func NewLLMWhispercpp_wsp(file string) (*LLMWhispercpp, error) {
 
 func (wsp *LLMWhispercpp) Check() error {
 	if wsp.Address == "" {
-		return fmt.Errorf("Whisper address is empty")
+		return fmt.Errorf("whisper.cpp address is empty")
 	}
 
 	return nil
 }
-func (wsp *LLMWhispercpp) IsFolderExists(fileName string) bool {
-	info, err := os.Stat(fileName)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return info.IsDir()
-}
-
 func (wsp *LLMWhispercpp) getModelPath(model_name string) string {
 	return filepath.Join("models", model_name+".bin")
 }
