@@ -614,7 +614,7 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 		comp.UserMessage = prompt
 		comp.UserFiles = files
 	}
-	comp.Max_iteration = -1
+	comp.Max_iteration = 10
 	comp.delta = func(msgJs []byte) {
 		var msg ChatMsg
 		err := json.Unmarshal(msgJs, &msg)
@@ -691,7 +691,7 @@ func (st *ShowChat) summarize(userMessage string, caller *ToolCaller, chat *Chat
 		err := comp.Run(caller)
 		if err == nil {
 
-			label := comp.Out_last_final_message
+			label := comp.Out_answer
 			label = strings.ReplaceAll(label, "\n", " ")
 			label = strings.TrimSpace(label)
 			chat.Label = label

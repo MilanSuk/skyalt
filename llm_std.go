@@ -124,7 +124,12 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 		return OpenAIOut{}, -1, 0, -1, fmt.Errorf("NewRequest() failed: %w", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Bearer "+api_key)
+	if api_key == "" {
+		req.Header.Add("Authorization", "Bearer no-key")
+	} else {
+		req.Header.Add("Authorization", "Bearer "+api_key)
+	}
+
 	if fnStreaming != nil {
 		req.Header.Add("Accept", "text/event-stream")
 		req.Header.Add("Cache-Control", "no-cache")

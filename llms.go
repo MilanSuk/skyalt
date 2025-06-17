@@ -131,8 +131,6 @@ func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 }
 
 type LLMComplete struct {
-	UID string
-
 	Model             string
 	Temperature       float64
 	Top_p             float64
@@ -148,18 +146,22 @@ type LLMComplete struct {
 	UserMessage      string
 	UserFiles        []string
 
-	Response_format string
+	Response_format string //"", "json_object"
 
 	Max_iteration int
 
-	Out_StatusCode             int
-	Out_messages               []byte //[]*ChatMsg
-	Out_last_final_message     string
-	Out_last_reasoning_message string
-	Out_usage                  LLMMsgUsage
-	Out_time                   float64 //sec
+	Out_StatusCode int
+	Out_messages   []byte //[]*ChatMsg
+	Out_answer     string
+	Out_reasoning  string
+	Out_usage      LLMMsgUsage
+	Out_time       float64 //sec
 
 	delta func(msg *ChatMsg)
+}
+
+func NewLLMCompletion(systemMessage string, userMessage string) *LLMComplete {
+	return &LLMComplete{Temperature: 0.2, Max_tokens: 16384, Top_p: 0.95, SystemMessage: systemMessage, UserMessage: userMessage}
 }
 
 func (a *LLMComplete) Cmp(b *LLMComplete) bool {
@@ -172,8 +174,6 @@ func (a *LLMComplete) Cmp(b *LLMComplete) bool {
 }
 
 type LLMGenerateImage struct {
-	UID string
-
 	Provider string //"xai"
 
 	Prompt     string //Prompt for image generation.
@@ -186,8 +186,6 @@ type LLMGenerateImage struct {
 }
 
 type LLMTranscribe struct {
-	UID string
-
 	AudioBlob    []byte
 	BlobFileName string //ext.... (blob.wav, blob.mp3)
 
@@ -246,6 +244,9 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 			provider = "openai"
 		}
 	}
+	if provider == "" && st.Model == "llamacpp" {
+		provider = "llamacpp"
+	}
 
 	//find in cache
 	for i := range llms.Cache {
@@ -253,6 +254,10 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 			*st = llms.Cache[i]
 			return nil
 		}
+	}
+
+	if st.Max_iteration <= 0 {
+		st.Max_iteration = 1
 	}
 
 	//call
@@ -273,6 +278,11 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 			return err
 		}
 
+	case "llamacpp":
+		err := llms.router.sync.LLM_llama.Complete(st, llms.router, msg)
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("provider not found")
 	}
@@ -306,7 +316,7 @@ func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *ToolsRouterMsg) error
 		if err != nil {
 			return err
 		}
-		//other providers
+		//other providers ....
 	}
 
 	return nil
