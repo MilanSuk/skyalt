@@ -205,37 +205,76 @@ func (app *ToolsApp) Generate() error {
 		promptsFileTime = Tools_GetFileTime(promptsFilePath) //refresh
 	}
 
-	err = app.Prompts.GenerateCode(app.Process.Compile.appName, app.router)
-	if err != nil {
-		return err
-	}
-
 	secrets, err := NewToolsSecrets(secretsFilePath)
 	if err != nil {
 		return err
 	}
 
-	err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
+	msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
+	defer msg.Done()
+
+	//Storage
+	N_msgs := 3
+	for N_msgs >= 0 {
+
+		err = app.Prompts.GenerateStructureCode(msg, app.router.llms)
+		if err != nil {
+			return err
+		}
+
+		err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
+		if err != nil {
+			return err
+		}
+
+		codeErrors, err := app.Process.Compile._compile(promptsFileTime, app.router, true)
+		if err != nil {
+			return err
+		}
+		app.Prompts.SetCodeErrors(codeErrors)
+		if len(codeErrors) == 0 {
+			break
+		}
+		N_msgs--
+	}
+
+	//Tools
+	if N_msgs >= 0 {
+		N_msgs = 3
+		for N_msgs >= 0 {
+
+			err = app.Prompts.GenerateToolsCode(msg, app.router.llms)
+			if err != nil {
+				return err
+			}
+
+			err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
+			if err != nil {
+				return err
+			}
+
+			codeErrors, err := app.Process.Compile._compile(promptsFileTime, app.router, true)
+			if err != nil {
+				return err
+			}
+			app.Prompts.SetCodeErrors(codeErrors)
+			if len(codeErrors) == 0 {
+				break
+			}
+			N_msgs--
+		}
+	}
+
+	codeErrors, err := app.Process.Compile.Compile(promptsFileTime, app.router, app.Destroy)
 	if err != nil {
 		return err
 	}
-
-	codeErrors, _ := app.Process.Compile.Compile(promptsFileTime, app.router, app.Destroy)
 	app.Prompts.SetCodeErrors(codeErrors)
 
 	app.Prompts.PromptsFileTime = promptsFileTime
 	app.Prompts.SecretsFileTime = secretsFileTime
 
 	return app._save()
-}
-
-func (app *ToolsApp) Repair() error {
-	if app.Prompts != nil {
-		//...... app.Prompts.RepairCode(app.router)
-		return app._save()
-	}
-
-	return nil
 }
 
 func (app *ToolsApp) Tick() error {

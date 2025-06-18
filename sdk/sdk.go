@@ -846,18 +846,6 @@ func callFuncGenerateApp(app_name string) {
 		}
 	}
 }
-func callFuncRepairApp(app_name string) {
-	cl, err := NewToolClient("localhost", g_main.router_port)
-	if Tool_Error(err) == nil {
-		defer cl.Destroy()
-
-		err = cl.WriteArray([]byte("repair_app"))
-		if Tool_Error(err) == nil {
-			err = cl.WriteArray([]byte(app_name))
-			Tool_Error(err)
-		}
-	}
-}
 
 func callFuncPrint(str string) {
 	cl, err := NewToolClient("localhost", g_main.router_port)

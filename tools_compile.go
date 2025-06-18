@@ -60,7 +60,7 @@ func (app *ToolsAppCompile) NeedCompile(codeFileTime int64) bool {
 
 func (app *ToolsAppCompile) Compile(codeFileTime int64, router *ToolsRouter, stopProcess func() error) ([]ToolsCodeError, error) {
 
-	codeErrors, err := app._compile(codeFileTime, router)
+	codeErrors, err := app._compile(codeFileTime, router, false)
 	if err == nil {
 		err := stopProcess() //stop it
 		if err != nil {
@@ -89,7 +89,7 @@ func (app *ToolsAppCompile) Compile(codeFileTime int64, router *ToolsRouter, sto
 	return codeErrors, err
 }
 
-func (app *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter) ([]ToolsCodeError, error) {
+func (app *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter, noBinary bool) ([]ToolsCodeError, error) {
 
 	app.Error = ""
 
@@ -212,7 +212,7 @@ func (app *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter) ([
 				codeErrors = append(codeErrors, itErr)
 			}
 
-			return codeErrors, fmt.Errorf("goimports failed: %s", stderr.String())
+			return codeErrors, nil
 		}
 		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
 	}
@@ -258,7 +258,12 @@ func (app *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter) ([
 	{
 		fmt.Printf("Compiling '%s' ... ", app.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000
-		cmd := exec.Command("go", "build", "-o", app.GetBinName())
+
+		outName := app.GetBinName()
+		if noBinary {
+			outName = "/dev/null"
+		}
+		cmd := exec.Command("go", "build", "-o", outName)
 		cmd.Dir = app.GetFolderPath()
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
@@ -274,7 +279,7 @@ func (app *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter) ([
 				}
 			}
 
-			return codeErrors, fmt.Errorf("compiler failed: %s", stderr.String())
+			return codeErrors, nil
 		}
 		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
 	}

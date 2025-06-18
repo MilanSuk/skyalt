@@ -55,12 +55,15 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		Col  int
 		Msg  string
 	}
+	type SdkToolsMessages struct {
+		Message   string
+		Reasoning string
+	}
 	type SdkToolsPrompt struct {
 		Prompt string //LLM input
 
 		//LLM output
-		Message   string
-		Reasoning string
+		Messages []SdkToolsMessages
 
 		Code  string
 		Model string
@@ -278,16 +281,8 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				}
 			}
 			if n_errors > 0 {
-				tx := FooterDiv.AddText(0, 2, 1, 1, fmt.Sprintf("%d file(s) has compilation error(s)", n_errors))
+				tx := FooterDiv.AddText(0, 2, 2, 1, fmt.Sprintf("%d file(s) has compilation error(s)", n_errors))
 				tx.Cd = UI_GetPalette().E
-
-				FixBt := FooterDiv.AddButton(1, 2, 1, 1, "Fix it")
-				FixBt.Cd = UI_GetPalette().E
-				FixBt.Tooltip = "LLM will try to fix the error(s)"
-				FixBt.clicked = func() error {
-					callFuncRepairApp(app.Name)
-					return nil
-				}
 			}
 		}
 	}
@@ -435,9 +430,16 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						//tx.layout.VScrollToTheBottom(true, caller)
 
 					case "msg":
-						msgStr := prompt.Reasoning
-						if msgStr == "" {
-							msgStr = prompt.Message
+						var msgStr string
+						for i := range prompt.Messages {
+							m := prompt.Messages[i]
+							msgStr += m.Reasoning
+							if m.Reasoning == "" {
+								msgStr += m.Message
+							}
+							if i+1 < len(prompt.Messages) {
+								msgStr += "\n--- --- --- --- --- --- --- ---\n"
+							}
 						}
 						tx := SideDiv.AddText(0, 1, 1, 1, msgStr)
 						tx.Align_v = 0

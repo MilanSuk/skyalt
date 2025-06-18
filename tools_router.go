@@ -465,15 +465,6 @@ func (router *ToolsRouter) RunNet() {
 						}
 					}
 
-				case "repair_app":
-					appName, err := cl.ReadArray()
-					if router.log.Error(err) == nil {
-						app := router.FindApp(string(appName))
-						if app != nil {
-							app.Repair() //err ....
-						}
-					}
-
 				case "get_llm_usage":
 					usage := router.llms.GetUsage()
 

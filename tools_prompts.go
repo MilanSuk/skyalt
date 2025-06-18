@@ -24,12 +24,15 @@ import (
 	"strings"
 )
 
+type ToolsPromptMessages struct {
+	Message   string
+	Reasoning string
+}
 type ToolsPrompt struct {
 	Prompt string //LLM input
 
 	//LLM output
-	Message   string
-	Reasoning string
+	Messages []ToolsPromptMessages
 
 	Code  string
 	Model string
@@ -42,10 +45,12 @@ type ToolsPrompt struct {
 	Usage LLMMsgUsage
 
 	header_line int
+
+	previousMessages []byte
 }
 
 func (prompt *ToolsPrompt) updateSchema() error {
-	if prompt.Name == "Storage" {
+	if prompt.Name == "Storage" || prompt.Code == "" {
 		return nil
 	}
 
@@ -58,7 +63,7 @@ func (prompt *ToolsPrompt) updateSchema() error {
 	return nil
 }
 
-func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, usage *LLMMsgUsage, model string) {
+func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, usage *LLMMsgUsage, model string, previousMessages []byte) {
 
 	re := regexp.MustCompile("(?s)```(?:go|golang)(.*?)```")
 	matches := re.FindAllStringSubmatch(final_msg, -1)
@@ -76,10 +81,10 @@ func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, us
 	} else {
 		prompt.Code = final_msg
 	}
-	prompt.Message = final_msg
-	prompt.Reasoning = reasoning_msg
+	prompt.Messages = append(prompt.Messages, ToolsPromptMessages{Message: final_msg, Reasoning: reasoning_msg})
 	prompt.Usage = *usage
 	prompt.Model = model
+	prompt.previousMessages = previousMessages
 
 	/*if loadName {
 		prompt.Name, _ = _ToolsPrompt_getFileName(prompt.Code)
@@ -234,7 +239,8 @@ func (app *ToolsPrompts) Reload(folderPath string) (bool, error) {
 	return saveFile, nil
 }
 
-func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *ToolsPrompt, comp *LLMComplete, msg *ToolsRouterMsg, router *ToolsRouter) error {
+func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *ToolsPrompt, comp *LLMComplete, msg *ToolsRouterMsg, llms *LLMs) error {
+
 	var err error
 	if prompt == storagePrompt {
 		comp.SystemMessage, comp.UserMessage, err = app._getStorageMsg(storagePrompt)
@@ -248,6 +254,20 @@ func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *
 		}
 	}
 
+	if len(prompt.Errors) > 0 {
+		comp.PreviousMessages = prompt.previousMessages
+
+		//add list of errors
+		lines := strings.Split(prompt.Code, "\n")
+		for _, er := range prompt.Errors {
+			lines[er.Line] = fmt.Sprintf("%s\t//Error(Col %d): %s", lines[er.Line], er.Col, er.Msg)
+		}
+		code := strings.Join(lines, "\n")
+
+		comp.UserMessage = "```go" + code + "```\n"
+		comp.UserMessage += "Above code has compiler error(s), marked in line comments(//Error). Please fix them by rewriting above code. Also remove comments with errors."
+	}
+
 	comp.delta = func(msg *ChatMsg) {
 		app.Generating_name = prompt.Name
 		if msg.Content.Calls != nil {
@@ -255,16 +275,31 @@ func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *
 		}
 	}
 
-	err = router.llms.Complete(comp, msg)
+	err = llms.Complete(comp, msg)
 	if err != nil {
 		return err
 	}
 
-	prompt.setMessage(comp.Out_answer, comp.Out_reasoning, &comp.Out_usage, comp.Model)
+	prompt.setMessage(comp.Out_answer, comp.Out_reasoning, &comp.Out_usage, comp.Model, comp.Out_messages)
+
 	return nil
 }
 
-func (app *ToolsPrompts) GenerateCode(appName string, router *ToolsRouter) error {
+func _ToolsPrompts_prepareLLMCompleteStruct() *LLMComplete {
+	comp := &LLMComplete{}
+	comp.Temperature = 0.2
+	comp.Max_tokens = 32768 //65536
+	comp.Top_p = 0.95       //1.0
+	comp.Frequency_penalty = 0
+	comp.Presence_penalty = 0
+	comp.Reasoning_effort = ""
+	comp.Max_iteration = 1
+	comp.Model = "gpt-4.1-mini"
+
+	return comp
+}
+
+func (app *ToolsPrompts) GenerateStructureCode(msg *ToolsRouterMsg, llms *LLMs) error {
 
 	defer func() {
 		//reset
@@ -278,25 +313,21 @@ func (app *ToolsPrompts) GenerateCode(appName string, router *ToolsRouter) error
 		return fmt.Errorf("'Storage' prompt not found")
 	}
 
-	var comp LLMComplete
-	comp.Temperature = 0.2
-	comp.Max_tokens = 32768 //65536
-	comp.Top_p = 0.95       //1.0
-	comp.Frequency_penalty = 0
-	comp.Presence_penalty = 0
-	comp.Reasoning_effort = ""
-	comp.Max_iteration = 1
-	comp.Model = "gpt-4.1-mini"
+	return app.generatePromptCode(storagePrompt, storagePrompt, _ToolsPrompts_prepareLLMCompleteStruct(), msg, llms)
+}
 
-	msg := router.AddRecompileMsg(appName)
-	defer msg.Done()
+func (app *ToolsPrompts) GenerateToolsCode(msg *ToolsRouterMsg, llms *LLMs) error {
 
-	//generate storage code first
-	{
-		err := app.generatePromptCode(storagePrompt, storagePrompt, &comp, msg, router)
-		if err != nil {
-			return err
-		}
+	defer func() {
+		//reset
+		app.Generating_name = ""
+		app.Generating_msg = ""
+	}()
+
+	//find Storage
+	storagePrompt := app.FindPromptName("Storage")
+	if storagePrompt == nil {
+		return fmt.Errorf("'Storage' prompt not found")
 	}
 
 	//then generate tools code
@@ -305,34 +336,10 @@ func (app *ToolsPrompts) GenerateCode(appName string, router *ToolsRouter) error
 			continue
 		}
 
-		err := app.generatePromptCode(prompt, storagePrompt, &comp, msg, router)
+		err := app.generatePromptCode(prompt, storagePrompt, _ToolsPrompts_prepareLLMCompleteStruct(), msg, llms)
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (app *ToolsPrompts) RepairCode(secrets *ToolsSecrets, router *ToolsRouter) error {
-
-	//find Storage
-	storagePrompt := app.FindPromptName("Storage")
-	if storagePrompt == nil {
-		return fmt.Errorf("'Storage' prompt not found")
-	}
-
-	//first fix Storage ....
-
-	//přepsat re-generate aby se netahal starý kód z LLM cache ....
-
-	for _, prompt := range app.Prompts {
-		if len(prompt.Errors) == 0 {
-			continue
-		}
-
-		//new_code := secrets.ReplaceAliases(prompt.Code)
-
 	}
 
 	return nil
@@ -347,9 +354,9 @@ func (app *ToolsPrompts) WriteFiles(folderPath string, secrets *ToolsSecrets) er
 			return err
 		}
 		for _, info := range files {
-			name := strings.TrimRight(info.Name(), filepath.Ext(info.Name()))
+			//name := strings.TrimRight(info.Name(), filepath.Ext(info.Name()))
 
-			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" || app.FindPromptName(name) != nil {
+			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" {
 				continue
 			}
 			os.Remove(filepath.Join(folderPath, info.Name()))
@@ -409,7 +416,9 @@ func (app *ToolsPrompts) _getStorageMsg(structPrompt *ToolsPrompt) (string, stri
 
 	systemMessage += "Do not call os.ReadFile() + json.Unmarshal(), instead call ReadJSONFile(). Do not call os.WriteFile(), saving data in structures into disk is automatic."
 
-	//maybe add old file structures, because it's needed that struct and attributes names are same ...............
+	systemMessage += "Never define constants('const') use variables('var') for everything.\n"
+
+	//maybe add old file structures, because it's needed that struct and attributes names are same ....
 
 	userMessage := structPrompt.Prompt
 
@@ -456,7 +465,9 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 
 	systemMessage += "Figure out <tool's arguments> based on user prompt. They are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with upper letter. Every argument must have description as comment.\n"
 
-	systemMessage += "If you need to access the storage, call function Load...() from storage.go.\n"
+	systemMessage += "If you need to access the storage, call function Load...() from storage.go which return data. Don't call save/write on that data, it's automaticaly called after function ends.\n"
+
+	systemMessage += "Never define constants('const') use variables('var') for everything.\n"
 
 	//systemMessage += fmt.Sprintf("You may add help functions into tool.go. They should start with ```func (st *%s)NameOfHelpFunction```\n", prompt.Name)
 
