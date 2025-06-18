@@ -578,7 +578,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 	}
 
 	//Memory
-	{
+	/*{
 		tx := ui.AddText(1, y, 1, 1, "Extended system prompt - memory")
 		tx.Align_h = 1
 		tx.Tooltip = "Things you want to share with LLM agent.\nThe text is added to every system prompt."
@@ -590,7 +590,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 		mem.Align_v = 0
 		mem.Ghost = "Things you want to share with LLM agent."
 		y++
-	}
+	}*/
 
 	ui.AddDivider(1, y, 1, 1, true)
 	y++
