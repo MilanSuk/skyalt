@@ -78,7 +78,10 @@ func NewToolsApp(appName string, router *ToolsRouter) (*ToolsApp, error) {
 }
 
 func (app *ToolsApp) Destroy() error {
-	err := app.Process.Destroy(false)
+	return app.StopProcess(false)
+}
+func (app *ToolsApp) StopProcess(waitTillExit bool) error {
+	err := app.Process.Destroy(waitTillExit)
 	if err != nil {
 		return err
 	}
@@ -89,7 +92,6 @@ func (app *ToolsApp) Destroy() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -265,7 +267,7 @@ func (app *ToolsApp) Generate() error {
 		}
 	}
 
-	codeErrors, err := app.Process.Compile.Compile(promptsFileTime, app.router, app.Destroy)
+	codeErrors, err := app.Process.Compile.Compile(promptsFileTime, app)
 	if err != nil {
 		return err
 	}
@@ -360,7 +362,7 @@ func (app *ToolsApp) Tick() error {
 		}
 
 		if app.Process.Compile.NeedCompile(codeFileTime) {
-			_, err := app.Process.Compile.Compile(codeFileTime, app.router, app.Destroy)
+			_, err := app.Process.Compile.Compile(codeFileTime, app)
 			if err != nil {
 				return err
 			}
