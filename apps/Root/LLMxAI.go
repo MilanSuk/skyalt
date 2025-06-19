@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -52,9 +51,6 @@ type LLMxAI struct {
 	DevUrl     string
 	API_key    string
 
-	FastMode  bool
-	SmartMode bool
-
 	LanguageModels []*LLMxAILanguageModel
 	ImageModels    []*LLMxAIImageModel
 
@@ -77,10 +73,7 @@ func (xai *LLMxAI) Check(caller *ToolCaller) error {
 		return fmt.Errorf("%s API key is empty", xai.Provider)
 	}
 
-	//reload models
-	if len(xai.LanguageModels) == 0 {
-		xai.ReloadModels(caller)
-	}
+	xai.ReloadModels()
 
 	return nil
 }
@@ -112,47 +105,57 @@ func (xai *LLMxAI) FindModel(name string) (*LLMxAILanguageModel, *LLMxAIImageMod
 	return nil, nil
 }
 
-func (xai *LLMxAI) ReloadModels(caller *ToolCaller) error {
+func (xai *LLMxAI) ReloadModels() error {
 
 	//reset
 	xai.LanguageModels = nil
 	xai.ImageModels = nil
 
-	//Language models
-	{
-		js, err := xai.downloadList("language-models")
-		if err != nil {
-			return err
-		}
+	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+		Id:                             "grok-3",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        30000,
+		Cached_prompt_text_token_price: 7500,
+		Completion_text_token_price:    150000,
+	})
+	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+		Id:                             "grok-3-fast",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        50000,
+		Cached_prompt_text_token_price: 12500,
+		Completion_text_token_price:    250000,
+	})
 
-		type ST struct {
-			Models []*LLMxAILanguageModel
-		}
-		var stt ST
-		err = json.Unmarshal(js, &stt)
-		if err != nil {
-			return err
-		}
-		xai.LanguageModels = stt.Models
-	}
+	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+		Id:                             "grok-3-mini",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        3000,
+		Cached_prompt_text_token_price: 75,
+		Completion_text_token_price:    5000,
+	})
+
+	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+		Id:                             "grok-3-mini-fast",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        6000,
+		Cached_prompt_text_token_price: 1500,
+		Completion_text_token_price:    40000,
+	})
+
+	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+		Id:                             "grok-2-vision",
+		Input_modalities:               []string{"text", "image"},
+		Prompt_text_token_price:        20000,
+		Cached_prompt_text_token_price: 20000,
+		Completion_text_token_price:    100000,
+	})
 
 	//Image models
-	{
-		js, err := xai.downloadList("image-generation-models")
-		if err != nil {
-			return err
-		}
 
-		type ST struct {
-			Models []*LLMxAIImageModel
-		}
-		var stt ST
-		err = json.Unmarshal(js, &stt)
-		if err != nil {
-			return err
-		}
-		xai.ImageModels = stt.Models
-	}
+	xai.ImageModels = append(xai.ImageModels, &LLMxAIImageModel{
+		Id:          "grok-2-image",
+		Image_price: 700,
+	})
 
 	return nil
 }

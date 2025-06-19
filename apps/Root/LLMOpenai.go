@@ -71,9 +71,7 @@ func (mst *LLMOpenai) Check(caller *ToolCaller) error {
 	}
 
 	//reload models
-	if len(mst.LanguageModels) == 0 {
-		mst.ReloadModels(caller)
-	}
+	mst.ReloadModels()
 
 	return nil
 }
@@ -105,7 +103,7 @@ func (mst *LLMOpenai) FindModel(name string) (*LLMOpenaiLanguageModel, *LLMOpena
 	return nil, nil
 }
 
-func (mst *LLMOpenai) ReloadModels(caller *ToolCaller) error {
+func (mst *LLMOpenai) ReloadModels() error {
 
 	//reset
 	mst.LanguageModels = nil

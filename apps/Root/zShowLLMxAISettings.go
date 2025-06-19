@@ -24,14 +24,6 @@ func (st *ShowLLMxAISettings) run(caller *ToolCaller, ui *UI) error {
 
 	y := 1
 
-	ui.AddText(0, y, 1, 1, "Inference")
-	fs := ui.AddSwitch(1, y, 1, 1, "Faster", &source_llm.FastMode)
-	fs.Tooltip = "Generate answers faster."
-	y++
-	sm := ui.AddSwitch(1, y, 1, 1, "Smarter", &source_llm.SmartMode)
-	sm.Tooltip = "Use bigger model."
-	y++
-
 	y++ //space
 
 	ui.AddText(0, y, 1, 1, "OpenAI API endpoint")
@@ -85,11 +77,6 @@ func (st *ShowLLMxAISettings) run(caller *ToolCaller, ui *UI) error {
 		tx := ModelsDiv.AddText(2, my, 1, 1, fmt.Sprintf("<i>%s</i>", source_llm.GetPricingString(it.Id)))
 		tx.Tooltip = "Price per image"
 		my++
-	}
-
-	btReload := ui.AddButton(1, y, 1, 1, "Reload list")
-	btReload.clicked = func() error {
-		return source_llm.ReloadModels(caller)
 	}
 
 	return nil

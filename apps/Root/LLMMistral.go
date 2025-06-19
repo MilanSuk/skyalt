@@ -70,10 +70,7 @@ func (mst *LLMMistral) Check(caller *ToolCaller) error {
 		return fmt.Errorf("%s API key is empty", mst.Provider)
 	}
 
-	//reload models
-	if len(mst.LanguageModels) == 0 {
-		mst.ReloadModels(caller)
-	}
+	mst.ReloadModels()
 
 	return nil
 }
@@ -105,7 +102,7 @@ func (mst *LLMMistral) FindModel(name string) (*LLMMistralLanguageModel, *LLMMis
 	return nil, nil
 }
 
-func (mst *LLMMistral) ReloadModels(caller *ToolCaller) error {
+func (mst *LLMMistral) ReloadModels() error {
 
 	//reset
 	mst.LanguageModels = nil

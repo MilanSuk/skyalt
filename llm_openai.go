@@ -72,10 +72,7 @@ func (oai *LLMOpenai) Check() error {
 		return fmt.Errorf("%s API key is empty", oai.Provider)
 	}
 
-	//reload models
-	if len(oai.LanguageModels) == 0 {
-		oai.ReloadModels()
-	}
+	oai.ReloadModels()
 
 	return nil
 }
