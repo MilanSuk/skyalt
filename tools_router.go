@@ -86,14 +86,14 @@ type ToolsRouter struct {
 	llms *LLMs
 	sync *ToolsSync
 
-	mics *ToolsMicMalgo
+	mic *ToolsMicMalgo
 }
 
 func NewToolsRouter(start_port int) (*ToolsRouter, error) {
 	var err error
 
 	router := &ToolsRouter{}
-	router.mics = NewToolsMicMalgo()
+	router.mic = NewToolsMicMalgo(router)
 	router.server = NewToolsServer(start_port)
 	router.msgs = make(map[uint64]*ToolsRouterMsg)
 	router.apps = make(map[string]*ToolsApp)
@@ -115,6 +115,7 @@ func NewToolsRouter(start_port int) (*ToolsRouter, error) {
 		for {
 			router._hotReload()
 			if !inited {
+				router.sync.Upload_LoadFiles()
 				router.sync.Upload_deviceDefaultDPI()
 				inited = true
 			}
@@ -136,7 +137,7 @@ func (router *ToolsRouter) Destroy() {
 
 	router.server.Destroy()
 
-	router.mics.Destroy()
+	router.mic.Destroy()
 
 	router.Save()
 }
@@ -735,7 +736,11 @@ func (router *ToolsRouter) RunNet() {
 										}
 									}
 
-									err = router.llms.Complete(&comp, msg)
+									usecase := "chat"
+									if comp.AppName != "" {
+										usecase = "tools"
+									}
+									err = router.llms.Complete(&comp, msg, usecase)
 									if router.log.Error(err) == nil {
 										//save back
 										compJs, err = json.Marshal(&comp)
@@ -806,12 +811,12 @@ func (router *ToolsRouter) RunNet() {
 							//exe
 							errStr := ""
 							if msg != nil {
-								mic, err := router.mics.Start(string(mic_uid), router.sync.Mic)
+								mic, err := router.mic.Start(string(mic_uid))
 								if err == nil {
 									//loop and wait for 'stop_microphone' or cancel
 									for !mic.Stop.Load() {
 										if router.sync.Mic.Enable && !msg.Progress(0, "Listening") {
-											router.mics.Finished(string(mic_uid), true)
+											router.mic.Finished(string(mic_uid), true)
 											errStr = "recording canceled"
 										}
 
@@ -839,7 +844,7 @@ func (router *ToolsRouter) RunNet() {
 								errStr := ""
 								var Out_bytes []byte
 
-								out, err := router.mics.Finished(string(mic_uid), cancel > 0)
+								out, err := router.mic.Finished(string(mic_uid), cancel > 0)
 								if router.log.Error(err) == nil {
 									if string(format) != "wav" && string(format) != "mp3" {
 										errStr = "unknown format"

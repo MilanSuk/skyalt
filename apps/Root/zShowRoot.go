@@ -424,7 +424,6 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 	{
 		ui.SetRowFromSub(y, 0, 100)
 		ui.AddToolApp(1, y, 1, 1, "Device", "ShowDeviceSettings", nil, caller)
-		//ui.AddTool(1, y, 1, 1, (&ShowDeviceSettings{}).run, caller)
 		y++
 	}
 
@@ -433,164 +432,10 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error 
 
 	// LLMs
 	{
-		tx := ui.AddText(1, y, 1, 1, "LLMs")
-		tx.Align_h = 1
+		ui.SetRowFromSub(y, 0, 100)
+		ui.AddToolApp(1, y, 1, 1, "Device", "ShowLLMsSettings", nil, caller)
 		y++
-
-		//xAI
-		{
-			setDia := ui.AddDialog("xai_settings")
-			setDia.UI.SetColumn(0, 1, 20)
-			setDia.UI.SetRowFromSub(0, 1, 100)
-			setDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMxAISettings{}).run, caller)
-
-			bt := ui.AddButton(1, y, 1, 1, "xAI")
-			//bt.Align = 0
-			bt.Background = 0.5
-			bt.clicked = func() error {
-				setDia.OpenCentered(caller)
-				return nil
-			}
-
-			source_llm, err := NewLLMxAI("")
-			if err != nil {
-				return err
-			}
-			err = source_llm.Check(caller)
-			if err != nil {
-				bt.Cd = UI_GetPalette().E
-				bt.Tooltip = "Error: " + err.Error()
-			}
-			y++
-		}
-
-		//Mistral
-		{
-			setDia := ui.AddDialog("mistral_settings")
-			setDia.UI.SetColumn(0, 1, 20)
-			setDia.UI.SetRowFromSub(0, 1, 100)
-			setDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMMistralSettings{}).run, caller)
-
-			bt := ui.AddButton(1, y, 1, 1, "Mistral")
-			//bt.Align = 0
-			bt.Background = 0.5
-			bt.clicked = func() error {
-				setDia.OpenCentered(caller)
-				return nil
-			}
-
-			source_llm, err := NewLLMMistral("")
-			if err != nil {
-				return err
-			}
-			err = source_llm.Check(caller)
-			if err != nil {
-				bt.Cd = UI_GetPalette().E
-				bt.Tooltip = "Error: " + err.Error()
-			}
-			y++
-		}
-
-		//OpenAI
-		{
-			setDia := ui.AddDialog("openai_settings")
-			setDia.UI.SetColumn(0, 1, 20)
-			setDia.UI.SetRowFromSub(0, 1, 100)
-			setDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMOpenaiSettings{}).run, caller)
-
-			bt := ui.AddButton(1, y, 1, 1, "OpenAI")
-			//bt.Align = 0
-			bt.Background = 0.5
-			bt.clicked = func() error {
-				setDia.OpenCentered(caller)
-				return nil
-			}
-
-			source_llm, err := NewLLMOpenai("")
-			if err != nil {
-				return err
-			}
-			err = source_llm.Check(caller)
-			if err != nil {
-				bt.Cd = UI_GetPalette().E
-				bt.Tooltip = "Error: " + err.Error()
-			}
-			y++
-		}
-
-		y++ //space
-
-		//Whisper.cpp
-		{
-			setDia := ui.AddDialog("whispercpp_settings")
-			setDia.UI.SetColumn(0, 1, 20)
-			setDia.UI.SetRowFromSub(0, 1, 100)
-			setDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMWhispercppSettings{}).run, caller)
-
-			bt := ui.AddButton(1, y, 1, 1, "Whisper.cpp")
-			//bt.Align = 0
-			bt.Background = 0.5
-			bt.clicked = func() error {
-				setDia.OpenCentered(caller)
-				return nil
-			}
-
-			source_wsp, err := NewLLMWhispercpp("")
-			if err != nil {
-				return err
-			}
-			err = source_wsp.Check()
-			if err != nil {
-				bt.Cd = UI_GetPalette().E
-				bt.Tooltip = "Error: " + err.Error()
-			}
-			y++
-		}
-
-		//Llama.cpp
-		{
-			setDia := ui.AddDialog("llamacpp_settings")
-			setDia.UI.SetColumn(0, 1, 20)
-			setDia.UI.SetRowFromSub(0, 1, 100)
-			setDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMLlamacppSettings{}).run, caller)
-
-			bt := ui.AddButton(1, y, 1, 1, "Llama.cpp")
-			//bt.Align = 0
-			bt.Background = 0.5
-			bt.clicked = func() error {
-				setDia.OpenCentered(caller)
-				return nil
-			}
-
-			source_llama, err := NewLLMLlamacpp("")
-			if err != nil {
-				return err
-			}
-			err = source_llama.Check()
-			if err != nil {
-				bt.Cd = UI_GetPalette().E
-				bt.Tooltip = "Error: " + err.Error()
-			}
-			y++
-		}
-
-		y++ //space
 	}
-
-	//Memory
-	/*{
-		tx := ui.AddText(1, y, 1, 1, "Extended system prompt - memory")
-		tx.Align_h = 1
-		tx.Tooltip = "Things you want to share with LLM agent.\nThe text is added to every system prompt."
-		y++
-
-		ui.SetRowFromSub(y, 2, 5)
-		mem := ui.AddEditboxString(1, y, 1, 1, &root.Memory)
-		mem.Multiline = true
-		mem.Align_v = 0
-		mem.Ghost = "Things you want to share with LLM agent."
-		y++
-	}*/
 
 	ui.AddDivider(1, y, 1, 1, true)
 	y++

@@ -59,23 +59,11 @@ type LLMxAI struct {
 	Stats []LLMxAIMsgStats
 }
 
-func NewLLMxAI() *LLMxAI {
-	xai := &LLMxAI{}
-
-	xai.Provider = "xAI"
-	xai.OpenAI_url = "https://api.x.ai/v1"
-	xai.DevUrl = "https://console.x.ai"
-
-	return xai
-}
-
 func (xai *LLMxAI) Check() error {
 
 	if xai.API_key == "" {
 		return fmt.Errorf("%s API key is empty", xai.Provider)
 	}
-
-	xai.ReloadModels()
 
 	return nil
 }
@@ -107,96 +95,96 @@ func (xai *LLMxAI) FindModel(name string) (*LLMxAILanguageModel, *LLMxAIImageMod
 	return nil, nil
 }
 
-func (xai *LLMxAI) ReloadModels() error {
+/*func (xai *LLMxAI) ReloadModels() error {
 
-	//reset
-	xai.LanguageModels = nil
-	xai.ImageModels = nil
+//reset
+xai.LanguageModels = nil
+xai.ImageModels = nil
 
-	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
-		Id:                             "grok-3",
-		Input_modalities:               []string{"text"},
-		Prompt_text_token_price:        30000,
-		Cached_prompt_text_token_price: 7500,
-		Completion_text_token_price:    150000,
-	})
-	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
-		Id:                             "grok-3-fast",
-		Input_modalities:               []string{"text"},
-		Prompt_text_token_price:        50000,
-		Cached_prompt_text_token_price: 12500,
-		Completion_text_token_price:    250000,
-	})
+xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+	Id:                             "grok-3",
+	Input_modalities:               []string{"text"},
+	Prompt_text_token_price:        30000,
+	Cached_prompt_text_token_price: 7500,
+	Completion_text_token_price:    150000,
+})
+xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+	Id:                             "grok-3-fast",
+	Input_modalities:               []string{"text"},
+	Prompt_text_token_price:        50000,
+	Cached_prompt_text_token_price: 12500,
+	Completion_text_token_price:    250000,
+})
 
-	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
-		Id:                             "grok-3-mini",
-		Input_modalities:               []string{"text"},
-		Prompt_text_token_price:        3000,
-		Cached_prompt_text_token_price: 75,
-		Completion_text_token_price:    5000,
-	})
+xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+	Id:                             "grok-3-mini",
+	Input_modalities:               []string{"text"},
+	Prompt_text_token_price:        3000,
+	Cached_prompt_text_token_price: 75,
+	Completion_text_token_price:    5000,
+})
 
-	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
-		Id:                             "grok-3-mini-fast",
-		Input_modalities:               []string{"text"},
-		Prompt_text_token_price:        6000,
-		Cached_prompt_text_token_price: 1500,
-		Completion_text_token_price:    40000,
-	})
+xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+	Id:                             "grok-3-mini-fast",
+	Input_modalities:               []string{"text"},
+	Prompt_text_token_price:        6000,
+	Cached_prompt_text_token_price: 1500,
+	Completion_text_token_price:    40000,
+})
 
-	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
-		Id:                             "grok-2-vision",
-		Input_modalities:               []string{"text", "image"},
-		Prompt_text_token_price:        20000,
-		Cached_prompt_text_token_price: 20000,
-		Completion_text_token_price:    100000,
-	})
+xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+	Id:                             "grok-2-vision",
+	Input_modalities:               []string{"text", "image"},
+	Prompt_text_token_price:        20000,
+	Cached_prompt_text_token_price: 20000,
+	Completion_text_token_price:    100000,
+})
 
-	//Image models
+//Image models
 
-	xai.ImageModels = append(xai.ImageModels, &LLMxAIImageModel{
-		Id:          "grok-2-image",
-		Image_price: 700,
-	})
-
-	//Language models
-	/*{
-		js, err := xai.downloadList("language-models")
-		if err != nil {
-			return err
-		}
-
-		type ST struct {
-			Models []*LLMxAILanguageModel
-		}
-		var stt ST
-		err = json.Unmarshal(js, &stt)
-		if err != nil {
-			return err
-		}
-		xai.LanguageModels = stt.Models
+xai.ImageModels = append(xai.ImageModels, &LLMxAIImageModel{
+	Id:          "grok-2-image",
+	Image_price: 700,
+})
+*/
+//Language models
+/*{
+	js, err := xai.downloadList("language-models")
+	if err != nil {
+		return err
 	}
 
-	//Image models
-	{
-		js, err := xai.downloadList("image-generation-models")
-		if err != nil {
-			return err
-		}
-
-		type ST struct {
-			Models []*LLMxAIImageModel
-		}
-		var stt ST
-		err = json.Unmarshal(js, &stt)
-		if err != nil {
-			return err
-		}
-		xai.ImageModels = stt.Models
-	}*/
-
-	return nil
+	type ST struct {
+		Models []*LLMxAILanguageModel
+	}
+	var stt ST
+	err = json.Unmarshal(js, &stt)
+	if err != nil {
+		return err
+	}
+	xai.LanguageModels = stt.Models
 }
+
+//Image models
+{
+	js, err := xai.downloadList("image-generation-models")
+	if err != nil {
+		return err
+	}
+
+	type ST struct {
+		Models []*LLMxAIImageModel
+	}
+	var stt ST
+	err = json.Unmarshal(js, &stt)
+	if err != nil {
+		return err
+	}
+	xai.ImageModels = stt.Models
+}*/
+
+/*	return nil
+}*/
 
 func (xai *LLMxAI) GetPricingString(model string) string {
 	model = strings.ToLower(model)
@@ -374,7 +362,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 			Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
 
 			Seed:  seed,
-			Model: st.Model,
+			Model: st.Out_model,
 
 			Tools:    tools,
 			Messages: messages,
@@ -393,7 +381,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 		fnStreaming := func(chatMsg *ChatMsg) bool {
 
 			chatMsg.Provider = xai.Provider
-			chatMsg.Model = st.Model
+			chatMsg.Model = st.Out_model
 			chatMsg.Seed = seed
 			chatMsg.Stream = true
 			chatMsg.ShowParameters = true
@@ -436,7 +424,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 				usage.Input_cached_tokens = out.Usage.Input_cached_tokens
 				usage.Completion_tokens = out.Usage.Completion_tokens
 				usage.Reasoning_tokens = out.Usage.Completion_tokens_details.Reasoning_tokens
-				mod, _ := xai.FindModel(st.Model)
+				mod, _ := xai.FindModel(st.Out_model)
 				if mod != nil {
 					usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price = mod.GetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens)
 				}
@@ -448,7 +436,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 			}
 
 			calls := out.Choices[0].Message.Tool_calls
-			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, xai.Provider, st.Model)
+			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, xai.Provider, st.Out_model)
 			if st.delta != nil {
 				st.delta(m2)
 			}
@@ -552,7 +540,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRout
 			xai.Stats = append(xai.Stats, LLMxAIMsgStats{
 				Function:       "completion",
 				CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000,
-				Model:          st.Model,
+				Model:          st.Out_model,
 
 				Time:             dt,
 				TimeToFirstToken: time_to_first_token,

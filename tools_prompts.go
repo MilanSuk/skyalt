@@ -275,12 +275,12 @@ func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *
 		}
 	}
 
-	err = llms.Complete(comp, msg)
+	err = llms.Complete(comp, msg, "code")
 	if err != nil {
 		return err
 	}
 
-	prompt.setMessage(comp.Out_answer, comp.Out_reasoning, &comp.Out_usage, comp.Model, comp.Out_messages)
+	prompt.setMessage(comp.Out_answer, comp.Out_reasoning, &comp.Out_usage, comp.Out_model, comp.Out_messages)
 
 	return nil
 }
@@ -294,7 +294,7 @@ func _ToolsPrompts_prepareLLMCompleteStruct() *LLMComplete {
 	comp.Presence_penalty = 0
 	comp.Reasoning_effort = ""
 	comp.Max_iteration = 1
-	comp.Model = "gpt-4.1-mini"
+	//comp.Model = "gpt-4.1-mini"
 
 	return comp
 }

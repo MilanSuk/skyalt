@@ -2539,7 +2539,6 @@ type LLMMsgUsage struct {
 	Reasoning_price    float64
 }
 type LLMCompletion struct {
-	Model             string
 	Temperature       float64
 	Top_p             float64
 	Max_tokens        int
@@ -2561,6 +2560,7 @@ type LLMCompletion struct {
 	Out_StatusCode int
 	Out_messages   []byte //[]*ChatMsg
 	Out_time       float64
+	Out_model      string
 
 	Out_answer    string
 	Out_reasoning string

@@ -30,6 +30,18 @@ type LLMMistralImageModel struct {
 	Aliases []string
 }
 
+type LLMMistralUsage struct {
+	Prompt_tokens       int
+	Input_cached_tokens int
+	Completion_tokens   int
+	Reasoning_tokens    int
+
+	Prompt_price       float64
+	Input_cached_price float64
+	Completion_price   float64
+	Reasoning_price    float64
+}
+
 type LLMMistralMsgStats struct {
 	Function       string
 	CreatedTimeSec float64
@@ -38,7 +50,7 @@ type LLMMistralMsgStats struct {
 	Time             float64
 	TimeToFirstToken float64
 
-	Usage ChatMsgUsage
+	Usage LLMMistralUsage
 }
 
 // Mistral LLM settings.
@@ -61,7 +73,12 @@ func NewLLMMistral(file string) (*LLMMistral, error) {
 	mst.OpenAI_url = "https://api.mistral.ai/v1"
 	mst.DevUrl = "https://console.mistral.ai"
 
-	return LoadFile(file, "LLMMistral", "json", mst, true)
+	var err error
+	mst, err = LoadFile(file, "LLMMistral", "json", mst, true)
+	if err == nil {
+		mst.ReloadModels()
+	}
+	return mst, err
 }
 
 func (mst *LLMMistral) Check(caller *ToolCaller) error {
@@ -69,8 +86,6 @@ func (mst *LLMMistral) Check(caller *ToolCaller) error {
 	if mst.API_key == "" {
 		return fmt.Errorf("%s API key is empty", mst.Provider)
 	}
-
-	mst.ReloadModels()
 
 	return nil
 }
@@ -138,6 +153,29 @@ func (mst *LLMMistral) ReloadModels() error {
 		Prompt_text_token_price:        0,
 		Cached_prompt_text_token_price: 0,
 		Completion_text_token_price:    0,
+	})
+	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
+		Id:                             "pixtral-large-latest",
+		Input_modalities:               []string{"text", "image"},
+		Prompt_text_token_price:        20000,
+		Cached_prompt_text_token_price: 20000,
+		Completion_text_token_price:    60000,
+	})
+
+	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
+		Id:                             "codestral-latest",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        3000,
+		Cached_prompt_text_token_price: 3000,
+		Completion_text_token_price:    9000,
+	})
+
+	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
+		Id:                             "mistral-large-latest",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        20000,
+		Cached_prompt_text_token_price: 20000,
+		Completion_text_token_price:    60000,
 	})
 
 	return nil

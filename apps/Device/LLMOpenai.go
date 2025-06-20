@@ -30,6 +30,18 @@ type LLMOpenaiImageModel struct {
 	Aliases []string
 }
 
+type LLMOpenaiUsage struct {
+	Prompt_tokens       int
+	Input_cached_tokens int
+	Completion_tokens   int
+	Reasoning_tokens    int
+
+	Prompt_price       float64
+	Input_cached_price float64
+	Completion_price   float64
+	Reasoning_price    float64
+}
+
 type LLMOpenaiMsgStats struct {
 	Function       string
 	CreatedTimeSec float64
@@ -38,7 +50,7 @@ type LLMOpenaiMsgStats struct {
 	Time             float64
 	TimeToFirstToken float64
 
-	Usage ChatMsgUsage
+	Usage LLMOpenaiUsage
 }
 
 // OpenAI LLM settings.
@@ -55,31 +67,33 @@ type LLMOpenai struct {
 }
 
 func NewLLMOpenai(file string) (*LLMOpenai, error) {
-	mst := &LLMOpenai{}
+	oai := &LLMOpenai{}
 
-	mst.Provider = "OpenAI"
-	mst.OpenAI_url = "https://api.openai.com/v1"
-	mst.DevUrl = "https://platform.openai.com/"
+	oai.Provider = "OpenAI"
+	oai.OpenAI_url = "https://api.openai.com/v1"
+	oai.DevUrl = "https://platform.openai.com/"
 
-	return LoadFile(file, "LLMOpenai", "json", mst, true)
+	var err error
+	oai, err = LoadFile(file, "LLMOpenai", "json", oai, true)
+	if err == nil {
+		oai.ReloadModels()
+	}
+	return oai, err
 }
 
-func (mst *LLMOpenai) Check(caller *ToolCaller) error {
+func (oai *LLMOpenai) Check(caller *ToolCaller) error {
 
-	if mst.API_key == "" {
-		return fmt.Errorf("%s API key is empty", mst.Provider)
+	if oai.API_key == "" {
+		return fmt.Errorf("%s API key is empty", oai.Provider)
 	}
-
-	//reload models
-	mst.ReloadModels()
 
 	return nil
 }
 
-func (mst *LLMOpenai) FindModel(name string) (*LLMOpenaiLanguageModel, *LLMOpenaiImageModel) {
+func (oai *LLMOpenai) FindModel(name string) (*LLMOpenaiLanguageModel, *LLMOpenaiImageModel) {
 	name = strings.ToLower(name)
 
-	for _, model := range mst.LanguageModels {
+	for _, model := range oai.LanguageModels {
 		if strings.ToLower(model.Id) == name {
 			return model, nil
 		}
@@ -89,7 +103,7 @@ func (mst *LLMOpenai) FindModel(name string) (*LLMOpenaiLanguageModel, *LLMOpena
 			}
 		}
 	}
-	for _, model := range mst.ImageModels {
+	for _, model := range oai.ImageModels {
 		if strings.ToLower(model.Id) == name {
 			return nil, model
 		}
@@ -103,20 +117,20 @@ func (mst *LLMOpenai) FindModel(name string) (*LLMOpenaiLanguageModel, *LLMOpena
 	return nil, nil
 }
 
-func (mst *LLMOpenai) ReloadModels() error {
+func (oai *LLMOpenai) ReloadModels() error {
 
 	//reset
-	mst.LanguageModels = nil
-	mst.ImageModels = nil
+	oai.LanguageModels = nil
+	oai.ImageModels = nil
 
-	mst.LanguageModels = append(mst.LanguageModels, &LLMOpenaiLanguageModel{
+	oai.LanguageModels = append(oai.LanguageModels, &LLMOpenaiLanguageModel{
 		Id:                             "gpt-4.1-nano",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        1000,
 		Cached_prompt_text_token_price: 250,
 		Completion_text_token_price:    4000,
 	})
-	mst.LanguageModels = append(mst.LanguageModels, &LLMOpenaiLanguageModel{
+	oai.LanguageModels = append(oai.LanguageModels, &LLMOpenaiLanguageModel{
 		Id:                             "gpt-4.1-mini",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        4000,
@@ -124,7 +138,7 @@ func (mst *LLMOpenai) ReloadModels() error {
 		Completion_text_token_price:    16000,
 	})
 
-	mst.LanguageModels = append(mst.LanguageModels, &LLMOpenaiLanguageModel{
+	oai.LanguageModels = append(oai.LanguageModels, &LLMOpenaiLanguageModel{
 		Id:                             "gpt-4o-mini",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        1500,
@@ -132,7 +146,7 @@ func (mst *LLMOpenai) ReloadModels() error {
 		Completion_text_token_price:    6000,
 	})
 
-	mst.LanguageModels = append(mst.LanguageModels, &LLMOpenaiLanguageModel{
+	oai.LanguageModels = append(oai.LanguageModels, &LLMOpenaiLanguageModel{
 		Id:                             "o4-mini-latest",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        11000,
@@ -143,12 +157,12 @@ func (mst *LLMOpenai) ReloadModels() error {
 	return nil
 }
 
-func (mst *LLMOpenai) GetPricingString(model string) string {
+func (oai *LLMOpenai) GetPricingString(model string) string {
 	model = strings.ToLower(model)
 
 	convert_to_dolars := float64(10000)
 
-	lang, img := mst.FindModel(model)
+	lang, img := oai.FindModel(model)
 	if lang != nil {
 		//in, cached, out, image
 		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)

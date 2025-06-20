@@ -57,22 +57,10 @@ type LLMOpenai struct {
 	Stats []LLMOpenaiMsgStats
 }
 
-func NewLLMOpenai() *LLMOpenai {
-	oai := &LLMOpenai{}
-
-	oai.Provider = "OpenAI"
-	oai.OpenAI_url = "https://api.openai.com/v1"
-	oai.DevUrl = "https://platform.openai.com/"
-
-	return oai
-}
-
 func (oai *LLMOpenai) Check() error {
 	if oai.API_key == "" {
 		return fmt.Errorf("%s API key is empty", oai.Provider)
 	}
-
-	oai.ReloadModels()
 
 	return nil
 }
@@ -104,7 +92,7 @@ func (oai *LLMOpenai) FindModel(name string) (*LLMOpenaiLanguageModel, *LLMOpena
 	return nil, nil
 }
 
-func (oai *LLMOpenai) ReloadModels() error {
+/*func (oai *LLMOpenai) ReloadModels() error {
 
 	//reset
 	oai.LanguageModels = nil
@@ -142,7 +130,7 @@ func (oai *LLMOpenai) ReloadModels() error {
 	})
 
 	return nil
-}
+}*/
 
 func (oai *LLMOpenai) GetPricingString(model string) string {
 	model = strings.ToLower(model)
@@ -244,7 +232,7 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 			Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
 			Seed:           seed,
 
-			Model: st.Model,
+			Model: st.Out_model,
 
 			Tools:    tools,
 			Messages: messages,
@@ -263,7 +251,7 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 		fnStreaming := func(chatMsg *ChatMsg) bool {
 
 			chatMsg.Provider = oai.Provider
-			chatMsg.Model = st.Model
+			chatMsg.Model = st.Out_model
 			chatMsg.Seed = seed
 			chatMsg.Stream = true
 			chatMsg.ShowParameters = true
@@ -306,7 +294,7 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 				usage.Input_cached_tokens = out.Usage.Input_cached_tokens
 				usage.Completion_tokens = out.Usage.Completion_tokens
 				usage.Reasoning_tokens = out.Usage.Completion_tokens_details.Reasoning_tokens
-				mod, _ := oai.FindModel(st.Model)
+				mod, _ := oai.FindModel(st.Out_model)
 				if mod != nil {
 					usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price = mod.GetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens)
 				}
@@ -318,7 +306,7 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 			}
 
 			calls := out.Choices[0].Message.Tool_calls
-			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, oai.Provider, st.Model)
+			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, oai.Provider, st.Out_model)
 			if st.delta != nil {
 				st.delta(m2)
 			}
@@ -422,7 +410,7 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 			oai.Stats = append(oai.Stats, LLMOpenaiMsgStats{
 				Function:       "completion",
 				CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000,
-				Model:          st.Model,
+				Model:          st.Out_model,
 
 				Time:             dt,
 				TimeToFirstToken: time_to_first_token,

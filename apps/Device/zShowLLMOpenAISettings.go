@@ -4,11 +4,11 @@ import (
 	"fmt"
 )
 
-// Show Mistral settings. User can change API key and chat/image/STT/TTS models.
-type ShowLLMOpenaiSettings struct {
+// Show OpenAI settings. User can change API key and chat/image/STT/TTS models.
+type ShowLLMOpenAISettings struct {
 }
 
-func (st *ShowLLMOpenaiSettings) run(caller *ToolCaller, ui *UI) error {
+func (st *ShowLLMOpenAISettings) run(caller *ToolCaller, ui *UI) error {
 	source_llm, err := NewLLMOpenai("")
 	if err != nil {
 		return err

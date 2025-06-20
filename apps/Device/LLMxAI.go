@@ -33,6 +33,18 @@ type LLMxAIImageModel struct {
 	Aliases []string
 }
 
+type LLMxAIUsage struct {
+	Prompt_tokens       int
+	Input_cached_tokens int
+	Completion_tokens   int
+	Reasoning_tokens    int
+
+	Prompt_price       float64
+	Input_cached_price float64
+	Completion_price   float64
+	Reasoning_price    float64
+}
+
 type LLMxAIMsgStats struct {
 	Function       string
 	CreatedTimeSec float64
@@ -41,7 +53,7 @@ type LLMxAIMsgStats struct {
 	Time             float64
 	TimeToFirstToken float64
 
-	Usage ChatMsgUsage
+	Usage LLMxAIUsage
 }
 
 // xAI LLM settings.
@@ -64,7 +76,12 @@ func NewLLMxAI(file string) (*LLMxAI, error) {
 	xai.OpenAI_url = "https://api.x.ai/v1"
 	xai.DevUrl = "https://console.x.ai"
 
-	return LoadFile(file, "LLMxAI", "json", xai, true)
+	var err error
+	xai, err = LoadFile(file, "LLMxAI", "json", xai, true)
+	if err == nil {
+		xai.ReloadModels()
+	}
+	return xai, err
 }
 
 func (xai *LLMxAI) Check(caller *ToolCaller) error {
@@ -72,8 +89,6 @@ func (xai *LLMxAI) Check(caller *ToolCaller) error {
 	if xai.API_key == "" {
 		return fmt.Errorf("%s API key is empty", xai.Provider)
 	}
-
-	xai.ReloadModels()
 
 	return nil
 }

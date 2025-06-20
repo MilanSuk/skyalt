@@ -18,7 +18,6 @@ package main
 
 import (
 	"encoding/json"
-	"image/color"
 	"os"
 )
 
@@ -26,15 +25,6 @@ type ToolsSyncMicrophoneSettings struct {
 	Enable      bool
 	Sample_rate int
 	Channels    int
-}
-
-func NewToolsSyncMicrophoneSettings() *ToolsSyncMicrophoneSettings {
-	st := &ToolsSyncMicrophoneSettings{}
-
-	st.Enable = true
-	st.Sample_rate = 44100
-	st.Channels = 1
-	return st
 }
 
 type ToolsSyncDeviceSettings struct {
@@ -52,32 +42,12 @@ type ToolsSyncDeviceSettings struct {
 	LightPalette  DevPalette
 	DarkPalette   DevPalette
 	CustomPalette DevPalette
-}
 
-func NewToolsSyncDeviceSettings() *ToolsSyncDeviceSettings {
-	mp := &ToolsSyncDeviceSettings{}
-
-	mp.Dpi = GetDeviceDPI()
-	mp.DateFormat = "us"
-	mp.Rounding = 0.2
-	mp.Fullscreen = false
-	mp.Stats = false
-	mp.Theme = "light"
-	mp.LightPalette = DevPalette{
-		P:   color.RGBA{37, 100, 120, 255},
-		OnP: color.RGBA{255, 255, 255, 255},
-
-		S:   color.RGBA{170, 200, 170, 255},
-		OnS: color.RGBA{255, 255, 255, 255},
-
-		E:   color.RGBA{180, 40, 30, 255},
-		OnE: color.RGBA{255, 255, 255, 255},
-
-		B:   color.RGBA{250, 250, 250, 255},
-		OnB: color.RGBA{25, 27, 30, 255},
-	}
-
-	return mp
+	Chat_provider  string
+	Chat_smarter   bool
+	Chat_faster    bool
+	Image_provider string
+	STT_provider   string
 }
 
 type ToolsSyncMapSettings struct {
@@ -88,44 +58,23 @@ type ToolsSyncMapSettings struct {
 	Copyright_url string
 }
 
-func NewToolsSyncMapSettings() *ToolsSyncMapSettings {
-	mp := &ToolsSyncMapSettings{}
-
-	mp.Enable = true
-	mp.Tiles_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-	mp.Copyright = "(c)OpenStreetMap contributors"
-	mp.Copyright_url = "https://www.openstreetmap.org/copyright"
-
-	return mp
-}
-
 type ToolsSync struct {
 	router *ToolsRouter
 
-	Device      *ToolsSyncDeviceSettings
-	Map         *ToolsSyncMapSettings
-	Mic         *ToolsSyncMicrophoneSettings
-	LLM_xai     *LLMxAI
-	LLM_mistral *LLMMistral
-	LLM_openai  *LLMOpenai
-	LLM_wsp     *LLMWhispercpp
-	LLM_llama   *LLMLlamacpp
+	Device      ToolsSyncDeviceSettings
+	Map         ToolsSyncMapSettings
+	Mic         ToolsSyncMicrophoneSettings
+	LLM_xai     LLMxAI
+	LLM_mistral LLMMistral
+	LLM_openai  LLMOpenai
+	LLM_wsp     LLMWhispercpp
+	LLM_llama   LLMLlamacpp
 
 	last_dev_storage_change int64
 }
 
 func NewToolsSync(router *ToolsRouter) (*ToolsSync, error) {
 	snc := &ToolsSync{router: router, last_dev_storage_change: -1}
-
-	//"pre-init"
-	snc.Device = NewToolsSyncDeviceSettings()
-	snc.LLM_xai = NewLLMxAI()
-	snc.LLM_mistral = NewLLMMistral()
-	snc.LLM_openai = NewLLMOpenai()
-	snc.LLM_wsp = NewLLMWhispercpp()
-	snc.LLM_llama = NewLLMLlamacpp()
-	snc.Map = NewToolsSyncMapSettings()
-	snc.Mic = NewToolsSyncMicrophoneSettings()
 
 	snc._loadFiles()
 
@@ -138,42 +87,50 @@ func (snc *ToolsSync) Destroy() {
 func (snc *ToolsSync) _loadFiles() error {
 	devJs, err := os.ReadFile("apps/Device/DeviceSettings-DeviceSettings.json")
 	if err == nil {
-		json.Unmarshal(devJs, &snc.Device) //err ....
+		err = json.Unmarshal(devJs, &snc.Device)
+		snc.router.log.Error(err)
 	}
 
 	mapJs, err := os.ReadFile("apps/Device/MapSettings-MapSettings.json")
 	if err == nil {
-		json.Unmarshal(mapJs, &snc.Map) //err ....
+		err = json.Unmarshal(mapJs, &snc.Map)
+		snc.router.log.Error(err)
 	}
 
 	micJs, err := os.ReadFile("apps/Device/MicrophoneSettings-MicrophoneSettings.json")
 	if err == nil {
-		json.Unmarshal(micJs, &snc.Mic) //err ....
+		err = json.Unmarshal(micJs, &snc.Mic)
+		snc.router.log.Error(err)
 	}
 
-	xaiJs, err := os.ReadFile("apps/Root/LLMxAI-LLMxAI.json") //move to apps/Device ....
+	xaiJs, err := os.ReadFile("apps/Device/LLMxAI-LLMxAI.json")
 	if err == nil {
-		json.Unmarshal(xaiJs, snc.LLM_xai) //err ....
+		err = json.Unmarshal(xaiJs, &snc.LLM_xai)
+		snc.router.log.Error(err)
 	}
 
-	mistralJs, err := os.ReadFile("apps/Root/LLMMistral-LLMMistral.json") //move to apps/Device ....
+	mistralJs, err := os.ReadFile("apps/Device/LLMMistral-LLMMistral.json")
 	if err == nil {
-		json.Unmarshal(mistralJs, snc.LLM_mistral) //err ....
+		err = json.Unmarshal(mistralJs, &snc.LLM_mistral)
+		snc.router.log.Error(err)
 	}
 
-	openailJs, err := os.ReadFile("apps/Root/LLMOpenai-LLMOpenai.json") //move to apps/Device ....
+	openailJs, err := os.ReadFile("apps/Device/LLMOpenai-LLMOpenai.json")
 	if err == nil {
-		json.Unmarshal(openailJs, snc.LLM_openai) //err ....
+		err = json.Unmarshal(openailJs, &snc.LLM_openai)
+		snc.router.log.Error(err)
 	}
 
-	wspJs, err := os.ReadFile("apps/Root/LLMWhispercpp-LLMWhispercpp.json") //move to apps/Device ....
+	wspJs, err := os.ReadFile("apps/Device/LLMWhispercpp-LLMWhispercpp.json")
 	if err == nil {
-		json.Unmarshal(wspJs, snc.LLM_wsp) //err ....
+		err = json.Unmarshal(wspJs, &snc.LLM_wsp)
+		snc.router.log.Error(err)
 	}
 
-	llamas, err := os.ReadFile("apps/Root/LLMLlamacpp-LLMLlamacpp.json") //move to apps/Device ....
+	llamas, err := os.ReadFile("apps/Device/LLMLlamacpp-LLMLlamacpp.json")
 	if err == nil {
-		json.Unmarshal(llamas, snc.LLM_llama) //err ....
+		err = json.Unmarshal(llamas, &snc.LLM_llama)
+		snc.router.log.Error(err)
 	}
 
 	return nil
@@ -195,6 +152,13 @@ func (snc *ToolsSync) Tick() bool {
 	}
 
 	return false
+}
+
+func (snc *ToolsSync) Upload_LoadFiles() {
+	type SetDPIDefault struct {
+		DPI int
+	}
+	snc.router.CallAsync(0, "Device", "LoadFiles", SetDPIDefault{}, nil, nil)
 }
 
 func (snc *ToolsSync) Upload_deviceDefaultDPI() {

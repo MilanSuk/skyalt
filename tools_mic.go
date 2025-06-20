@@ -21,13 +21,15 @@ type ToolsMicMalgoRecord struct {
 }
 
 type ToolsMicMalgo struct {
+	router *ToolsRouter
+
 	lock   sync.Mutex
 	device *malgo.Device
 	mics   map[string]*ToolsMicMalgoRecord //int=hash
 }
 
-func NewToolsMicMalgo() *ToolsMicMalgo {
-	st := &ToolsMicMalgo{}
+func NewToolsMicMalgo(router *ToolsRouter) *ToolsMicMalgo {
+	st := &ToolsMicMalgo{router: router}
 
 	st.mics = make(map[string]*ToolsMicMalgoRecord)
 
@@ -40,7 +42,7 @@ func (mlg *ToolsMicMalgo) Destroy() {
 	}
 }
 
-func (mlg *ToolsMicMalgo) _checkDevice(source_mic *ToolsSyncMicrophoneSettings) error {
+func (mlg *ToolsMicMalgo) _checkDevice() error {
 
 	if mlg.device != nil {
 		return nil
@@ -50,6 +52,8 @@ func (mlg *ToolsMicMalgo) _checkDevice(source_mic *ToolsSyncMicrophoneSettings) 
 	if err != nil {
 		return err
 	}
+
+	source_mic := &mlg.router.sync.Mic
 
 	deviceConfig := malgo.DefaultDeviceConfig(malgo.Duplex)
 	deviceConfig.Capture.Format = malgo.FormatS16
@@ -85,11 +89,11 @@ func (mlg *ToolsMicMalgo) Find(uid string) *ToolsMicMalgoRecord {
 	return mlg.mics[uid]
 }
 
-func (mlg *ToolsMicMalgo) Start(uid string, source_mic *ToolsSyncMicrophoneSettings) (*ToolsMicMalgoRecord, error) {
+func (mlg *ToolsMicMalgo) Start(uid string) (*ToolsMicMalgoRecord, error) {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
-	err := mlg._checkDevice(source_mic)
+	err := mlg._checkDevice()
 	if err != nil {
 		return nil, err
 	}

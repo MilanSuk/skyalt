@@ -131,7 +131,6 @@ func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 }
 
 type LLMComplete struct {
-	Model             string
 	Temperature       float64
 	Top_p             float64
 	Max_tokens        int
@@ -156,6 +155,7 @@ type LLMComplete struct {
 	Out_reasoning  string
 	Out_usage      LLMMsgUsage
 	Out_time       float64 //sec
+	Out_model      string
 
 	delta func(msg *ChatMsg)
 }
@@ -165,7 +165,7 @@ func NewLLMCompletion(systemMessage string, userMessage string) *LLMComplete {
 }
 
 func (a *LLMComplete) Cmp(b *LLMComplete) bool {
-	return a.Model == b.Model &&
+	return a.Out_model == b.Out_model &&
 		a.Temperature == b.Temperature &&
 		a.Top_p == b.Top_p &&
 		bytes.Equal(a.PreviousMessages, b.PreviousMessages) &&
@@ -216,14 +216,55 @@ func NewLLMs(router *ToolsRouter) (*LLMs, error) {
 	return llms, nil
 }
 
-func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
+// usecase: "tools", "code", "chat"
+func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg, usecase string) error {
 
-	//st.Provider = "openai" //read from settings ....
+	dev := &llms.router.sync.Device
+	switch dev.Chat_provider {
 
-	var provider string
+	case "xai":
+		st.Out_model = "grok-3"
+		if !dev.Chat_smarter {
+			st.Out_model += "-mini"
+		}
+		if dev.Chat_faster {
+			st.Out_model += "-fast"
+		}
+
+	case "mistral":
+		switch usecase {
+		case "tools", "code":
+			st.Out_model = "devstral-small-latest"
+			if dev.Chat_smarter {
+				st.Out_model = "codestral-latest"
+			}
+		case "chat":
+			st.Out_model = "mistral-small-latest"
+			if dev.Chat_smarter {
+				st.Out_model = "mistral-large-latest"
+			}
+		}
+
+	case "openai":
+		switch usecase {
+		case "tools", "code":
+			st.Out_model = "gpt-4o-mini"
+			if dev.Chat_smarter {
+				st.Out_model = "o4-mini"
+			}
+		case "chat":
+			st.Out_model = "gpt-4o-mini"
+			if dev.Chat_smarter {
+				st.Out_model = "o4-mini"
+			}
+		}
+
+	case "llama.cpp":
+		st.Out_model = ""
+	}
 
 	//get provider & model name
-	if llms.router.sync.LLM_xai != nil {
+	/*if llms.router.sync.LLM_xai != nil {
 		chat, _ := llms.router.sync.LLM_xai.FindModel(st.Model)
 		if chat != nil {
 			st.Model = chat.Id
@@ -246,7 +287,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 	}
 	if provider == "" && st.Model == "llamacpp" {
 		provider = "llamacpp"
-	}
+	}*/
 
 	//find in cache
 	for i := range llms.Cache {
@@ -261,7 +302,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 	}
 
 	//call
-	switch provider {
+	switch dev.Chat_provider {
 	case "xai":
 		err := llms.router.sync.LLM_xai.Complete(st, llms.router, msg)
 		if err != nil {
@@ -278,7 +319,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 			return err
 		}
 
-	case "llamacpp":
+	case "llama.cpp":
 		err := llms.router.sync.LLM_llama.Complete(st, llms.router, msg)
 		if err != nil {
 			return err
@@ -302,7 +343,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg) error {
 func (llms *LLMs) GetUsage() []LLMMsgInfo {
 	var ret []LLMMsgInfo
 	for _, it := range llms.Cache {
-		ret = append(ret, LLMMsgInfo{Model: it.Model, Time: it.Out_time, Total_price: it.Out_usage.TotalPrice()})
+		ret = append(ret, LLMMsgInfo{Model: it.Out_model, Time: it.Out_time, Total_price: it.Out_usage.TotalPrice()})
 	}
 	return ret
 }

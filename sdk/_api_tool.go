@@ -124,7 +124,6 @@ func SdkGetDate(unix_sec int64) string
 func SdkGetDateTime(unix_sec int64) string
 
 type LLMCompletion struct {
-	Model             string
 	Temperature       float64
 	Top_p             float64
 	Max_tokens        int

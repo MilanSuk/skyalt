@@ -57,22 +57,10 @@ type LLMMistral struct {
 	Stats []LLMMistralMsgStats
 }
 
-func NewLLMMistral() *LLMMistral {
-	mst := &LLMMistral{}
-
-	mst.Provider = "Mistral"
-	mst.OpenAI_url = "https://api.mistral.ai/v1"
-	mst.DevUrl = "https://console.mistral.ai"
-
-	return mst
-}
-
 func (mst *LLMMistral) Check() error {
 	if mst.API_key == "" {
 		return fmt.Errorf("%s API key is empty", mst.Provider)
 	}
-
-	mst.ReloadModels()
 
 	return nil
 }
@@ -104,7 +92,7 @@ func (mst *LLMMistral) FindModel(name string) (*LLMMistralLanguageModel, *LLMMis
 	return nil, nil
 }
 
-func (mst *LLMMistral) ReloadModels() error {
+/*func (mst *LLMMistral) ReloadModels() error {
 
 	//reset
 	mst.LanguageModels = nil
@@ -141,9 +129,32 @@ func (mst *LLMMistral) ReloadModels() error {
 		Cached_prompt_text_token_price: 0,
 		Completion_text_token_price:    0,
 	})
+	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
+		Id:                             "pixtral-large-latest",
+		Input_modalities:               []string{"text", "image"},
+		Prompt_text_token_price:        20000,
+		Cached_prompt_text_token_price: 20000,
+		Completion_text_token_price:    60000,
+	})
+
+	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
+		Id:                             "codestral-latest",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        3000,
+		Cached_prompt_text_token_price: 3000,
+		Completion_text_token_price:    9000,
+	})
+
+	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
+		Id:                             "mistral-large-latest",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        20000,
+		Cached_prompt_text_token_price: 20000,
+		Completion_text_token_price:    60000,
+	})
 
 	return nil
-}
+}*/
 
 func (mst *LLMMistral) GetPricingString(model string) string {
 	model = strings.ToLower(model)
@@ -244,7 +255,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 			//Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
 			//Seed:  seed,
 
-			Model: st.Model,
+			Model: st.Out_model,
 
 			Tools:    tools,
 			Messages: messages,
@@ -263,7 +274,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 		fnStreaming := func(chatMsg *ChatMsg) bool {
 
 			chatMsg.Provider = mst.Provider
-			chatMsg.Model = st.Model
+			chatMsg.Model = st.Out_model
 			//chatMsg.Seed = seed
 			chatMsg.Stream = true
 			chatMsg.ShowParameters = true
@@ -306,7 +317,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 				usage.Input_cached_tokens = out.Usage.Input_cached_tokens
 				usage.Completion_tokens = out.Usage.Completion_tokens
 				usage.Reasoning_tokens = out.Usage.Completion_tokens_details.Reasoning_tokens
-				mod, _ := mst.FindModel(st.Model)
+				mod, _ := mst.FindModel(st.Out_model)
 				if mod != nil {
 					usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price = mod.GetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens)
 				}
@@ -318,7 +329,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 			}
 
 			calls := out.Choices[0].Message.Tool_calls
-			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, mst.Provider, st.Model)
+			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, mst.Provider, st.Out_model)
 			if st.delta != nil {
 				st.delta(m2)
 			}
@@ -422,7 +433,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, router *ToolsRouter, msg *Tools
 			mst.Stats = append(mst.Stats, LLMMistralMsgStats{
 				Function:       "completion",
 				CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000,
-				Model:          st.Model,
+				Model:          st.Out_model,
 
 				Time:             dt,
 				TimeToFirstToken: time_to_first_token,

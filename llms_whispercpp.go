@@ -17,15 +17,6 @@ type LLMWhispercpp struct {
 	Port    int
 }
 
-func NewLLMWhispercpp() *LLMWhispercpp {
-	wsp := &LLMWhispercpp{}
-
-	wsp.Address = "http://localhost"
-	wsp.Port = 8090
-
-	return wsp
-}
-
 func (wsp *LLMWhispercpp) Check() error {
 	if wsp.Address == "" {
 		return fmt.Errorf("whispercpp address is empty")

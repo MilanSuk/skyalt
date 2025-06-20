@@ -28,6 +28,12 @@ type DeviceSettings struct {
 	LightPalette  DeviceSettingsPalette
 	DarkPalette   DeviceSettingsPalette
 	CustomPalette DeviceSettingsPalette
+
+	Chat_provider  string
+	Chat_smarter   bool
+	Chat_faster    bool
+	Image_provider string
+	STT_provider   string
 }
 
 func NewDeviceSettings(file string) (*DeviceSettings, error) {
