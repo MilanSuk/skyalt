@@ -517,39 +517,51 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 		logs = logs[:50] //cut
 	}
 
-	ui.AddTextLabel(0, 0, 1, 1, "Logs")
+	ui.SetColumn(0, 1, 20)
 
-	ui.SetColumn(0, 1, 30)
-	ui.SetRowFromSub(1, 1, 15)
-	list := ui.AddLayoutList(0, 1, 1, 1, false)
+	{
+		HeaderDiv := ui.AddLayout(0, 0, 1, 1)
+		HeaderDiv.SetColumn(0, 5, 100)
+		HeaderDiv.SetColumn(1, 3, 5)
 
-	for _, it := range logs {
+		HeaderDiv.AddTextLabel(0, 0, 1, 1, "Logs")
 
-		RowDiv := list.AddItem()
+		CopyBt := HeaderDiv.AddButton(1, 0, 1, 1, "Copy to clipboard")
+		CopyBt.Background = 0.5
+		CopyBt.clicked = func() error {
+			var str strings.Builder
+			for _, it := range logs {
+				str.WriteString("Msg:")
+				str.WriteString(it.Msg)
+				str.WriteString("\n")
+				str.WriteString("Stack:")
+				str.WriteString(it.Stack)
+				str.WriteString("\n")
+			}
 
-		RowDiv.SetColumn(0, 1, 4)
-		RowDiv.SetColumn(1, 1, 26)
-		RowDiv.AddText(0, 0, 1, 1, SdkGetDateTime(int64(it.Time)))
-		tx := RowDiv.AddText(1, 0, 1, 1, it.Msg)
-		tx.Tooltip = it.Stack
-	}
-
-	CopyBt := ui.AddButton(0, 2, 1, 1, "Copy to clipboard")
-	CopyBt.Background = 0.5
-	CopyBt.clicked = func() error {
-		var str strings.Builder
-		for _, it := range logs {
-			str.WriteString("Msg:")
-			str.WriteString(it.Msg)
-			str.WriteString("\n")
-			str.WriteString("Stack:")
-			str.WriteString(it.Stack)
-			str.WriteString("\n")
+			caller.SetClipboardText(str.String())
+			return nil
 		}
-
-		caller.SetClipboardText(str.String())
-		return nil
 	}
+
+	ui.SetRowFromSub(1, 1, 15)
+	ListDiv := ui.AddLayout(0, 1, 1, 1)
+	ListDiv.SetColumn(0, 1, 4)
+	ListDiv.SetColumn(1, 1, 26)
+
+	y := 0
+	for _, it := range logs {
+		ListDiv.SetRowFromSub(y, 1, 5)
+
+		ListDiv.AddText(0, y, 1, 1, SdkGetDateTime(int64(it.Time)))
+
+		tx := ListDiv.AddText(1, y, 1, 1, it.Msg)
+		tx.Tooltip = it.Stack
+		tx.Cd = UI_GetPalette().E
+
+		y++
+	}
+
 }
 
 func (st *ShowRoot) buildThreads(ui *UI, msgs []SdkMsg) {
