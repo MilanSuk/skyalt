@@ -513,11 +513,12 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte, caller *ToolCaller) {
 
 func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 
-	if len(logs) > 50 {
-		logs = logs[:50] //cut
-	}
-
 	ui.SetColumn(0, 1, 20)
+
+	slices.Reverse(logs) //newest top
+	if len(logs) > 20 {
+		logs = logs[:20] //cut
+	}
 
 	{
 		HeaderDiv := ui.AddLayout(0, 0, 1, 1)
