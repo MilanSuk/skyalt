@@ -18,12 +18,11 @@ package main
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -174,8 +173,6 @@ func (a *LLMComplete) Cmp(b *LLMComplete) bool {
 }
 
 type LLMGenerateImage struct {
-	Provider string //"xai"
-
 	Prompt     string //Prompt for image generation.
 	Num_images int    //Number of images to be generated
 
@@ -189,7 +186,6 @@ type LLMTranscribe struct {
 	AudioBlob    []byte
 	BlobFileName string //ext.... (blob.wav, blob.mp3)
 
-	Model           string
 	Temperature     float64 //0
 	Response_format string
 
@@ -197,8 +193,17 @@ type LLMTranscribe struct {
 	Out_Output     []byte
 }
 
+type LLMSpeech struct {
+	Text string
+
+	Out_StatusCode int
+	Out_Output     []byte
+}
+
 type LLMs struct {
 	router *ToolsRouter
+
+	lock sync.Mutex
 
 	Cache []LLMComplete
 }
@@ -301,8 +306,11 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg, usecase string)
 		st.Max_iteration = 1
 	}
 
+	llms.lock.Lock()
+	defer llms.lock.Unlock()
+
 	//call
-	switch dev.Chat_provider {
+	switch strings.ToLower(dev.Chat_provider) {
 	case "xai":
 		err := llms.router.sync.LLM_xai.Complete(st, llms.router, msg)
 		if err != nil {
@@ -349,9 +357,13 @@ func (llms *LLMs) GetUsage() []LLMMsgInfo {
 }
 
 func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *ToolsRouterMsg) error {
+	llms.lock.Lock()
+	defer llms.lock.Unlock()
+
+	dev := &llms.router.sync.Device
 
 	//call
-	switch st.Provider {
+	switch strings.ToLower(dev.Image_provider) {
 	case "xai":
 		err := llms.router.sync.LLM_xai.GenerateImage(st, llms.router, msg)
 		if err != nil {
@@ -364,79 +376,26 @@ func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *ToolsRouterMsg) error
 }
 
 func (llms *LLMs) Transcribe(st *LLMTranscribe, msg *ToolsRouterMsg) error {
+	llms.lock.Lock()
+	defer llms.lock.Unlock()
 
-	err := llms.router.sync.LLM_wsp.Transcribe(st)
-	if err != nil {
-		return err
-	}
+	dev := &llms.router.sync.Device
 
-	return nil
-}
-
-func (msgs *ChatMsgs) AddUserMessage(text string, files []string) (*ChatMsg, error) {
-	content := OpenAI_content{}
-	content.Msg = &OpenAI_completion_msgContent{Role: "user"}
-	if text != "" {
-		content.Msg.AddText(text)
-	}
-	for _, file := range files {
-		err := content.Msg.AddImageFile(file)
+	//call
+	switch strings.ToLower(dev.STT_provider) {
+	case "openai":
+		err := llms.router.sync.LLM_openai.Transcribe(st)
 		if err != nil {
-			return nil, err
+			return err
 		}
+
+	case "whisper.cpp":
+		err := llms.router.sync.LLM_wsp.Transcribe(st)
+		if err != nil {
+			return err
+		}
+		//other providers ....
 	}
 
-	msg := &ChatMsg{CreatedTimeSec: float64(time.Now().UnixMilli()) / 1000, Content: content}
-	msgs.Messages = append(msgs.Messages, msg)
-	return msg, nil
-}
-
-func ChatMsg_GetReasoningTextIntro() string {
-	return "\n\nReasoning: "
-}
-
-func (msgs *ChatMsgs) AddAssistentCalls(reasoning_text, final_text string, tool_calls []OpenAI_completion_msg_Content_ToolCall, usage LLMMsgUsage, dtime float64, timeToFirstToken float64, providerName string, modelName string) *ChatMsg {
-	text := final_text
-	if reasoning_text != "" {
-		text = final_text + ChatMsg_GetReasoningTextIntro() + reasoning_text
-	}
-
-	content := OpenAI_content{}
-	content.Calls = &OpenAI_completion_msgCalls{Role: "assistant", Content: text, Tool_calls: tool_calls}
-
-	msg := &ChatMsg{Provider: providerName, Model: modelName, CreatedTimeSec: float64(time.Now().UnixMilli()) / 1000, Content: content, Usage: usage, Time: dtime, TimeToFirstToken: timeToFirstToken, FinalTextSize: len(final_text)}
-	msgs.Messages = append(msgs.Messages, msg)
-	return msg
-}
-func (msgs *ChatMsgs) AddCallResult(tool_name string, tool_use_id string, result string) *ChatMsg {
-	content := OpenAI_content{}
-	content.Result = &OpenAI_completion_msgResult{Role: "tool", Tool_call_id: tool_use_id, Name: tool_name, Content: result}
-
-	msg := &ChatMsg{CreatedTimeSec: float64(time.Now().UnixMilli()) / 1000, Content: content}
-	msgs.Messages = append(msgs.Messages, msg)
-	return msg
-}
-
-func (msg *OpenAI_completion_msgContent) AddText(str string) {
-	msg.Content = append(msg.Content, OpenAI_completion_msg_Content{Type: "text", Text: str})
-}
-func (msg *OpenAI_completion_msgContent) AddImage(data []byte, media_type string) { //ext="image/png","image/jpeg", "image/webp", "image/gif"(non-animated)
-	prefix := "data:" + media_type + ";base64,"
-	bs64 := base64.StdEncoding.EncodeToString(data)
-	msg.Content = append(msg.Content, OpenAI_completion_msg_Content{Type: "image_url", Image_url: &OpenAI_completion_msg_Content_Image_url{Detail: "high", Url: prefix + bs64}})
-}
-func (msg *OpenAI_completion_msgContent) AddImageFile(path string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	ext := filepath.Ext(path)
-	ext, _ = strings.CutPrefix(ext, ".")
-	if ext == "" {
-		return fmt.Errorf("missing file type(.ext)")
-	}
-
-	msg.AddImage(data, "image/"+ext)
 	return nil
 }

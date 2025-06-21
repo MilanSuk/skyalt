@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -440,6 +444,129 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 	if err != nil {
 		return fmt.Errorf("out_messages failed: %v", err)
 	}
+
+	return nil
+}
+
+func (oai *LLMOpenai) Transcribe(st *LLMTranscribe) error {
+	err := oai.Check()
+	if err != nil {
+		return err
+	}
+
+	model := "whisper-1"
+
+	Completion_url := oai.OpenAI_url
+	if !strings.HasSuffix(Completion_url, "/") {
+		Completion_url += "/"
+	}
+	Completion_url += "audio/transcriptions"
+
+	//set parameters
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	{
+		part, err := writer.CreateFormFile("file", st.BlobFileName)
+		if err != nil {
+			return fmt.Errorf("CreateFormFile() failed: %w", err)
+		}
+		part.Write(st.AudioBlob)
+
+		writer.WriteField("temperature", strconv.FormatFloat(st.Temperature, 'f', -1, 64))
+		writer.WriteField("response_format", st.Response_format)
+		//props.Write(writer)
+
+		writer.WriteField("model", model)
+
+		if st.Response_format == "verbose_json" {
+			writer.WriteField("timestamp_granularities[]", "word")
+			writer.WriteField("timestamp_granularities[]", "segment")
+		}
+	}
+	writer.Close()
+
+	req, err := http.NewRequest(http.MethodPost, Completion_url, body)
+	if err != nil {
+		return fmt.Errorf("NewRequest() failed: %w", err)
+	}
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+	req.Header.Add("Authorization", "Bearer "+oai.API_key)
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Do() failed: %w", err)
+	}
+
+	resBody, err := io.ReadAll(res.Body) //job.close ...
+	st.Out_StatusCode = res.StatusCode
+
+	if err != nil {
+		return fmt.Errorf("ReadAll() failed: %w", err)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, string(resBody))
+	}
+
+	st.Out_Output = resBody
+
+	return nil
+}
+
+func (oai *LLMOpenai) Speak(st *LLMSpeech) error {
+	err := oai.Check()
+	if err != nil {
+		return err
+	}
+
+	model := "tts-1" //tts-1-hd
+	voice := "alloy"
+
+	Completion_url := oai.OpenAI_url
+	if !strings.HasSuffix(Completion_url, "/") {
+		Completion_url += "/"
+	}
+	Completion_url += "audio/speech"
+
+	type TTS struct {
+		Model string `json:"model"`
+		Input string `json:"input"`
+		Voice string `json:"voice"`
+	}
+
+	tts := TTS{Model: model, Voice: voice, Input: st.Text}
+	js, err := json.Marshal(tts)
+	if err != nil {
+		return fmt.Errorf("Marshal() failed: %w", err)
+	}
+	body := bytes.NewReader(js)
+
+	req, err := http.NewRequest(http.MethodPost, Completion_url, body)
+	if err != nil {
+		return fmt.Errorf("NewRequest() failed: %w", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+oai.API_key)
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Do() failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	resBody, err := io.ReadAll(res.Body)
+	st.Out_StatusCode = res.StatusCode
+	if err != nil {
+		return fmt.Errorf("ReadAll() failed: %w", err)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, string(js))
+	}
+
+	st.Out_Output = resBody
 
 	return nil
 }

@@ -37,7 +37,7 @@ func (wsp *LLMWhispercpp) Transcribe(st *LLMTranscribe) error {
 		return err
 	}
 
-	st.Out_Output, st.Out_StatusCode, err = LLMWhispercppTranscribe_Transcribe(st.AudioBlob, st.Model, st.Temperature, st.Response_format, wsp)
+	st.Out_Output, st.Out_StatusCode, err = LLMWhispercppTranscribe_Transcribe(st.AudioBlob, "", st.Temperature, st.Response_format, wsp)
 	if err != nil {
 		return err
 	}
