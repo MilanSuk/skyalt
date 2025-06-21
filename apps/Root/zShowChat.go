@@ -1030,7 +1030,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 			CopyBt.Icon_margin = 0.3
 			CopyBt.IconPath = "resources/copy.png"
 			CopyBt.Background = 0.2
-			CopyBt.Tooltip = "Copy into clipboard" + fmt.Sprintf("%.20s", txt)
+			CopyBt.Tooltip = "Copy into clipboard"
 			CopyBt.clicked = func() error {
 				if msg.Content.Msg != nil && len(msg.Content.Msg.Content) > 0 {
 					caller.SetClipboardText(msg.Content.Msg.Content[0].Text)
