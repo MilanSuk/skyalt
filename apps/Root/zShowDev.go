@@ -212,64 +212,74 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		FooterDiv := MainDiv.AddLayout(1, 2, 1, 1)
 		FooterDiv.SetColumn(0, 1, 100)
 		FooterDiv.SetColumn(1, 1, 4)
-		//FooterDiv.SetRowFromSub(0, 1, 5)
+		FooterDiv.SetRowFromSub(0, 2, 5)
 
 		//Note
-		{
-			tx := FooterDiv.AddText(0, 0, 1, 2, "#storage //Describe structures for saving data.\n#<NameOfTool> //Describe app's feature.")
-			tx.Align_v = 1
+
+		if app.Dev.MainMode == "secrets" {
+			tx := FooterDiv.AddText(0, 0, 1, 1, "<alias> <value>\nExample: myemail@mail.com myActualEmail@gmail.com\nExample: password_1234 Ek7_sdf6m-o45-erc-er5_-df")
+			tx.Align_v = 0
+			tx.Cd = UI_GetPalette().GetGrey(0.5)
+		} else {
+			tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#<NameOfTool> //Describe app's feature.")
+			tx.Align_v = 0
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		}
 
-		//Total price
 		{
-			sum := 0.0
-			for _, it := range sdk_app.Prompts {
-				sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price
-			}
-			tx := FooterDiv.AddText(1, 1, 1, 1, fmt.Sprintf("<i>Total: $%f", sum))
-			tx.Align_v = 0
-			tx.Align_h = 2
-		}
+			FooterRightDiv := FooterDiv.AddLayout(1, 0, 1, 1)
+			FooterRightDiv.SetColumn(0, 1, 100)
 
-		//save
-		{
-			diff := (promptsFileTime != sdk_app.PromptsFileTime || secretsFileTime != sdk_app.SecretsFileTime)
+			//generate
+			{
+				diff := (promptsFileTime != sdk_app.PromptsFileTime || secretsFileTime != sdk_app.SecretsFileTime)
 
-			SaveDiv := FooterDiv.AddLayout(1, 0, 1, 1)
-			SaveDiv.SetColumn(0, 1, 100)
+				SaveDiv := FooterRightDiv.AddLayout(0, 0, 1, 1)
+				SaveDiv.SetColumn(0, 1, 100)
 
-			if isGenerating {
-				if !app.Dev.ShowSide {
-					CompBt := SaveDiv.AddButton(0, 0, 1, 1, "Generating")
-					CompBt.Tooltip = "Show generation"
-					CompBt.clicked = func() error {
-						app.Dev.ShowSide = true
-						return nil
+				if isGenerating {
+					if !app.Dev.ShowSide {
+						CompBt := SaveDiv.AddButton(0, 0, 1, 1, "Generating")
+						CompBt.Tooltip = "Show generation"
+						CompBt.clicked = func() error {
+							app.Dev.ShowSide = true
+							return nil
+						}
+					} else {
+						StopBt := SaveDiv.AddButton(0, 0, 1, 1, "Stop")
+						StopBt.Cd = UI_GetPalette().E
+						StopBt.Tooltip = "Stop generating"
+						StopBt.clicked = func() error {
+							//....
+							return nil
+						}
 					}
 				} else {
-					StopBt := SaveDiv.AddButton(0, 0, 1, 1, "Stop")
-					StopBt.Cd = UI_GetPalette().E
-					StopBt.Tooltip = "Stop generating"
-					StopBt.clicked = func() error {
-						//....
+					GenerateBt := SaveDiv.AddButton(0, 0, 1, 1, "Generate")
+					GenerateBt.Tooltip = "Save & Generate code"
+					GenerateBt.clicked = func() error {
+
+						app.Dev.PromptsHistory = append(app.Dev.PromptsHistory, string(filePrompts))
+
+						callFuncGenerateApp(app.Name)
 						return nil
 					}
+					GenerateBt.layout.Enable = diff
 				}
-			} else {
-				GenerateBt := SaveDiv.AddButton(0, 0, 1, 1, "Generate")
-				GenerateBt.Tooltip = "Save & Generate code"
-				GenerateBt.clicked = func() error {
 
-					app.Dev.PromptsHistory = append(app.Dev.PromptsHistory, string(filePrompts))
-
-					callFuncGenerateApp(app.Name)
-					return nil
-				}
-				GenerateBt.layout.Enable = diff
+				//history back/forward buttons ....
 			}
 
-			//history back/forward buttons ....
+			//Total price
+			{
+				sum := 0.0
+				for _, it := range sdk_app.Prompts {
+					sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price
+				}
+				tx := FooterRightDiv.AddText(0, 1, 1, 1, fmt.Sprintf("<i>Total: $%f", sum))
+				tx.Align_v = 0
+				tx.Align_h = 2
+			}
 		}
 
 		//Errors
@@ -281,7 +291,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				}
 			}
 			if n_errors > 0 {
-				tx := FooterDiv.AddText(0, 2, 2, 1, fmt.Sprintf("%d file(s) has compilation error(s)", n_errors))
+				tx := FooterDiv.AddText(0, 1, 2, 1, fmt.Sprintf("%d file(s) has compilation error(s)", n_errors))
 				tx.Cd = UI_GetPalette().E
 			}
 		}
