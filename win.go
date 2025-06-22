@@ -332,12 +332,12 @@ func (win *Win) Event() (bool, bool, error) {
 			io.Touch.Pos = OsV2_32(val.X, val.Y)
 			io.Touch.Rm = (val.Button != sdl.BUTTON_LEFT)
 
-			if val.Type == sdl.MOUSEBUTTONDOWN {
+			switch val.Type {
+			case sdl.MOUSEBUTTONDOWN:
 				io.Touch.Start = true
 				sdl.CaptureMouse(true) // keep getting info even mouse is outside window
 
-			} else if val.Type == sdl.MOUSEBUTTONUP {
-
+			case sdl.MOUSEBUTTONUP:
 				win.lastClickUp = io.Touch.Pos
 				io.Touch.End = true
 				sdl.CaptureMouse(false)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -22,8 +21,6 @@ type LLMLlamacppMsgStats struct {
 
 // Llamacpp LLM settings.
 type LLMLlamacpp struct {
-	lock sync.Mutex
-
 	Address string
 	Port    int
 

@@ -102,17 +102,18 @@ func LoadFile[T any](file string, structName string, format string, defInst *T, 
 
 	// Unpack
 	if len(data) > 0 {
-		if format == "json" {
+		switch format {
+		case "json":
 			err := json.Unmarshal(data, defInst)
 			if err != nil {
 				return nil, err
 			}
-		} else if format == "xml" {
+		case "xml":
 			err := xml.Unmarshal(data, defInst)
 			if err != nil {
 				return nil, err
 			}
-		} else {
+		default:
 			return nil, fmt.Errorf("%s format not supported", format)
 		}
 	}

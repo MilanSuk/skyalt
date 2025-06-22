@@ -185,20 +185,22 @@ func (b *WinPaintBuff) AddImage(path WinImagePath, screen OsV4, cd color.RGBA, a
 
 		//align
 		if *Scale_x <= 0 {
-			if align.X == 0 {
+			switch align.X {
+			case 0:
 				q.Start.X = screen.Start.X
-			} else if align.X == 1 {
+			case 1:
 				q.Start.X = OsV4_centerFull(screen, q.Size).Start.X
-			} else if align.X == 2 {
+			case 2:
 				q.Start.X = screen.End().X - q.Size.X
 			}
 		}
 		if *Scale_y <= 0 {
-			if align.Y == 0 {
+			switch align.Y {
+			case 0:
 				q.Start.Y = screen.Start.Y
-			} else if align.Y == 1 {
+			case 1:
 				q.Start.Y = OsV4_centerFull(screen, q.Size).Start.Y
-			} else if align.Y == 2 {
+			case 2:
 				q.Start.Y = screen.End().Y - q.Size.Y
 			}
 		}

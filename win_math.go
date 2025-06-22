@@ -183,16 +183,17 @@ func OsV2_OutRatio(rect OsV2, orig OsV2) OsV2 {
 func (coord OsV4) Align(size OsV2, align OsV2) OsV2 {
 	start := coord.Start
 
-	if align.X == 0 {
+	switch align.X {
+	case 0:
 		// left
-	} else if align.X == 1 {
+	case 1:
 		// center
 		if size.X > coord.Size.X {
 			start.X = coord.Start.X // + H / 2
 		} else {
 			start.X = coord.Middle().X - size.X/2
 		}
-	} else {
+	default:
 		// right
 		start.X = coord.End().X - size.X
 	}
@@ -201,11 +202,12 @@ func (coord OsV4) Align(size OsV2, align OsV2) OsV2 {
 	if size.Y >= coord.Size.Y {
 		start.Y += (coord.Size.Y - size.Y) / 2
 	} else {
-		if align.Y == 0 {
+		switch align.Y {
+		case 0:
 			start.Y = coord.Start.Y // + H / 2
-		} else if align.Y == 1 {
+		case 1:
 			start.Y += (coord.Size.Y - size.Y) / 2
-		} else if align.Y == 2 {
+		case 2:
 			start.Y += (coord.Size.Y) - size.Y
 		}
 	}
