@@ -331,7 +331,7 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 		g_map.start_tile = _CompOsmMap_lonLatToPos(lon, lat, zoom)
 	}
 
-	if wheel != 0 && inside && !isZooming {
+	if wheel != 0 && inside && !isZooming && layout.findParentScroll() == nil {
 		g_map.zoomOld = st.Cam.Zoom
 		zoomNew := _CompOsmMap_zoomClamp(g_map.zoomOld - float64(wheel))
 		if g_map.zoomOld != zoomNew {

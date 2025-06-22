@@ -127,7 +127,7 @@ func (st *Slider) Input(in LayoutInput, layout *Layout) {
 		value = st.Min + (st.Max-st.Min)*touch_x
 	}
 
-	if !active && inside && in.Wheel != 0 {
+	if !active && inside && in.Wheel != 0 && layout.findParentScroll() == nil {
 		value += st.Step * float64(-in.Wheel)
 	}
 

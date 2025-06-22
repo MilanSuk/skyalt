@@ -112,7 +112,7 @@ func (st *Image) Input(in LayoutInput, layout *Layout) {
 			g_image_active.start_ty = st.Translate_y
 		}
 
-		if wheel != 0 && inside {
+		if wheel != 0 && inside && layout.findParentScroll() == nil {
 			zoom := 1.1
 			if wheel > 0 {
 				zoom = 0.9

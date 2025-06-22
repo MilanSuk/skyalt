@@ -1169,6 +1169,16 @@ func (layout *Layout) textComp() {
 	}
 }
 
+func (layout *Layout) findParentScroll() *Layout {
+	if layout == nil || !layout.CanTouch() {
+		return nil
+	}
+	if layout.scrollV.Is() || layout.scrollH.Is() {
+		return layout
+	}
+	return layout.parent.findParentScroll()
+}
+
 func (layout *Layout) touchComp() {
 	if layout.CanTouch() {
 		var in LayoutInput
