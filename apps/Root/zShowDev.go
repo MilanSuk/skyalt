@@ -211,7 +211,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		MainDiv.SetRowFromSub(2, 1, 10)
 		FooterDiv := MainDiv.AddLayout(1, 2, 1, 1)
 		FooterDiv.SetColumn(0, 1, 100)
-		FooterDiv.SetColumn(1, 1, 4)
+		FooterDiv.SetColumn(1, 1, 5)
 		FooterDiv.SetRowFromSub(0, 2, 5)
 
 		//Note
