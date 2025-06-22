@@ -97,7 +97,8 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					BtDiv.SetColumn(0, 1, 100)
 					BtDiv.SetRow(0, d, d)
 					BtDiv.SetRow(1, dd, dd)
-					BtDiv.Back_cd = UI_GetPalette().P
+					BtDiv.Back_cd = Color_Aprox(UI_GetPalette().P, UI_GetPalette().B, 0.6) //UI_GetPalette().P
+					BtDiv.Back_rounding = true
 
 					bt = BtDiv.AddButton(0, 0, 1, 1, "")
 
@@ -105,8 +106,9 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					btDev := BtDiv.AddButton(0, 1, 1, 1, "Build")
 					btDev.Tooltip = "Edit app"
 					btDev.Shortcut = 'b'
+					btDev.Background = 0
 					if app.Dev.Enable {
-						btDev.Background = 0.5
+						btDev.Background = 1 //0.5
 						//btDev.Cd = UI_GetPalette().S
 						btDev.Label = "<b>" + btDev.Label
 					}
@@ -124,10 +126,10 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				}
 
 				bt.Icon_align = 1
-				bt.Background = 0.2
-				if i == source_root.Selected_app_i && !source_root.ShowSettings {
+				bt.Background = 0
+				/*if i == source_root.Selected_app_i && !source_root.ShowSettings {
 					bt.Background = 1
-				}
+				}*/
 				bt.Tooltip = app.Name
 				bt.IconPath = fmt.Sprintf("apps/%s/icon", app.Name)
 				bt.Icon_margin = 0.4
