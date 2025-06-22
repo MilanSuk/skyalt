@@ -1546,6 +1546,10 @@ func (layout *Layout) IsTouchPosInside() bool {
 	return layout.crop.Inside(layout.ui.GetWin().io.Touch.Pos)
 }
 
+func (layout *Layout) IsTouchPosInsideOrScroll() bool {
+	return layout.crop.Inside(layout.ui.GetWin().io.Touch.Pos) || layout.ui.touch.IsScrollOrResizeActive()
+}
+
 func (layout *Layout) IsOver() bool {
 	return layout.CanTouch() && layout.IsTouchPosInside() && !layout.ui.touch.IsResizeActive()
 }

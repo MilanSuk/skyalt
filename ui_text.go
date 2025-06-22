@@ -249,7 +249,7 @@ func (ui *Ui) _Text_update(layout *Layout,
 			}
 
 			//enter or Tab(key) or outside => save
-			isOutside := (touch.Start && layout.CanTouch() && !layout.IsTouchPosInside() && edit.Is(layout) /*&& !keys.Ctrl*/)
+			isOutside := (touch.Start && layout.CanTouch() && !layout.IsTouchPosInsideOrScroll() && edit.Is(layout) /*&& !keys.Ctrl*/)
 			isEnter := keys.Enter && multi_line == keys.Ctrl
 			isEsc := keys.Esc
 			isTab := (!tabIsChar && keys.Tab && !keys.Ctrl)
