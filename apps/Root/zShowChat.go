@@ -303,10 +303,10 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 	}
 
 	x := 0
-
+	y := 0
 	{
 		ui.SetColumnFromSub(x, 3, 10)
-		DivStart := ui.AddLayout(x, 0, 1, 1)
+		DivStart := ui.AddLayout(x, y, 1, 1)
 		DivStart.SetRow(0, 0, 100)
 		DivStart.Enable = !isRunning
 		x++
@@ -428,7 +428,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 	//Editbox
 	{
 		ui.SetColumn(x, 1, 100)
-		ed := ui.AddEditboxString(x, 0, 1, 1, &input.Text)
+		ed := ui.AddEditboxString(x, y, 1, 1, &input.Text)
 		ed.Ghost = "What can I do for you?"
 		ed.Multiline = input.Multilined
 		ed.enter = sendIt
@@ -439,7 +439,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 
 	//switch multi-lined
 	{
-		DivML := ui.AddLayout(x, 0, 1, 1)
+		DivML := ui.AddLayout(x, y, 1, 1)
 		DivML.SetColumn(0, 1, 100)
 		DivML.SetRow(0, 0, 100)
 		DivML.Enable = !isRunning
@@ -462,7 +462,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 	//Send button
 	{
 		ui.SetColumn(x, 2.5, 2.5)
-		DivSend := ui.AddLayout(x, 0, 1, 1)
+		DivSend := ui.AddLayout(x, y, 1, 1)
 		DivSend.SetColumn(0, 1, 100)
 		DivSend.SetRow(0, 0, 100)
 		if !isRunning {
@@ -480,13 +480,15 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 				return nil
 			}
 		}
+		x++
 	}
+	y++
 
 	//show file previews
 	if len(input.Files) > 0 {
-		ui.SetRow(1, preview_height, preview_height)
-
-		ImgsList := ui.AddLayoutList(0, 1, x, 1, true)
+		ui.SetRow(y, preview_height, preview_height)
+		ImgsList := ui.AddLayoutList(0, y, x, 1, true)
+		y++
 
 		for fi, file := range input.Files {
 			ImgDia := ui.AddDialog("image_" + file)
@@ -530,6 +532,28 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 				input.Files = nil
 				return nil
 			}
+		}
+	}
+
+	//LLMTips/Brushes
+	if len(input.Picks) > 0 {
+		ui.SetRowFromSub(y, 1, 5)
+		TipsDiv := ui.AddLayout(0, y, x, 1)
+		y++
+		TipsDiv.SetColumn(0, 2, 2)
+		TipsDiv.SetColumn(1, 1, 100)
+
+		yy := 0
+		for i, br := range input.Picks {
+			found_i := chat.Input.FindPick(br.LLMTip)
+			if found_i >= 0 && found_i < i { //unique
+				continue //skip
+			}
+
+			TipsDiv.SetRowFromSub(yy, 1, 3)
+			TipsDiv.AddText(0, yy, 1, 1, input.Picks[i].Cd.GetLabel())
+			TipsDiv.AddText(1, yy, 1, 1, strings.TrimSpace(br.LLMTip))
+			yy++
 		}
 	}
 

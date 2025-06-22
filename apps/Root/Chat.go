@@ -213,15 +213,24 @@ func (st *Chat) FindNextUI(tool_call_id string) *ChatMsg {
 	return nil
 }
 
+func (st *ChatInput) FindPick(llmTip string) int {
+	if llmTip == "" {
+		return -1
+	}
+
+	for i, it := range st.Picks {
+		if it.LLMTip == llmTip {
+			return i
+		}
+	}
+	return -1
+}
+
 func (st *ChatInput) MergePick(in LayoutPick) {
 	//find & update color
-	if in.LLMTip != "" {
-		for i, it := range st.Picks {
-			if it.LLMTip == in.LLMTip {
-				in.Cd = st.Picks[i].Cd
-				break
-			}
-		}
+	i := st.FindPick(in.LLMTip)
+	if i >= 0 {
+		in.Cd = st.Picks[i].Cd
 	}
 
 	//add
