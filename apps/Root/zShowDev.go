@@ -179,6 +179,10 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	} else {
 		prompts := string(filePrompts)
 
+		if prompts == "" {
+			prompts = "#Storage\n"
+		}
+
 		ed := MainDiv.AddEditboxString(1, 1, 1, 1, &prompts)
 		ed.Align_v = 0
 		ed.Linewrapping = true
