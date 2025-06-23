@@ -30,27 +30,9 @@ type LLMMistralImageModel struct {
 	Aliases []string
 }
 
-type LLMMistralUsage struct {
-	Prompt_tokens       int
-	Input_cached_tokens int
-	Completion_tokens   int
-	Reasoning_tokens    int
-
-	Prompt_price       float64
-	Input_cached_price float64
-	Completion_price   float64
-	Reasoning_price    float64
-}
-
 type LLMMistralMsgStats struct {
-	Function       string
-	CreatedTimeSec float64
-	Model          string
-
-	Time             float64
-	TimeToFirstToken float64
-
-	Usage LLMMistralUsage
+	Function string
+	Usage    LLMMsgUsage
 }
 
 // Mistral LLM settings.

@@ -739,7 +739,7 @@ func (st *ShowChat) buildShowMessages(ui *UI, caller *ToolCaller, source_chat *C
 			continue //skip
 		}
 
-		if msg.Provider == "" {
+		if msg.Usage.Provider == "" {
 			y++ //space above user msg
 		}
 
@@ -810,7 +810,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 	layout.SetColumn(1, 1, 4)
 	layout.SetColumn(2, 1, 100)
 
-	if msg.Provider != "" {
+	if msg.Usage.Provider != "" {
 		layout.Back_cd = UI_GetPalette().GetGrey(0.09)
 		layout.Back_rounding = true
 	}
@@ -934,7 +934,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 
 		x := 0
 
-		if msg.Provider != "" {
+		if msg.Usage.Provider != "" {
 			// show/hide reasoning
 			if rsp_txt != "" {
 				ShowRspBt := DivIcons.AddButton(x, 0, 1, 1, "")
@@ -962,7 +962,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 		DivIcons.SetColumn(x, 0, 100)
 		x++
 
-		if msg.Provider == "" {
+		if msg.Usage.Provider == "" {
 			{
 				RgnBt := DivIcons.AddButton(x, 0, 1, 1, "")
 				RgnBt.Cd = iconsCd
@@ -996,7 +996,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 					//find next user
 					next_i := msg_i + 1
 					for next_i < len(msgs.Messages) {
-						if msgs.Messages[next_i].Provider == "" {
+						if msgs.Messages[next_i].Usage.Provider == "" {
 							break
 						}
 						next_i++
@@ -1014,11 +1014,11 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				inCached := msg.Usage.Input_cached_price
 				out := msg.Usage.Completion_price + msg.Usage.Reasoning_price
 				inf := fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s sec\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
-					msg.Provider+":"+msg.Model,
-					SdkGetDateTime(int64(msg.CreatedTimeSec)),
-					strconv.FormatFloat(msg.TimeToFirstToken, 'f', 3, 64),
-					strconv.FormatFloat(msg.Time, 'f', 3, 64),
-					strconv.FormatFloat(msg.GetSpeed(), 'f', 3, 64),
+					msg.Usage.Provider+":"+msg.Usage.Model,
+					SdkGetDateTime(int64(msg.Usage.CreatedTimeSec)),
+					strconv.FormatFloat(msg.Usage.TimeToFirstToken, 'f', 3, 64),
+					strconv.FormatFloat(msg.Usage.DTime, 'f', 3, 64),
+					strconv.FormatFloat(msg.Usage.GetSpeed(), 'f', 3, 64),
 					strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
 					strconv.FormatFloat(in, 'f', -1, 64),
 					msg.Usage.Prompt_tokens,

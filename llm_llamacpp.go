@@ -9,14 +9,8 @@ import (
 )
 
 type LLMLlamacppMsgStats struct {
-	Function       string
-	CreatedTimeSec float64
-	Model          string
-
-	Time             float64
-	TimeToFirstToken float64
-
-	Usage LLMMsgUsage
+	Function string
+	Usage    LLMMsgUsage
 }
 
 // Llamacpp LLM settings.
@@ -105,7 +99,7 @@ func (llama *LLMLlamacpp) Complete(st *LLMComplete, router *ToolsRouter, msg *To
 			Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
 			Seed:           seed,
 
-			Model: st.Out_model,
+			Model: st.Out_usage.Model,
 
 			Tools:    tools,
 			Messages: messages,
@@ -124,9 +118,6 @@ func (llama *LLMLlamacpp) Complete(st *LLMComplete, router *ToolsRouter, msg *To
 		Provider := "llamacpp"
 
 		fnStreaming := func(chatMsg *ChatMsg) bool {
-
-			chatMsg.Provider = Provider
-			chatMsg.Model = st.Out_model
 			chatMsg.Seed = seed
 			chatMsg.Stream = true
 			chatMsg.ShowParameters = true
@@ -169,6 +160,13 @@ func (llama *LLMLlamacpp) Complete(st *LLMComplete, router *ToolsRouter, msg *To
 				usage.Input_cached_tokens = out.Usage.Input_cached_tokens
 				usage.Completion_tokens = out.Usage.Completion_tokens
 				usage.Reasoning_tokens = out.Usage.Completion_tokens_details.Reasoning_tokens
+
+				usage.Provider = Provider
+				usage.Model = st.Out_usage.Model
+				usage.CreatedTimeSec = float64(time.Now().UnixMicro()) / 1000000
+				usage.TimeToFirstToken = time_to_first_token
+				usage.DTime = dt
+
 				//mod, _ := llama.FindModel(st.Model)
 				//if mod != nil {
 				//	usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price = mod.GetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens)
@@ -181,7 +179,7 @@ func (llama *LLMLlamacpp) Complete(st *LLMComplete, router *ToolsRouter, msg *To
 			}
 
 			calls := out.Choices[0].Message.Tool_calls
-			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage, dt, time_to_first_token, Provider, st.Out_model)
+			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage)
 			if st.delta != nil {
 				st.delta(m2)
 			}
@@ -283,14 +281,8 @@ func (llama *LLMLlamacpp) Complete(st *LLMComplete, router *ToolsRouter, msg *To
 
 			//log stats
 			llama.Stats = append(llama.Stats, LLMLlamacppMsgStats{
-				Function:       "completion",
-				CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000,
-				Model:          st.Out_model,
-
-				Time:             dt,
-				TimeToFirstToken: time_to_first_token,
-
-				Usage: usage,
+				Function: "completion",
+				Usage:    usage,
 			})
 
 			if len(calls) == 0 {

@@ -34,8 +34,7 @@ type ToolsPrompt struct {
 	//LLM output
 	Messages []ToolsPromptMessages
 
-	Code  string
-	Model string
+	Code string
 
 	//from code
 	Name   string
@@ -63,7 +62,7 @@ func (prompt *ToolsPrompt) updateSchema() error {
 	return nil
 }
 
-func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, usage *LLMMsgUsage, model string, previousMessages []byte) {
+func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, usage *LLMMsgUsage, previousMessages []byte) {
 
 	re := regexp.MustCompile("(?s)```(?:go|golang)(.*?)```")
 	matches := re.FindAllStringSubmatch(final_msg, -1)
@@ -83,7 +82,7 @@ func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, us
 	}
 	prompt.Messages = append(prompt.Messages, ToolsPromptMessages{Message: final_msg, Reasoning: reasoning_msg})
 	prompt.Usage = *usage
-	prompt.Model = model
+
 	prompt.previousMessages = previousMessages
 
 	/*if loadName {
@@ -280,7 +279,7 @@ func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *
 		return err
 	}
 
-	prompt.setMessage(comp.Out_answer, comp.Out_reasoning, &comp.Out_usage, comp.Out_model, comp.Out_messages)
+	prompt.setMessage(comp.Out_answer, comp.Out_reasoning, &comp.Out_usage, comp.Out_messages)
 
 	return nil
 }
@@ -332,7 +331,7 @@ func (app *ToolsPrompts) GenerateToolsCode(msg *ToolsRouterMsg, llms *LLMs) erro
 
 	//then generate tools code
 	for _, prompt := range app.Prompts {
-		if prompt == storagePrompt {
+		if prompt == storagePrompt || prompt.Prompt == "" {
 			continue
 		}
 

@@ -6,14 +6,8 @@ import (
 )
 
 type LLMLlamacppMsgStats struct {
-	Function       string
-	CreatedTimeSec float64
-	Model          string
-
-	Time             float64
-	TimeToFirstToken float64
-
-	Usage LLMMsgUsage
+	Function string
+	Usage    LLMMsgUsage
 }
 
 // Llama.cpp settings.

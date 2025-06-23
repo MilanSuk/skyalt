@@ -33,27 +33,9 @@ type LLMxAIImageModel struct {
 	Aliases []string
 }
 
-type LLMxAIUsage struct {
-	Prompt_tokens       int
-	Input_cached_tokens int
-	Completion_tokens   int
-	Reasoning_tokens    int
-
-	Prompt_price       float64
-	Input_cached_price float64
-	Completion_price   float64
-	Reasoning_price    float64
-}
-
 type LLMxAIMsgStats struct {
-	Function       string
-	CreatedTimeSec float64
-	Model          string
-
-	Time             float64
-	TimeToFirstToken float64
-
-	Usage LLMxAIUsage
+	Function string
+	Usage    LLMMsgUsage
 }
 
 // xAI LLM settings.

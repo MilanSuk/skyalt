@@ -2529,6 +2529,12 @@ func (ui *UI) Paint_Brush(cd color.RGBA, pts []UIPaintBrushPoint) {
 }
 
 type LLMMsgUsage struct {
+	Provider         string //empty = user wrote it
+	Model            string
+	CreatedTimeSec   float64
+	TimeToFirstToken float64
+	DTime            float64
+
 	Prompt_tokens       int
 	Input_cached_tokens int
 	Completion_tokens   int
@@ -2539,6 +2545,7 @@ type LLMMsgUsage struct {
 	Completion_price   float64
 	Reasoning_price    float64
 }
+
 type LLMCompletion struct {
 	Temperature       float64
 	Top_p             float64

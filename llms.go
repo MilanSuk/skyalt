@@ -23,7 +23,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"time"
 )
 
 type OpenAI_completion_msg_Content_Image_url struct {
@@ -70,10 +69,7 @@ type OpenAI_content struct {
 	Result *OpenAI_completion_msgResult  `json:",omitempty"`
 }
 type ChatMsg struct {
-	CreatedTimeSec float64
-	Provider       string //empty = user wrote it
-	Model          string
-	Seed           int
+	Seed int
 
 	Content OpenAI_content
 
@@ -85,9 +81,6 @@ type ChatMsg struct {
 
 	Usage LLMMsgUsage
 
-	Time             float64
-	TimeToFirstToken float64
-
 	ShowParameters bool
 
 	Stream bool
@@ -96,13 +89,13 @@ type ChatMsgs struct {
 	Messages []*ChatMsg
 }
 
-type LLMMsgInfo struct {
-	Model       string
-	Time        float64
-	Total_price float64
-}
-
 type LLMMsgUsage struct {
+	Provider         string //empty = user wrote it
+	Model            string
+	CreatedTimeSec   float64
+	TimeToFirstToken float64
+	DTime            float64
+
 	Prompt_tokens       int
 	Input_cached_tokens int
 	Completion_tokens   int
@@ -118,6 +111,17 @@ func (u *LLMMsgUsage) TotalPrice() float64 {
 	return u.Prompt_price + u.Input_cached_price + u.Completion_price + u.Reasoning_price
 }
 func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
+
+	dst.Model = src.Model
+	dst.DTime += src.DTime
+
+	if dst.CreatedTimeSec == 0 {
+		dst.CreatedTimeSec = src.CreatedTimeSec
+	}
+	if dst.TimeToFirstToken == 0 {
+		dst.TimeToFirstToken = src.TimeToFirstToken
+	}
+
 	dst.Prompt_tokens += src.Prompt_tokens
 	dst.Input_cached_tokens += src.Input_cached_tokens
 	dst.Completion_tokens += src.Completion_tokens
@@ -153,8 +157,6 @@ type LLMComplete struct {
 	Out_answer     string
 	Out_reasoning  string
 	Out_usage      LLMMsgUsage
-	Out_time       float64 //sec
-	Out_model      string
 
 	delta func(msg *ChatMsg)
 }
@@ -164,7 +166,7 @@ func NewLLMCompletion(systemMessage string, userMessage string) *LLMComplete {
 }
 
 func (a *LLMComplete) Cmp(b *LLMComplete) bool {
-	return a.Out_model == b.Out_model &&
+	return a.Out_usage.Model == b.Out_usage.Model &&
 		a.Temperature == b.Temperature &&
 		a.Top_p == b.Top_p &&
 		bytes.Equal(a.PreviousMessages, b.PreviousMessages) &&
@@ -225,48 +227,51 @@ func NewLLMs(router *ToolsRouter) (*LLMs, error) {
 func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg, usecase string) error {
 
 	dev := &llms.router.sync.Device
-	switch dev.Chat_provider {
+	model := ""
+	switch strings.ToLower(dev.Chat_provider) {
 
 	case "xai":
-		st.Out_model = "grok-3"
+		model = "grok-3"
 		if !dev.Chat_smarter {
-			st.Out_model += "-mini"
+			model += "-mini"
 		}
 		if dev.Chat_faster {
-			st.Out_model += "-fast"
+			model += "-fast"
 		}
 
 	case "mistral":
 		switch usecase {
 		case "tools", "code":
-			st.Out_model = "devstral-small-latest"
+			model = "devstral-small-latest"
 			if dev.Chat_smarter {
-				st.Out_model = "codestral-latest"
+				model = "codestral-latest"
 			}
 		case "chat":
-			st.Out_model = "mistral-small-latest"
+			model = "mistral-small-latest"
 			if dev.Chat_smarter {
-				st.Out_model = "mistral-large-latest"
+				model = "mistral-large-latest"
 			}
 		}
 
 	case "openai":
 		switch usecase {
 		case "tools", "code":
-			st.Out_model = "gpt-4o-mini"
+			model = "gpt-4.1-mini"
 			if dev.Chat_smarter {
-				st.Out_model = "o4-mini"
+				model = "o4-mini"
 			}
 		case "chat":
-			st.Out_model = "gpt-4o-mini"
+			model = "gpt-4.1-mini"
 			if dev.Chat_smarter {
-				st.Out_model = "o4-mini"
+				model = "o4-mini"
 			}
 		}
 
 	case "llama.cpp":
-		st.Out_model = ""
+		model = ""
 	}
+
+	st.Out_usage.Model = model
 
 	//get provider & model name
 	/*if llms.router.sync.LLM_xai != nil {
@@ -336,8 +341,6 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg, usecase string)
 		return fmt.Errorf("provider not found")
 	}
 
-	st.Out_time = float64(time.Now().UnixMicro()) / 1000000
-
 	//add & save cache
 	{
 		llms.Cache = append(llms.Cache, *st)
@@ -348,10 +351,10 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg, usecase string)
 	return nil
 }
 
-func (llms *LLMs) GetUsage() []LLMMsgInfo {
-	var ret []LLMMsgInfo
+func (llms *LLMs) GetUsage() []LLMMsgUsage {
+	var ret []LLMMsgUsage
 	for _, it := range llms.Cache {
-		ret = append(ret, LLMMsgInfo{Model: it.Out_model, Time: it.Out_time, Total_price: it.Out_usage.TotalPrice()})
+		ret = append(ret, it.Out_usage)
 	}
 	return ret
 }

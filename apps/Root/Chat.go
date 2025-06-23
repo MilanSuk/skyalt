@@ -6,16 +6,12 @@ import (
 	"image/color"
 )
 
-type ChatMsgUsage struct {
-	Prompt_tokens       int
-	Input_cached_tokens int
-	Completion_tokens   int
-	Reasoning_tokens    int
-
-	Prompt_price       float64
-	Input_cached_price float64
-	Completion_price   float64
-	Reasoning_price    float64
+func (usage *LLMMsgUsage) GetSpeed() float64 {
+	toks := usage.Completion_tokens + usage.Reasoning_tokens
+	if usage.DTime == 0 {
+		return 0
+	}
+	return float64(toks) / usage.DTime
 }
 
 type OpenAI_completion_msg_Content_Image_url struct {
@@ -69,10 +65,7 @@ type ChatMsgUI struct {
 }
 
 type ChatMsg struct {
-	CreatedTimeSec float64
-	Provider       string //empty = user wrote it
-	Model          string
-	Seed           int
+	Seed int
 
 	Content OpenAI_content
 
@@ -82,10 +75,7 @@ type ChatMsg struct {
 	UI_func     string
 	UI_paramsJs string
 
-	Usage ChatMsgUsage
-
-	Time             float64
-	TimeToFirstToken float64
+	Usage LLMMsgUsage
 
 	ShowParameters bool
 
@@ -251,13 +241,6 @@ func (st *ChatInput) Reset() {
 func (msg *ChatMsg) HasUI() bool {
 	return msg.Content.Result != nil && msg.UI_func != ""
 }
-func (msg *ChatMsg) GetSpeed() float64 {
-	toks := msg.Usage.Completion_tokens + msg.Usage.Reasoning_tokens
-	if msg.Time == 0 {
-		return 0
-	}
-	return float64(toks) / msg.Time
-}
 
 func (msgs *ChatMsgs) GetTotalPrice(st_i, en_i int) (input, inCached, output float64) {
 	if en_i < 0 {
@@ -289,7 +272,7 @@ func (msgs *ChatMsgs) GetTotalTime(st_i, en_i int) float64 {
 		en_i = len(msgs.Messages)
 	}
 	for i := st_i; i < en_i; i++ {
-		dt += msgs.Messages[i].Time
+		dt += msgs.Messages[i].Usage.DTime
 	}
 
 	return dt

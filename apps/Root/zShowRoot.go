@@ -469,14 +469,9 @@ func (st *ShowRoot) buildAbout(ui *UI) {
 }
 
 func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
-	type LLMMsgInfo struct {
-		Model       string
-		Time        float64
-		Total_price float64
-	}
 
-	var usage []LLMMsgInfo
-	err := json.Unmarshal(usageJs, &usage)
+	var usages []LLMMsgUsage
+	err := json.Unmarshal(usageJs, &usages)
 	if err != nil {
 		//err ....
 		return
@@ -490,16 +485,21 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
 		ListDiv := ui.AddLayout(0, 0, 1, 1)
 		ListDiv.SetColumnFromSub(0, 1, 6)
 		ListDiv.SetColumnFromSub(1, 1, 5)
-		ListDiv.SetColumnFromSub(2, 1, 4)
+		ListDiv.SetColumnFromSub(2, 1, 2)
+		ListDiv.SetColumnFromSub(3, 1, 4)
 
 		y := 0
-		for i := len(usage) - 1; i >= 0; i-- {
-			it := &usage[i]
+		for i := len(usages) - 1; i >= 0; i-- {
+			usg := &usages[i]
 
-			ListDiv.AddText(0, y, 1, 1, it.Model)
-			ListDiv.AddText(1, y, 1, 1, SdkGetDateTime(int64(it.Time)))
-			ListDiv.AddText(2, y, 1, 1, fmt.Sprintf("$%f", it.Total_price))
-			total_price += it.Total_price
+			ListDiv.AddText(0, y, 1, 1, usg.Model)
+			ListDiv.AddText(1, y, 1, 1, SdkGetDateTime(int64(usg.CreatedTimeSec)))
+			ListDiv.AddText(2, y, 1, 1, fmt.Sprintf("%.0fsec", usg.DTime))
+
+			price := (usg.Prompt_price + usg.Input_cached_price + usg.Completion_price + usg.Reasoning_price)
+			ListDiv.AddText(3, y, 1, 1, fmt.Sprintf("$%f", price))
+			total_price += price
+
 			y++
 		}
 	}
@@ -509,7 +509,7 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
 	ui.AddDivider(0, 1, 1, 1, true)
 
 	//Sum
-	ui.AddText(0, 2, 1, 1, fmt.Sprintf("Total(%d): $%f", len(usage), total_price)).Align_h = 2
+	ui.AddText(0, 2, 1, 1, fmt.Sprintf("Total(%d): $%f", len(usages), total_price)).Align_h = 2
 
 	//Note
 	noteTx := ui.AddText(0, 3, 1, 1, "<i>numbers may not be accurate.")

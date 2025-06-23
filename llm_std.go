@@ -230,7 +230,7 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 
 				//callback
 				var msgs ChatMsgs
-				msgs.AddAssistentCalls(ret.Choices[0].Message.Reasoning_content, ret.Choices[0].Message.Content, ret.Choices[0].Message.Tool_calls, LLMMsgUsage{}, float64(time.Now().UnixMicro()-st)/1000000, time_to_first_token, "", "")
+				msgs.AddAssistentCalls(ret.Choices[0].Message.Reasoning_content, ret.Choices[0].Message.Content, ret.Choices[0].Message.Tool_calls, LLMMsgUsage{})
 				if !fnStreaming(msgs.Messages[0]) {
 					streaming_ok = false
 					break //interrupted
@@ -375,7 +375,7 @@ func (msgs *ChatMsgs) AddUserMessage(text string, files []string) (*ChatMsg, err
 		}
 	}
 
-	msg := &ChatMsg{CreatedTimeSec: float64(time.Now().UnixMilli()) / 1000, Content: content}
+	msg := &ChatMsg{Content: content, Usage: LLMMsgUsage{CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000}}
 	msgs.Messages = append(msgs.Messages, msg)
 	return msg, nil
 }
@@ -384,7 +384,7 @@ func ChatMsg_GetReasoningTextIntro() string {
 	return "\n\nReasoning: "
 }
 
-func (msgs *ChatMsgs) AddAssistentCalls(reasoning_text, final_text string, tool_calls []OpenAI_completion_msg_Content_ToolCall, usage LLMMsgUsage, dtime float64, timeToFirstToken float64, providerName string, modelName string) *ChatMsg {
+func (msgs *ChatMsgs) AddAssistentCalls(reasoning_text, final_text string, tool_calls []OpenAI_completion_msg_Content_ToolCall, usage LLMMsgUsage) *ChatMsg {
 	text := final_text
 	if reasoning_text != "" {
 		text = final_text + ChatMsg_GetReasoningTextIntro() + reasoning_text
@@ -393,7 +393,7 @@ func (msgs *ChatMsgs) AddAssistentCalls(reasoning_text, final_text string, tool_
 	content := OpenAI_content{}
 	content.Calls = &OpenAI_completion_msgCalls{Role: "assistant", Content: text, Tool_calls: tool_calls}
 
-	msg := &ChatMsg{Provider: providerName, Model: modelName, CreatedTimeSec: float64(time.Now().UnixMilli()) / 1000, Content: content, Usage: usage, Time: dtime, TimeToFirstToken: timeToFirstToken, FinalTextSize: len(final_text)}
+	msg := &ChatMsg{Content: content, Usage: usage, FinalTextSize: len(final_text)}
 	msgs.Messages = append(msgs.Messages, msg)
 	return msg
 }
@@ -401,7 +401,7 @@ func (msgs *ChatMsgs) AddCallResult(tool_name string, tool_use_id string, result
 	content := OpenAI_content{}
 	content.Result = &OpenAI_completion_msgResult{Role: "tool", Tool_call_id: tool_use_id, Name: tool_name, Content: result}
 
-	msg := &ChatMsg{CreatedTimeSec: float64(time.Now().UnixMilli()) / 1000, Content: content}
+	msg := &ChatMsg{Content: content, Usage: LLMMsgUsage{CreatedTimeSec: float64(time.Now().UnixMicro()) / 1000000}}
 	msgs.Messages = append(msgs.Messages, msg)
 	return msg
 }

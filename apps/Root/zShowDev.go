@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -38,17 +39,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	MainDiv.SetColumn(2, 1, 100)
 	MainDiv.SetRow(1, 1, 100)
 
-	type SdkLLMMsgUsage struct {
-		Prompt_tokens       int
-		Input_cached_tokens int
-		Completion_tokens   int
-		Reasoning_tokens    int
-
-		Prompt_price       float64
-		Input_cached_price float64
-		Completion_price   float64
-		Reasoning_price    float64
-	}
 	type SdkToolsCodeError struct {
 		File string
 		Line int
@@ -65,15 +55,14 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		//LLM output
 		Messages []SdkToolsMessages
 
-		Code  string
-		Model string
+		Code string
 
 		//from code
 		Name   string
 		Schema json.RawMessage
 		Errors []SdkToolsCodeError
 
-		Usage SdkLLMMsgUsage
+		Usage LLMMsgUsage
 	}
 	type SdkToolsPrompts struct {
 		PromptsFileTime int64
@@ -482,8 +471,27 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 					//Price
 					{
-						tx := SideDiv.AddText(0, 2, 1, 1, fmt.Sprintf("<i>%s, $%f", prompt.Model, prompt.Usage.Prompt_price+prompt.Usage.Input_cached_price+prompt.Usage.Completion_price+prompt.Usage.Reasoning_price))
+						tx := SideDiv.AddText(0, 2, 1, 1, fmt.Sprintf("<i>%s, $%f", prompt.Usage.Model, prompt.Usage.Prompt_price+prompt.Usage.Input_cached_price+prompt.Usage.Completion_price+prompt.Usage.Reasoning_price))
 						tx.Align_h = 2
+
+						in := prompt.Usage.Prompt_price
+						inCached := prompt.Usage.Input_cached_price
+						out := prompt.Usage.Completion_price + prompt.Usage.Reasoning_price
+						tx.Tooltip = fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s sec\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
+							prompt.Usage.Provider+":"+prompt.Usage.Model,
+							SdkGetDateTime(int64(prompt.Usage.CreatedTimeSec)),
+							strconv.FormatFloat(prompt.Usage.TimeToFirstToken, 'f', 3, 64),
+							strconv.FormatFloat(prompt.Usage.DTime, 'f', 3, 64),
+							strconv.FormatFloat(prompt.Usage.GetSpeed(), 'f', 3, 64),
+							strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
+							strconv.FormatFloat(in, 'f', -1, 64),
+							prompt.Usage.Prompt_tokens,
+							strconv.FormatFloat(inCached, 'f', -1, 64),
+							prompt.Usage.Input_cached_tokens,
+							strconv.FormatFloat(out, 'f', -1, 64),
+							prompt.Usage.Reasoning_tokens,
+							prompt.Usage.Completion_tokens)
+
 					}
 
 					//Errors
