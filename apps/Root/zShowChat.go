@@ -1076,13 +1076,13 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 	//list of tool calls
 	if msg.Content.Calls != nil {
 		for _, call := range msg.Content.Calls.Tool_calls {
-			y = st.toolUse(call, layout, y, msg, chat, caller)
+			y = st.toolUse(call, layout, y, msg, chat)
 		}
 	}
 
 }
 
-func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *UI, y int, msg *ChatMsg, chat *Chat, caller *ToolCaller) int {
+func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *UI, y int, msg *ChatMsg, chat *Chat) int {
 	// open sub-agent
 	ShowParamsBt := layout.AddButton(0, y, 1, 1, fmt.Sprintf("<i>%s(%s)", it.Function.Name, it.Id))
 	ShowParamsBt.Background = 0.5

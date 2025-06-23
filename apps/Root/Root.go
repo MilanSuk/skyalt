@@ -111,7 +111,7 @@ func (root *Root) refreshApps() (*RootApp, error) {
 	return nil, nil
 }
 
-func (app *RootApp) refreshChats(caller *ToolCaller) (*Chat, string, error) {
+func (app *RootApp) refreshChats() (*Chat, string, error) {
 
 	chats_folder := filepath.Join("..", app.Name, "Chats")
 	if _, err := os.Stat(chats_folder); os.IsNotExist(err) {

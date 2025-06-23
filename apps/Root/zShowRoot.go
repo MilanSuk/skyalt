@@ -31,7 +31,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	var source_chat *Chat
 	var chat_fileName string
 	if app != nil {
-		source_chat, chat_fileName, err = app.refreshChats(caller)
+		source_chat, chat_fileName, err = app.refreshChats()
 		if err != nil {
 			return err
 		}
@@ -222,7 +222,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		{
 			usageJs := callFuncGetLLMUsage()
 			UsageDia := AppsDiv.AddDialog("usage")
-			st.buildUsage(&UsageDia.UI, usageJs, caller)
+			st.buildUsage(&UsageDia.UI, usageJs)
 
 			UsageBt := AppsDiv.AddButton(0, y, 1, 1, "$")
 			y++
@@ -259,7 +259,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	if source_root.ShowSettings {
-		err := st.buildSettings(ui.AddLayout(1, 0, 1, 1), caller, source_root)
+		err := st.buildSettings(ui.AddLayout(1, 0, 1, 1), caller)
 		if err != nil {
 			return err
 		}
@@ -412,7 +412,7 @@ func (st *ShowRoot) findUniqueAppName(prefix string, root *Root) string {
 	return ""
 }
 
-func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller, root *Root) error {
+func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller) error {
 	ui.SetColumn(0, 1, 100)
 	ui.SetColumn(1, 10, 16)
 	ui.SetColumn(2, 1, 100)
@@ -468,7 +468,7 @@ func (st *ShowRoot) buildAbout(ui *UI) {
 	y++
 }
 
-func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte, caller *ToolCaller) {
+func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
 	type LLMMsgInfo struct {
 		Model       string
 		Time        float64
@@ -483,29 +483,33 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte, caller *ToolCaller) {
 	}
 
 	ui.SetColumn(0, 1, 10)
-	ui.SetRow(0, 1, 15)
-	ListDiv := ui.AddLayout(0, 0, 1, 1)
-	ListDiv.SetColumnFromSub(0, 1, 6)
-	ListDiv.SetColumnFromSub(1, 1, 5)
-	ListDiv.SetColumnFromSub(2, 1, 4)
+	ui.SetRowFromSub(0, 1, 15)
 
-	y := 0
-	total := 0.0
-	for i := len(usage) - 1; i >= 0; i-- {
-		it := &usage[i]
+	total_price := 0.0
+	{
+		ListDiv := ui.AddLayout(0, 0, 1, 1)
+		ListDiv.SetColumnFromSub(0, 1, 6)
+		ListDiv.SetColumnFromSub(1, 1, 5)
+		ListDiv.SetColumnFromSub(2, 1, 4)
 
-		ListDiv.AddText(0, y, 1, 1, it.Model)
-		ListDiv.AddText(1, y, 1, 1, SdkGetDateTime(int64(it.Time)))
-		ListDiv.AddText(2, y, 1, 1, fmt.Sprintf("$%f", it.Total_price))
-		total += it.Total_price
-		y++
+		y := 0
+		for i := len(usage) - 1; i >= 0; i-- {
+			it := &usage[i]
+
+			ListDiv.AddText(0, y, 1, 1, it.Model)
+			ListDiv.AddText(1, y, 1, 1, SdkGetDateTime(int64(it.Time)))
+			ListDiv.AddText(2, y, 1, 1, fmt.Sprintf("$%f", it.Total_price))
+			total_price += it.Total_price
+			y++
+		}
 	}
 
+	//space
 	ui.SetRow(1, 0.1, 0.1)
 	ui.AddDivider(0, 1, 1, 1, true)
 
 	//Sum
-	ui.AddText(0, 2, 1, 1, fmt.Sprintf("Total(%d): $%f", len(usage), total)).Align_h = 2
+	ui.AddText(0, 2, 1, 1, fmt.Sprintf("Total(%d): $%f", len(usage), total_price)).Align_h = 2
 
 	//Note
 	noteTx := ui.AddText(0, 3, 1, 1, "<i>numbers may not be accurate.")
@@ -514,7 +518,6 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte, caller *ToolCaller) {
 }
 
 func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
-
 	ui.SetColumn(0, 1, 20)
 
 	slices.Reverse(logs) //newest top
