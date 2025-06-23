@@ -45,14 +45,18 @@ func (st *ButtonConfirm) Build(layout *Layout) {
 
 	dia := layout.AddDialog("confirm")
 	{
-		dia.Layout.SetColumn(0, 3, 5)
-		dia.Layout.SetColumn(1, 0.5, 0.5)
-		dia.Layout.SetColumn(2, 2, 5)
+		dia.Layout.SetColumnFromSub(0, 6, 20)
 
-		tx := dia.Layout.AddText(0, 0, 3, 1, st.Question)
+		tx := dia.Layout.AddText(0, 0, 1, 1, st.Question)
 		tx.Align_h = 1
 
-		yes := dia.Layout.AddButtonDanger(0, 1, 1, 1, "Yes")
+		footerDiv := dia.Layout.AddLayout(0, 1, 1, 1)
+
+		footerDiv.SetColumn(0, 3, 100)
+		footerDiv.SetColumn(1, 0.5, 0.5)
+		footerDiv.SetColumn(2, 3, 100)
+
+		yes := footerDiv.AddButtonDanger(0, 0, 1, 1, "Yes")
 		yes.clicked = func() {
 			if st.confirmed != nil {
 				st.confirmed()
@@ -60,7 +64,7 @@ func (st *ButtonConfirm) Build(layout *Layout) {
 			dia.Close()
 		}
 
-		no := dia.Layout.AddButton(2, 1, 1, 1, "No")
+		no := footerDiv.AddButton(2, 0, 1, 1, "No")
 		no.clicked = func() {
 			dia.Close()
 		}
