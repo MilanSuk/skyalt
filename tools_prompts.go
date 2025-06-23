@@ -462,7 +462,9 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 
 	systemMessage += "Based on user message, rewrite tool.go file. Your job is to design function(tool). Look into example.go to understand how APIs and storage functions work.\n"
 
-	systemMessage += "Figure out <tool's arguments> based on user prompt. They are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with upper letter. Every argument must have description as comment.\n"
+	systemMessage += "Figure out <tool's arguments> based on user prompt. They are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with upper letter. Every argument must have description as comment. You can add extra marks(with brackets) at the end of comment:\n"
+	systemMessage += "[optional] - caller can ignore attribute"
+	systemMessage += `[options: <list of options] - caller must pick up from list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]`
 
 	systemMessage += "If you need to access the storage, call function Load...() from storage.go which return data. Don't call save/write on that data, it's automaticaly called after function ends.\n"
 
