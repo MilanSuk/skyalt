@@ -226,7 +226,16 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 				ret.Choices[0].Message.Reasoning_content += choice.Delta.Reasoning_content
 
 				//add tools
-				ret.Choices[0].Message.Tool_calls = append(ret.Choices[0].Message.Tool_calls, choice.Delta.Tool_calls...)
+				for _, tool_call := range choice.Delta.Tool_calls {
+					index := tool_call.Index
+
+					if index >= len(ret.Choices[0].Message.Tool_calls) {
+						ret.Choices[0].Message.Tool_calls = append(ret.Choices[0].Message.Tool_calls, tool_call)
+					} else {
+						ret.Choices[0].Message.Tool_calls[index].Function.Arguments += tool_call.Function.Arguments
+					}
+				}
+				//ret.Choices[0].Message.Tool_calls = append(ret.Choices[0].Message.Tool_calls, choice.Delta.Tool_calls...)
 
 				//callback
 				var msgs ChatMsgs
