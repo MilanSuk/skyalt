@@ -90,7 +90,8 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				var bt *UIButton
 
 				if i == source_root.Selected_app_i && !source_root.ShowSettings {
-					dd := 0.8
+					dd := 1.0
+
 					Apps2Div.SetRowFromSub(yy, 1, 100)
 
 					BtDiv := Apps2Div.AddLayout(0, yy, 1, 1)
@@ -236,7 +237,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		//Log/Errors
 		{
 			logs := callFuncGetLogs()
-			LogsDia := AppsDiv.AddDialog("progress")
+			LogsDia := AppsDiv.AddDialog("logs")
 			st.buildLog(&LogsDia.UI, logs, caller)
 
 			LogBt := AppsDiv.AddButton(0, y, 1, 1, "LOG")

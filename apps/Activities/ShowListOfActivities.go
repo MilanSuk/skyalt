@@ -62,7 +62,7 @@ func (st *ShowListOfActivities) run(caller *ToolCaller, ui *UI) error {
 		cb.changed = func() error {
 			return nil
 		}
-		cb.DialogWidth = 3
+		//cb.DialogWidth = 3
 		ed := LineDiv.AddEditboxString(2, 0, 1, 1, &it.Description)
 		ed.changed = func() error {
 			return nil

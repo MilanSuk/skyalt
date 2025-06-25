@@ -24,7 +24,7 @@ func (st *ShowUserBodyMeasurements) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	gen := ui.AddCombo(1, 1, 1, 1, &gender, []string{"Male", "Female"}, []string{"male", "female"})
-	gen.DialogWidth = 4
+	//gen.DialogWidth = 4
 	gen.changed = func() error {
 		source_body.Female = (gender == "female")
 		return nil

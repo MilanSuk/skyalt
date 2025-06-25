@@ -65,8 +65,9 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		Usage LLMMsgUsage
 	}
 	type SdkToolsPrompts struct {
-		PromptsFileTime int64
-		SecretsFileTime int64
+		Changed bool
+		//PromptsFileTime int64
+		//SecretsFileTime int64
 
 		Prompts  []*SdkToolsPrompt
 		Err      string
@@ -89,8 +90,8 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	prompts_path := filepath.Join("..", app.Name, "skyalt")
 	secrets_path := filepath.Join("..", app.Name, "secrets")
 
-	promptsFileTime := _getFileTime(prompts_path)
-	secretsFileTime := _getFileTime(secrets_path)
+	//promptsFileTime := _getFileTime(prompts_path)
+	//secretsFileTime := _getFileTime(secrets_path)
 
 	filePrompts, _ := os.ReadFile(prompts_path)
 	fileSecretsCipher, _ := os.ReadFile(secrets_path)
@@ -225,7 +226,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 			//generate
 			{
-				diff := (promptsFileTime != sdk_app.PromptsFileTime || secretsFileTime != sdk_app.SecretsFileTime)
+				diff := sdk_app.Changed //(promptsFileTime != sdk_app.PromptsFileTime || secretsFileTime != sdk_app.SecretsFileTime)
 
 				SaveDiv := FooterRightDiv.AddLayout(0, 0, 1, 1)
 				SaveDiv.SetColumn(0, 1, 100)
@@ -581,27 +582,23 @@ func (st *ShowDev) buildSettings(dia *UIDialog, app *RootApp, caller *ToolCaller
 	}
 }
 
-func (st *ShowDev) _copyFile(dst, src string) (err error) {
+func (st *ShowDev) _copyFile(dst, src string) error {
 	in, err := os.Open(src)
 	if err != nil {
-		return
+		return err
 	}
 	defer in.Close()
+
 	out, err := os.Create(dst)
 	if err != nil {
-		return
+		return err
 	}
-	defer func() {
-		cerr := out.Close()
-		if err == nil {
-			err = cerr
-		}
-	}()
+	defer out.Close()
+
 	if _, err = io.Copy(out, in); err != nil {
-		return
+		return err
 	}
-	err = out.Sync()
-	return
+	return nil
 }
 
 func _getFileTime(path string) int64 {
