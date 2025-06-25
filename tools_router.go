@@ -462,7 +462,7 @@ func (router *ToolsRouter) RunNet() {
 					if router.log.Error(err) == nil {
 						app := router.FindApp(string(appName))
 						if app != nil {
-							app.Generate() //err ....
+							app.Tick(true) //err ....
 						}
 					}
 
@@ -920,7 +920,7 @@ func (router *ToolsRouter) _hotReload() {
 
 	//ticks
 	for appName, app := range router.apps {
-		err := app.Tick()
+		err := app.Tick(false)
 		if err != nil {
 			router.log.Error(fmt.Errorf("%s: %w", appName, err))
 		}

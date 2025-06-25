@@ -55,48 +55,32 @@ func (cmpl *ToolsAppCompile) GetBinName() string {
 }
 
 func (cmpl *ToolsAppCompile) NeedCompile(codeFileTime int64) bool {
-	return cmpl.CodeFileTime != codeFileTime || (cmpl.Error == "" && !Tools_FileExists(filepath.Join(cmpl.GetFolderPath(), cmpl.GetBinName())))
+	return cmpl.CodeFileTime != codeFileTime || (cmpl.Error == "" && !Tools_IsFileExists(filepath.Join(cmpl.GetFolderPath(), cmpl.GetBinName())))
 }
 
-func (cmpl *ToolsAppCompile) Compile(codeFileTime int64, app *ToolsApp) ([]ToolsCodeError, error) {
+func (cmpl *ToolsAppCompile) RemoveOldBins() error {
+	if cmpl.Error == "" {
+		exclude := cmpl.GetBinName()
 
-	codeErrors, err := cmpl._compile(codeFileTime, app.router, false)
-	if err == nil {
-		err := app.StopProcess(true) //stop it
+		files, err := os.ReadDir(cmpl.GetFolderPath())
 		if err != nil {
-			return nil, err
+			return err
 		}
-
-		//remove old bins
-		if cmpl.Error == "" {
-			exclude := cmpl.GetBinName()
-
-			files, err := os.ReadDir(cmpl.GetFolderPath())
-			if err != nil {
-				return nil, err
+		for _, info := range files {
+			if info.IsDir() || filepath.Ext(info.Name()) != ".bin" || info.Name() == exclude {
+				continue
 			}
-			for _, info := range files {
-				if info.IsDir() || filepath.Ext(info.Name()) != ".bin" || info.Name() == exclude {
-					continue
-				}
-				os.Remove(filepath.Join(cmpl.GetFolderPath(), info.Name()))
-			}
+			os.Remove(filepath.Join(cmpl.GetFolderPath(), info.Name()))
 		}
-	} else {
-		cmpl.Error = err.Error()
 	}
-
-	return codeErrors, err
+	return nil
 }
 
-func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter, noBinary bool) ([]ToolsCodeError, error) {
+func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, noBinary bool, router *ToolsRouter, msg *ToolsRouterMsg) ([]ToolsCodeError, error) {
 
 	cmpl.Error = ""
 
 	cmpl.CodeFileTime = codeFileTime
-
-	msg := router.AddRecompileMsg(cmpl.appName)
-	defer msg.Done()
 
 	msg.progress_label = "Generating tools code"
 	{
@@ -111,17 +95,19 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter, n
 
 		files, err := os.ReadDir(cmpl.GetFolderPath())
 		if err != nil {
+			cmpl.Error = err.Error()
 			return nil, err
 		}
 		for _, info := range files {
-			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || !strings.HasPrefix(info.Name(), "z") {
+			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" || info.Name() == "Storage.go" {
 				continue
 			}
 
-			stName := info.Name()[1 : len(info.Name())-3]
+			stName := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
 
 			fl, err := os.ReadFile(filepath.Join(cmpl.GetFolderPath(), info.Name()))
 			if err != nil {
+				cmpl.Error = err.Error()
 				return nil, err
 			}
 			flstr := string(fl)
@@ -177,6 +163,7 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter, n
 
 		mainGo, err := os.ReadFile("sdk/sdk.go")
 		if err != nil {
+			cmpl.Error = err.Error()
 			return nil, err
 		}
 		strFinal.WriteString(string(mainGo))
@@ -187,6 +174,7 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter, n
 
 		err = os.WriteFile(filepath.Join(cmpl.GetFolderPath(), "main.go"), []byte(strFinal.String()), 0644)
 		if err != nil {
+			cmpl.Error = err.Error()
 			return nil, err
 		}
 	}
@@ -212,6 +200,7 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter, n
 				codeErrors = append(codeErrors, itErr)
 			}
 
+			cmpl.Error = stderr.String()
 			return codeErrors, nil
 		}
 		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
@@ -225,7 +214,7 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter, n
 		fmt.Printf("Updating packages '%s' ... ", cmpl.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000
 
-		if !Tools_FileExists(filepath.Join(cmpl.GetFolderPath(), "go.mod")) {
+		if !Tools_IsFileExists(filepath.Join(cmpl.GetFolderPath(), "go.mod")) {
 			//create
 			cmd := exec.Command("go", "mod", "init", "skyalt_tool")
 			cmd.Dir = cmpl.GetFolderPath()
@@ -234,7 +223,9 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter, n
 			cmd.Stdout = os.Stdout
 			err := cmd.Run()
 			if err != nil {
-				return nil, fmt.Errorf("go mod init failed: %s", stderr.String())
+				err = fmt.Errorf("go mod init failed: %s", stderr.String())
+				cmpl.Error = stderr.String()
+				return nil, err
 			}
 		}
 
@@ -246,7 +237,9 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter, n
 		cmd.Stdout = os.Stdout
 		err := cmd.Run()
 		if err != nil {
-			return nil, fmt.Errorf("go mod tidy failed: %s", stderr.String())
+			err = fmt.Errorf("go mod tidy failed: %s", stderr.String())
+			cmpl.Error = err.Error()
+			return nil, err
 		}
 
 		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
@@ -279,6 +272,7 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, router *ToolsRouter, n
 				}
 			}
 
+			cmpl.Error = stderr.String()
 			return codeErrors, nil
 		}
 		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)

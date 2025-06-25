@@ -42,8 +42,8 @@ func Tools_FormatBytes(bytes int) string {
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
-func Tools_FileExists(fileName string) bool {
-	info, err := os.Stat(fileName)
+func Tools_IsFileExists(path string) bool {
+	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return false
 	}

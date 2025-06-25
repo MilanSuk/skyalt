@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -91,8 +92,7 @@ func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, us
 }
 
 type ToolsPrompts struct {
-	PromptsFileTime int64
-	SecretsFileTime int64
+	Changed bool
 
 	Prompts  []*ToolsPrompt
 	Err      string
@@ -100,11 +100,6 @@ type ToolsPrompts struct {
 
 	Generating_name string
 	Generating_msg  string
-}
-
-func NewToolsPrompts(folderPath string) (*ToolsPrompts, error) {
-	app := &ToolsPrompts{}
-	return app, nil
 }
 
 func (app *ToolsPrompts) Destroy() error {
@@ -145,7 +140,58 @@ func (app *ToolsPrompts) FindPromptName(name string) *ToolsPrompt {
 	return nil
 }
 
-func (app *ToolsPrompts) Reload(folderPath string) (bool, error) {
+func (app *ToolsPrompts) _reloadFromCodeFiles(folderPath string) error {
+
+	app.Prompts = nil
+	app.Err = ""
+	app.Err_line = 0
+
+	files, err := os.ReadDir(folderPath)
+	if err != nil {
+		return err
+	}
+
+	//add new tools
+	for _, info := range files {
+		if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" {
+			continue
+		}
+
+		toolName, _ := strings.CutSuffix(info.Name(), ".go") //remove 'z' and '.go'
+
+		code, err := os.ReadFile(filepath.Join(folderPath, info.Name()))
+		if err != nil {
+			return err
+		}
+
+		item := &ToolsPrompt{Name: toolName, Code: string(code)}
+		err = item.updateSchema()
+		if err != nil {
+			return err
+		}
+
+		app.Prompts = append(app.Prompts, item)
+
+	}
+
+	//remove deleted tools
+	for i := len(app.Prompts) - 1; i >= 0; i-- {
+		found := false
+		for _, file := range files {
+			if !file.IsDir() && file.Name() == app.Prompts[i].Name+".go" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			app.Prompts = slices.Delete(app.Prompts, i, i+1)
+		}
+	}
+
+	return nil
+}
+
+func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) {
 
 	app.Prompts = nil
 	app.Err = ""
@@ -344,23 +390,26 @@ func (app *ToolsPrompts) GenerateToolsCode(msg *ToolsRouterMsg, llms *LLMs) erro
 	return nil
 }
 
-func (app *ToolsPrompts) WriteFiles(folderPath string, secrets *ToolsSecrets) error {
+func (app *ToolsPrompts) RemoveOldCodeFiles(folderPath string) error {
+
+	files, err := os.ReadDir(folderPath)
+	if err != nil {
+		return err
+	}
 
 	//remove all .go files
-	{
-		files, err := os.ReadDir(folderPath)
-		if err != nil {
-			return err
-		}
-		for _, info := range files {
-			//name := strings.TrimRight(info.Name(), filepath.Ext(info.Name()))
+	for _, info := range files {
+		//name := strings.TrimRight(info.Name(), filepath.Ext(info.Name()))
 
-			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" {
-				continue
-			}
-			os.Remove(filepath.Join(folderPath, info.Name()))
+		if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" {
+			continue
 		}
+		os.Remove(filepath.Join(folderPath, info.Name()))
 	}
+	return nil
+}
+
+func (app *ToolsPrompts) WriteFiles(folderPath string, secrets *ToolsSecrets) error {
 
 	//write code into files
 	for _, prompt := range app.Prompts {
@@ -462,9 +511,9 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 
 	systemMessage += "Based on user message, rewrite tool.go file. Your job is to design function(tool). Look into example.go to understand how APIs and storage functions work.\n"
 
-	systemMessage += "Figure out <tool's arguments> based on user prompt. They are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with upper letter. Every argument must have description as comment. You can add extra marks(with brackets) at the end of comment:\n"
+	systemMessage += "Figure out <tool's arguments> based on user prompt. They are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with upper letter. Every argument must have description as comment. You can add extra marks(with brackets []) at the end of comment. You may add multiple marks with own pair of brackets. Here are the marks:\n"
 	systemMessage += "[optional] - caller can ignore attribute"
-	systemMessage += `[options: <list of options] - caller must pick up from list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]`
+	systemMessage += `[options: <list of options>] - caller must pick up from list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]`
 
 	systemMessage += "If you need to access the storage, call function Load...() from storage.go which return data. Don't call save/write on that data, it's automaticaly called after function ends.\n"
 

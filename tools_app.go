@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 )
 
@@ -34,37 +33,21 @@ type ToolsSdkChange struct {
 	ValueBool   bool
 }
 
-type ToolsAppItem struct {
-	FileTime int64
-	Schema   *ToolsOpenAI_completion_tool
-}
 type ToolsApp struct {
 	router *ToolsRouter
 	lock   sync.Mutex
 
 	Process *ToolsAppProcess
 
-	Prompts *ToolsPrompts
-
-	Tools map[string]*ToolsAppItem
+	Prompts ToolsPrompts
 
 	storage_changes int64
 }
 
 func NewToolsApp(appName string, router *ToolsRouter) (*ToolsApp, error) {
 	app := &ToolsApp{router: router}
-	app.Tools = make(map[string]*ToolsAppItem)
 
 	app.Process = NewToolsAppRun(appName)
-
-	promptsFilePath := filepath.Join("apps", appName, "skyalt")
-	if Tools_FileExists(promptsFilePath) {
-		prompts, err := NewToolsPrompts(app.Process.Compile.GetFolderPath())
-		if err != nil {
-			return nil, err
-		}
-		app.Prompts = prompts
-	}
 
 	fl, err := os.ReadFile(app.GetToolsJsonPath())
 	if err == nil {
@@ -86,12 +69,11 @@ func (app *ToolsApp) StopProcess(waitTillExit bool) error {
 		return err
 	}
 
-	if app.Prompts != nil {
-		err = app.Prompts.Destroy()
-		if err != nil {
-			return err
-		}
+	err = app.Prompts.Destroy()
+	if err != nil {
+		return err
 	}
+
 	return nil
 }
 
@@ -121,9 +103,6 @@ func (app *ToolsApp) Rename(newName string) (string, error) {
 }
 
 func (app *ToolsApp) _save() error {
-	app.lock.Lock()
-	defer app.lock.Unlock()
-
 	_, err := Tools_WriteJSONFile(app.GetToolsJsonPath(), app)
 	if err != nil {
 		return err
@@ -136,27 +115,15 @@ func (app *ToolsApp) GetToolsJsonPath() string {
 	return filepath.Join(app.Process.Compile.GetFolderPath(), "tools.json")
 }
 
-func (app *ToolsApp) getToolFileName(toolName string) string {
-	return "z" + toolName + ".go"
-}
-
-func (app *ToolsApp) getToolFilePath(toolName string) string {
-	return filepath.Join(app.Process.Compile.GetFolderPath(), app.getToolFileName(toolName))
-}
-
 func (app *ToolsApp) GetAllSchemas() []*ToolsOpenAI_completion_tool {
 	app.lock.Lock()
 	defer app.lock.Unlock()
 
 	var schemas []*ToolsOpenAI_completion_tool
 
-	if app.Prompts != nil {
-		for _, prompt := range app.Prompts.Prompts {
+	for _, prompt := range app.Prompts.Prompts {
+		if prompt.Schema != nil {
 			schemas = append(schemas, prompt.Schema)
-		}
-	} else {
-		for _, tool := range app.Tools {
-			schemas = append(schemas, tool.Schema)
 		}
 	}
 
@@ -167,11 +134,9 @@ func (app *ToolsApp) GetPrompt(toolName string) *ToolsPrompt {
 	app.lock.Lock()
 	defer app.lock.Unlock()
 
-	if app.Prompts != nil {
-		prompt := app.Prompts.FindPromptName(toolName)
-		if prompt != nil {
-			return prompt
-		}
+	prompt := app.Prompts.FindPromptName(toolName)
+	if prompt != nil {
+		return prompt
 	}
 
 	return nil
@@ -192,70 +157,113 @@ func (app *ToolsApp) CheckRun() error {
 	return app.Process.CheckRun(app.router)
 }
 
-func (app *ToolsApp) Generate() error {
-	promptsFilePath := filepath.Join(app.Process.Compile.GetFolderPath(), "skyalt")
-	promptsFileTime := Tools_GetFileTime(promptsFilePath)
+func (app *ToolsApp) getPromptFilePath() string {
+	return filepath.Join(app.Process.Compile.GetFolderPath(), "skyalt")
+}
 
-	secretsFilePath := filepath.Join(app.Process.Compile.GetFolderPath(), "secrets")
-	secretsFileTime := Tools_GetFileTime(secretsFilePath)
+func (app *ToolsApp) getSecretsFilePath() string {
+	return filepath.Join(app.Process.Compile.GetFolderPath(), "secrets")
+}
 
-	saved, err := app.Prompts.Reload(app.Process.Compile.GetFolderPath())
+func (app *ToolsApp) getPromptFileTime() (int64, bool, error) {
+	promptsFileTime := Tools_GetFileTime(app.getPromptFilePath())
+	secretsFileTime := Tools_GetFileTime(app.getSecretsFilePath())
+
+	codeFileTime := Tools_GetFileTime("sdk/sdk.go")
+
+	if promptsFileTime > 0 {
+		return (codeFileTime + promptsFileTime + secretsFileTime), true, nil
+	} else {
+
+		folderPath := app.Process.Compile.GetFolderPath()
+		files, err := os.ReadDir(folderPath)
+		if err != nil {
+			return -1, false, err
+		}
+
+		//add new tools
+		for _, info := range files {
+			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" {
+				continue
+			}
+			codeFileTime += Tools_GetFileTime(filepath.Join(folderPath, info.Name()))
+		}
+
+		return codeFileTime, false, nil
+	}
+}
+
+func (app *ToolsApp) Tick(generate bool) error {
+
+	app.lock.Lock()
+	defer app.lock.Unlock()
+
+	codeFilesTime, hasPrompts, err := app.getPromptFileTime()
 	if err != nil {
 		return err
 	}
-	if saved {
-		promptsFileTime = Tools_GetFileTime(promptsFilePath) //refresh
+
+	app.Prompts.Changed = (app.Process.Compile.CodeFileTime != codeFilesTime)
+	if !app.Prompts.Changed {
+		return nil //ok
 	}
 
-	secrets, err := NewToolsSecrets(secretsFilePath)
-	if err != nil {
-		return err
+	if hasPrompts && !generate {
+		return nil //ok
 	}
 
 	msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
 	defer msg.Done()
 
-	//Storage
-	N_msgs := 3
-	for N_msgs >= 0 {
+	if !hasPrompts {
 
-		err = app.Prompts.GenerateStructureCode(msg, app.router.llms)
+		err := app.Prompts._reloadFromCodeFiles(app.Process.Compile.GetFolderPath())
 		if err != nil {
 			return err
 		}
 
-		err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
-		if err != nil {
-			return err
-		}
-
-		codeErrors, err := app.Process.Compile._compile(promptsFileTime, app.router, true)
+		codeErrors, err := app.Process.Compile._compile(codeFilesTime, false, app.router, msg)
 		if err != nil {
 			return err
 		}
 		app.Prompts.SetCodeErrors(codeErrors)
-		if len(codeErrors) == 0 {
-			break
+	} else {
+
+		saved, err := app.Prompts._reloadFromPromptFile(app.Process.Compile.GetFolderPath())
+		if err != nil {
+			return err
 		}
-		N_msgs--
-	}
+		if saved {
+			codeFilesTime, _, err = app.getPromptFileTime() //refresh after save
+			if err != nil {
+				return err
+			}
+		}
 
-	//Tools
-	if N_msgs >= 0 {
-		N_msgs = 3
+		secrets, err := NewToolsSecrets(app.getSecretsFilePath())
+		if err != nil {
+			return err
+		}
+
+		err = app.Prompts.RemoveOldCodeFiles(app.Process.Compile.GetFolderPath())
+		if err != nil {
+			return err
+		}
+
+		//Storage
+		N_msgs := 3
 		for N_msgs >= 0 {
-
-			err = app.Prompts.GenerateToolsCode(msg, app.router.llms)
+			err := app.Prompts.GenerateStructureCode(msg, app.router.llms)
 			if err != nil {
 				return err
 			}
 
-			err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
+			err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets) //rewrite(remove old) files
 			if err != nil {
 				return err
 			}
 
-			codeErrors, err := app.Process.Compile._compile(promptsFileTime, app.router, true)
+			codeErrors, err := app.Process.Compile._compile(codeFilesTime, true, app.router, msg)
 			if err != nil {
 				return err
 			}
@@ -265,117 +273,43 @@ func (app *ToolsApp) Generate() error {
 			}
 			N_msgs--
 		}
-	}
 
-	codeErrors, err := app.Process.Compile.Compile(promptsFileTime, app)
-	if err != nil {
-		return err
-	}
-	app.Prompts.SetCodeErrors(codeErrors)
-
-	app.Prompts.PromptsFileTime = promptsFileTime
-	app.Prompts.SecretsFileTime = secretsFileTime
-
-	return app._save()
-}
-
-func (app *ToolsApp) Tick() error {
-
-	saveIt := false
-
-	if app.Prompts == nil {
-		files, err := os.ReadDir(app.Process.Compile.GetFolderPath())
-		if err != nil {
-			return err
-		}
-
-		//add new tools
-		codeFileTime := int64(0)
-		//main.go
-		codeFileTime += Tools_GetFileTime("sdk/sdk.go")
-
-		for _, info := range files {
-
-			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" {
-				continue
-			}
-
-			fileTime := Tools_GetFileTime(filepath.Join(app.Process.Compile.GetFolderPath(), info.Name()))
-			codeFileTime += fileTime
-
-			if !strings.HasPrefix(info.Name(), "z") {
-				continue
-			}
-
-			toolName, _ := strings.CutSuffix(info.Name()[1:], ".go") //remove 'z' and '.go'
-			item, found := app.Tools[toolName]
-			if !found {
-				//add
-				schema, err := BuildToolsOpenAI_completion_tool(toolName, app.getToolFilePath(toolName), nil)
+		//Tools
+		if N_msgs >= 0 {
+			N_msgs = 3
+			for N_msgs >= 0 {
+				err := app.Prompts.GenerateToolsCode(msg, app.router.llms)
 				if err != nil {
 					return err
 				}
 
-				if schema != nil { //not ignored
-					app.lock.Lock()
-					app.Tools[toolName] = &ToolsAppItem{Schema: schema, FileTime: fileTime}
-					app.lock.Unlock()
-
-					saveIt = true
+				err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
+				if err != nil {
+					return err
 				}
 
-			} else {
-				if item.FileTime != fileTime {
-					//update
-					schema, err := BuildToolsOpenAI_completion_tool(toolName, app.getToolFilePath(toolName), nil)
-					if err != nil {
-						return err
-					}
-
-					if schema != nil { //not ignored
-						app.lock.Lock()
-						item.Schema = schema
-						item.FileTime = fileTime
-						app.lock.Unlock()
-
-						saveIt = true
-					}
+				codeErrors, err := app.Process.Compile._compile(codeFilesTime, false, app.router, msg)
+				if err != nil {
+					return err
 				}
-			}
-		}
-
-		//remove deleted tools
-		for toolName := range app.Tools {
-			found := false
-			for _, file := range files {
-				if !file.IsDir() && file.Name() == app.getToolFileName(toolName) {
-					found = true
+				app.Prompts.SetCodeErrors(codeErrors)
+				if len(codeErrors) == 0 {
 					break
 				}
-			}
-			if !found {
-				app.lock.Lock()
-				delete(app.Tools, toolName)
-				app.lock.Unlock()
-				saveIt = true
+				N_msgs--
 			}
 		}
-
-		if app.Process.Compile.NeedCompile(codeFileTime) {
-			_, err := app.Process.Compile.Compile(codeFileTime, app)
-			if err != nil {
-				return err
-			}
-
-			saveIt = true
-		}
-
 	}
 
-	if saveIt {
-		//save 'tools.json'
-		app._save()
+	err = app.StopProcess(true) //stop it
+	if err != nil {
+		return err
+	}
+	err = app.Process.Compile.RemoveOldBins()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	//save 'tools.json'
+	return app._save()
 }
