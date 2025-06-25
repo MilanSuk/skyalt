@@ -320,6 +320,7 @@ func InitWinTextureFromFile(path string) (*WinTexture, image.Image, error) {
 func (tex *WinTexture) Destroy() {
 	if tex.id > 0 {
 		gl.DeleteTextures(1, &tex.id)
+		tex.id = 0
 	}
 }
 

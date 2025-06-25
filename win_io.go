@@ -136,7 +136,7 @@ func (io *WinIO) setup(path string) {
 
 func (io *WinIO) Open(path string) error {
 
-	if !Tools_FileExists(path) {
+	if !Tools_IsFileExists(path) {
 		io.setup(path)
 	}
 

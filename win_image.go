@@ -74,6 +74,10 @@ func NewWinImage(path WinImagePath, win *Win) *WinImage {
 		img.err = fmt.Errorf("fnGetBlob is nil")
 	}
 
+	if img.path.fnGetTimestamp != nil {
+		img.file_timestamp, img.err = img.path.fnGetTimestamp()
+	}
+
 	return img
 }
 
@@ -174,18 +178,6 @@ func (imgs *WinImages) Destroy() {
 	}
 }
 
-func (imgs *WinImages) Maintenance() {
-	imgs.lock.Lock()
-	defer imgs.lock.Unlock()
-
-	for i := len(imgs.images) - 1; i >= 0; i-- {
-		ok, _ := imgs.images[i].Maintenance()
-		if !ok {
-			imgs.images = slices.Delete(imgs.images, i, i+1)
-		}
-	}
-}
-
 func (imgs *WinImages) NumTextures() int {
 	imgs.lock.Lock()
 	defer imgs.lock.Unlock()
@@ -227,32 +219,36 @@ func (imgs *WinImages) AddImage(path WinImagePath) *WinImage {
 	return img
 }
 
-func (imgs *WinImages) _hotReload() {
+func (imgs *WinImages) Maintenance() {
 	imgs.lock.Lock()
 	defer imgs.lock.Unlock()
 
 	for i := len(imgs.images) - 1; i >= 0; i-- {
-		img := imgs.images[i]
+		ok, _ := imgs.images[i].Maintenance()
+		if !ok {
+			imgs.images = slices.Delete(imgs.images, i, i+1)
+		}
+	}
+}
 
-		if img.path.fnGetTimestamp != nil {
-			timestamp, err := img.path.fnGetTimestamp()
-			if err == nil {
-				if img.file_timestamp <= 0 {
-					img.file_timestamp = timestamp //1st time
-				} else {
+func (imgs *WinImages) _hotReload() {
+
+	if imgs.lock.TryLock() {
+		//imgs.lock.Lock()
+		defer imgs.lock.Unlock()
+
+		for i := len(imgs.images) - 1; i >= 0; i-- {
+			img := imgs.images[i]
+
+			if img.path.fnGetTimestamp != nil {
+				timestamp, err := img.path.fnGetTimestamp()
+				if err == nil {
 					if img.file_timestamp != timestamp {
 						imgs.images = slices.Delete(imgs.images, i, i+1)
 						imgs.win.SetRedrawNewImage()
 					}
 				}
 			}
-		}
-	}
-
-	for i := len(imgs.images) - 1; i >= 0; i-- {
-		ok, _ := imgs.images[i].Maintenance()
-		if !ok {
-			imgs.images = slices.Delete(imgs.images, i, i+1)
 		}
 	}
 }
