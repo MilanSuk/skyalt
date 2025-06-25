@@ -160,22 +160,10 @@ func (model *LLMOpenaiLanguageModel) GetTextPrice(in, reason, cached, out int) (
 	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price
 }
 
-func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsRouterMsg) error {
+func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpenAI_completion_tool, router *ToolsRouter, msg *ToolsRouterMsg) error {
 	err := oai.Check()
 	if err != nil {
 		return err
-	}
-
-	//Tools
-	var tools []*ToolsOpenAI_completion_tool
-	var app *ToolsApp
-	if st.AppName != "" {
-		app = router.FindApp(st.AppName)
-		if app != nil {
-			tools = app.GetAllSchemas()
-		} else {
-			return fmt.Errorf("app '%s' not found", st.AppName)
-		}
 	}
 
 	//Messages
@@ -319,14 +307,8 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, router *ToolsRouter, msg *ToolsR
 			for _, call := range calls {
 				var result string
 
-				//start it
-				err := app.CheckRun()
-				if router.log.Error(err) != nil {
-					return err
-				}
-
 				//call it
-				resJs, uiJs, cmdsJs, err := _ToolsCaller_CallTool(app.Process.port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments), router.log.Error)
+				resJs, uiJs, cmdsJs, err := _ToolsCaller_CallTool(app_port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments), router.log.Error)
 				if router.log.Error(err) != nil {
 					return err
 				}

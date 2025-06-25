@@ -52,6 +52,7 @@ type OpenAI_completion_msg_Content_ToolCall_Function struct {
 }
 type OpenAI_completion_msg_Content_ToolCall struct {
 	Id       string                                          `json:"id,omitempty"`
+	Index    int                                             `json:"index,omitempty"`
 	Type     string                                          `json:"type,omitempty"`
 	Function OpenAI_completion_msg_Content_ToolCall_Function `json:"function,omitempty"`
 }
@@ -154,9 +155,12 @@ type LLMComplete struct {
 
 	Out_StatusCode int
 	Out_messages   []byte //[]*ChatMsg
-	Out_answer     string
-	Out_reasoning  string
-	Out_usage      LLMMsgUsage
+	Out_tools      []byte
+
+	Out_answer    string
+	Out_reasoning string
+
+	Out_usage LLMMsgUsage
 
 	delta func(msg *ChatMsg)
 }
@@ -169,9 +173,10 @@ func (a *LLMComplete) Cmp(b *LLMComplete) bool {
 	return a.Out_usage.Model == b.Out_usage.Model &&
 		a.Temperature == b.Temperature &&
 		a.Top_p == b.Top_p &&
-		bytes.Equal(a.PreviousMessages, b.PreviousMessages) &&
 		a.SystemMessage == b.SystemMessage &&
-		a.UserMessage == b.UserMessage
+		a.UserMessage == b.UserMessage &&
+		bytes.Equal(a.Out_tools, b.Out_tools) &&
+		bytes.Equal(a.PreviousMessages, b.PreviousMessages)
 }
 
 type LLMGenerateImage struct {
@@ -299,6 +304,33 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg, usecase string)
 		provider = "llamacpp"
 	}*/
 
+	//Tools
+	var tools []*ToolsOpenAI_completion_tool
+	app_port := -1
+	if st.AppName != "" {
+		app := llms.router.FindApp(st.AppName)
+		if app != nil {
+			tools = app.GetAllSchemas()
+
+			var err error
+			st.Out_tools, err = json.Marshal(tools)
+			if err != nil {
+				return err
+			}
+
+			//start it
+			err = app.CheckRun()
+			if err != nil {
+				return err
+			}
+
+			app_port = app.Process.port
+
+		} else {
+			return fmt.Errorf("app '%s' not found", st.AppName)
+		}
+	}
+
 	//find in cache
 	for i := range llms.Cache {
 		if llms.Cache[i].Cmp(st) {
@@ -317,23 +349,23 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg, usecase string)
 	//call
 	switch strings.ToLower(dev.Chat_provider) {
 	case "xai":
-		err := llms.router.sync.LLM_xai.Complete(st, llms.router, msg)
+		err := llms.router.sync.LLM_xai.Complete(st, app_port, tools, llms.router, msg)
 		if err != nil {
 			return err
 		}
 	case "mistral":
-		err := llms.router.sync.LLM_mistral.Complete(st, llms.router, msg)
+		err := llms.router.sync.LLM_mistral.Complete(st, app_port, tools, llms.router, msg)
 		if err != nil {
 			return err
 		}
 	case "openai":
-		err := llms.router.sync.LLM_openai.Complete(st, llms.router, msg)
+		err := llms.router.sync.LLM_openai.Complete(st, app_port, tools, llms.router, msg)
 		if err != nil {
 			return err
 		}
 
 	case "llama.cpp":
-		err := llms.router.sync.LLM_llama.Complete(st, llms.router, msg)
+		err := llms.router.sync.LLM_llama.Complete(st, app_port, tools, llms.router, msg)
 		if err != nil {
 			return err
 		}
