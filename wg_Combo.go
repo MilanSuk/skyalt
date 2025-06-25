@@ -8,13 +8,11 @@ type Combo struct {
 	Labels []string
 	Values []string
 
-	DialogWidth float64
-
 	changed func()
 }
 
 func (layout *Layout) AddCombo(x, y, w, h int, value *string, labels []string, values []string) *Combo {
-	props := &Combo{DialogWidth: 10, Value: value, Labels: labels, Values: values}
+	props := &Combo{Value: value, Labels: labels, Values: values}
 	layout._createDiv(x, y, w, h, "Combo", props.Build, nil, nil)
 	return props
 }
@@ -49,7 +47,7 @@ func (st *Combo) Build(layout *Layout) {
 
 	//dialog
 	{
-		cdialog.Layout.SetColumn(0, 1, st.DialogWidth)
+		cdialog.Layout.SetColumnFromSub(0, 1, 15)
 		for i, name := range st.Labels {
 
 			bt := cdialog.Layout.AddButton(0, i, 1, 1, name)

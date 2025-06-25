@@ -1857,12 +1857,11 @@ type UIColorPickerButton struct {
 }
 
 type UICombo struct {
-	layout      *UI
-	Error       string
-	Value       *string
-	Labels      []string
-	Values      []string
-	DialogWidth float64
+	layout *UI
+	Error  string
+	Value  *string
+	Labels []string
+	Values []string
 
 	changed func() error
 }
@@ -2292,7 +2291,7 @@ func (ui *UI) AddColorPickerButton(x, y, w, h int, cd *color.RGBA) *UIColorPicke
 }
 
 func (ui *UI) AddCombo(x, y, w, h int, value *string, labels []string, values []string) *UICombo {
-	item := &UICombo{Value: value, Labels: labels, Values: values, DialogWidth: 5, layout: _newUIItem(x, y, w, h)}
+	item := &UICombo{Value: value, Labels: labels, Values: values, layout: _newUIItem(x, y, w, h)}
 	item.layout.Combo = item
 	ui._addUISub(item.layout, "")
 	return item
@@ -2567,8 +2566,7 @@ type LLMCompletion struct {
 
 	Out_StatusCode int
 	Out_messages   []byte //[]*ChatMsg
-	Out_time       float64
-	Out_model      string
+	Out_tools      []byte
 
 	Out_answer    string
 	Out_reasoning string

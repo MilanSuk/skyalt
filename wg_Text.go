@@ -38,10 +38,7 @@ func (layout *Layout) AddTextMultiline(x, y, w, h int, value string) *Text {
 
 func (st *Text) Build(layout *Layout) {
 
-	{
-		var paint LayoutPaint
-		layout.UserCRFromText = st.addPaintText(Rect{}, &paint)
-	}
+	layout.UserCRFromText = st.addPaintText(Rect{}, &LayoutPaint{})
 
 	st.buildContextDialog(layout)
 	if !st.Multiline {

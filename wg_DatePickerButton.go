@@ -69,7 +69,7 @@ func (st *DatePickerButton) Build(layout *Layout) {
 	}
 	monthValue := strconv.Itoa(curr.Month)
 	m := layout.AddCombo(x, 0, 1, 1, &monthValue, month_labels, month_values)
-	m.DialogWidth = 3
+	//m.DialogWidth = 3
 	x++
 	m.changed = func() {
 		curr.Month, _ = strconv.Atoi(monthValue)

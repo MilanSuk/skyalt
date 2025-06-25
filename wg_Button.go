@@ -35,52 +35,59 @@ type Button struct {
 
 func (layout *Layout) AddButton(x, y, w, h int, label string) *Button {
 	props := &Button{Value: label, Align: 1, Background: 1}
-	lay := layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
 	return props
 }
 func (layout *Layout) AddButton2(x, y, w, h int, label string) (*Button, *Layout) {
 	props := &Button{Value: label, Align: 1, Background: 1}
-	lay := layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
 	return props, lay
 }
 
 func (layout *Layout) AddButtonMenu(x, y, w, h int, label string, icon_path string, icon_margin float64) *Button {
 	props := &Button{Value: label, IconPath: icon_path, Icon_margin: icon_margin, Align: 0, Background: 0.25}
-	lay := layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
 	return props
 }
 
 func (layout *Layout) AddButtonMenu2(x, y, w, h int, label string, icon_path string, icon_margin float64) (*Button, *Layout) {
 	props := &Button{Value: label, IconPath: icon_path, Icon_margin: icon_margin, Align: 0, Background: 0.25}
-	lay := layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
 	return props, lay
 }
 
 func (layout *Layout) AddButtonIcon(x, y, w, h int, icon_path string, icon_margin float64, Tooltip string) *Button {
 	props := &Button{IconPath: icon_path, Icon_align: 1, Icon_margin: icon_margin, Tooltip: Tooltip, Background: 1}
-	lay := layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
 	return props
 }
 func (layout *Layout) AddButtonIcon2(x, y, w, h int, icon_path string, icon_margin float64, Tooltip string) (*Button, *Layout) {
 	props := &Button{IconPath: icon_path, Icon_align: 1, Icon_margin: icon_margin, Tooltip: Tooltip, Background: 1}
-	lay := layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
 	return props, lay
 }
 
 func (layout *Layout) AddButtonDanger(x, y, w, h int, label string) *Button {
 	props := &Button{Value: label, Align: 1, Background: 1, Cd: layout.GetPalette().E}
-	lay := layout._createDiv(x, y, w, h, "Button", nil, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
 	return props
 }
 
+func (st *Button) Build(layout *Layout) {
+
+	layout.UserCRFromText = st.addPaintText(Rect{}, st.Cd, st.Cd, st.Cd, &LayoutPaint{})
+
+}
+
 func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
+
 	rc := rect
 	rc = rc.Cut(0.03)
 	rectLabel := rc
@@ -219,10 +226,7 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	//draw label
 	if st.Value != "" {
-		tx := paint.Text(rectLabel.Cut(0.1), st.Value, "",
-			cdText, cdText_over, cdText_down,
-			false, false, uint8(st.Align), 1)
-		tx.Multiline = true
+		st.addPaintText(rectLabel, cdText, cdText_over, cdText_down, &paint) //rectLabel.Cut(0.1)
 	}
 
 	//draw border
@@ -231,6 +235,13 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	}
 
 	return
+}
+
+func (st *Button) addPaintText(rect Rect, cdText, cdText_over, cdText_down color.RGBA, paint *LayoutPaint) *LayoutDrawText {
+	tx := paint.Text(rect, st.Value, "", cdText, cdText_over, cdText_down, false, false, uint8(st.Align), 1)
+	tx.Multiline = true
+	tx.Margin = (1 - WinFontProps_GetDefaultLineH()) / 2
+	return tx
 }
 
 func (st *Button) Input(in LayoutInput, layout *Layout) {

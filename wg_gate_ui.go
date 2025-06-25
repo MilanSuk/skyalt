@@ -113,11 +113,10 @@ type UIColorPickerButton struct {
 }
 
 type UICombo struct {
-	Error       string
-	Value       *string
-	Labels      []string
-	Values      []string
-	DialogWidth float64
+	Error  string
+	Value  *string
+	Labels []string
+	Values []string
 }
 type UISwitch struct {
 	Error   string
@@ -660,7 +659,6 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 				errDiv.SetColumn(1, 1, 4)
 
 				cb = errDiv.AddCombo(it.X, it.Y, it.W, it.H, it.Combo.Value, it.Combo.Labels, it.Combo.Values)
-				cb.DialogWidth = it.Combo.DialogWidth
 
 				glay = errDiv
 				gx, gy, gw, gh = 0, 0, 1, 1
@@ -670,7 +668,6 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 				tx.Cd = layout.GetPalette().E
 			} else {
 				cb = layout.AddCombo(it.X, it.Y, it.W, it.H, it.Combo.Value, it.Combo.Labels, it.Combo.Values)
-				cb.DialogWidth = it.Combo.DialogWidth
 			}
 			cb.changed = func() {
 				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: *it.Combo.Value}, fnProgress, fnDone)

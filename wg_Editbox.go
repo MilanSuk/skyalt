@@ -49,10 +49,7 @@ func (layout *Layout) AddEditboxMultiline(x, y, w, h int, value *string) *Editbo
 func (st *Editbox) Build(layout *Layout) {
 	layout.Back_rounding = true //for disable
 
-	{
-		var paint LayoutPaint
-		layout.UserCRFromText = st.addPaintText(Rect{}, &paint)
-	}
+	layout.UserCRFromText = st.addPaintText(Rect{}, &LayoutPaint{})
 
 	st.buildContextDialog(layout)
 
@@ -259,6 +256,27 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 	Paste.Background = 0.25
 	Paste.clicked = func() {
 		layout.PasteText()
+		dia.Close()
+	}
+
+	Record := dia.Layout.AddButton(0, 3, 1, 1, "Record") //start OR stop ............
+	Record.Tooltip = "Record microphone and convert speech-to-text"
+	Record.Align = 0
+	Record.Background = 0.25
+	//Record.Shortcut_key = 'r'		//activate an editbox and then press ctrl+tab
+	Record.clicked = func() {
+
+		//uid := fmt.Sprintf("mic_%d", layout.UID)
+
+		//is recording ....
+
+		//mic, err := layout.ui.router.mic.Start(uid)
+
+		//layout.ui.router.mic.Finished(uid, false)
+
+		//start STT ....
+
+		//....
 		dia.Close()
 	}
 }
