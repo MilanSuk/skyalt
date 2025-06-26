@@ -141,7 +141,7 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 
 func (ui *Ui) _Text_update(layout *Layout,
 	coord OsV4,
-	margin float64,
+	margin [4]float64,
 	value string,
 	prop WinFontProps,
 	align OsV2,
@@ -272,7 +272,7 @@ func (ui *Ui) _Text_update(layout *Layout,
 	}
 }
 
-func (ui *Ui) _UiText_Touch(layout *Layout, editable bool, orig_text string, text string, tx_margin float64, lines []WinGphLine, cursor int, prop WinFontProps) {
+func (ui *Ui) _UiText_Touch(layout *Layout, editable bool, orig_text string, text string, tx_margin [4]float64, lines []WinGphLine, cursor int, prop WinFontProps) {
 	if !layout.CanTouch() {
 		return
 	}
@@ -592,7 +592,7 @@ func _UiText_CursorWordRange(text string, cursor int) (int, int) {
 	return start, end
 }
 
-func (ui *Ui) _UiText_TextSelectKeys(layout *Layout, text string, tx_margin float64, lines []WinGphLine, prop WinFontProps, multi_line bool) {
+func (ui *Ui) _UiText_TextSelectKeys(layout *Layout, text string, tx_margin [4]float64, lines []WinGphLine, prop WinFontProps, multi_line bool) {
 	keys := &ui.GetWin().io.Keys
 	edit := layout.ui.edit
 
@@ -687,12 +687,14 @@ func (ui *Ui) _UiText_TextSelectKeys(layout *Layout, text string, tx_margin floa
 	}
 }
 
-func (ui *Ui) _UiText_Text_VScrollInto(layout *Layout, lines []WinGphLine, tx_margin float64, cursor int, prop WinFontProps) {
+func (ui *Ui) _UiText_Text_VScrollInto(layout *Layout, lines []WinGphLine, tx_margin [4]float64, cursor int, prop WinFontProps) {
 
-	margin := layout.ui.CellWidth(tx_margin)
-	v_pos := WinGph_CursorLineY(lines, cursor)*prop.lineH + margin //- ui.CellWidth(2*0.1)
+	margin_t := layout.ui.CellWidth(tx_margin[0])
+	margin_b := layout.ui.CellWidth(tx_margin[1])
 
-	extra_space := margin
+	v_pos := WinGph_CursorLineY(lines, cursor)*prop.lineH + margin_t //- ui.CellWidth(2*0.1)
+
+	extra_space := margin_b
 
 	v_st := layout.scrollV.GetWheel()
 	v_sz := layout.view.Size.Y - prop.lineH
@@ -713,13 +715,15 @@ func (ui *Ui) _UiText_Text_VScrollInto(layout *Layout, lines []WinGphLine, tx_ma
 
 }
 
-func (ui *Ui) _UiText_Text_HScrollInto(layout *Layout, text string, tx_margin float64, lines []WinGphLine, cursor int, prop WinFontProps) {
-	margin := layout.ui.CellWidth(tx_margin)
+func (ui *Ui) _UiText_Text_HScrollInto(layout *Layout, text string, tx_margin [4]float64, lines []WinGphLine, cursor int, prop WinFontProps) {
+	margin_l := layout.ui.CellWidth(tx_margin[2])
+	margin_r := layout.ui.CellWidth(tx_margin[3])
+
 	ln, curr := WinGph_CursorLine(text, lines, cursor)
-	h_pos := ui.win.GetTextSize(curr, ln, prop).X + margin
+	h_pos := ui.win.GetTextSize(curr, ln, prop).X + margin_l
 
 	cursor_space := WinPaintBuff_GetCursorWidth(layout.ui.Cell())
-	extra_space := margin //set 0 for cursor being exactly at the border(side)
+	extra_space := margin_r //set 0 for cursor being exactly at the border(side)
 
 	h_st := layout.scrollH.GetWheel()
 	h_sz := layout.view.Size.X

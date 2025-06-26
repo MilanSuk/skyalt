@@ -423,18 +423,9 @@ func (v *OsV4) Relative(q OsV4) (x, y, w, h float32) {
 }
 
 func (v OsV4) Cut(x, y, w, h float64) OsV4 {
-
 	return InitOsV4(
 		v.Start.X+int(float64(v.Size.X)*x),
 		v.Start.Y+int(float64(v.Size.Y)*y),
 		int(float64(v.Size.X)*w),
 		int(float64(v.Size.Y)*h))
-}
-
-func (v OsV4) CutEx(x, y, w, h float64, space, spaceX, spaceY int) OsV4 {
-	v = v.CropX(spaceX)
-	v = v.CropY(spaceY)
-	v = v.Crop(space)
-	v = v.Cut(x, y, w, h)
-	return v
 }

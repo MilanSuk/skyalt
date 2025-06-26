@@ -38,7 +38,7 @@ func (layout *Layout) AddTextMultiline(x, y, w, h int, value string) *Text {
 
 func (st *Text) Build(layout *Layout) {
 
-	layout.UserCRFromText = st.addPaintText(Rect{}, &LayoutPaint{})
+	layout.UserCRFromText = st.addPaintText(&LayoutPaint{})
 
 	st.buildContextDialog(layout)
 	if !st.Multiline {
@@ -55,7 +55,7 @@ func (st *Text) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	//draw text
 	if st.Value != "" {
-		st.addPaintText(rect, &paint)
+		st.addPaintText(&paint)
 	}
 
 	return
@@ -73,12 +73,17 @@ func (st *Text) Input(in LayoutInput, layout *Layout) {
 	}
 }
 
-func (st *Text) addPaintText(rect Rect, paint *LayoutPaint) *LayoutDrawText {
-	tx := paint.Text(rect, st.Value, "", st.Cd, st.Cd, st.Cd, st.Selection, false, uint8(st.Align_h), uint8(st.Align_v))
+func (st *Text) addPaintText(paint *LayoutPaint) *LayoutDrawText {
+	tx := paint.Text(Rect{}, st.Value, "", st.Cd, st.Cd, st.Cd, st.Selection, false, uint8(st.Align_h), uint8(st.Align_v))
 	tx.Formating = st.Formating
 	tx.Multiline = st.Multiline
 	tx.Linewrapping = st.Linewrapping
-	tx.Margin = (1 - WinFontProps_GetDefaultLineH()) / 2
+
+	m := (1 - WinFontProps_GetDefaultLineH()) / 2
+	tx.Margin[0] = m
+	tx.Margin[1] = m
+	tx.Margin[2] = m
+	tx.Margin[3] = m
 	return tx
 }
 

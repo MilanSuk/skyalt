@@ -82,7 +82,10 @@ func (layout *Layout) AddButtonDanger(x, y, w, h int, label string) *Button {
 
 func (st *Button) Build(layout *Layout) {
 
-	layout.UserCRFromText = st.addPaintText(Rect{}, st.Cd, st.Cd, st.Cd, &LayoutPaint{})
+	layout.UserCRFromText = st.addPaintText(st.Cd, st.Cd, st.Cd, &LayoutPaint{})
+
+	layout.scrollV.Show = false
+	layout.scrollH.Show = false
 
 }
 
@@ -226,7 +229,7 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	//draw label
 	if st.Value != "" {
-		st.addPaintText(rectLabel, cdText, cdText_over, cdText_down, &paint) //rectLabel.Cut(0.1)
+		st.addPaintText(cdText, cdText_over, cdText_down, &paint) //rectLabel.Cut(0.1)
 	}
 
 	//draw border
@@ -237,10 +240,33 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	return
 }
 
-func (st *Button) addPaintText(rect Rect, cdText, cdText_over, cdText_down color.RGBA, paint *LayoutPaint) *LayoutDrawText {
-	tx := paint.Text(rect, st.Value, "", cdText, cdText_over, cdText_down, false, false, uint8(st.Align), 1)
+func (st *Button) addPaintText(cdText, cdText_over, cdText_down color.RGBA, paint *LayoutPaint) *LayoutDrawText {
+
+	if st.Value == "" {
+		return nil
+	}
+
+	tx := paint.Text(Rect{}, st.Value, "", cdText, cdText_over, cdText_down, false, false, uint8(st.Align), 1)
 	tx.Multiline = true
-	tx.Margin = (1 - WinFontProps_GetDefaultLineH()) / 2
+
+	m := (1 - WinFontProps_GetDefaultLineH()) / 2
+	tx.Margin[0] = m
+	tx.Margin[1] = m
+	tx.Margin[2] = m
+	tx.Margin[3] = m
+
+	if st.IconPath != "" || len(st.IconBlob) > 0 {
+		switch st.Icon_align {
+		case 0:
+			tx.Margin[2] = 1 //left
+		case 1:
+			//full rect
+		case 2:
+			tx.Margin[3] = 1 //right
+		}
+
+	}
+
 	return tx
 }
 

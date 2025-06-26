@@ -49,7 +49,7 @@ func (layout *Layout) AddEditboxMultiline(x, y, w, h int, value *string) *Editbo
 func (st *Editbox) Build(layout *Layout) {
 	layout.Back_rounding = true //for disable
 
-	layout.UserCRFromText = st.addPaintText(Rect{}, &LayoutPaint{})
+	layout.UserCRFromText = st.addPaintText(&LayoutPaint{})
 
 	st.buildContextDialog(layout)
 
@@ -92,7 +92,7 @@ func (st *Editbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	paint.RectRad(rect, cd, cd, cd, 0, layout.ui.router.sync.GetRounding())
 
 	//text
-	st.addPaintText(rect, &paint)
+	st.addPaintText(&paint)
 
 	return
 }
@@ -109,14 +109,19 @@ func (st *Editbox) Input(in LayoutInput, layout *Layout) {
 	}
 }
 
-func (st *Editbox) addPaintText(rect Rect, paint *LayoutPaint) *LayoutDrawText {
-	tx := paint.Text(rect, st.getValue(), st.Ghost, st.Cd, st.Cd, st.Cd, true, true, uint8(st.Align_h), uint8(st.Align_v))
+func (st *Editbox) addPaintText(paint *LayoutPaint) *LayoutDrawText {
+	tx := paint.Text(Rect{}, st.getValue(), st.Ghost, st.Cd, st.Cd, st.Cd, true, true, uint8(st.Align_h), uint8(st.Align_v))
 	tx.Formating = st.Formating
 	tx.Multiline = st.Multiline
 	tx.Linewrapping = st.Linewrapping
 	tx.Refresh = st.Refresh
-	tx.Margin = (1 - WinFontProps_GetDefaultLineH()) / 2
 	tx.Password = st.Password
+
+	m := (1 - WinFontProps_GetDefaultLineH()) / 2
+	tx.Margin[0] = m
+	tx.Margin[1] = m
+	tx.Margin[2] = m
+	tx.Margin[3] = m
 	return tx
 }
 
