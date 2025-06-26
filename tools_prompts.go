@@ -330,7 +330,10 @@ func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *
 		//add list of errors
 		lines := strings.Split(prompt.Code, "\n")
 		for _, er := range prompt.Errors {
-			lines[er.Line] = fmt.Sprintf("%s\t//Error(Col %d): %s", lines[er.Line], er.Col, er.Msg)
+			ln := er.Line - 1
+			if ln >= 0 && ln < len(lines) {
+				lines[ln] = fmt.Sprintf("%s\t//Error(Col %d): %s", lines[ln], er.Col, er.Msg)
+			}
 		}
 		code := strings.Join(lines, "\n")
 
@@ -476,7 +479,7 @@ func (app *ToolsPrompts) _getStorageMsg(structPrompt *ToolsPrompt) (string, stri
 		return "", "", err
 	}
 
-	systemMessage := "You are a programmer. You write code in Go language. Here is the list of files in project folder.\n"
+	systemMessage := "You are a programmer. You write code in Go language. You write production code, no placeholder or simulating comments. Here is the list of files in project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
 	systemMessage += "file - storage.go:\n```go" + string(exampleFile) + "```\n"
@@ -527,7 +530,7 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 }
 `, prompt.Name, prompt.Name)
 
-	systemMessage := "You are a programmer. You write code in Go language. Here is the list of files in project folder.\n"
+	systemMessage := "You are a programmer. You write code in Go language. You write production code, no placeholder or simulating comments. Here is the list of files in project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
 	systemMessage += "file - storage.go:\n```go" + storageFile + "```\n"
