@@ -1086,6 +1086,15 @@ func (layout *Layout) resizeFromPaintText() (changed bool) {
 		if tx.Multiline {
 			max_line_px := layout.ui._UiText_getMaxLinePx(tx.coordText.Size.X, tx.Multiline, tx.Linewrapping)
 			mx, my = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
+
+			//when vertical scroll will be show, the max_line_px must be smaller
+			if (my * prop.lineH) > layout.scrollV.screen_height {
+				max_line_px = tx.coordText.Size.X - layout.scrollV._GetWidth(layout.ui) //minus scroller width
+
+				max_line_px = layout.ui._UiText_getMaxLinePx(max_line_px, tx.Multiline, tx.Linewrapping)
+				mx, my = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
+			}
+
 		} else {
 			mx = layout.ui.win.GetTextSize(-1, value, prop).X
 			my = 1
