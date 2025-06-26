@@ -308,11 +308,33 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 						app.Chats = slices.Insert(app.Chats, 0, RootChat{Label: "Empty chat", FileName: fileName})
 						app.Selected_chat_i = 0
+
 						ui.ActivateEditbox("chat_user_prompt", caller)
 
 						SideDiv.VScrollToTheTop(caller)
 
 						source_root.ShowSettings = false
+
+						//if exist, prepare StartPrompt to run
+						{
+							type SdkToolsPrompts struct {
+								StartPrompt string
+								//..
+							}
+							var sdk_app SdkToolsPrompts
+							appJs, err := callFuncGetToolData(app.Name)
+							if err != nil {
+								return err
+							}
+							err = json.Unmarshal(appJs, &sdk_app)
+							if err != nil {
+								return err
+							}
+
+							if sdk_app.StartPrompt != "" {
+								source_chat.InitPrompt = sdk_app.StartPrompt
+							}
+						}
 
 						return nil
 					}

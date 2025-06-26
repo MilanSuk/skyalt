@@ -66,12 +66,12 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	}
 	type SdkToolsPrompts struct {
 		Changed bool
-		//PromptsFileTime int64
-		//SecretsFileTime int64
 
 		Prompts  []*SdkToolsPrompt
 		Err      string
 		Err_line int
+
+		StartPrompt string
 
 		Generating_name string
 		Generating_msg  string
@@ -89,9 +89,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	isGenerating := (sdk_app.Generating_name != "")
 	prompts_path := filepath.Join("..", app.Name, "skyalt")
 	secrets_path := filepath.Join("..", app.Name, "secrets")
-
-	//promptsFileTime := _getFileTime(prompts_path)
-	//secretsFileTime := _getFileTime(secrets_path)
 
 	filePrompts, _ := os.ReadFile(prompts_path)
 	fileSecretsCipher, _ := os.ReadFile(secrets_path)
@@ -215,7 +212,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			tx.Align_v = 0
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		} else {
-			tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#<NameOfTool> //Describe app's feature.")
+			tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#<NameOfTool> //Describe app's feature.\n#start //Write prompt, which will be executed when new chat is created.")
 			tx.Align_v = 0
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		}

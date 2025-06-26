@@ -44,8 +44,6 @@ type ToolsPrompt struct {
 
 	Usage LLMMsgUsage
 
-	header_line int
-
 	previousMessages []byte
 }
 
@@ -97,6 +95,8 @@ type ToolsPrompts struct {
 	Prompts  []*ToolsPrompt
 	Err      string
 	Err_line int
+
+	StartPrompt string
 
 	Generating_name string
 	Generating_msg  string
@@ -205,6 +205,7 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 
 	saveFile := false
 	structFound := false
+	startFound := false
 	var last_prompt *ToolsPrompt
 	lines := strings.Split(string(fl), "\n")
 	for i, ln := range lines {
@@ -212,6 +213,7 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 
 		isHash := strings.HasPrefix(strings.ToLower(ln), "#")
 		isStorage := strings.HasPrefix(strings.ToLower(ln), "#storage")
+		isStart := strings.HasPrefix(strings.ToLower(ln), "#start")
 
 		if isStorage && structFound {
 			app.Err = "second '#storage' is not allowed"
@@ -219,11 +221,20 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 			return false, fmt.Errorf(app.Err)
 		}
 
-		if isHash {
+		if isStart && startFound {
+			app.Err = "second '#start' is not allowed"
+			app.Err_line = i + 1
+			return false, fmt.Errorf(app.Err)
+		}
 
+		if isHash {
 			//extract or edit name
-			toolName := "Storage"
-			if !isStorage {
+			var toolName string
+			if isStorage {
+				toolName = "Storage"
+			} else if isStart {
+				toolName = "Start"
+			} else {
 				toolName = ln[1:] //skip '#'
 				newToolName := _ToolsPrompt_getValidFileName(toolName)
 
@@ -246,9 +257,13 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 			if last_prompt != nil {
 				app.Prompts = append(app.Prompts, last_prompt)
 			}
-			last_prompt = &ToolsPrompt{Name: toolName, header_line: i}
+			last_prompt = &ToolsPrompt{Name: toolName}
+
 			if isStorage {
 				structFound = true
+			}
+			if isStart {
+				startFound = true
 			}
 		} else {
 			if last_prompt == nil && ln != "" {
@@ -271,6 +286,16 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 	//clear
 	for _, prompt := range app.Prompts {
 		prompt.Prompt = strings.Trim(prompt.Prompt, "\n ")
+	}
+
+	//extract start prompt
+	for i, prompt := range app.Prompts {
+		if prompt.Name == "Start" {
+			app.StartPrompt = prompt.Prompt
+
+			app.Prompts = slices.Delete(app.Prompts, i, i+1) //remove
+			break
+		}
 	}
 
 	if saveFile {

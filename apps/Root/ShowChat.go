@@ -557,6 +557,15 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 		}
 	}
 
+	//execute start prompt
+	if chat.InitPrompt != "" {
+
+		chat.Input.Text = chat.InitPrompt
+		chat.InitPrompt = "" //reset
+
+		sendIt()
+	}
+
 	return nil
 }
 
