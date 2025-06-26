@@ -871,25 +871,26 @@ func (layout *Layout) renderBuffer(buffer []LayoutDrawPrim) (hasBrush bool) {
 		}
 
 		if it.Text != nil {
-			st := it.Text
-			frontCd := layout.GetCd(st.Cd, st.Cd_over, st.Cd_down)
+			tx := it.Text
+			frontCd := layout.GetCd(tx.Cd, tx.Cd_over, tx.Cd_down)
 
 			prop := InitWinFontPropsDef(layout.Cell())
 
-			prop.formating = st.Formating
+			prop.formating = tx.Formating
 
 			var coordText OsV4
 			if layout.UserCRFromText != nil {
 				coordText = layout.UserCRFromText.coordText
-			} /* else {
-				coordText = layout.getCanvasPx(it.Rect.Cut(st.Margin))
-			}*/
+			} else {
+				coordText = layout.getCanvasPx(it.Rect).Inner(layout.ui.CellWidth(tx.Margin[0]), layout.ui.CellWidth(tx.Margin[1]), layout.ui.CellWidth(tx.Margin[2]), layout.ui.CellWidth(tx.Margin[3]))
+				//coordText = layout.getCanvasPx(it.Rect.Cut(st.Margin))
+			}
 
-			align := OsV2{int(st.Align_h), int(st.Align_v)}
-			layout.ui._Text_draw(layout, coordText, st.Text, st.Ghost, prop, frontCd, align, st.Selection, st.Editable, st.Multiline, st.Linewrapping, st.Password)
+			align := OsV2{int(tx.Align_h), int(tx.Align_v)}
+			layout.ui._Text_draw(layout, coordText, tx.Text, tx.Ghost, prop, frontCd, align, tx.Selection, tx.Editable, tx.Multiline, tx.Linewrapping, tx.Password)
 
 			//draw border
-			if st.Editable {
+			if tx.Editable {
 				width := 0.03
 				if layout.ui.edit.Is(layout) {
 					width *= 2
@@ -1145,7 +1146,7 @@ func (layout *Layout) textComp() {
 			if layout.UserCRFromText != nil {
 				coordText = layout.UserCRFromText.coordText
 			} else {
-				coordText = layout.getCanvasPx(rect).Inner(layout.ui.CellWidth(layout.UserCRFromText.Margin[0]), layout.ui.CellWidth(layout.UserCRFromText.Margin[1]), layout.ui.CellWidth(layout.UserCRFromText.Margin[2]), layout.ui.CellWidth(layout.UserCRFromText.Margin[3]))
+				coordText = layout.getCanvasPx(rect).Inner(layout.ui.CellWidth(tx.Margin[0]), layout.ui.CellWidth(tx.Margin[1]), layout.ui.CellWidth(tx.Margin[2]), layout.ui.CellWidth(tx.Margin[3]))
 			}
 			align := OsV2{int(tx.Align_h), int(tx.Align_v)}
 
@@ -1760,6 +1761,7 @@ func (layout *Layout) updateCoord(rx, ry, rw, rh float64) {
 
 		txt.coordText = layout.canvas.Inner(layout.ui.CellWidth(txt.Margin[0]), layout.ui.CellWidth(txt.Margin[1]), layout.ui.CellWidth(txt.Margin[2]), layout.ui.CellWidth(txt.Margin[3]))
 		if txt.coordText.Size.X == 0 {
+			//from parent
 			txt.coordText = layout.parent.canvas.Inner(layout.ui.CellWidth(txt.Margin[0]), layout.ui.CellWidth(txt.Margin[1]), layout.ui.CellWidth(txt.Margin[2]), layout.ui.CellWidth(txt.Margin[3]))
 		}
 	}
