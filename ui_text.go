@@ -214,6 +214,8 @@ func (ui *Ui) _Text_update(layout *Layout,
 
 				drop_path := ui.GetWin().io.Touch.Drop_path
 				if drop_path != "" && layout.IsTouchPosInside() {
+					drop_path = "'" + drop_path + "'"
+
 					firstCur := OsTrn(edit.start < edit.end, edit.start, edit.end)
 					lastCur := OsTrn(edit.start > edit.end, edit.start, edit.end)
 					edit.temp = edit.temp[:firstCur] + drop_path + edit.temp[lastCur:]
