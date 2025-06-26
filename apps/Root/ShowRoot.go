@@ -332,7 +332,12 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 							}
 
 							if sdk_app.StartPrompt != "" {
-								source_chat.InitPrompt = sdk_app.StartPrompt
+								_saveInstances() //save previous chat(and root selection)
+
+								source_chat.Input.Text = sdk_app.StartPrompt
+
+								ch := ShowChat{AppName: app.Name, ChatFileName: fileName}
+								return ch._sendIt(caller, source_chat, source_root, false)
 							}
 						}
 

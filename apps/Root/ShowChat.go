@@ -260,8 +260,8 @@ func (st *ChatInput) GetFullPrompt() (string, []string) {
 	return prompt, st.Files
 }
 
-func (st *ShowChat) _sendIt(caller *ToolCaller, chat *Chat, root *Root, MsgsDiv *UI, continuee bool) error {
-	MsgsDiv.VScrollToTheBottom(false, caller)
+func (st *ShowChat) _sendIt(caller *ToolCaller, chat *Chat, root *Root, continuee bool) error {
+	//MsgsDiv.VScrollToTheBottom(false, caller)
 	caller.SendFlushCmd()
 
 	if !continuee && chat.Input.Text == "" {
@@ -278,7 +278,7 @@ func (st *ShowChat) _sendIt(caller *ToolCaller, chat *Chat, root *Root, MsgsDiv 
 		chat.Input.Reset()
 	}
 
-	MsgsDiv.VScrollToTheBottom(true, caller)
+	//MsgsDiv.VScrollToTheBottom(true, caller)
 	return nil
 }
 
@@ -299,7 +299,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 
 	sendIt := func() error {
 		chat.Messages.Messages = append(chat.Messages.Messages, chat.TempMessages.Messages...)
-		return st._sendIt(caller, chat, root, MsgsDiv, false)
+		return st._sendIt(caller, chat, root, false)
 	}
 
 	x := 0
@@ -557,15 +557,6 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 		}
 	}
 
-	//execute start prompt
-	if chat.InitPrompt != "" {
-
-		chat.Input.Text = chat.InitPrompt
-		chat.InitPrompt = "" //reset
-
-		sendIt()
-	}
-
 	return nil
 }
 
@@ -782,7 +773,7 @@ func (st *ShowChat) buildShowMessages(ui *UI, caller *ToolCaller, source_chat *C
 		btContinue := ui.AddButton(1, y, 1, 1, "Continue")
 		btContinue.Cd = UI_GetPalette().E
 		btContinue.clicked = func() error {
-			return st._sendIt(caller, source_chat, source_root, ui, true)
+			return st._sendIt(caller, source_chat, source_root, true)
 		}
 		y++
 
@@ -986,7 +977,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 					msgs.Messages = msgs.Messages[:msg_i+1] //cut
 					chat.TempMessages = ChatMsgs{}          //reset
 
-					st._sendIt(caller, chat, root, MsgsDiv, true)
+					st._sendIt(caller, chat, root, true)
 
 					return nil
 				}

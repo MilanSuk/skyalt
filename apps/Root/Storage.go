@@ -312,8 +312,6 @@ type Chat struct {
 	TempMessages ChatMsgs
 
 	Sources []string
-
-	InitPrompt string
 }
 
 func NewChat(file string) (*Chat, error) {
