@@ -19,6 +19,8 @@ type ToolsMicMalgoRecord struct {
 	data          []byte //int=hash
 	startUnixTime float64
 	Stop          atomic.Bool
+
+	fnFinished func(buff *audio.IntBuffer)
 }
 
 type ToolsMicMalgo struct {
@@ -40,9 +42,7 @@ func NewToolsMicMalgo(router *ToolsRouter) *ToolsMicMalgo {
 }
 
 func (mlg *ToolsMicMalgo) Destroy() {
-	for uid := range mlg.mics {
-		mlg.Finished(uid, true)
-	}
+	mlg.FinishAll(true)
 }
 
 func _ToolsMicMalgo_GetDB(samples []byte) float64 {
@@ -148,9 +148,7 @@ func (mlg *ToolsMicMalgo) Start(uid uint64) (*ToolsMicMalgoRecord, error) {
 	return mic, nil
 }
 
-func (mlg *ToolsMicMalgo) Finished(uid uint64, cancel bool) (audio.IntBuffer, error) {
-	mlg.lock.Lock()
-	defer mlg.lock.Unlock()
+func (mlg *ToolsMicMalgo) _finished(uid uint64, cancel bool) (audio.IntBuffer, error) {
 
 	//remove
 	mic, found := mlg.mics[uid]
@@ -181,8 +179,30 @@ func (mlg *ToolsMicMalgo) Finished(uid uint64, cancel bool) (audio.IntBuffer, er
 		intData[i/2] = value
 	}
 
+	ret_buff := audio.IntBuffer{Data: intData, Format: &audio.Format{SampleRate: Sample_rate, NumChannels: NumChannels}}
+
+	if mic.fnFinished != nil {
+		mic.fnFinished(&ret_buff)
+	}
+
 	//fmt.Printf("Mic recording stoped: %d\n", hash)
-	return audio.IntBuffer{Data: intData, Format: &audio.Format{SampleRate: Sample_rate, NumChannels: NumChannels}}, nil
+	return ret_buff, nil
+}
+
+func (mlg *ToolsMicMalgo) Finished(uid uint64, cancel bool) (audio.IntBuffer, error) {
+	mlg.lock.Lock()
+	defer mlg.lock.Unlock()
+
+	return mlg._finished(uid, cancel)
+}
+
+func (mlg *ToolsMicMalgo) FinishAll(cancel bool) {
+	mlg.lock.Lock()
+	defer mlg.lock.Unlock()
+
+	for uid := range mlg.mics {
+		mlg._finished(uid, cancel) //err ....
+	}
 }
 
 // format: "wav", "mp3"

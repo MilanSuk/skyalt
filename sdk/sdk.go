@@ -681,6 +681,43 @@ func callFuncGetLogs() []SdkLog {
 	return g_logs
 }
 
+type SdkMicInfo struct {
+	Active   bool
+	Decibels float64
+}
+
+func callFuncGetMicInfo() SdkMicInfo {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("get_mic_info"))
+		if Tool_Error(err) == nil {
+
+			active, err := cl.ReadInt()
+			if Tool_Error(err) == nil {
+				desibels, err := cl.ReadInt()
+				if Tool_Error(err) == nil {
+
+					return SdkMicInfo{Active: active > 0, Decibels: float64(desibels / 10000)}
+
+				}
+			}
+		}
+	}
+	return SdkMicInfo{}
+}
+
+func callFuncStopMic() {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("stop_mic"))
+		Tool_Error(err)
+	}
+}
+
 func callFuncMsgStop(msg_id string) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {

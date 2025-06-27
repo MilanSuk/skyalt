@@ -1,6 +1,10 @@
 package main
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/go-audio/audio"
+)
 
 type Microphone struct {
 	Shortcut byte
@@ -44,9 +48,10 @@ func (st *Microphone) Build(layout *Layout) {
 
 	micBt.clicked = func() {
 
-		if layout.ui.router.mic.Find(layout.UID) == nil {
+		layout.ui.SetRefresh()
 
-			_, err := layout.ui.router.mic.Start(layout.UID)
+		if layout.ui.router.mic.Find(layout.UID) == nil {
+			mic, err := layout.ui.router.mic.Start(layout.UID)
 			if err != nil {
 				return //err ....
 			}
@@ -54,41 +59,43 @@ func (st *Microphone) Build(layout *Layout) {
 			if st.started != nil {
 				st.started()
 			}
-		} else {
 
-			out_raw, err := layout.ui.router.mic.Finished(layout.UID, false)
-			if err != nil {
-				return //err ....
-			}
-
-			//convert
-			Out_bytes, err := FFMpeg_convertIntoFile(&out_raw, st.Format, 16000)
-			if err != nil {
-				return //err ....
-			}
-
-			var transcript string
-			if st.Transcribe {
-				comp := LLMTranscribe{
-					AudioBlob:       Out_bytes,
-					BlobFileName:    "blob." + st.Format,
-					Temperature:     0,
-					Response_format: st.Transcribe_response_format,
-				}
-
-				err = layout.ui.router.llms.Transcribe(&comp)
+			mic.fnFinished = func(buff *audio.IntBuffer) {
+				//convert
+				Out_bytes, err := FFMpeg_convertIntoFile(buff, st.Format, 16000)
 				if err != nil {
 					return //err ....
 				}
-				transcript = string(comp.Out_Output)
+
+				var transcript string
+				if st.Transcribe {
+					comp := LLMTranscribe{
+						AudioBlob:       Out_bytes,
+						BlobFileName:    "blob." + st.Format,
+						Temperature:     0,
+						Response_format: st.Transcribe_response_format,
+					}
+
+					err = layout.ui.router.llms.Transcribe(&comp)
+					if err != nil {
+						return //err ....
+					}
+					transcript = string(comp.Out_Output)
+				}
+
+				if st.finished != nil {
+					if st.Output_onlyTranscript {
+						st.finished(nil, transcript)
+					} else {
+						st.finished(Out_bytes, transcript)
+					}
+				}
 			}
 
-			if st.finished != nil {
-				if st.Output_onlyTranscript {
-					st.finished(nil, transcript)
-				} else {
-					st.finished(Out_bytes, transcript)
-				}
+		} else {
+			_, err := layout.ui.router.mic.Finished(layout.UID, false) //will call mic.fnFinished() above
+			if err != nil {
+				return //err ....
 			}
 		}
 	}

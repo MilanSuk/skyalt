@@ -621,6 +621,21 @@ func (router *ToolsRouter) RunNet() {
 						router.log.Error(err)
 					}
 
+				case "get_mic_info":
+					if len(router.mic.mics) > 0 {
+						err = cl.WriteInt(1) //active
+						router.log.Error(err)
+						err = cl.WriteInt(uint64(-router.mic.decibels * 10000)) //decibels
+						router.log.Error(err)
+					} else {
+						err = cl.WriteInt(0)
+						router.log.Error(err)
+						err = cl.WriteInt(0)
+						router.log.Error(err)
+					}
+				case "stop_mic":
+					router.mic.FinishAll(false)
+
 				case "set_msg_name":
 					user_uid, err := cl.ReadInt()
 					if router.log.Error(err) == nil {

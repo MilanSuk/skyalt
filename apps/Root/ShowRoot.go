@@ -257,6 +257,23 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
+		//Microphone status
+		micInfo := callFuncGetMicInfo()
+		if micInfo.Active {
+			MicBt := AppsDiv.AddButton(0, y, 1, 1, "")
+			MicBt.Tooltip = "Stop all microphone recordings"
+			MicBt.Icon_align = 1
+			MicBt.IconPath = "resources/mic.png"
+			//MicBt.Update = func(){
+			//animate icon color ....
+			//}
+			y++
+			MicBt.clicked = func() error {
+				callFuncStopMic()
+				return nil
+			}
+		}
+
 	}
 
 	if source_root.ShowSettings {
