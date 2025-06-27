@@ -699,7 +699,7 @@ func callFuncGetMicInfo() SdkMicInfo {
 				desibels, err := cl.ReadInt()
 				if Tool_Error(err) == nil {
 
-					return SdkMicInfo{Active: active > 0, Decibels: float64(desibels / 10000)}
+					return SdkMicInfo{Active: active > 0, Decibels: float64(desibels) / -10000}
 
 				}
 			}
