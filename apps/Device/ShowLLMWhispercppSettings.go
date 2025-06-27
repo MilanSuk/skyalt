@@ -32,20 +32,23 @@ func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
 		return nil
 	}
 
-	ui.AddText(0, y, 1, 1, "Address")
+	ui.AddText(0, y, 1, 1, "Address : port")
 	AddrDiv := ui.AddLayout(1, y, 1, 1)
 	{
 		AddrDiv.SetColumn(0, 1, 100)
-		AddrDiv.SetColumn(1, 1, 4)
+		AddrDiv.SetColumn(1, 0.5, 0.5)
 		AddrDiv.SetColumn(2, 1, 4)
-		AddrDiv.SetColumn(3, 0, 4)
+		AddrDiv.SetColumn(3, 1, 4)
 
 		ad := AddrDiv.AddEditboxString(0, 0, 1, 1, &source_wsp.Address)
 		ad.changed = wChanged
 		if source_wsp.Address == "" {
 			ad.Error = "Empty"
 		}
-		pt := AddrDiv.AddEditboxInt(1, 0, 1, 1, &source_wsp.Port)
+
+		AddrDiv.AddText(1, 0, 1, 1, ":")
+
+		pt := AddrDiv.AddEditboxInt(2, 0, 1, 1, &source_wsp.Port)
 		pt.changed = wChanged
 
 		TestOKDia := ui.AddDialog("test_ok")
@@ -60,7 +63,7 @@ func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
 		tx.Align_h = 1
 		tx.Cd = UI_GetPalette().E
 
-		TestBt := AddrDiv.AddButton(2, 0, 1, 1, "Test")
+		TestBt := AddrDiv.AddButton(3, 0, 1, 1, "Test")
 		TestBt.clicked = func() error {
 			status, err := st.SetModel("", source_wsp)
 			if err == nil && status == 200 {
