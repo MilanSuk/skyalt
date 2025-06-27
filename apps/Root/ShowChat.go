@@ -333,72 +333,27 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 
 		//Mic
 		{
-			IsLocal := true //(llms_settings.STT.Provider == "whispercpp")
+			mic := DivStart.AddMicrophone(xx, 1, 1, 1)
+			mic.Transcribe = true
+			mic.Transcribe_response_format = "verbose_json"
+			mic.Shortcut = '\t'
+			mic.Output_onlyTranscript = true
 
-			mic_msg_id := "mic_" + chat.GetChatID()
-			micBt := DivStart.AddButton(xx, 1, 1, 1, "")
-			micBt.Background = 0
-			micBt.Icon_margin = 0.15
-			micBt.IconPath = "resources/mic.png"
-			micBt.Shortcut = '\t'
-			micBt.Tooltip = "Record audio"
-			if callFuncFindMsgName(mic_msg_id) != nil {
-				micBt.Background = 1 //active
-				micBt.Cd = UI_GetPalette().E
-				micBt.Tooltip = "Stop recording"
+			mic.started = func() error {
+				input.Text_mic = input.Text
+				return nil
 			}
+			mic.finished = func(audio []byte, transcript string) error {
 
-			xx++
+				//save
+				err := input.SetVoice([]byte(transcript))
+				if err != nil {
+					return fmt.Errorf("SetVoice() failed: %v", err)
+				}
 
-			micBt.clicked = func() error {
-				if callFuncFindMsgName(mic_msg_id) == nil {
-					//start
-					input.Text_mic = input.Text
-
-					caller.SetMsgName(mic_msg_id)
-
-					err := caller.StartRecordingMicrophone(mic_msg_id)
-					if err != nil {
-						return fmt.Errorf("StartRecordingMicrophone() failed: %v", err)
-					}
-					return nil
-				} else {
-
-					format := "wav"
-					if !IsLocal {
-						format = "mp3"
-					}
-
-					Out_bytes, err := caller.StopRecordingMicrophone(mic_msg_id, false, format)
-					if err != nil {
-						return fmt.Errorf("StopRecordingMicrophone() failed: %v", err)
-					}
-
-					BlobFileName := "blob.mp3"
-					if IsLocal {
-						BlobFileName = "blob.wav"
-					}
-					transcribe := LLMTranscribe{
-						AudioBlob:       Out_bytes,
-						BlobFileName:    BlobFileName,
-						Temperature:     0,
-						Response_format: "verbose_json",
-					}
-
-					err = transcribe.Run(caller)
-					if err != nil {
-						return fmt.Errorf("WhispercppTranscribe() failed: %v", err)
-					}
-
-					err = input.SetVoice(transcribe.Out_Output)
-					if err != nil {
-						return fmt.Errorf("SetVoice() failed: %v", err)
-					}
-
-					// auto-send
-					if root.Autosend > 0 {
-						sendIt()
-					}
+				// auto-send
+				if root.Autosend > 0 {
+					sendIt()
 				}
 
 				return nil

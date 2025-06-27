@@ -1189,6 +1189,17 @@ func (ui *UI) runChange(change SdkChange) error {
 			return it.Checkbox.changed()
 		}
 	}
+	if it.Microphone != nil {
+		if change.ValueBool {
+			if it.Microphone.started != nil {
+				it.Microphone.started()
+			}
+		} else {
+			if it.Microphone.finished != nil {
+				it.Microphone.finished(change.ValueBytes, change.ValueString)
+			}
+		}
+	}
 	if it.FilePickerButton != nil {
 		if it.FilePickerButton.Path != nil {
 			*it.FilePickerButton.Path = change.ValueString
@@ -1648,6 +1659,7 @@ type UI struct {
 	Combo             *UICombo             `json:",omitempty"`
 	Switch            *UISwitch            `json:",omitempty"`
 	Checkbox          *UICheckbox          `json:",omitempty"`
+	Microphone        *UIMicrophone        `json:",omitempty"`
 	Divider           *UIDivider           `json:",omitempty"`
 	OsmMap            *UIOsmMap            `json:",omitempty"`
 	ChartLines        *UIChartLines        `json:",omitempty"`
@@ -1889,6 +1901,18 @@ type UICheckbox struct {
 type UIDivider struct {
 	layout     *UI
 	Horizontal bool
+}
+
+type UIMicrophone struct {
+	layout                     *UI
+	Shortcut                   byte
+	Format                     string
+	Transcribe                 bool
+	Transcribe_response_format string //"verbose_json"
+	Output_onlyTranscript      bool
+
+	started  func() error
+	finished func(audio []byte, transcript string) error
 }
 
 type UIOsmMapLoc struct {
@@ -2309,6 +2333,14 @@ func (ui *UI) AddCheckbox(x, y, w, h int, label string, value *float64) *UICheck
 	ui._addUISub(item.layout, "")
 	return item
 }
+
+func (ui *UI) AddMicrophone(x, y, w, h int) *UIMicrophone {
+	item := &UIMicrophone{layout: _newUIItem(x, y, w, h)}
+	item.layout.Microphone = item
+	ui._addUISub(item.layout, "")
+	return item
+}
+
 func (ui *UI) AddDivider(x, y, w, h int, horizontal bool) *UIDivider {
 	item := &UIDivider{Horizontal: horizontal, layout: _newUIItem(x, y, w, h)}
 	item.layout.Divider = item
@@ -2683,77 +2715,6 @@ func (comp *LLMTranscribe) Run(caller *ToolCaller) error {
 	}
 
 	return fmt.Errorf("connection failed")
-}
-
-func (caller *ToolCaller) StartRecordingMicrophone(mic_uid string) error {
-	cl, err := NewToolClient("localhost", g_main.router_port)
-	if Tool_Error(err) == nil {
-		defer cl.Destroy()
-
-		err = cl.WriteArray([]byte("start_microphone"))
-		if Tool_Error(err) == nil {
-
-			err = cl.WriteInt(caller.msg_id)
-			if Tool_Error(err) == nil {
-
-				err = cl.WriteArray([]byte(mic_uid))
-				if Tool_Error(err) == nil {
-
-					//recv
-					errBytes, err := cl.ReadArray()
-					if Tool_Error(err) == nil {
-						if len(errBytes) > 0 {
-							err = errors.New(string(errBytes))
-						}
-						return Tool_Error(err)
-					}
-				}
-			}
-		}
-	}
-	return fmt.Errorf("StartRecordingMicrophone() connection failed")
-}
-
-func (caller *ToolCaller) StopRecordingMicrophone(mic_uid string, cancel bool, format string) ([]byte, error) {
-	cl, err := NewToolClient("localhost", g_main.router_port)
-	if Tool_Error(err) == nil {
-		defer cl.Destroy()
-
-		err = cl.WriteArray([]byte("stop_microphone"))
-		if Tool_Error(err) == nil {
-
-			err = cl.WriteArray([]byte(mic_uid))
-			if Tool_Error(err) == nil {
-
-				cancelInt := uint64(0)
-				if cancel {
-					cancelInt = 1
-				}
-				err = cl.WriteInt(cancelInt)
-				if Tool_Error(err) == nil {
-
-					err = cl.WriteArray([]byte(format))
-					if Tool_Error(err) == nil {
-
-						//recv
-						errBytes, err := cl.ReadArray()
-						if Tool_Error(err) == nil {
-							outBytes, err := cl.ReadArray()
-							if Tool_Error(err) == nil {
-
-								if len(errBytes) > 0 {
-									err = errors.New(string(errBytes))
-									Tool_Error(err)
-								}
-								return outBytes, err
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return nil, fmt.Errorf("StopRecordingMicrophone() connection failed")
 }
 
 //--- Auto generated ---

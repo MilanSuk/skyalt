@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"sync"
@@ -25,13 +26,15 @@ type ToolsMicMalgo struct {
 
 	lock   sync.Mutex
 	device *malgo.Device
-	mics   map[string]*ToolsMicMalgoRecord //int=hash
+	mics   map[uint64]*ToolsMicMalgoRecord //int=hash
+
+	decibels float64
 }
 
 func NewToolsMicMalgo(router *ToolsRouter) *ToolsMicMalgo {
 	st := &ToolsMicMalgo{router: router}
 
-	st.mics = make(map[string]*ToolsMicMalgoRecord)
+	st.mics = make(map[uint64]*ToolsMicMalgoRecord)
 
 	return st
 }
@@ -40,6 +43,31 @@ func (mlg *ToolsMicMalgo) Destroy() {
 	for uid := range mlg.mics {
 		mlg.Finished(uid, true)
 	}
+}
+
+func _ToolsMicMalgo_GetDB(samples []byte) float64 {
+	if len(samples) < 2 || len(samples)%2 != 0 {
+		return -100.0
+	}
+
+	// Calculate Root Mean Square
+	var sumSquares float64
+	sampleCount := len(samples) / 2
+	for i := 0; i < len(samples); i += 2 {
+		// Convert two bytes to int16 (little-endian)
+		sample := int16(samples[i]) | int16(samples[i+1])<<8
+		normalized := float64(sample) / 32768.0
+		sumSquares += normalized * normalized
+	}
+
+	rms := math.Sqrt(sumSquares / float64(sampleCount))
+
+	if rms < 1e-10 { // Avoid log(0)
+		return -100.0
+	}
+
+	// Convert RMS to decibels
+	return 20.0 * math.Log10(rms)
 }
 
 func (mlg *ToolsMicMalgo) _checkDevice() error {
@@ -71,6 +99,8 @@ func (mlg *ToolsMicMalgo) _checkDevice() error {
 			}
 			//add data
 			mlg.mics[key].data = append(mlg.mics[key].data, pSample...) //add
+
+			mlg.decibels = _ToolsMicMalgo_GetDB(pSample)
 		}
 	}
 
@@ -82,14 +112,14 @@ func (mlg *ToolsMicMalgo) _checkDevice() error {
 	return nil
 }
 
-func (mlg *ToolsMicMalgo) Find(uid string) *ToolsMicMalgoRecord {
+func (mlg *ToolsMicMalgo) Find(uid uint64) *ToolsMicMalgoRecord {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
 	return mlg.mics[uid]
 }
 
-func (mlg *ToolsMicMalgo) Start(uid string) (*ToolsMicMalgoRecord, error) {
+func (mlg *ToolsMicMalgo) Start(uid uint64) (*ToolsMicMalgoRecord, error) {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
@@ -101,7 +131,7 @@ func (mlg *ToolsMicMalgo) Start(uid string) (*ToolsMicMalgoRecord, error) {
 	//add
 	_, found := mlg.mics[uid]
 	if found {
-		return nil, fmt.Errorf("mic UID '%s' already recording", uid)
+		return nil, fmt.Errorf("mic UID '%d' already recording", uid)
 	}
 
 	mic := &ToolsMicMalgoRecord{}
@@ -118,14 +148,14 @@ func (mlg *ToolsMicMalgo) Start(uid string) (*ToolsMicMalgoRecord, error) {
 	return mic, nil
 }
 
-func (mlg *ToolsMicMalgo) Finished(uid string, cancel bool) (audio.IntBuffer, error) {
+func (mlg *ToolsMicMalgo) Finished(uid uint64, cancel bool) (audio.IntBuffer, error) {
 	mlg.lock.Lock()
 	defer mlg.lock.Unlock()
 
 	//remove
 	mic, found := mlg.mics[uid]
 	if !found {
-		return audio.IntBuffer{}, fmt.Errorf("uid '%s' not found", uid)
+		return audio.IntBuffer{}, fmt.Errorf("uid '%d' not found", uid)
 	}
 	delete(mlg.mics, uid)
 
@@ -155,7 +185,9 @@ func (mlg *ToolsMicMalgo) Finished(uid string, cancel bool) (audio.IntBuffer, er
 	return audio.IntBuffer{Data: intData, Format: &audio.Format{SampleRate: Sample_rate, NumChannels: NumChannels}}, nil
 }
 
-func FFMpeg_convertIntoFile(input *audio.IntBuffer, mp3 bool) ([]byte, error) {
+// format: "wav", "mp3"
+// sampleRate: 16000
+func FFMpeg_convertIntoFile(input *audio.IntBuffer, format string, sampleRate int) ([]byte, error) {
 
 	os.MkdirAll("temp", os.ModePerm)
 
@@ -177,20 +209,13 @@ func FFMpeg_convertIntoFile(input *audio.IntBuffer, mp3 bool) ([]byte, error) {
 	enc.Close()
 	file.Close()
 
-	if mp3 {
-		compress_path := "temp/mic2.mp3"
-		err := FFMpeg_convert(path, compress_path)
+	if format != "wav" || input.Format.SampleRate != sampleRate {
+		compress_path := "temp/mic2." + format
+		err := FFMpeg_convert(path, compress_path, sampleRate)
 		if err != nil {
 			return nil, err
 		}
 		path = compress_path
-	} else {
-		resample_path := "temp/mic2.wav"
-		err := FFMpeg_convert(path, resample_path)
-		if err != nil {
-			return nil, err
-		}
-		path = resample_path
 	}
 
 	buff, err := os.ReadFile(path)
@@ -201,10 +226,10 @@ func FFMpeg_convertIntoFile(input *audio.IntBuffer, mp3 bool) ([]byte, error) {
 	return buff, nil
 }
 
-func FFMpeg_convert(src, dst string) error {
+func FFMpeg_convert(src, dst string, samples int) error {
 	os.Remove(dst) //ffmpeg complains that 'file already exists'
 
-	cmd := exec.Command("ffmpeg", "-i", src, "-ar", "16000", dst)
+	cmd := exec.Command("ffmpeg", "-i", src, "-ar", fmt.Sprintf("%d", samples), dst)
 	cmd.Dir = ""
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

@@ -132,6 +132,14 @@ type UICheckbox struct {
 	Value   *float64
 }
 
+type UIMicrophone struct {
+	Shortcut                   byte
+	Format                     string
+	Transcribe                 bool
+	Transcribe_response_format string //"verbose_json"
+	Output_onlyTranscript      bool
+}
+
 type UIDivider struct {
 	Horizontal bool
 }
@@ -281,6 +289,7 @@ type UI struct {
 	Combo             *UICombo
 	Switch            *UISwitch
 	Checkbox          *UICheckbox
+	Microphone        *UIMicrophone
 	Divider           *UIDivider
 	OsmMap            *UIOsmMap
 	ChartLines        *UIChartLines
@@ -729,6 +738,20 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 
 			if it.Checkbox.Value != nil {
 				itemLLMTip = fmt.Sprintf("Value: %f, Label: %s", *it.Checkbox.Value, it.Checkbox.Label)
+			}
+		} else if it.Microphone != nil {
+			mic := layout.AddMicrophone(it.X, it.Y, it.W, it.H)
+			mic.Shortcut = it.Microphone.Shortcut
+			mic.Format = it.Microphone.Format
+			mic.Transcribe = it.Microphone.Transcribe
+			mic.Transcribe_response_format = it.Microphone.Transcribe_response_format
+			mic.Output_onlyTranscript = it.Microphone.Output_onlyTranscript
+
+			mic.started = func() {
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueBool: true}, fnProgress, fnDone)
+			}
+			mic.finished = func(audio []byte, transcript string) {
+				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueBool: false, ValueBytes: audio, ValueString: transcript}, fnProgress, fnDone)
 			}
 		} else if it.Divider != nil {
 			layout.AddDivider(it.X, it.Y, it.W, it.H, it.Divider.Horizontal)

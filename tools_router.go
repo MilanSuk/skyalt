@@ -777,7 +777,7 @@ func (router *ToolsRouter) RunNet() {
 								err := json.Unmarshal(compJs, &comp)
 								if router.log.Error(err) == nil {
 
-									err = router.llms.Transcribe(&comp, msg)
+									err = router.llms.Transcribe(&comp)
 									if router.log.Error(err) == nil {
 										//save back
 										compJs, err = json.Marshal(&comp)
@@ -794,78 +794,6 @@ func (router *ToolsRouter) RunNet() {
 							router.log.Error(err)
 						}
 					}
-
-				case "start_microphone":
-					msg_id, err := cl.ReadInt()
-					if router.log.Error(err) == nil {
-						mic_uid, err := cl.ReadArray()
-						if router.log.Error(err) == nil {
-
-							var msg *ToolsRouterMsg
-							router.lock.Lock()
-							{
-								msg = router.msgs[msg_id]
-							}
-							router.lock.Unlock()
-
-							//exe
-							errStr := ""
-							if msg != nil {
-								mic, err := router.mic.Start(string(mic_uid))
-								if err == nil {
-									//loop and wait for 'stop_microphone' or cancel
-									for !mic.Stop.Load() {
-										if router.sync.Mic.Enable && !msg.Progress(0, "Listening") {
-											router.mic.Finished(string(mic_uid), true)
-											errStr = "recording canceled"
-										}
-
-										time.Sleep(10 * time.Millisecond)
-									}
-								} else {
-									errStr = err.Error()
-								}
-							}
-
-							//send back
-							err = cl.WriteArray([]byte(errStr))
-							router.log.Error(err)
-						}
-					}
-
-				case "stop_microphone":
-					mic_uid, err := cl.ReadArray()
-					if router.log.Error(err) == nil {
-						cancel, err := cl.ReadInt()
-						if router.log.Error(err) == nil {
-							format, err := cl.ReadArray()
-							if router.log.Error(err) == nil {
-
-								errStr := ""
-								var Out_bytes []byte
-
-								out, err := router.mic.Finished(string(mic_uid), cancel > 0)
-								if router.log.Error(err) == nil {
-									if string(format) != "wav" && string(format) != "mp3" {
-										errStr = "unknown format"
-									}
-									//convert
-									Out_bytes, err = FFMpeg_convertIntoFile(&out, string(format) == "mp3")
-									if err != nil {
-										errStr = err.Error()
-									}
-
-								}
-
-								//send back
-								err = cl.WriteArray([]byte(errStr))
-								router.log.Error(err)
-								err = cl.WriteArray(Out_bytes)
-								router.log.Error(err)
-							}
-						}
-					}
-
 				}
 			}
 		}()

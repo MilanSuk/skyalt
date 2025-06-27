@@ -410,7 +410,7 @@ func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *ToolsRouterMsg) error
 	return nil
 }
 
-func (llms *LLMs) Transcribe(st *LLMTranscribe, msg *ToolsRouterMsg) error {
+func (llms *LLMs) Transcribe(st *LLMTranscribe) error {
 	llms.lock.Lock()
 	defer llms.lock.Unlock()
 
