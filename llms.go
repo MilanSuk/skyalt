@@ -23,6 +23,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/go-audio/audio"
 )
 
 type OpenAI_completion_msg_Content_Image_url struct {
@@ -433,4 +435,26 @@ func (llms *LLMs) Transcribe(st *LLMTranscribe) error {
 	}
 
 	return nil
+}
+
+func (llms *LLMs) TranscribeBuff(buff *audio.IntBuffer, format string, response_format string) (string, error) {
+	//convert
+	Out_bytes, err := FFMpeg_convertIntoFile(buff, format, 16000)
+	if err != nil {
+		return "", err
+	}
+
+	comp := LLMTranscribe{
+		AudioBlob:       Out_bytes,
+		BlobFileName:    "blob." + format,
+		Temperature:     0,
+		Response_format: response_format,
+	}
+
+	err = llms.Transcribe(&comp)
+	if err != nil {
+		return "", err
+	}
+
+	return string(comp.Out_Output), nil
 }

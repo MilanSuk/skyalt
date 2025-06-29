@@ -158,14 +158,14 @@ func (snc *ToolsSync) Upload_LoadFiles() {
 	type SetDPIDefault struct {
 		DPI int
 	}
-	snc.router.CallAsync(0, "Device", "LoadFiles", SetDPIDefault{}, nil, nil)
+	snc.router.CallBuildAsync(0, "Device", "LoadFiles", SetDPIDefault{}, nil, nil)
 }
 
 func (snc *ToolsSync) Upload_deviceDefaultDPI() {
 	type SetDPIDefault struct {
 		DPI int
 	}
-	snc.router.CallAsync(0, "Device", "SetDeviceDPIDefault", SetDPIDefault{DPI: GetDeviceDPI()}, nil, nil)
+	snc.router.CallBuildAsync(0, "Device", "SetDeviceDPIDefault", SetDPIDefault{DPI: GetDeviceDPI()}, nil, nil)
 }
 
 func (snc *ToolsSync) Upload_deviceDPI(new_dpi int) {
@@ -173,7 +173,7 @@ func (snc *ToolsSync) Upload_deviceDPI(new_dpi int) {
 	type SetDPI struct {
 		DPI int
 	}
-	snc.router.CallAsync(0, "Device", "SetDeviceDPI", SetDPI{DPI: new_dpi}, nil, nil)
+	snc.router.CallBuildAsync(0, "Device", "SetDeviceDPI", SetDPI{DPI: new_dpi}, nil, nil)
 }
 
 func (snc *ToolsSync) Upload_deviceStats(new_stat bool) {
@@ -181,7 +181,7 @@ func (snc *ToolsSync) Upload_deviceStats(new_stat bool) {
 	type SetStats struct {
 		Show bool
 	}
-	snc.router.CallAsync(0, "Device", "SetDeviceStats", SetStats{Show: new_stat}, nil, nil)
+	snc.router.CallBuildAsync(0, "Device", "SetDeviceStats", SetStats{Show: new_stat}, nil, nil)
 }
 
 func (snc *ToolsSync) Upload_deviceFullscreen(new_fullscreen bool) {
@@ -189,7 +189,7 @@ func (snc *ToolsSync) Upload_deviceFullscreen(new_fullscreen bool) {
 	type SetFullscreen struct {
 		Enable bool
 	}
-	snc.router.CallAsync(0, "Device", "SetDeviceFullscreen", SetFullscreen{Enable: new_fullscreen}, nil, nil)
+	snc.router.CallBuildAsync(0, "Device", "SetDeviceFullscreen", SetFullscreen{Enable: new_fullscreen}, nil, nil)
 
 }
 

@@ -264,24 +264,12 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 		dia.Close()
 	}
 
-	Record := dia.Layout.AddButton(0, 3, 1, 1, "Record") //start OR stop ............
-	Record.Tooltip = "Record microphone and convert speech-to-text"
-	Record.Align = 0
-	Record.Background = 0.25
-	//Record.Shortcut_key = 'r'		//activate an editbox and then press ctrl+tab
-	Record.clicked = func() {
-
-		//uid := fmt.Sprintf("mic_%d", layout.UID)
-
-		//is recording ....
-
-		//mic, err := layout.ui.router.mic.Start(uid)
-
-		//layout.ui.router.mic.Finished(uid, false)
-
-		//start STT ....
-
-		//....
+	STT := dia.Layout.AddButton(0, 3, 1, 1, OsTrnString(layout.ui.router.mic.Find(layout.UID) == nil, "Start", "Stop")+" recording speech")
+	STT.Tooltip = "Record microphone and convert speech-to-text"
+	STT.Align = 0
+	STT.Background = 0.25
+	STT.clicked = func() {
+		layout.RecordText()
 		dia.Close()
 	}
 }

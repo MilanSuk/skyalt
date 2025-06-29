@@ -19,6 +19,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"image/color"
 	"math"
@@ -193,6 +194,9 @@ type Layout struct {
 	ui     *Ui
 	parent *Layout
 
+	AppName  string
+	FuncName string
+
 	touch          bool
 	touchDia       bool
 	drawEnableFade bool
@@ -261,6 +265,8 @@ type Layout struct {
 	Caller_line int    `json:",omitempty"`
 
 	List_autoSpacing bool
+
+	HasUpdate bool
 }
 
 func NewUiLayoutDOM_root(ui *Ui) *Layout {
@@ -268,6 +274,9 @@ func NewUiLayoutDOM_root(ui *Ui) *Layout {
 	root.UID = 1
 	root.ui = ui
 	root.App = true
+
+	root.AppName = "Root"
+	root.FuncName = "ShowRoot"
 	return root
 }
 
@@ -896,7 +905,12 @@ func (layout *Layout) renderBuffer(buffer []LayoutDrawPrim) (hasBrush bool) {
 					width *= 2
 				}
 				rounding := layout.ui.CellWidth(layout.ui.router.sync.GetRounding())
-				buff.AddRectRound(layout.crop, rounding, layout.GetPalette().P, layout.ui.CellWidth(width))
+
+				cd := layout.GetPalette().P
+				if layout.ui.router.mic.Find(layout.UID) != nil {
+					cd = layout.GetPalette().E
+				}
+				buff.AddRectRound(layout.crop, rounding, cd, layout.ui.CellWidth(width))
 			}
 		}
 
@@ -1892,4 +1906,54 @@ func (layout *Layout) GetLLMTip() string {
 	}
 
 	return str
+}
+
+func (layout *Layout) CallLayoutUpdates(appName string, funcName string, parent_UID uint64) {
+
+	if layout.AppName != "" {
+		//pre_appName := appName
+		//pre_parent_UID := parent_UID
+
+		appName = layout.AppName
+		funcName = layout.FuncName
+		parent_UID = layout.UID
+	}
+
+	if layout.HasUpdate {
+
+		fnDone := func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
+			if err != nil {
+				return
+			}
+
+			var subUI UI
+			err = json.Unmarshal(uiJs, &subUI)
+			if err != nil {
+				return
+			}
+
+			layout.parent.addLayoutComp(&subUI, appName, funcName, parent_UID, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
+			//subUI.addLayout(layout, appName, funcName, parent_UID, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
+			layout._build()
+			layout._relayout()
+			layout._draw()
+			layout.ui.SetRedrawBuffer()
+
+			var cmds []ToolCmd
+			err = json.Unmarshal(cmdsJs, &cmds)
+			if err == nil {
+				layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
+			}
+
+			fmt.Printf("_updated(): %.4fsec\n", OsTime()-start_time)
+		}
+
+		layout.ui.router.CallUpdateAsync(parent_UID, layout.UID, appName, funcName, layout.ui._addLayout_FnProgress, fnDone)
+
+	}
+
+	for _, it := range layout.childs {
+		it.CallLayoutUpdates(appName, funcName, parent_UID)
+	}
+
 }

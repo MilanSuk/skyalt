@@ -21,6 +21,8 @@ import (
 	"image/color"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/go-audio/audio"
 )
 
 func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
@@ -207,6 +209,9 @@ func (ui *Ui) _Text_update(layout *Layout,
 			if edit.KeyPaste {
 				keys.Paste = true
 			}
+			if edit.KeyRecord {
+				keys.RecordMic = true
+			}
 
 			ui._UiText_TextSelectKeys(layout, value, margin, lines, prop, multi_line)
 
@@ -381,6 +386,34 @@ func (ui *Ui) _UiText_Keys(layout *Layout, text string, lines []WinGphLine, tabI
 		firstCur += len(cb)
 		*s = firstCur
 		*e = firstCur
+	} else if keys.RecordMic {
+		if layout.ui.router.mic.Find(layout.UID) == nil {
+			layout.ui.router.mic.FinishAll(false) //finish all previous
+
+			mic, _ := layout.ui.router.mic.Start(layout.UID) //err ....
+
+			mic.fnFinished = func(buff *audio.IntBuffer) {
+				transcript, err := layout.ui.router.llms.TranscribeBuff(buff, "wav", "verbose_json")
+				if err == nil {
+
+					//remove old selection
+					if *s != *e {
+						text = text[:firstCur] + text[lastCur:]
+					}
+					//insert
+					text = text[:firstCur] + transcript + text[firstCur:]
+					edit.temp = text
+
+					firstCur += len(transcript)
+					*s = firstCur
+					*e = firstCur
+				}
+			}
+		} else {
+			layout.ui.router.mic.Finished(layout.UID, false)
+		}
+
+		layout.ui.SetRefresh()
 	}
 
 	//when dialog is active, don't edit

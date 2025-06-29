@@ -40,6 +40,9 @@ func (layout *Layout) CutText() {
 func (layout *Layout) PasteText() {
 	layout.ui.edit.KeyPaste = true
 }
+func (layout *Layout) RecordText() {
+	layout.ui.edit.KeyRecord = true
+}
 
 func (layout *Layout) _createDiv(x, y, w, h int, name string, fnBuild func(layout *Layout), fnDraw func(rect Rect, layout *Layout) LayoutPaint, fnInput func(in LayoutInput, layout *Layout)) *Layout {
 

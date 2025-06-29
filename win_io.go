@@ -59,6 +59,7 @@ type WinKeys struct {
 	Cut       bool
 	Paste     bool
 	SelectAll bool
+	RecordMic bool
 
 	Backward bool
 	Forward  bool

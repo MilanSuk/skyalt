@@ -264,9 +264,24 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			MicBt.Tooltip = "Stop all microphone recordings"
 			MicBt.Icon_align = 1
 			MicBt.IconPath = "resources/mic.png"
-			//MicBt.Update = func(){
-			//animate icon color ....
-			//}
+			MicBt.Icon_margin = 0.15
+			MicBt.Border = true
+
+			//animate icon color
+			MicBt.layout.update = func() error {
+				micInfo := callFuncGetMicInfo()
+
+				callFuncPrint(fmt.Sprintf("***************** Updated(%f)", micInfo.Decibels_normalized))
+
+				MicBt.Cd = UI_GetPalette().E
+				MicBt.Cd.A = byte(255 * micInfo.Decibels_normalized)
+				if MicBt.Cd.A == 0 {
+					MicBt.Cd.A = 1 //because 0=off
+				}
+				//MicBt.Cd = Color_Aprox(UI_GetPalette().B, UI_GetPalette().E, micInfo.Decibels_normalized)
+
+				return nil
+			}
 			y++
 			MicBt.clicked = func() error {
 				callFuncStopMic()

@@ -54,6 +54,8 @@ type Ui struct {
 
 	temp_ui   *UI
 	temp_cmds []ToolCmd
+
+	last_layout_updates_ticks int64
 }
 
 func NewUi(win *Win, router *ToolsRouter) (*Ui, error) {
@@ -211,7 +213,7 @@ func (ui *Ui) GetScrollThickness() int {
 	return int(float64(ui.Cell()) * float64(ui.router.sync.Device.ScrollThick))
 }
 
-func _draw(layout *Layout) {
+func (layout *Layout) _draw() {
 	layout.buffer = nil
 
 	canvas := Rect{X: 0, Y: 0, W: layout._getWidth(), H: layout._getHeight()}
@@ -221,7 +223,7 @@ func _draw(layout *Layout) {
 	}
 
 	for _, it := range layout.childs {
-		_draw(it)
+		it._draw()
 	}
 }
 
@@ -233,7 +235,7 @@ func (ui *Ui) _relayout(layout *Layout) {
 	layout.clearAutoColsRows()
 	layout._relayout()
 
-	_draw(layout)
+	layout._draw()
 }
 
 func (ui *Ui) Draw() {
@@ -309,6 +311,11 @@ func (ui *Ui) Tick() {
 		ui.SetRefresh()
 	}
 
+	if (OsTicks() - ui.last_layout_updates_ticks) > 250 { //every 250ms
+		ui.mainLayout.CallLayoutUpdates("Root", "ShowRoot", ui.mainLayout.UID)
+		ui.last_layout_updates_ticks = OsTicks()
+	}
+
 	if ui.refresh {
 		ui.refresh = false
 		ui.relayout = false //is in _refresh()
@@ -318,20 +325,7 @@ func (ui *Ui) Tick() {
 			ui.edit.send(false, ui)
 		}
 
-		fnProgress := func(cmdsJs [][]byte, err error, start_time float64) {
-			if err != nil {
-				return
-			}
-
-			for _, js := range cmdsJs {
-				var cmds []ToolCmd
-				err := json.Unmarshal(js, &cmds)
-				if err == nil {
-					ui.temp_cmds = append(ui.temp_cmds, cmds...)
-				}
-			}
-		}
-		fnDone := func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
+		fnDone := func(ioJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
 
 			fmt.Printf("_refresh(): %.4fsec\n", OsTime()-start_time)
 
@@ -350,46 +344,19 @@ func (ui *Ui) Tick() {
 			if err == nil {
 				ui.temp_cmds = append(ui.temp_cmds, cmds...)
 			}
-
 		}
 
 		type ShowRoot struct {
 			AddBrush *LayoutPick
 		}
-		ui.router.CallAsync(1, "Root", "ShowRoot", ShowRoot{AddBrush: brush}, fnProgress, fnDone)
+		ui.router.CallBuildAsync(1, "Root", "ShowRoot", ShowRoot{AddBrush: brush}, ui._addLayout_FnProgress, fnDone)
 	}
 
 	if !ui.touch.IsActive() {
 		if ui.temp_ui != nil {
 			new_dom := NewUiLayoutDOM_root(ui)
 
-			fnProgress := func(cmdsJs [][]byte, err error, start_time float64) {
-				if err != nil {
-					return
-				}
-				for _, js := range cmdsJs {
-					var cmds []ToolCmd
-					err := json.Unmarshal(js, &cmds)
-					if err == nil {
-						ui.temp_cmds = append(ui.temp_cmds, cmds...)
-					}
-				}
-			}
-			fnDone := func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
-				if err != nil {
-					return
-				}
-
-				var cmds []ToolCmd
-				err = json.Unmarshal(cmdsJs, &cmds)
-				if err == nil {
-					ui.temp_cmds = append(ui.temp_cmds, cmds...)
-				}
-
-				fmt.Printf("_changed(): %.4fsec\n", OsTime()-start_time)
-			}
-
-			ui.temp_ui.addLayout(new_dom, "Root", "ShowRoot", new_dom.UID, fnProgress, fnDone)
+			ui.temp_ui.addLayout(new_dom, "Root", "ShowRoot", new_dom.UID, ui._addLayout_FnProgress, ui._addLayout_FnIODone)
 
 			new_dom._build()
 			ui.mainLayout = new_dom
@@ -488,4 +455,30 @@ func (ui *Ui) Tick() {
 		ui.SetRefresh()
 	}
 
+}
+
+func (ui *Ui) _addLayout_FnProgress(cmdsJs [][]byte, err error, start_time float64) {
+	if err != nil {
+		return
+	}
+	for _, js := range cmdsJs {
+		var cmds []ToolCmd
+		err := json.Unmarshal(js, &cmds)
+		if err == nil {
+			ui.temp_cmds = append(ui.temp_cmds, cmds...)
+		}
+	}
+}
+func (ui *Ui) _addLayout_FnIODone(ioJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
+	if err != nil {
+		return
+	}
+
+	var cmds []ToolCmd
+	err = json.Unmarshal(cmdsJs, &cmds)
+	if err == nil {
+		ui.temp_cmds = append(ui.temp_cmds, cmds...)
+	}
+
+	fmt.Printf("_changed(): %.4fsec\n", OsTime()-start_time)
 }

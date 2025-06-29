@@ -82,7 +82,7 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, noBinary bool, router 
 
 	cmpl.CodeFileTime = codeFileTime
 
-	msg.progress_label = "Generating tools code"
+	msg.progress_label = "Generating tools code " + cmpl.GetFolderPath()
 	{
 		var strInits strings.Builder
 		var strFrees strings.Builder
@@ -181,7 +181,7 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, noBinary bool, router 
 	msg.progress_done = 0.2
 
 	//fix files
-	msg.progress_label = "Fixing tools code"
+	msg.progress_label = "Fixing tools code " + cmpl.GetFolderPath()
 	{
 		fmt.Printf("Fixing '%s' ... ", cmpl.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000
@@ -209,7 +209,7 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, noBinary bool, router 
 	msg.progress_done = 0.4
 
 	//update packages
-	msg.progress_label = "Updating tools packages"
+	msg.progress_label = "Updating tools packages " + cmpl.GetFolderPath()
 	{
 		fmt.Printf("Updating packages '%s' ... ", cmpl.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000
@@ -247,7 +247,7 @@ func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, noBinary bool, router 
 	msg.progress_done = 0.6
 
 	//compile
-	msg.progress_label = "Compiling tools code"
+	msg.progress_label = "Compiling tools code " + cmpl.GetFolderPath()
 	{
 		fmt.Printf("Compiling '%s' ... ", cmpl.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000

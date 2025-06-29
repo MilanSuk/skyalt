@@ -36,6 +36,7 @@ type UiEdit struct {
 	KeyCopy      bool
 	KeyCut       bool
 	KeyPaste     bool
+	KeyRecord    bool
 
 	last_refreshInput_unix float64
 
@@ -113,6 +114,7 @@ func (edit *UiEdit) ResetShortcutKeys() {
 	edit.KeyCopy = false
 	edit.KeyCut = false
 	edit.KeyPaste = false
+	edit.KeyRecord = false
 }
 
 func (edit *UiEdit) Is(layout *Layout) bool {

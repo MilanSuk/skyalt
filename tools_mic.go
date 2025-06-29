@@ -23,6 +23,12 @@ type ToolsMicMalgoRecord struct {
 	fnFinished func(buff *audio.IntBuffer)
 }
 
+type ToolsMicInfo struct {
+	Active              bool
+	Decibels            float64
+	Decibels_normalized float64
+}
+
 type ToolsMicMalgo struct {
 	router *ToolsRouter
 
@@ -30,15 +36,15 @@ type ToolsMicMalgo struct {
 	device *malgo.Device
 	mics   map[uint64]*ToolsMicMalgoRecord //int=hash
 
-	decibels float64
+	info ToolsMicInfo
 }
 
 func NewToolsMicMalgo(router *ToolsRouter) *ToolsMicMalgo {
-	st := &ToolsMicMalgo{router: router}
+	mlg := &ToolsMicMalgo{router: router}
 
-	st.mics = make(map[uint64]*ToolsMicMalgoRecord)
+	mlg.mics = make(map[uint64]*ToolsMicMalgoRecord)
 
-	return st
+	return mlg
 }
 
 func (mlg *ToolsMicMalgo) Destroy() {
@@ -100,7 +106,8 @@ func (mlg *ToolsMicMalgo) _checkDevice() error {
 			//add data
 			mlg.mics[key].data = append(mlg.mics[key].data, pSample...) //add
 
-			mlg.decibels = _ToolsMicMalgo_GetDB(pSample)
+			mlg.info.Decibels = _ToolsMicMalgo_GetDB(pSample)
+			mlg.updateDecibels_normalized()
 		}
 	}
 
@@ -110,6 +117,19 @@ func (mlg *ToolsMicMalgo) _checkDevice() error {
 	}
 
 	return nil
+}
+
+func (mlg *ToolsMicMalgo) updateDecibels_normalized() {
+	d := OsClampFloat(mlg.info.Decibels, -60, -20)
+	d += 20
+
+	diff := 40.0
+	if diff > 0 {
+		d += diff //<0-100> where 100 is max volume
+		d /= diff //<0-1>
+	}
+
+	mlg.info.Decibels_normalized = d
 }
 
 func (mlg *ToolsMicMalgo) Find(uid uint64) *ToolsMicMalgoRecord {
@@ -136,6 +156,7 @@ func (mlg *ToolsMicMalgo) Start(uid uint64) (*ToolsMicMalgoRecord, error) {
 
 	mic := &ToolsMicMalgoRecord{}
 	mlg.mics[uid] = mic
+	mlg.info.Active = true
 
 	if !mlg.device.IsStarted() {
 		err := mlg.device.Start()
@@ -167,6 +188,13 @@ func (mlg *ToolsMicMalgo) _finished(uid uint64, cancel bool) (audio.IntBuffer, e
 	if len(mlg.mics) == 0 && mlg.device.IsStarted() {
 		mlg.device.Uninit()
 		mlg.device = nil
+	}
+
+	if len(mlg.mics) == 0 {
+		//deactivate
+		mlg.info.Active = false
+		mlg.info.Decibels = -100 //silence
+		mlg.info.Decibels_normalized = 0
 	}
 
 	if cancel {

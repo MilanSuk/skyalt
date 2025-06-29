@@ -35,7 +35,53 @@ func _ToolsCaller_UpdateDev(port int, fnLog func(err error) error) error {
 	return fmt.Errorf("connection failed")
 }
 
-// Function was copied from Server code
+func _ToolsCaller_CallBuild(port int, msg_id uint64, ui_uid uint64, funcName string, params []byte, fnLog func(err error) error) ([]byte, []byte, []byte, error) {
+	cl, err := NewToolsClient("localhost", port)
+	if fnLog(err) == nil {
+		defer cl.Destroy()
+
+		//send
+		err = cl.WriteArray([]byte("build"))
+		if fnLog(err) == nil {
+			err = cl.WriteInt(msg_id) //msg_id
+			if fnLog(err) == nil {
+
+				err = cl.WriteInt(ui_uid) //UI UID
+				if fnLog(err) == nil {
+					err = cl.WriteArray([]byte(funcName)) //function name
+					if fnLog(err) == nil {
+						err = cl.WriteArray(params) //params
+						if fnLog(err) == nil {
+
+							errStr, err := cl.ReadArray() //output error
+							if fnLog(err) == nil {
+								out_dataJs, err := cl.ReadArray() //output data
+								if fnLog(err) == nil {
+									out_uiJs, err := cl.ReadArray() //output UI
+									if fnLog(err) == nil {
+										out_cmdsJs, err := cl.ReadArray() //output cmds
+										if fnLog(err) == nil {
+
+											var out_err error
+											if len(errStr) > 0 {
+												out_err = errors.New(string(errStr))
+											}
+
+											return out_dataJs, out_uiJs, out_cmdsJs, out_err
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil, nil, nil, fmt.Errorf("connection failed")
+}
+
 func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change ToolsSdkChange, fnLog func(err error) error) ([]byte, []byte, error) {
 	cl, err := NewToolsClient("localhost", port)
 	if fnLog(err) == nil {
@@ -77,43 +123,33 @@ func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change Tool
 	return nil, nil, fmt.Errorf("connection failed")
 }
 
-// Function was copied from Server code
-func _ToolsCaller_CallTool(port int, msg_id uint64, ui_uid uint64, funcName string, params []byte, fnLog func(err error) error) ([]byte, []byte, []byte, error) {
+func _ToolsCaller_CallUpdate(port int, msg_id uint64, ui_uid uint64, sub_uid uint64, fnLog func(err error) error) ([]byte, []byte, error) {
 	cl, err := NewToolsClient("localhost", port)
 	if fnLog(err) == nil {
 		defer cl.Destroy()
 
 		//send
-		err = cl.WriteArray([]byte("call"))
+		err = cl.WriteArray([]byte("update"))
 		if fnLog(err) == nil {
-			err = cl.WriteInt(msg_id) //msg_id
+			err = cl.WriteInt(msg_id)
 			if fnLog(err) == nil {
-
-				err = cl.WriteInt(ui_uid) //UI UID
+				err = cl.WriteInt(ui_uid)
 				if fnLog(err) == nil {
-					err = cl.WriteArray([]byte(funcName)) //function name
+					err = cl.WriteInt(sub_uid)
 					if fnLog(err) == nil {
-						err = cl.WriteArray(params) //params
+
+						errStr, err := cl.ReadArray()
 						if fnLog(err) == nil {
-
-							errStr, err := cl.ReadArray() //output error
+							subUiJs, err := cl.ReadArray()
 							if fnLog(err) == nil {
-								out_dataJs, err := cl.ReadArray() //output data
-								if fnLog(err) == nil {
-									out_uiJs, err := cl.ReadArray() //output UI
-									if fnLog(err) == nil {
-										out_cmdsJs, err := cl.ReadArray() //output cmds
-										if fnLog(err) == nil {
+								cmdsJs, err := cl.ReadArray()
+								fnLog(err)
 
-											var out_err error
-											if len(errStr) > 0 {
-												out_err = errors.New(string(errStr))
-											}
-
-											return out_dataJs, out_uiJs, out_cmdsJs, out_err
-										}
-									}
+								if len(errStr) > 0 {
+									return nil, nil, errors.New(string(errStr))
 								}
+
+								return subUiJs, cmdsJs, nil
 							}
 						}
 					}
@@ -122,5 +158,5 @@ func _ToolsCaller_CallTool(port int, msg_id uint64, ui_uid uint64, funcName stri
 		}
 	}
 
-	return nil, nil, nil, fmt.Errorf("connection failed")
+	return nil, nil, fmt.Errorf("connection failed")
 }

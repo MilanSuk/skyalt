@@ -329,6 +329,69 @@ func main() {
 				_updateDev()
 				cl.Destroy()
 
+			case "update":
+				ok := false
+
+				msg_id, err := cl.ReadInt()
+				if Tool_Error(err) == nil {
+					ui_uid, err := cl.ReadInt()
+					if Tool_Error(err) == nil {
+						sub_uid, err := cl.ReadInt()
+						if Tool_Error(err) == nil {
+
+							g_uis_lock.Lock()
+							ui, found := g_uis[ui_uid]
+							g_uis_lock.Unlock()
+							if found {
+								ok = true
+								go func() {
+									ui.lock.Lock()
+									defer ui.lock.Unlock()
+
+									ui.Caller.msg_id = msg_id
+									ui.Caller.cmds = nil
+
+									subUI, out_error := ui.ui.runUpdate(sub_uid)
+
+									if out_error == nil {
+										if !ui.Caller._sendProgress(1, "") {
+											out_error = errors.New("_update_interrupted_")
+										}
+									}
+
+									//add callstack to error
+									var output_errBytes []byte
+									if out_error != nil {
+										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s(%d)", "_update_", sub_uid))
+									}
+
+									//send back
+									{
+										err = cl.WriteArray(output_errBytes) //error
+										Tool_Error(err)
+
+										uiJs, _ := json.Marshal(subUI)
+										err = cl.WriteArray(uiJs) //sub-ui
+										Tool_Error(err)
+
+										cmdsJs, _ := json.Marshal(ui.Caller.cmds)
+										err = cl.WriteArray(cmdsJs) //commands
+										Tool_Error(err)
+									}
+									cl.Destroy()
+
+									_saveInstances()
+								}()
+							} else {
+								fmt.Printf("UI UID %d not found\n", ui_uid)
+							}
+						}
+					}
+				}
+				if !ok {
+					cl.Destroy()
+				}
+
 			case "change":
 				ok := false
 
@@ -357,7 +420,7 @@ func main() {
 
 										if out_error == nil {
 											if !ui.Caller._sendProgress(1, "") {
-												out_error = errors.New("_interrupted_")
+												out_error = errors.New("_change_interrupted_")
 											}
 										}
 
@@ -372,8 +435,8 @@ func main() {
 											err = cl.WriteArray(output_errBytes) //error
 											Tool_Error(err)
 
-											dataJs, _ := json.Marshal(ui.parameters)
-											err = cl.WriteArray(dataJs) //data
+											ioJs, _ := json.Marshal(ui.parameters)
+											err = cl.WriteArray(ioJs) //call parameters
 											Tool_Error(err)
 
 											cmdsJs, _ := json.Marshal(ui.Caller.cmds)
@@ -395,7 +458,7 @@ func main() {
 					cl.Destroy()
 				}
 
-			case "call":
+			case "build":
 				ok := false
 				caller := NewToolCaller()
 
@@ -426,6 +489,8 @@ func main() {
 										}
 									}
 
+									ui.updateHasFnUpdate()
+
 									if out_error == nil {
 										if caller.ui_uid != 0 {
 											g_uis_lock.Lock()
@@ -436,16 +501,16 @@ func main() {
 										}
 
 										if !caller._sendProgress(1, "") {
-											out_error = errors.New("_interrupted_")
+											out_error = errors.New("_call_interrupted_")
 										}
 									}
 
 									//out -> bytes
-									var dataJs []byte
+									var ioJs []byte
 									var uiJs []byte
 									var cmdsJs []byte
 									if out_error == nil {
-										dataJs, out_error = json.Marshal(out_params)
+										ioJs, out_error = json.Marshal(out_params)
 										Tool_Error(out_error)
 
 										uiJs, out_error = json.Marshal(ui)
@@ -466,7 +531,7 @@ func main() {
 									//send result back
 									err = cl.WriteArray(output_errBytes) //error
 									if Tool_Error(err) == nil {
-										err = cl.WriteArray(dataJs) //data
+										err = cl.WriteArray(ioJs) //call parameters(attrs Out_)
 										if Tool_Error(err) == nil {
 											err = cl.WriteArray(uiJs) //ui
 											if Tool_Error(err) == nil {
@@ -682,8 +747,9 @@ func callFuncGetLogs() []SdkLog {
 }
 
 type SdkMicInfo struct {
-	Active   bool
-	Decibels float64
+	Active              bool
+	Decibels            float64
+	Decibels_normalized float64
 }
 
 func callFuncGetMicInfo() SdkMicInfo {
@@ -694,14 +760,13 @@ func callFuncGetMicInfo() SdkMicInfo {
 		err = cl.WriteArray([]byte("get_mic_info"))
 		if Tool_Error(err) == nil {
 
-			active, err := cl.ReadInt()
+			micJs, err := cl.ReadArray()
 			if Tool_Error(err) == nil {
-				desibels, err := cl.ReadInt()
-				if Tool_Error(err) == nil {
+				var st SdkMicInfo
+				json.Unmarshal(micJs, &st)
+				Tool_Error(err)
 
-					return SdkMicInfo{Active: active > 0, Decibels: float64(desibels) / -10000}
-
-				}
+				return st
 			}
 		}
 	}
@@ -1091,7 +1156,7 @@ func _callTool(funcName string, fnRun func(caller *ToolCaller, ui *UI) error, ca
 
 		if out_error == nil {
 			if !caller._sendProgress(1, "") {
-				out_error = errors.New("_interrupted_")
+				out_error = errors.New("_tool_interrupted_")
 			}
 		}
 
@@ -1138,6 +1203,33 @@ func (ui *UI) _findUID(uid uint64) *UI {
 	}
 
 	return nil
+}
+
+func (ui *UI) updateHasFnUpdate() {
+	ui.HasUpdate = (ui.update != nil)
+
+	for _, it := range ui.Items {
+		it.updateHasFnUpdate()
+	}
+}
+
+func (ui *UI) runUpdate(uid uint64) (*UI, error) {
+	if ui.UID == uid {
+		if ui.update != nil {
+			err := ui.update()
+			return ui, err
+		}
+		return ui, fmt.Errorf("not update function")
+	}
+
+	for _, it := range ui.Items {
+		uii, err := it.runUpdate(uid)
+		if uii != nil {
+			return uii, err
+		}
+	}
+
+	return nil, nil
 }
 
 type SdkChange struct {
@@ -1710,6 +1802,9 @@ type UI struct {
 
 	changed func(newParams []byte) error
 
+	update    func() error
+	HasUpdate bool
+
 	base               bool
 	temp_col, temp_row int
 }
@@ -1820,7 +1915,6 @@ type UIText struct {
 type UIEditbox struct {
 	layout     *UI
 	Name       string
-	Error      string
 	Value      *string
 	ValueFloat *float64
 	ValueInt   *int
@@ -1843,7 +1937,6 @@ type UIEditbox struct {
 }
 type UISlider struct {
 	layout *UI
-	Error  string
 	Value  *float64
 	Min    float64
 	Max    float64
@@ -1883,7 +1976,6 @@ type UIButton struct {
 
 type UIFilePickerButton struct {
 	layout      *UI
-	Error       string
 	Path        *string
 	Preview     bool
 	OnlyFolders bool
@@ -1892,7 +1984,6 @@ type UIFilePickerButton struct {
 }
 type UIDatePickerButton struct {
 	layout   *UI
-	Error    string
 	Date     *int64
 	Page     *int64
 	ShowTime bool
@@ -1900,14 +1991,12 @@ type UIDatePickerButton struct {
 }
 type UIColorPickerButton struct {
 	layout  *UI
-	Error   string
 	Cd      *color.RGBA
 	changed func() error
 }
 
 type UICombo struct {
 	layout *UI
-	Error  string
 	Value  *string
 	Labels []string
 	Values []string
@@ -1917,7 +2006,6 @@ type UICombo struct {
 
 type UISwitch struct {
 	layout  *UI
-	Error   string
 	Label   string
 	Tooltip string
 	Value   *bool
@@ -1927,7 +2015,6 @@ type UISwitch struct {
 
 type UICheckbox struct {
 	layout  *UI
-	Error   string
 	Label   string
 	Tooltip string
 	Value   *float64
@@ -2490,7 +2577,7 @@ func (ui *UI) AddTool(x, y, w, h int, fnRun func(caller *ToolCaller, ui *UI) err
 
 	if out_error == nil {
 		if !caller._sendProgress(1, "") {
-			out_error = errors.New("_interrupted_")
+			out_error = errors.New("_addtool_interrupted_")
 		}
 	}
 

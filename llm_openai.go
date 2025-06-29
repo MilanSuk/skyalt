@@ -308,7 +308,7 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpen
 				var result string
 
 				//call it
-				resJs, uiJs, cmdsJs, err := _ToolsCaller_CallTool(app_port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments), router.log.Error)
+				resJs, uiJs, cmdsJs, err := _ToolsCaller_CallBuild(app_port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments), router.log.Error)
 				if router.log.Error(err) != nil {
 					return err
 				}
