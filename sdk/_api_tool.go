@@ -54,7 +54,6 @@ func (ui *UI) addText(width float64, label string) *UIText
 type UIEditbox struct {
 	layout     *UI
 	Name       string
-	Error      string
 	Value      *string
 	ValueFloat *float64
 	ValueInt   *int

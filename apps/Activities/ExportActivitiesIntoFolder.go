@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"path/filepath"
 	"time"
 )
@@ -33,7 +32,7 @@ func (st *ExportActivitiesIntoFolder) run(caller *ToolCaller, ui *UI) error {
 	ui.AddTextLabel(0, 0, 3, 1, "Export activities into folder")
 
 	ui.AddText(0, 1, 1, 1, "Folder")
-	fpck := ui.AddFilePickerButton(1, 0, 2, 1, &st.FolderPath, true, true)
+	ui.AddFilePickerButton(1, 0, 2, 1, &st.FolderPath, true, true)
 
 	y := 3
 	for _, id := range sorted {
@@ -48,12 +47,6 @@ func (st *ExportActivitiesIntoFolder) run(caller *ToolCaller, ui *UI) error {
 
 	bt := ui.AddButton(0, y, 3, 1, "Export")
 	bt.clicked = func() error {
-		//checks
-		if st.FolderPath == "" {
-			fpck.Error = "Empty field"
-			return fmt.Errorf("invalid input(s)")
-		}
-
 		//Items
 		for _, id := range sorted {
 			it := source_activities.Activities[id]

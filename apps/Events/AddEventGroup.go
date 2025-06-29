@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"time"
 )
@@ -27,7 +26,7 @@ func (st *AddEventGroup) run(caller *ToolCaller, ui *UI) error {
 	ui.AddTextLabel(0, 0, 2, 1, "Add new calendar Group")
 
 	ui.AddText(0, 1, 1, 1, "Label")
-	lbl := ui.AddEditboxString(1, 0, 1, 1, &st.Label)
+	ui.AddEditboxString(1, 0, 1, 1, &st.Label)
 
 	ui.AddText(0, 2, 1, 1, "Color")
 	cd := color.RGBA{uint8(st.Cd_red), uint8(st.Cd_green), uint8(st.Cd_blue), 255}
@@ -41,15 +40,6 @@ func (st *AddEventGroup) run(caller *ToolCaller, ui *UI) error {
 
 	bt := ui.AddButton(0, 4, 2, 1, "Add new Group")
 	bt.clicked = func() error {
-		//checks
-		if st.Label == "" {
-			lbl.Error = "Empty field"
-		}
-
-		if lbl.Error != "" {
-			return fmt.Errorf("invalid input(s)")
-		}
-
 		//update
 		source_events.Groups[time.Now().UnixNano()] = &EventsGroup{Label: st.Label, Color: color.RGBA{uint8(st.Cd_red), uint8(st.Cd_green), uint8(st.Cd_blue), 255}}
 

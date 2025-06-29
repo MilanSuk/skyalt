@@ -1,11 +1,5 @@
 package main
 
-import (
-	"fmt"
-	"net/mail"
-	"net/url"
-)
-
 // Adds new SMTP email credentials into the database.
 type ShowAddEmailLogin struct {
 	Username   string // Username(in format user@email.com) for SMTP authentication. Optional, default is "". [optional]
@@ -30,7 +24,7 @@ func (st *ShowAddEmailLogin) run(caller *ToolCaller, ui *UI) error {
 
 	var password string
 	ui.AddText(0, 2, 1, 1, "Password")
-	pass := ui.AddEditboxString(1, 2, 1, 1, &password)
+	ui.AddEditboxString(1, 2, 1, 1, &password)
 
 	ui.AddText(0, 3, 1, 1, "Server")
 	srv := ui.AddEditboxString(1, 3, 1, 1, &st.SMTPServer)
@@ -42,37 +36,6 @@ func (st *ShowAddEmailLogin) run(caller *ToolCaller, ui *UI) error {
 
 	bt := ui.AddButton(0, 6, 2, 1, "Add new e-mail")
 	bt.clicked = func() error {
-		//checks
-		if st.Username == "" {
-			usr.Error = "Empty field"
-		} else {
-			_, err := mail.ParseAddress(st.Username)
-			if err != nil {
-				usr.Error = "Invalid format: " + err.Error()
-			}
-		}
-
-		if password == "" {
-			pass.Error = "Empty field"
-		}
-
-		if st.SMTPServer == "" {
-			srv.Error = "Empty field"
-		} else {
-			_, err := url.ParseRequestURI(st.SMTPServer)
-			if err != nil {
-				srv.Error = "Invalid format: " + err.Error()
-			}
-		}
-
-		if st.SMTPPort == 0 {
-			prt.Error = "Invalid port number"
-		}
-
-		if usr.Error != "" || pass.Error != "" || srv.Error != "" || prt.Error != "" {
-			return fmt.Errorf("invalid input(s)")
-		}
-
 		//update
 		source_emails.Logins[st.Username] = &EmailsLogin{Password: password, Server: st.SMTPServer, Port: st.SMTPPort}
 		return nil

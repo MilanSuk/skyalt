@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 )
@@ -53,7 +52,7 @@ func (st *AddEvent) run(caller *ToolCaller, ui *UI) error {
 	ui.AddTextLabel(0, 0, 2, 1, "Add new event into calendar")
 
 	ui.AddText(0, 1, 1, 1, "Title")
-	tlt := ui.AddEditboxString(1, 1, 1, 1, &st.Title)
+	ui.AddEditboxString(1, 1, 1, 1, &st.Title)
 
 	ui.AddText(0, 2, 1, 1, "Description")
 	ui.AddEditboxString(1, 2, 1, 1, &st.Description)
@@ -80,16 +79,8 @@ func (st *AddEvent) run(caller *ToolCaller, ui *UI) error {
 	bt := ui.AddButton(0, 12, 2, 1, "Add new Event")
 	bt.clicked = func() error {
 		//checks
-		if st.Title == "" {
-			tlt.Error = "Empty field"
-		}
-
 		if startDate >= endDate {
 			endDate = startDate + 30*60
-		}
-
-		if tlt.Error != "" /*|| start.Error != "" || end.Error != ""*/ {
-			return fmt.Errorf("invalid input(s)")
 		}
 
 		//import files

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/url"
 )
 
 // Edit SMTP e-mail credentials. It shows form with attributes(password, server, port) for Username, which user can change.
@@ -33,9 +32,6 @@ func (st *ShowEmailLogin) run(caller *ToolCaller, ui *UI) error {
 	ui.AddText(0, 2, 1, 1, "Password")
 	pass := ui.AddEditboxString(1, 2, 1, 1, &login.Password)
 	pass.changed = func() error {
-		if login.Password == "" {
-			pass.Error = "Empty field"
-		}
 		return nil
 	}
 
@@ -43,14 +39,6 @@ func (st *ShowEmailLogin) run(caller *ToolCaller, ui *UI) error {
 	srv := ui.AddEditboxString(1, 3, 1, 1, &login.Server)
 	srv.Ghost = "smtp.example.com"
 	srv.changed = func() error {
-		if login.Server == "" {
-			srv.Error = "Empty field"
-		} else {
-			_, err := url.ParseRequestURI(login.Server)
-			if err != nil {
-				srv.Error = "Invalid format: " + err.Error()
-			}
-		}
 		return nil
 	}
 
@@ -58,9 +46,6 @@ func (st *ShowEmailLogin) run(caller *ToolCaller, ui *UI) error {
 	prt := ui.AddEditboxInt(1, 4, 1, 1, &login.Port)
 	prt.Ghost = "587"
 	prt.changed = func() error {
-		if login.Port == 0 {
-			prt.Error = "Invalid port number"
-		}
 		return nil
 	}
 

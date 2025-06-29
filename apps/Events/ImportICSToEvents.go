@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 )
 
@@ -25,15 +24,10 @@ func (st *ImportICSToEvents) run(caller *ToolCaller, ui *UI) error {
 	ui.AddTextLabel(0, 0, 2, 1, "Import .ics file")
 
 	ui.AddText(0, 1, 1, 1, "File(.ics)")
-	fpck := ui.AddFilePickerButton(1, 1, 1, 1, &st.FilePath, true, false)
+	ui.AddFilePickerButton(1, 1, 1, 1, &st.FilePath, true, false)
 
 	bt := ui.AddButton(0, 3, 2, 1, "Import")
 	bt.clicked = func() error {
-		//checks
-		if st.FilePath == "" {
-			fpck.Error = "Empty field"
-			return fmt.Errorf("invalid input(s)")
-		}
 
 		groupID, _ := st.GroupID.Int64()
 

@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 // Form to import .gpx file into database.
 type ImportGPXToActivities struct {
 	FilePath string // Path to .gpx file. Optional, default is "". [optional]
@@ -23,7 +21,7 @@ func (st *ImportGPXToActivities) run(caller *ToolCaller, ui *UI) error {
 	ui.AddTextLabel(0, 0, 2, 1, "Import new activity")
 
 	ui.AddText(0, 1, 1, 1, "File(.gpx)")
-	fpck := ui.AddFilePickerButton(1, 0, 1, 1, &st.FilePath, true, false)
+	ui.AddFilePickerButton(1, 0, 1, 1, &st.FilePath, true, false)
 
 	ui.AddText(0, 2, 1, 1, "Type")
 	ui.AddCombo(1, 2, 1, 1, &st.Type, source_activities.GetTypeLabels(), source_activities.GetTypeValues())
@@ -33,12 +31,6 @@ func (st *ImportGPXToActivities) run(caller *ToolCaller, ui *UI) error {
 
 	bt := ui.AddButton(0, 5, 2, 1, "Import")
 	bt.clicked = func() error {
-		//checks
-		if st.FilePath == "" {
-			fpck.Error = "Empty field"
-			return fmt.Errorf("invalid input(s)")
-		}
-
 		_, err := source_activities._importGPXFile(st.FilePath, st.Type, st.Description)
 		if err != nil {
 			return err

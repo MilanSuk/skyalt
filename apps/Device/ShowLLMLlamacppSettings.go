@@ -41,9 +41,6 @@ func (st *ShowLLMLlamacppSettings) run(caller *ToolCaller, ui *UI) error {
 
 		ad := AddrDiv.AddEditboxString(0, 0, 1, 1, &source_llama.Address)
 		ad.changed = wChanged
-		if source_llama.Address == "" {
-			ad.Error = "Empty"
-		}
 
 		AddrDiv.AddText(1, 0, 1, 1, ":")
 

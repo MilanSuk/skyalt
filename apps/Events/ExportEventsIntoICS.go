@@ -22,7 +22,7 @@ func (st *ExportEventsIntoICS) run(caller *ToolCaller, ui *UI) error {
 	ui.AddTextLabel(0, 0, 2, 1, "Export .ics file")
 
 	ui.AddText(0, 1, 1, 1, "File(.ics)")
-	fpck := ui.AddFilePickerButton(1, 1, 1, 1, &st.FilePath, true, false)
+	ui.AddFilePickerButton(1, 1, 1, 1, &st.FilePath, true, false)
 
 	events, err := source_events.Filter(st.DateStart, st.DateEnd)
 	if err != nil {
@@ -33,11 +33,6 @@ func (st *ExportEventsIntoICS) run(caller *ToolCaller, ui *UI) error {
 
 	bt := ui.AddButton(0, 4, 2, 1, "Export")
 	bt.clicked = func() error {
-		//checks
-		if st.FilePath == "" {
-			fpck.Error = "Empty field"
-			return fmt.Errorf("invalid input(s)")
-		}
 
 		err := source_events.ExportICS(events, st.FilePath)
 		if err != nil {

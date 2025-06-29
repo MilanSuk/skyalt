@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,16 +24,10 @@ func (st *ImportGPXFolderToActivities) run(caller *ToolCaller, ui *UI) error {
 	ui.AddTextLabel(0, 0, 2, 1, "Import activities from folder")
 
 	ui.AddText(0, 1, 1, 1, "Folder")
-	fpck := ui.AddFilePickerButton(1, 0, 1, 1, &st.FolderPath, true, true)
+	ui.AddFilePickerButton(1, 0, 1, 1, &st.FolderPath, true, true)
 
 	bt := ui.AddButton(0, 3, 2, 1, "Import")
 	bt.clicked = func() error {
-		//checks
-		if st.FolderPath == "" {
-			fpck.Error = "Empty field"
-			return fmt.Errorf("invalid input(s)")
-		}
-
 		//copy
 		files, err := os.ReadDir(st.FolderPath)
 		if err != nil {

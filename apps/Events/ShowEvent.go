@@ -35,9 +35,6 @@ func (st *ShowEvent) run(caller *ToolCaller, ui *UI) error {
 	ui.AddText(0, 1, 1, 1, "Title")
 	tlt := ui.AddEditboxString(1, 1, 1, 1, &event.Title)
 	tlt.changed = func() error {
-		if event.Title == "" {
-			tlt.Error = "Empty field"
-		}
 		return nil
 	}
 

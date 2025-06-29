@@ -42,9 +42,6 @@ func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
 
 		ad := AddrDiv.AddEditboxString(0, 0, 1, 1, &source_wsp.Address)
 		ad.changed = wChanged
-		if source_wsp.Address == "" {
-			ad.Error = "Empty"
-		}
 
 		AddrDiv.AddText(1, 0, 1, 1, ":")
 
