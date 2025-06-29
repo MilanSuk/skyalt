@@ -445,9 +445,12 @@ func (router *ToolsRouter) RunNet() {
 				switch string(mode) {
 
 				case "print":
-					str, err := cl.ReadArray()
+					appName, err := cl.ReadArray()
 					if router.log.Error(err) == nil {
-						fmt.Println("Router's print:", string(str))
+						str, err := cl.ReadArray()
+						if router.log.Error(err) == nil {
+							fmt.Printf("Router's print '%s' app: %s\n", string(appName), string(str))
+						}
 					}
 
 				case "register":

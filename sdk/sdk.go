@@ -955,10 +955,13 @@ func callFuncPrint(str string) {
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
-		err = cl.WriteArray([]byte("print"))
+		err = cl.WriteArray([]byte(g_main.appName))
 		if Tool_Error(err) == nil {
-			err = cl.WriteArray([]byte(str))
-			Tool_Error(err)
+			err = cl.WriteArray([]byte("print"))
+			if Tool_Error(err) == nil {
+				err = cl.WriteArray([]byte(str))
+				Tool_Error(err)
+			}
 		}
 	}
 }
