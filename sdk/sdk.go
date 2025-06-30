@@ -746,6 +746,12 @@ func callFuncGetLogs() []SdkLog {
 	return g_logs
 }
 
+func clearLogs() {
+	g_logs_lock.Lock()
+	defer g_logs_lock.Unlock()
+	g_logs = nil
+}
+
 type SdkMicInfo struct {
 	Active              bool
 	Decibels            float64

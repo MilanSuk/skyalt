@@ -588,11 +588,21 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 	{
 		HeaderDiv := ui.AddLayout(0, 0, 1, 1)
 		HeaderDiv.SetColumn(0, 5, 100)
-		HeaderDiv.SetColumn(1, 3, 5)
+		HeaderDiv.SetColumn(1, 3, 3)
+		HeaderDiv.SetColumn(2, 3, 5)
 
 		HeaderDiv.AddTextLabel(0, 0, 1, 1, "Logs")
 
-		CopyBt := HeaderDiv.AddButton(1, 0, 1, 1, "Copy to clipboard")
+		ClearBt := HeaderDiv.AddButton(1, 0, 1, 1, "Clear")
+		ClearBt.layout.Enable = (len(logs) > 0)
+		ClearBt.Background = 0.5
+		ClearBt.clicked = func() error {
+			clearLogs()
+			return nil
+		}
+
+		CopyBt := HeaderDiv.AddButton(2, 0, 1, 1, "Copy to clipboard")
+		CopyBt.layout.Enable = (len(logs) > 0)
 		CopyBt.Background = 0.5
 		CopyBt.clicked = func() error {
 			var str strings.Builder
