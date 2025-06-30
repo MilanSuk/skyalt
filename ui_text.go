@@ -393,8 +393,10 @@ func (ui *Ui) _UiText_Keys(layout *Layout, text string, lines []WinGphLine, tabI
 			mic, _ := layout.ui.router.mic.Start(layout.UID) //err ....
 
 			mic.fnFinished = func(buff *audio.IntBuffer) {
-				transcript, err := layout.ui.router.llms.TranscribeBuff(buff, "wav", "verbose_json")
+				transcript, err := layout.ui.router.llms.TranscribeBuff(buff, "wav", "text")
 				if err == nil {
+
+					transcript = strings.TrimSpace(transcript)
 
 					//remove old selection
 					if *s != *e {
