@@ -169,10 +169,10 @@ func (app *ToolsApp) getPromptFileTime() (int64, bool, error) {
 	promptsFileTime := Tools_GetFileTime(app.getPromptFilePath())
 	secretsFileTime := Tools_GetFileTime(app.getSecretsFilePath())
 
-	codeFileTime := Tools_GetFileTime("sdk/sdk.go")
+	sdkFileTime := Tools_GetFileTime("sdk/sdk.go")
 
 	if promptsFileTime > 0 {
-		return (codeFileTime + promptsFileTime + secretsFileTime), true, nil
+		return (sdkFileTime + promptsFileTime + secretsFileTime), true, nil
 	} else {
 
 		folderPath := app.Process.Compile.GetFolderPath()
@@ -186,10 +186,10 @@ func (app *ToolsApp) getPromptFileTime() (int64, bool, error) {
 			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" {
 				continue
 			}
-			codeFileTime += Tools_GetFileTime(filepath.Join(folderPath, info.Name()))
+			sdkFileTime += Tools_GetFileTime(filepath.Join(folderPath, info.Name()))
 		}
 
-		return codeFileTime, false, nil
+		return sdkFileTime, false, nil
 	}
 }
 
@@ -203,92 +203,89 @@ func (app *ToolsApp) Tick(generate bool) error {
 		return err
 	}
 
-	app.Prompts.Changed = (app.Process.Compile.CodeFileTime != codeFilesTime)
-	if !app.Prompts.Changed {
-		return nil //ok
-	}
-
-	if hasPrompts && !generate {
-		return nil //ok
-	}
-
-	msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
-	defer msg.Done()
+	binFileMissing := !Tools_IsFileExists(app.Process.Compile.GetBinPath()) && app.Process.Compile.Error == ""
 
 	if !hasPrompts {
+		app.Prompts.Changed = (app.Process.Compile.CodeFileTime != codeFilesTime || binFileMissing)
+		if !app.Prompts.Changed {
+			return nil //ok
+		}
+
+		msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
+		defer msg.Done()
 
 		err := app.Prompts._reloadFromCodeFiles(app.Process.Compile.GetFolderPath())
 		if err != nil {
 			return err
 		}
 
-		codeErrors, err := app.Process.Compile._compile(codeFilesTime, false, app.router, msg)
+		codeErrors, err := app.Process.Compile._compile(codeFilesTime, false, msg)
 		if err != nil {
 			return err
 		}
 		app.Prompts.SetCodeErrors(codeErrors)
 	} else {
 
-		saved, err := app.Prompts._reloadFromPromptFile(app.Process.Compile.GetFolderPath())
-		if err != nil {
-			return err
+		app.Prompts.Changed = (app.Process.Compile.GenerateFileTime != codeFilesTime || binFileMissing)
+		if !app.Prompts.Changed {
+			return nil //ok
 		}
-		if saved {
-			codeFilesTime, _, err = app.getPromptFileTime() //refresh after save
+
+		if !generate {
+			//only recompile(for example: sdk.go changed)
+
+			if app.Process.Compile.CodeFileTime != codeFilesTime || binFileMissing {
+				msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
+				defer msg.Done()
+
+				codeErrors, err := app.Process.Compile._compile(codeFilesTime, false, msg)
+				if err != nil {
+					return err
+				}
+				app.Prompts.SetCodeErrors(codeErrors)
+			}
+		} else {
+
+			app.Process.Compile.GenerateFileTime = codeFilesTime
+
+			saved, err := app.Prompts._reloadFromPromptFile(app.Process.Compile.GetFolderPath())
 			if err != nil {
 				return err
 			}
-		}
+			if saved {
+				codeFilesTime, _, err = app.getPromptFileTime() //refresh after save
+				if err != nil {
+					return err
+				}
+			}
 
-		secrets, err := NewToolsSecrets(app.getSecretsFilePath())
-		if err != nil {
-			return err
-		}
-
-		err = app.Prompts.RemoveOldCodeFiles(app.Process.Compile.GetFolderPath())
-		if err != nil {
-			return err
-		}
-
-		//Storage
-		N_msgs := 3
-		for N_msgs >= 0 {
-			err := app.Prompts.GenerateStructureCode(msg, app.router.llms)
+			secrets, err := NewToolsSecrets(app.getSecretsFilePath())
 			if err != nil {
 				return err
 			}
 
-			err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets) //rewrite(remove old) files
+			err = app.Prompts.RemoveOldCodeFiles(app.Process.Compile.GetFolderPath())
 			if err != nil {
 				return err
 			}
 
-			codeErrors, err := app.Process.Compile._compile(codeFilesTime, true, app.router, msg)
-			if err != nil {
-				return err
-			}
-			app.Prompts.SetCodeErrors(codeErrors)
-			if len(codeErrors) == 0 {
-				break
-			}
-			N_msgs--
-		}
+			msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
+			defer msg.Done()
 
-		//Tools
-		if N_msgs >= 0 {
-			N_msgs = 3
+			//Storage
+			N_msgs := 3
 			for N_msgs >= 0 {
-				err := app.Prompts.GenerateToolsCode(msg, app.router.llms)
+				err := app.Prompts.GenerateStructureCode(msg, app.router.llms)
 				if err != nil {
 					return err
 				}
 
-				err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
+				err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets) //rewrite(remove old) files
 				if err != nil {
 					return err
 				}
 
-				codeErrors, err := app.Process.Compile._compile(codeFilesTime, false, app.router, msg)
+				codeErrors, err := app.Process.Compile._compile(codeFilesTime, true, msg)
 				if err != nil {
 					return err
 				}
@@ -297,6 +294,32 @@ func (app *ToolsApp) Tick(generate bool) error {
 					break
 				}
 				N_msgs--
+			}
+
+			//Tools
+			if N_msgs >= 0 {
+				N_msgs = 3
+				for N_msgs >= 0 {
+					err := app.Prompts.GenerateToolsCode(msg, app.router.llms)
+					if err != nil {
+						return err
+					}
+
+					err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
+					if err != nil {
+						return err
+					}
+
+					codeErrors, err := app.Process.Compile._compile(codeFilesTime, false, msg)
+					if err != nil {
+						return err
+					}
+					app.Prompts.SetCodeErrors(codeErrors)
+					if len(codeErrors) == 0 {
+						break
+					}
+					N_msgs--
+				}
 			}
 		}
 	}

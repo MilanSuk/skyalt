@@ -37,8 +37,9 @@ type ToolsCodeError struct {
 type ToolsAppCompile struct {
 	appName string
 
-	Error        string
-	CodeFileTime int64
+	Error            string
+	GenerateFileTime int64
+	CodeFileTime     int64
 }
 
 func NewToolsAppCompile(appName string) *ToolsAppCompile {
@@ -53,9 +54,8 @@ func (cmpl *ToolsAppCompile) GetFolderPath() string {
 func (cmpl *ToolsAppCompile) GetBinName() string {
 	return strconv.FormatInt(cmpl.CodeFileTime, 10) + ".bin"
 }
-
-func (cmpl *ToolsAppCompile) NeedCompile(codeFileTime int64) bool {
-	return cmpl.CodeFileTime != codeFileTime || (cmpl.Error == "" && !Tools_IsFileExists(filepath.Join(cmpl.GetFolderPath(), cmpl.GetBinName())))
+func (cmpl *ToolsAppCompile) GetBinPath() string {
+	return filepath.Join(cmpl.GetFolderPath(), cmpl.GetBinName())
 }
 
 func (cmpl *ToolsAppCompile) RemoveOldBins() error {
@@ -76,7 +76,7 @@ func (cmpl *ToolsAppCompile) RemoveOldBins() error {
 	return nil
 }
 
-func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, noBinary bool, router *ToolsRouter, msg *ToolsRouterMsg) ([]ToolsCodeError, error) {
+func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, noBinary bool, msg *ToolsRouterMsg) ([]ToolsCodeError, error) {
 
 	cmpl.Error = ""
 
