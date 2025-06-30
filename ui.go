@@ -396,14 +396,18 @@ func (ui *Ui) Tick() {
 		for _, dia := range ui.settings.Dialogs {
 			diaLay := ui.mainLayout.FindUID(dia.UID)
 			if diaLay != nil {
-
 				if diaLay.parent != nil {
 					diaLay.parent.dialog = diaLay //update layout.dialog
 				}
-
 				ui._relayout(diaLay)
-			} else {
-				fmt.Println("dialog not found")
+			}
+		}
+
+		//maintenance
+		for i := len(ui.settings.Dialogs) - 1; i >= 0; i-- {
+			diaLay := ui.mainLayout.FindUID(ui.settings.Dialogs[i].UID)
+			if diaLay == nil {
+				ui.settings.Dialogs = slices.Delete(ui.settings.Dialogs, i, i+1)
 			}
 		}
 
