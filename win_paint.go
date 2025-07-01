@@ -265,8 +265,8 @@ func (b *WinPaintBuff) AddText(ln string, prop WinFontProps, frontCd color.RGBA,
 	b.AddCrop(imgRectBackup)
 }
 
-func (b *WinPaintBuff) AddTextBack(rangee OsV2, ln string, prop WinFontProps, coord OsV4, cd color.RGBA, align OsV2, underline bool, yLine, num_lines int) {
-	if rangee.X == rangee.Y {
+func (b *WinPaintBuff) AddTextBack(rangee OsV2, ln string, prop WinFontProps, coord OsV4, cd color.RGBA, align OsV2, underline bool, yLine, num_lines int, cell int) {
+	if rangee.X == rangee.Y && num_lines <= 1 {
 		return
 	}
 
@@ -291,6 +291,10 @@ func (b *WinPaintBuff) AddTextBack(rangee OsV2, ln string, prop WinFontProps, co
 			c := InitOsV4(start.X+rng.X, start.Y, rng.Y-rng.X, prop.lineH)
 			b.AddRect(c, cd, 0)
 		}
+	} else {
+		//empty line
+		c := InitOsV4(start.X+rng.X, start.Y, OsMax(2, cell/10), prop.lineH)
+		b.AddRect(c, cd, 0)
 	}
 }
 

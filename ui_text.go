@@ -101,14 +101,14 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 				if y == curr_ey { //last line
 					_, rl_ex = WinGph_CursorLine(value, lines, range_ex)
 				}
-			}
 
-			ui.GetWin().buff.AddTextBack(OsV2{rl_sx, rl_ex}, ln, prop, coord, cdSelection, align, false, y, len(lines))
+				ui.GetWin().buff.AddTextBack(OsV2{rl_sx, rl_ex}, ln, prop, coord, cdSelection, align, false, y, len(lines), layout.Cell())
+			}
 
 			ui.GetWin().buff.AddText(ln, prop, frontCd, coord, align, y, len(lines))
 		}
 	} else {
-		ui.GetWin().buff.AddTextBack(OsV2{range_sx, range_ex}, value, prop, coord, cdSelection, align, false, 0, 1)
+		ui.GetWin().buff.AddTextBack(OsV2{range_sx, range_ex}, value, prop, coord, cdSelection, align, false, 0, 1, layout.Cell())
 
 		ui.GetWin().buff.AddText(value, prop, frontCd, coord, align, 0, 1)
 	}
