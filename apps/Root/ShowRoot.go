@@ -537,27 +537,27 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
 		return
 	}
 
-	ui.SetColumn(0, 1, 10)
+	ui.SetColumnFromSub(0, 1, 30)
 	ui.SetRowFromSub(0, 1, 15)
 
 	total_price := 0.0
 	{
-		ListDiv := ui.AddLayout(0, 0, 1, 1)
-		ListDiv.SetColumnFromSub(0, 1, 6)
-		ListDiv.SetColumnFromSub(1, 1, 5)
-		ListDiv.SetColumnFromSub(2, 1, 2)
-		ListDiv.SetColumnFromSub(3, 1, 4)
+		ItemsDiv := ui.AddLayout(0, 0, 1, 1)
+		ItemsDiv.SetColumnFromSub(0, 1, 10)
+		ItemsDiv.SetColumnFromSub(1, 1, 10)
+		ItemsDiv.SetColumnFromSub(2, 1, 10)
+		ItemsDiv.SetColumnFromSub(3, 1, 10)
 
 		y := 0
 		for i := len(usages) - 1; i >= 0; i-- {
 			usg := &usages[i]
 
-			ListDiv.AddText(0, y, 1, 1, usg.Model)
-			ListDiv.AddText(1, y, 1, 1, SdkGetDateTime(int64(usg.CreatedTimeSec)))
-			ListDiv.AddText(2, y, 1, 1, fmt.Sprintf("%.0fsec", usg.DTime))
+			ItemsDiv.AddText(0, y, 1, 1, usg.Model)
+			ItemsDiv.AddText(1, y, 1, 1, SdkGetDateTime(int64(usg.CreatedTimeSec)))
+			ItemsDiv.AddText(2, y, 1, 1, fmt.Sprintf("%.0fsec", usg.DTime))
 
 			price := (usg.Prompt_price + usg.Input_cached_price + usg.Completion_price + usg.Reasoning_price)
-			ListDiv.AddText(3, y, 1, 1, fmt.Sprintf("$%f", price))
+			ItemsDiv.AddText(3, y, 1, 1, fmt.Sprintf("$%f", price))
 			total_price += price
 
 			y++
