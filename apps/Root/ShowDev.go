@@ -156,9 +156,9 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 	if app.Dev.MainMode == "secrets" {
 		ed := MainDiv.AddEditboxString(1, 1, 1, 1, &fileSecrets)
-		ed.Align_v = 0
 		ed.Linewrapping = true
 		ed.Multiline = true
+		ed.Align_v = 0
 		ed.layout.Enable = !isGenerating
 		ed.AutoSave = true //refresh "Save button"
 		ed.changed = func() error {
@@ -182,9 +182,9 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		}
 
 		ed := MainDiv.AddEditboxString(1, 1, 1, 1, &prompts)
-		ed.Align_v = 0
 		ed.Linewrapping = true
 		ed.Multiline = true
+		ed.Align_v = 0
 		ed.layout.Enable = !isGenerating
 		ed.AutoSave = true //refresh "Save button"
 		ed.changed = func() error {
@@ -303,7 +303,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			{
 				HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
 				HeaderDiv.SetColumn(1, 3, 100)
-				HeaderDiv.ScrollV.Hide = true
+				//HeaderDiv.ScrollV.Hide = true
 				HeaderDiv.ScrollH.Narrow = true
 
 				CloseBt := HeaderDiv.AddButton(0, 0, 1, 1, ">>")
@@ -346,7 +346,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
 				HeaderDiv.SetColumn(1, 3, 100)
 				HeaderDiv.SetColumnFromSub(3, 5, 100)
-				HeaderDiv.ScrollV.Hide = true
+				//HeaderDiv.ScrollV.Hide = true
 				HeaderDiv.ScrollH.Narrow = true
 
 				CloseBt := HeaderDiv.AddButton(0, 0, 1, 1, ">>")

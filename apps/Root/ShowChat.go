@@ -69,7 +69,7 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 
 		DashHeaderDiv := ChatDiv.AddLayout(0, 0, 1, 1)
 		DashHeaderDiv.ScrollH.Narrow = true
-		DashHeaderDiv.ScrollV.Hide = true
+		//DashHeaderDiv.ScrollV.Hide = true
 		{
 			preUI := source_chat.FindPreviousUI(source_chat.Dash_call_id)
 			nxtUI := source_chat.FindNextUI(source_chat.Dash_call_id)
@@ -689,7 +689,7 @@ func (st *ShowChat) buildShowMessages(ui *UI, caller *ToolCaller, source_chat *C
 	for msg_i, msg := range source_chat.Messages.Messages {
 		if msg.Content.Result != nil {
 			//space
-			ui.SetRow(y, 0.5, 0.5)
+			//ui.SetRow(y, 0.5, 0.5)
 			y++
 			continue //skip
 		}
@@ -789,6 +789,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 
 					tx := UserDiv.AddText(1, 0, 1, 1, txt)
 					tx.Multiline = true
+					//tx.Align_v = 0
 					tx.layout.Border_cd = UI_GetPalette().GetGrey(0.2)
 					tx.layout.Back_cd = UI_GetPalette().B
 					tx.layout.Back_rounding = true
@@ -861,6 +862,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				layout.SetRowFromSub(y, 1, 100)
 				tx := layout.AddText(0, y, 3, 1, txt)
 				tx.Multiline = true
+				//tx.Align_v = 0
 				y++
 			}
 
@@ -876,6 +878,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				layout.SetRowFromSub(y, 1, 100)
 				tx := layout.AddText(0, y, 3, 1, rsp_txt)
 				tx.Multiline = true
+				//tx.Align_v = 0
 				y++
 			}
 		}
@@ -1123,6 +1126,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 				if strings.Count(valStr, "\n") > 0 {
 					tx := CallDiv.AddText(2, yy, 1, 1, valStr)
 					tx.Multiline = true
+					//tx.Align_v = 0
 				} else {
 					CallDiv.AddText(2, yy, 1, 1, valStr)
 				}
@@ -1136,6 +1140,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 			CallDiv.SetRowFromSub(yy, 1, 100)
 			tx := CallDiv.AddText(1, yy, 2, 1, msg_result.Content.Result.Content)
 			tx.Multiline = true
+			//tx.Align_v = 0
 			yy++
 		}
 	}
