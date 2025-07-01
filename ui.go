@@ -459,6 +459,7 @@ func (ui *Ui) Tick() {
 		ui.SetRefresh()
 	}
 
+	ui.router.Tick()
 }
 
 func (ui *Ui) _addLayout_FnProgress(cmdsJs [][]byte, err error, start_time float64) {

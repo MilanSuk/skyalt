@@ -28,7 +28,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/veandco/go-sdl2/mix"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -38,11 +37,6 @@ func InitSDLGlobal() error {
 	err := sdl.Init(sdl.INIT_EVERYTHING)
 	if err != nil {
 		return fmt.Errorf("sdl.Init() failed: %w", err)
-	}
-
-	err = mix.Init(mix.INIT_FLAC | mix.INIT_MOD | mix.INIT_MP3 | mix.INIT_OGG)
-	if err != nil {
-		return fmt.Errorf("mix.Init() failed: %w", err)
 	}
 
 	n, err := sdl.GetNumVideoDisplays()

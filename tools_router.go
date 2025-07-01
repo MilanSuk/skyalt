@@ -86,16 +86,21 @@ type ToolsRouter struct {
 	llms *LLMs
 	sync *ToolsSync
 
-	mic      *ToolsMicMalgo
-	speakers *ToolsSpeakers
+	mic    *ToolsMicMalgo
+	player *ToolsPlayer
 }
 
 func NewToolsRouter(start_port int) (*ToolsRouter, error) {
 	var err error
 
 	router := &ToolsRouter{}
+
 	router.mic = NewToolsMicMalgo(router)
-	router.speakers = NewToolsSpeakers(router)
+	router.player, err = NewToolsPlayer(router)
+	if err != nil {
+		return nil, err
+	}
+
 	router.server = NewToolsServer(start_port)
 	router.msgs = make(map[uint64]*ToolsRouterMsg)
 	router.apps = make(map[string]*ToolsApp)
@@ -140,7 +145,7 @@ func (router *ToolsRouter) Destroy() {
 	router.server.Destroy()
 
 	router.mic.Destroy()
-	router.speakers.Destroy()
+	router.player.Destroy()
 
 	router.Save()
 }
@@ -873,4 +878,8 @@ func (router *ToolsRouter) _hotReload() {
 			router.log.Error(fmt.Errorf("%s: %w", appName, err))
 		}
 	}
+}
+
+func (router *ToolsRouter) Tick() {
+	router.player.Tick()
 }

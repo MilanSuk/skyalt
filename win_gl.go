@@ -239,6 +239,24 @@ func InitWinTextureSize(size OsV2) (*WinTexture, error) {
 	return &tex, nil
 }
 
+func InitWinVideo(size OsV2) (*WinTexture, error) {
+	var tex WinTexture
+
+	gl.GenTextures(1, &tex.id)
+
+	gl.ActiveTexture(gl.TEXTURE0)
+	gl.BindTexture(gl.TEXTURE_2D, tex.id)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP)
+
+	tex.size = size
+
+	return &tex, nil
+}
+
 func InitWinTextureFromImageRGBAPix(rgba []byte, size OsV2) (*WinTexture, error) {
 	var tex WinTexture
 
@@ -322,6 +340,11 @@ func (tex *WinTexture) Destroy() {
 		gl.DeleteTextures(1, &tex.id)
 		tex.id = 0
 	}
+}
+
+func (tex *WinTexture) UpdateContent(size OsV2, pixels unsafe.Pointer) {
+	gl.BindTexture(gl.TEXTURE_2D, tex.id)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(tex.size.X), int32(tex.size.Y), 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 }
 
 func (tex *WinTexture) DrawQuadUV(coord OsV4, depth int, cd color.RGBA, sUV, eUV OsV2f) {
