@@ -150,7 +150,7 @@ func (app *ToolsApp) CheckRun() error {
 		return fmt.Errorf("'%s' app has compilation error: %s", app.Process.Compile.GetFolderPath(), app.Process.cmd_error)
 	}
 
-	if app.Process.Compile.CodeFileTime == 0 {
+	if app.Process.Compile.AppFileTime == 0 {
 		return fmt.Errorf("'%s' app is waiting for compilation", app.Process.Compile.GetFolderPath())
 	}
 
@@ -165,31 +165,34 @@ func (app *ToolsApp) getSecretsFilePath() string {
 	return filepath.Join(app.Process.Compile.GetFolderPath(), "secrets")
 }
 
-func (app *ToolsApp) getPromptFileTime() (int64, bool, error) {
+func (app *ToolsApp) getPromptFileTime() (int64, int64, bool, error) {
 	promptsFileTime := Tools_GetFileTime(app.getPromptFilePath())
 	secretsFileTime := Tools_GetFileTime(app.getSecretsFilePath())
 
 	sdkFileTime := Tools_GetFileTime("sdk/sdk.go")
 
 	if promptsFileTime > 0 {
-		return (sdkFileTime + promptsFileTime + secretsFileTime), true, nil
+		fileTappFilesTimeme := sdkFileTime + promptsFileTime + secretsFileTime
+
+		return sdkFileTime, fileTappFilesTimeme, true, nil
 	} else {
 
 		folderPath := app.Process.Compile.GetFolderPath()
 		files, err := os.ReadDir(folderPath)
 		if err != nil {
-			return -1, false, err
+			return sdkFileTime, -1, false, err
 		}
 
 		//add new tools
+		appFilesTime := sdkFileTime
 		for _, info := range files {
 			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" {
 				continue
 			}
-			sdkFileTime += Tools_GetFileTime(filepath.Join(folderPath, info.Name()))
+			appFilesTime += Tools_GetFileTime(filepath.Join(folderPath, info.Name()))
 		}
 
-		return sdkFileTime, false, nil
+		return sdkFileTime, appFilesTime, false, nil
 	}
 }
 
@@ -198,19 +201,19 @@ func (app *ToolsApp) Tick(generate bool) error {
 	app.lock.Lock()
 	defer app.lock.Unlock()
 
-	codeFilesTime, hasPrompts, err := app.getPromptFileTime()
+	sdkFileTime, appFilesTime, hasPrompts, err := app.getPromptFileTime()
 	if err != nil {
 		return err
 	}
 
 	binFileMissing := !Tools_IsFileExists(app.Process.Compile.GetBinPath()) && app.Process.Compile.Error == ""
 
-	if !hasPrompts {
-		app.Prompts.Changed = (app.Process.Compile.CodeFileTime != codeFilesTime || binFileMissing)
-		if !app.Prompts.Changed {
-			return nil //ok
-		}
+	app.Prompts.Changed = (app.Process.Compile.AppFileTime != appFilesTime || binFileMissing)
+	if !app.Prompts.Changed {
+		return nil //ok
+	}
 
+	if !hasPrompts {
 		msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
 		defer msg.Done()
 
@@ -219,41 +222,38 @@ func (app *ToolsApp) Tick(generate bool) error {
 			return err
 		}
 
-		codeErrors, err := app.Process.Compile._compile(codeFilesTime, false, msg)
+		codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
 		if err != nil {
 			return err
 		}
 		app.Prompts.SetCodeErrors(codeErrors)
 	} else {
 
-		app.Prompts.Changed = (app.Process.Compile.GenerateFileTime != codeFilesTime || binFileMissing)
+		/*app.Prompts.Changed = (app.Process.Compile.SdkFileTime != sdkFileTime || binFileMissing)
 		if !app.Prompts.Changed {
 			return nil //ok
-		}
+		}*/
 
 		if !generate {
 			//only recompile(for example: sdk.go changed)
 
-			if app.Process.Compile.CodeFileTime != codeFilesTime || binFileMissing {
+			if app.Process.Compile.SdkFileTime != sdkFileTime || binFileMissing {
 				msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
 				defer msg.Done()
 
-				codeErrors, err := app.Process.Compile._compile(codeFilesTime, false, msg)
+				codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
 				if err != nil {
 					return err
 				}
 				app.Prompts.SetCodeErrors(codeErrors)
 			}
 		} else {
-
-			app.Process.Compile.GenerateFileTime = codeFilesTime
-
 			saved, err := app.Prompts._reloadFromPromptFile(app.Process.Compile.GetFolderPath())
 			if err != nil {
 				return err
 			}
 			if saved {
-				codeFilesTime, _, err = app.getPromptFileTime() //refresh after save
+				sdkFileTime, appFilesTime, _, err = app.getPromptFileTime() //refresh after save
 				if err != nil {
 					return err
 				}
@@ -285,7 +285,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 					return err
 				}
 
-				codeErrors, err := app.Process.Compile._compile(codeFilesTime, true, msg)
+				codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, true, msg)
 				if err != nil {
 					return err
 				}
@@ -310,7 +310,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 						return err
 					}
 
-					codeErrors, err := app.Process.Compile._compile(codeFilesTime, false, msg)
+					codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
 					if err != nil {
 						return err
 					}

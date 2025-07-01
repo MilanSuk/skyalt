@@ -37,9 +37,9 @@ type ToolsCodeError struct {
 type ToolsAppCompile struct {
 	appName string
 
-	Error            string
-	GenerateFileTime int64
-	CodeFileTime     int64
+	Error       string
+	SdkFileTime int64
+	AppFileTime int64
 }
 
 func NewToolsAppCompile(appName string) *ToolsAppCompile {
@@ -52,7 +52,7 @@ func (cmpl *ToolsAppCompile) GetFolderPath() string {
 }
 
 func (cmpl *ToolsAppCompile) GetBinName() string {
-	return strconv.FormatInt(cmpl.CodeFileTime, 10) + ".bin"
+	return strconv.FormatInt(cmpl.AppFileTime, 10) + ".bin"
 }
 func (cmpl *ToolsAppCompile) GetBinPath() string {
 	return filepath.Join(cmpl.GetFolderPath(), cmpl.GetBinName())
@@ -76,11 +76,12 @@ func (cmpl *ToolsAppCompile) RemoveOldBins() error {
 	return nil
 }
 
-func (cmpl *ToolsAppCompile) _compile(codeFileTime int64, noBinary bool, msg *ToolsRouterMsg) ([]ToolsCodeError, error) {
+func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary bool, msg *ToolsRouterMsg) ([]ToolsCodeError, error) {
 
 	cmpl.Error = ""
 
-	cmpl.CodeFileTime = codeFileTime
+	cmpl.SdkFileTime = sdkFileTime
+	cmpl.AppFileTime = appFileTime
 
 	msg.progress_label = "Generating tools code " + cmpl.GetFolderPath()
 	{
