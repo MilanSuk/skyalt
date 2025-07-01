@@ -264,7 +264,7 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 		dia.Close()
 	}
 
-	STT := dia.Layout.AddButton(0, 3, 1, 1, OsTrnString(layout.ui.router.mic.Find(layout.UID) == nil, "Start", "Stop")+" recording speech")
+	STT := dia.Layout.AddButton(0, 4, 1, 1, OsTrnString(layout.ui.router.mic.Find(layout.UID) == nil, "Start", "Stop")+" recording speech")
 	STT.Tooltip = "Record microphone and convert speech-to-text"
 	STT.Align = 0
 	STT.Background = 0.25
