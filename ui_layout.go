@@ -205,7 +205,7 @@ type Layout struct {
 	childs  []*Layout
 	dialogs []*LayoutDialog
 
-	canvas OsV4 //wild idea: Work with cells everywhere. Pixels only for final rendering. ....
+	canvas OsV4
 	view   OsV4
 	crop   OsV4
 
@@ -666,7 +666,11 @@ func (layout *Layout) _relayout() {
 				for _, it := range layout.childs {
 					if it.IsShown() {
 						if it.X == c.Pos && it.W == 1 {
-							v = OsMaxFloat(v, it._getWidth())
+							vv := it._getWidth()
+							if it.scrollV.Is() {
+								vv += float64(it.scrollV._GetWidth(it.ui)) / float64(it.Cell()) //add scroll width
+							}
+							v = OsMaxFloat(v, vv)
 						}
 					}
 				}
@@ -685,7 +689,11 @@ func (layout *Layout) _relayout() {
 				for _, it := range layout.childs {
 					if it.IsShown() {
 						if it.Y == r.Pos && it.H == 1 {
-							v = OsMaxFloat(v, it._getHeight())
+							vv := it._getHeight()
+							if it.scrollH.Is() {
+								//vv += float64(it.scrollH._GetWidth(it.ui)) / float64(it.Cell()) //add scroll width
+							}
+							v = OsMaxFloat(v, vv)
 						}
 					}
 				}
