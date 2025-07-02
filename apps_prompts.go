@@ -218,13 +218,13 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 		if isStorage && structFound {
 			app.Err = "second '#storage' is not allowed"
 			app.Err_line = i + 1
-			return false, fmt.Errorf(app.Err)
+			return false, LogsErrorf(app.Err)
 		}
 
 		if isStart && startFound {
 			app.Err = "second '#start' is not allowed"
 			app.Err_line = i + 1
-			return false, fmt.Errorf(app.Err)
+			return false, LogsErrorf(app.Err)
 		}
 
 		if isHash {
@@ -250,7 +250,7 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 			if toolName == "" {
 				app.Err = "nothing after '#'"
 				app.Err_line = i + 1
-				return false, fmt.Errorf(app.Err)
+				return false, LogsErrorf(app.Err)
 			}
 
 			//save
@@ -269,7 +269,7 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 			if last_prompt == nil && ln != "" {
 				app.Err = "missing '#storage' or '#tool' header"
 				app.Err_line = i + 1
-				return false, fmt.Errorf(app.Err)
+				return false, LogsErrorf(app.Err)
 			}
 
 			if last_prompt != nil {
@@ -309,7 +309,7 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 	return saveFile, nil
 }
 
-func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *ToolsPrompt, comp *LLMComplete, msg *ToolsRouterMsg, llms *LLMs) error {
+func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *ToolsPrompt, comp *LLMComplete, msg *AppsRouterMsg, llms *LLMs) error {
 
 	var err error
 	if prompt == storagePrompt {
@@ -372,7 +372,7 @@ func _ToolsPrompts_prepareLLMCompleteStruct() *LLMComplete {
 	return comp
 }
 
-func (app *ToolsPrompts) GenerateStructureCode(msg *ToolsRouterMsg, llms *LLMs) error {
+func (app *ToolsPrompts) GenerateStructureCode(msg *AppsRouterMsg, llms *LLMs) error {
 
 	defer func() {
 		//reset
@@ -383,13 +383,13 @@ func (app *ToolsPrompts) GenerateStructureCode(msg *ToolsRouterMsg, llms *LLMs) 
 	//find Storage
 	storagePrompt := app.FindPromptName("Storage")
 	if storagePrompt == nil {
-		return fmt.Errorf("'Storage' prompt not found")
+		return LogsErrorf("'Storage' prompt not found")
 	}
 
 	return app.generatePromptCode(storagePrompt, storagePrompt, _ToolsPrompts_prepareLLMCompleteStruct(), msg, llms)
 }
 
-func (app *ToolsPrompts) GenerateToolsCode(msg *ToolsRouterMsg, llms *LLMs) error {
+func (app *ToolsPrompts) GenerateToolsCode(msg *AppsRouterMsg, llms *LLMs) error {
 
 	defer func() {
 		//reset
@@ -400,7 +400,7 @@ func (app *ToolsPrompts) GenerateToolsCode(msg *ToolsRouterMsg, llms *LLMs) erro
 	//find Storage
 	storagePrompt := app.FindPromptName("Storage")
 	if storagePrompt == nil {
-		return fmt.Errorf("'Storage' prompt not found")
+		return LogsErrorf("'Storage' prompt not found")
 	}
 
 	//then generate tools code
@@ -583,8 +583,8 @@ func _ToolsPrompt_getValidFileName(s string) string {
 
 /*func _ToolsPrompt_getFileName(code string) (string, error) {
 	file, err := parser.ParseFile(token.NewFileSet(), "", code, parser.ParseComments)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse source: %v", err)
+	if LogsError(err) != nil {
+		return "", err
 	}
 
 	var structName string

@@ -73,11 +73,11 @@ func (st *Switch) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	}
 
 	//draw switch
-	paint.RectRad(rc, cd, cd, cd, 0, rc.H*layout.ui.router.sync.GetRounding())
+	paint.RectRad(rc, cd, cd, cd, 0, rc.H*layout.ui.router.services.sync.GetRounding())
 
 	rc = rc.Cut(0.1)
 	rc.W /= 2
-	in_rounding := rc.H * layout.ui.router.sync.GetRounding()
+	in_rounding := rc.H * layout.ui.router.services.sync.GetRounding()
 	if !*st.Value {
 		paint.RectRad(rc, cd2, cd2_over, cd2_down, 0, in_rounding)
 

@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"slices"
@@ -26,7 +25,7 @@ import (
 
 type Ui struct {
 	win    *Win
-	router *ToolsRouter
+	router *AppsRouter
 
 	winRect OsV4
 
@@ -58,7 +57,7 @@ type Ui struct {
 	last_layout_updates_ticks int64
 }
 
-func NewUi(win *Win, router *ToolsRouter) (*Ui, error) {
+func NewUi(win *Win, router *AppsRouter) (*Ui, error) {
 	ui := &Ui{win: win, router: router}
 
 	ui.datePage = time.Now().Unix()
@@ -82,8 +81,6 @@ func NewUi(win *Win, router *ToolsRouter) (*Ui, error) {
 	return ui, nil
 }
 func (ui *Ui) Destroy() {
-	ui.router.sync.Destroy()
-
 	ui.save()
 
 	ui.mainLayout.Destroy()
@@ -103,9 +100,8 @@ func (ui *Ui) open() bool {
 		}
 
 		if len(jsRead) > 0 {
-			err := json.Unmarshal(jsRead, ui.settings)
+			err := LogsJsonUnmarshal(jsRead, ui.settings)
 			if err != nil {
-				fmt.Printf("Unmarshal() %s file failed: %v\n", ui.GetSettingsPath(), err)
 				return false
 			}
 		}
@@ -141,27 +137,27 @@ func (ui *Ui) UpdateIO(winRect OsV4) {
 
 	keys := ui.win.io.Keys
 	if keys.ZoomAdd {
-		ui.router.sync.Upload_deviceDPI(OsClamp(ui.router.sync.Device.Dpi+3, 30, 5000))
+		ui.router.services.sync.Upload_deviceDPI(OsClamp(ui.router.services.sync.Device.Dpi+3, 30, 5000))
 		keys.ZoomAdd = false
 	}
 	if keys.ZoomSub {
-		ui.router.sync.Upload_deviceDPI(OsClamp(ui.router.sync.Device.Dpi-3, 30, 5000))
+		ui.router.services.sync.Upload_deviceDPI(OsClamp(ui.router.services.sync.Device.Dpi-3, 30, 5000))
 		keys.ZoomSub = false
 	}
 	if keys.ZoomDef {
-		ui.router.sync.Upload_deviceDPI(GetDeviceDPI())
+		ui.router.services.sync.Upload_deviceDPI(GetDeviceDPI())
 		keys.ZoomDef = false
 	}
 	if keys.F2 {
-		ui.router.sync.Upload_deviceStats(!ui.router.sync.Device.Stats)
+		ui.router.services.sync.Upload_deviceStats(!ui.router.services.sync.Device.Stats)
 		keys.F2 = false
 	}
 	if keys.F11 {
-		ui.router.sync.Upload_deviceFullscreen(!ui.router.sync.Device.Fullscreen)
+		ui.router.services.sync.Upload_deviceFullscreen(!ui.router.services.sync.Device.Fullscreen)
 		keys.F11 = false
 	}
 
-	ui.win.fullscreen = ui.router.sync.Device.Fullscreen
+	ui.win.fullscreen = ui.router.services.sync.Device.Fullscreen
 
 	if !ui.winRect.Cmp(winRect) {
 		ui.SetRefresh()
@@ -200,7 +196,7 @@ func (ui *Ui) ResetIO() {
 }
 
 func (ui *Ui) Cell() int {
-	return int(float64(ui.router.sync.Device.Dpi) / 2.5)
+	return int(float64(ui.router.services.sync.Device.Dpi) / 2.5)
 }
 func (ui *Ui) CellWidth(width float64) int {
 	t := int(width * float64(ui.Cell())) // cell is ~34
@@ -210,7 +206,7 @@ func (ui *Ui) CellWidth(width float64) int {
 	return t
 }
 func (ui *Ui) GetScrollThickness() int {
-	return int(float64(ui.Cell()) * float64(ui.router.sync.Device.ScrollThick))
+	return int(float64(ui.Cell()) * float64(ui.router.services.sync.Device.ScrollThick))
 }
 
 func (layout *Layout) _draw() {
@@ -244,7 +240,7 @@ func (ui *Ui) Draw() {
 	}
 
 	win := ui.GetWin()
-	win.buff.StartLevel(ui.mainLayout.canvas, ui.router.sync.GetPalette().B, OsV4{}, 0)
+	win.buff.StartLevel(ui.mainLayout.canvas, ui.router.services.sync.GetPalette().B, OsV4{}, 0)
 
 	ui.mainLayout.Draw()
 	if win.io.Keys.Ctrl {
@@ -307,7 +303,7 @@ func (ui *Ui) Tick() {
 		ui.SetRefresh()
 	}
 
-	if ui.router.sync.Tick() {
+	if ui.router.Tick() {
 		ui.SetRefresh()
 	}
 
@@ -334,13 +330,13 @@ func (ui *Ui) Tick() {
 			}
 
 			var uii UI
-			err = json.Unmarshal(uiJs, &uii)
+			err = LogsJsonUnmarshal(uiJs, &uii)
 			if err == nil {
 				ui.temp_ui = &uii
 			}
 
 			var cmds []ToolCmd
-			err = json.Unmarshal(cmdsJs, &cmds)
+			err = LogsJsonUnmarshal(cmdsJs, &cmds)
 			if err == nil {
 				ui.temp_cmds = append(ui.temp_cmds, cmds...)
 			}
@@ -459,7 +455,6 @@ func (ui *Ui) Tick() {
 		ui.SetRefresh()
 	}
 
-	ui.router.Tick()
 }
 
 func (ui *Ui) _addLayout_FnProgress(cmdsJs [][]byte, err error, start_time float64) {
@@ -468,7 +463,7 @@ func (ui *Ui) _addLayout_FnProgress(cmdsJs [][]byte, err error, start_time float
 	}
 	for _, js := range cmdsJs {
 		var cmds []ToolCmd
-		err := json.Unmarshal(js, &cmds)
+		err := LogsJsonUnmarshal(js, &cmds)
 		if err == nil {
 			ui.temp_cmds = append(ui.temp_cmds, cmds...)
 		}
@@ -480,7 +475,7 @@ func (ui *Ui) _addLayout_FnIODone(ioJs []byte, uiJs []byte, cmdsJs []byte, err e
 	}
 
 	var cmds []ToolCmd
-	err = json.Unmarshal(cmdsJs, &cmds)
+	err = LogsJsonUnmarshal(cmdsJs, &cmds)
 	if err == nil {
 		ui.temp_cmds = append(ui.temp_cmds, cmds...)
 	}

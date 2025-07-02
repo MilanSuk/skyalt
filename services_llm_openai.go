@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -57,7 +56,7 @@ type LLMOpenai struct {
 
 func (oai *LLMOpenai) Check() error {
 	if oai.API_key == "" {
-		return fmt.Errorf("%s API key is empty", oai.Provider)
+		return LogsErrorf("%s API key is empty", oai.Provider)
 	}
 
 	return nil
@@ -160,7 +159,7 @@ func (model *LLMOpenaiLanguageModel) GetTextPrice(in, reason, cached, out int) (
 	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price
 }
 
-func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpenAI_completion_tool, router *ToolsRouter, msg *ToolsRouterMsg) error {
+func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpenAI_completion_tool, msg *AppsRouterMsg) error {
 	err := oai.Check()
 	if err != nil {
 		return err
@@ -169,16 +168,16 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpen
 	//Messages
 	var msgs ChatMsgs
 	if len(st.PreviousMessages) > 0 {
-		err := json.Unmarshal(st.PreviousMessages, &msgs)
+		err := LogsJsonUnmarshal(st.PreviousMessages, &msgs)
 		if err != nil {
-			return fmt.Errorf("PreviousMessages failed: %v", err)
+			return err
 		}
 	}
 
 	if st.UserMessage != "" || len(st.UserFiles) > 0 {
 		m1, err := msgs.AddUserMessage(st.UserMessage, st.UserFiles)
 		if err != nil {
-			return fmt.Errorf("AddUserMessage() failed: %v", err)
+			return err
 		}
 		if st.delta != nil {
 			st.delta(m1)
@@ -249,20 +248,20 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpen
 
 		//print
 		{
-			js, err := json.MarshalIndent(props, "", "  ")
+			js, err := LogsJsonMarshalIndent(props)
 			if err == nil {
 				fmt.Printf("---\n" + string(js) + "\n---\n")
 			}
 		}
 
-		jsProps, err := json.Marshal(props)
+		jsProps, err := LogsJsonMarshal(props)
 		if err != nil {
-			return fmt.Errorf("props failed: %v", err)
+			return err
 		}
 		out, status, dt, time_to_first_token, err := OpenAI_completion_Run(jsProps, oai.OpenAI_url, oai.API_key, fnStreaming)
 		st.Out_StatusCode = status
 		if err != nil {
-			return fmt.Errorf("OpenAI_completion_Run() failed: %v", err)
+			return err
 		}
 
 		if !msg.Progress(0, "completing") {
@@ -308,8 +307,8 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpen
 				var result string
 
 				//call it
-				resJs, uiJs, cmdsJs, err := _ToolsCaller_CallBuild(app_port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments), router.log.Error)
-				if router.log.Error(err) != nil {
+				resJs, uiJs, cmdsJs, err := _ToolsCaller_CallBuild(app_port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments))
+				if err != nil {
 					return err
 				}
 				//resJs, tool_ui, err := CallToolApp(st.AppName, call.Function.Name, []byte(call.Function.Arguments), caller)
@@ -318,60 +317,53 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpen
 				msg.out_flushed_cmds = append(msg.out_flushed_cmds, cmdsJs)
 
 				resMap := make(map[string]interface{})
-				if err == nil {
-					err = json.Unmarshal(resJs, &resMap)
-					if err != nil {
-						return fmt.Errorf("resJs failed: %v", err)
-					}
-
-					//Out_ -> result
-					{
-						num_outs := 0
-						for nm := range resMap {
-							if strings.HasPrefix(strings.ToLower(nm), "out") {
-								num_outs++
-							}
-						}
-						for nm, val := range resMap {
-							if strings.HasPrefix(strings.ToLower(nm), "out") {
-								var vv string
-								var tp string
-								switch v := val.(type) {
-								case string:
-									tp = "string"
-									vv = v
-								case float64:
-									tp = "float64"
-									vv = strconv.FormatFloat(v, 'f', -1, 64)
-								case int:
-									tp = "int"
-									vv = strconv.FormatInt(int64(v), 10)
-								case int64:
-									tp = "int64"
-									vv = strconv.FormatInt(int64(v), 10)
-								default:
-									tp = "unknown"
-									vv = fmt.Sprintf("%v", v)
-								}
-
-								if num_outs == 1 {
-									result = vv
-									break
-								} else {
-									result += fmt.Sprintf("%s(%s): %s\n", nm, tp, vv)
-								}
-							}
-						}
-					}
-				} else {
-					result = "Error: " + err.Error()
+				err = LogsJsonUnmarshal(resJs, &resMap)
+				if err != nil {
+					return err
 				}
 
+				//Out_ -> result
+				{
+					num_outs := 0
+					for nm := range resMap {
+						if strings.HasPrefix(strings.ToLower(nm), "out") {
+							num_outs++
+						}
+					}
+					for nm, val := range resMap {
+						if strings.HasPrefix(strings.ToLower(nm), "out") {
+							var vv string
+							var tp string
+							switch v := val.(type) {
+							case string:
+								tp = "string"
+								vv = v
+							case float64:
+								tp = "float64"
+								vv = strconv.FormatFloat(v, 'f', -1, 64)
+							case int:
+								tp = "int"
+								vv = strconv.FormatInt(int64(v), 10)
+							case int64:
+								tp = "int64"
+								vv = strconv.FormatInt(int64(v), 10)
+							default:
+								tp = "unknown"
+								vv = fmt.Sprintf("%v", v)
+							}
+
+							if num_outs == 1 {
+								result = vv
+								break
+							} else {
+								result += fmt.Sprintf("%s(%s): %s\n", nm, tp, vv)
+							}
+						}
+					}
+				}
 				var tool_ui UI
-				if err == nil {
-					err = json.Unmarshal(uiJs, &tool_ui)
-					router.log.Error(err)
-				}
+				LogsJsonUnmarshal(uiJs, &tool_ui)
+
 				hasUI := tool_ui.Is()
 				if hasUI {
 					if result != "" {
@@ -408,15 +400,15 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpen
 
 	//print
 	{
-		js, err := json.MarshalIndent(msgs, "", "  ")
+		js, err := LogsJsonMarshalIndent(msgs)
 		if err == nil {
 			fmt.Printf("+++\n" + string(js) + "\n+++\n")
 		}
 	}
 
-	st.Out_messages, err = json.Marshal(msgs)
+	st.Out_messages, err = LogsJsonMarshal(msgs)
 	if err != nil {
-		return fmt.Errorf("out_messages failed: %v", err)
+		return err
 	}
 
 	return nil
@@ -441,8 +433,8 @@ func (oai *LLMOpenai) Transcribe(st *LLMTranscribe) error {
 	writer := multipart.NewWriter(body)
 	{
 		part, err := writer.CreateFormFile("file", st.BlobFileName)
-		if err != nil {
-			return fmt.Errorf("CreateFormFile() failed: %w", err)
+		if LogsError(err) != nil {
+			return err
 		}
 		part.Write(st.AudioBlob)
 
@@ -460,27 +452,27 @@ func (oai *LLMOpenai) Transcribe(st *LLMTranscribe) error {
 	writer.Close()
 
 	req, err := http.NewRequest(http.MethodPost, Completion_url, body)
-	if err != nil {
-		return fmt.Errorf("NewRequest() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	req.Header.Add("Authorization", "Bearer "+oai.API_key)
 
 	client := &http.Client{}
 	res, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("Do() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 
 	resBody, err := io.ReadAll(res.Body) //job.close ...
 	st.Out_StatusCode = res.StatusCode
 
-	if err != nil {
-		return fmt.Errorf("ReadAll() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, string(resBody))
+		return LogsErrorf("statusCode %d != 200, response: %s", res.StatusCode, string(resBody))
 	}
 
 	st.Out_Output = resBody
@@ -510,34 +502,34 @@ func (oai *LLMOpenai) Speak(st *LLMSpeech) error {
 	}
 
 	tts := TTS{Model: model, Voice: voice, Input: st.Text}
-	js, err := json.Marshal(tts)
+	js, err := LogsJsonMarshal(tts)
 	if err != nil {
-		return fmt.Errorf("Marshal() failed: %w", err)
+		return err
 	}
 	body := bytes.NewReader(js)
 
 	req, err := http.NewRequest(http.MethodPost, Completion_url, body)
-	if err != nil {
-		return fmt.Errorf("NewRequest() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+oai.API_key)
 
 	client := &http.Client{}
 	res, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("Do() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 	defer res.Body.Close()
 
 	resBody, err := io.ReadAll(res.Body)
 	st.Out_StatusCode = res.StatusCode
-	if err != nil {
-		return fmt.Errorf("ReadAll() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, string(js))
+		return LogsErrorf("statusCode %d != 200, response: %s", res.StatusCode, string(js))
 	}
 
 	st.Out_Output = resBody

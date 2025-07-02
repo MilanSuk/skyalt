@@ -18,8 +18,7 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
-	"fmt"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -210,30 +209,30 @@ type LLMSpeech struct {
 }
 
 type LLMs struct {
-	router *ToolsRouter
+	services *Services
 
 	lock sync.Mutex
 
 	Cache []LLMComplete
 }
 
-func NewLLMs(router *ToolsRouter) (*LLMs, error) {
-	llms := &LLMs{router: router}
+func NewLLMs(services *Services) (*LLMs, error) {
+	llms := &LLMs{services: services}
 
 	//open
 	{
 		fl, err := os.ReadFile("temp/llms_cache.json")
 		if err == nil {
-			json.Unmarshal(fl, &llms.Cache)
+			LogsJsonUnmarshal(fl, &llms.Cache)
 		}
 	}
 	return llms, nil
 }
 
 // usecase: "tools", "code", "chat"
-func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg, usecase string) error {
+func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) error {
 
-	dev := &llms.router.sync.Device
+	dev := &llms.services.sync.Device
 	model := ""
 	switch strings.ToLower(dev.Chat_provider) {
 
@@ -307,29 +306,19 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg, usecase string)
 	}*/
 
 	//Tools
-	var tools []*ToolsOpenAI_completion_tool
-	app_port := -1
-	if st.AppName != "" {
-		app := llms.router.FindApp(st.AppName)
-		if app != nil {
-			tools = app.GetAllSchemas()
+	if llms.services.fnGetAppPortAndTools == nil {
+		log.Fatalf("fnGetAppPortAndTools is nill")
+	}
 
-			var err error
-			st.Out_tools, err = json.Marshal(tools)
-			if err != nil {
-				return err
-			}
-
-			//start it
-			err = app.CheckRun()
-			if err != nil {
-				return err
-			}
-
-			app_port = app.Process.port
-
-		} else {
-			return fmt.Errorf("app '%s' not found", st.AppName)
+	app_port, tools, err := llms.services.fnGetAppPortAndTools(st.AppName)
+	if err != nil {
+		return err
+	}
+	if len(tools) > 0 {
+		var err error
+		st.Out_tools, err = LogsJsonMarshal(tools)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -351,35 +340,34 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *ToolsRouterMsg, usecase string)
 	//call
 	switch strings.ToLower(dev.Chat_provider) {
 	case "xai":
-		err := llms.router.sync.LLM_xai.Complete(st, app_port, tools, llms.router, msg)
+		err := llms.services.sync.LLM_xai.Complete(st, app_port, tools, msg)
 		if err != nil {
 			return err
 		}
 	case "mistral":
-		err := llms.router.sync.LLM_mistral.Complete(st, app_port, tools, llms.router, msg)
+		err := llms.services.sync.LLM_mistral.Complete(st, app_port, tools, msg)
 		if err != nil {
 			return err
 		}
 	case "openai":
-		err := llms.router.sync.LLM_openai.Complete(st, app_port, tools, llms.router, msg)
+		err := llms.services.sync.LLM_openai.Complete(st, app_port, tools, msg)
 		if err != nil {
 			return err
 		}
 
 	case "llama.cpp":
-		err := llms.router.sync.LLM_llama.Complete(st, app_port, tools, llms.router, msg)
+		err := llms.services.sync.LLM_llama.Complete(st, app_port, tools, msg)
 		if err != nil {
 			return err
 		}
 	default:
-		return fmt.Errorf("provider not found")
+		return LogsErrorf("provider not found")
 	}
 
 	//add & save cache
 	{
 		llms.Cache = append(llms.Cache, *st)
-		_, err := Tools_WriteJSONFile("temp/llms_cache.json", llms.Cache)
-		llms.router.log.Error(err)
+		Tools_WriteJSONFile("temp/llms_cache.json", llms.Cache)
 	}
 
 	return nil
@@ -393,16 +381,16 @@ func (llms *LLMs) GetUsage() []LLMMsgUsage {
 	return ret
 }
 
-func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *ToolsRouterMsg) error {
+func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *AppsRouterMsg) error {
 	llms.lock.Lock()
 	defer llms.lock.Unlock()
 
-	dev := &llms.router.sync.Device
+	dev := &llms.services.sync.Device
 
 	//call
 	switch strings.ToLower(dev.Image_provider) {
 	case "xai":
-		err := llms.router.sync.LLM_xai.GenerateImage(st, llms.router, msg)
+		err := llms.services.sync.LLM_xai.GenerateImage(st, msg)
 		if err != nil {
 			return err
 		}
@@ -416,18 +404,18 @@ func (llms *LLMs) Transcribe(st *LLMTranscribe) error {
 	llms.lock.Lock()
 	defer llms.lock.Unlock()
 
-	dev := &llms.router.sync.Device
+	dev := &llms.services.sync.Device
 
 	//call
 	switch strings.ToLower(dev.STT_provider) {
 	case "openai":
-		err := llms.router.sync.LLM_openai.Transcribe(st)
+		err := llms.services.sync.LLM_openai.Transcribe(st)
 		if err != nil {
 			return err
 		}
 
 	case "whisper.cpp":
-		err := llms.router.sync.LLM_wsp.Transcribe(st)
+		err := llms.services.sync.LLM_wsp.Transcribe(st)
 		if err != nil {
 			return err
 		}

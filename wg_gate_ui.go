@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"image/color"
 	"strconv"
@@ -416,7 +415,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 				return
 			}
 			var cmds []ToolCmd
-			err = json.Unmarshal(cmdsJs, &cmds)
+			err = LogsJsonUnmarshal(cmdsJs, &cmds)
 			if err == nil {
 				layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
 			}
@@ -531,7 +530,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 			txLay := layout.FindGrid(it.X, it.Y, it.W, it.H)
 			txLay.dropFile = func(path string) {
 				pathes := []string{path}
-				pathesJs, err := json.Marshal(pathes)
+				pathesJs, err := LogsJsonMarshalIndent(pathes)
 				if err == nil {
 					layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueBytes: pathesJs}, fnProgress, fnDone)
 				}

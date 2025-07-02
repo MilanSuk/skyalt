@@ -35,16 +35,16 @@ const SKYALT_INI_PATH = "ini.json"
 
 func InitSDLGlobal() error {
 	err := sdl.Init(sdl.INIT_EVERYTHING)
-	if err != nil {
-		return fmt.Errorf("sdl.Init() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 
 	n, err := sdl.GetNumVideoDisplays()
-	if err != nil {
-		return fmt.Errorf("GetNumVideoDisplays() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 	if n == 0 {
-		return fmt.Errorf("0 video displays")
+		return LogsErrorf("0 video displays")
 	}
 
 	return nil
@@ -106,24 +106,24 @@ func NewWin() (*Win, error) {
 	var err error
 	win.io, err = NewWinIO()
 	if err != nil {
-		return nil, fmt.Errorf("NewIO() failed: %w", err)
+		return nil, err
 	}
 	err = win.io.Open(SKYALT_INI_PATH)
 	if err != nil {
-		return nil, fmt.Errorf("Open() failed: %w", err)
+		return nil, err
 	}
 
 	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "2")
 
 	// create SDL
 	win.window, err = sdl.CreateWindow("Skyalt", int32(win.io.Ini.WinX), int32(win.io.Ini.WinY), int32(win.io.Ini.WinW), int32(win.io.Ini.WinH), sdl.WINDOW_RESIZABLE|sdl.WINDOW_OPENGL)
-	if err != nil {
-		return nil, fmt.Errorf("CreateWindow() failed: %w", err)
+	if LogsError(err) != nil {
+		return nil, err
 	}
 
 	win.render, err = NewWinRender(win.window)
 	if err != nil {
-		return nil, fmt.Errorf("NewWinRenderer() failed: %w", err)
+		return nil, err
 	}
 
 	win.gph = NewWinGph()
@@ -158,10 +158,7 @@ func (win *Win) Destroy() error {
 		win.particles.Destroy()
 	}
 
-	err = win.io.Destroy()
-	if err != nil {
-		return fmt.Errorf("IO.Destroy() failed: %w", err)
-	}
+	win.io.Destroy()
 
 	for _, cur := range win.cursors {
 		sdl.FreeCursor(cur.cursor)
@@ -174,8 +171,8 @@ func (win *Win) Destroy() error {
 	win.render.Destroy()
 
 	err = win.window.Destroy()
-	if err != nil {
-		return fmt.Errorf("Window.Destroy() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 
 	return nil
@@ -200,7 +197,7 @@ func (win *Win) GetWindowID() (uint64, error) {
 		//return uint64(info.GetUIKitInfo().Window), nil
 	}
 
-	return 0, fmt.Errorf("unknown sub-system")
+	return 0, LogsErrorf("unknown sub-system")
 }
 
 func IsSpaceActive() bool {
@@ -239,15 +236,15 @@ func (win *Win) GetScreenCoord() OsV4 {
 func (win *Win) GetScreenshot(coord OsV4) (*image.RGBA, error) {
 
 	surface, err := sdl.CreateRGBSurface(0, int32(coord.Size.X), int32(coord.Size.Y), 32, 0, 0, 0, 0)
-	if err != nil {
-		return nil, fmt.Errorf("CreateRGBSurface() failed: %w", err)
+	if LogsError(err) != nil {
+		return nil, err
 	}
 	defer surface.Free()
 
 	//copies pixels
 	err = win.render.ReadGLScreenPixels(win.GetScreenCoord(), coord, &surface.Pixels()[0])
-	if err != nil {
-		return nil, fmt.Errorf("ReadGLScreenPixels() failed: %w", err)
+	if LogsError(err) != nil {
+		return nil, err
 	}
 
 	img := image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{int(surface.W), int(surface.H)}})
@@ -270,15 +267,15 @@ func (win *Win) SaveScreenshot() error {
 
 	// creates file
 	file, err := os.Create("screenshot_" + time.Now().Format("2006-1-2_15-4-5") + ".png")
-	if err != nil {
-		return fmt.Errorf("Create() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 	defer file.Close()
 
 	//saves PNG
 	err = png.Encode(file, img)
-	if err != nil {
-		return fmt.Errorf("Encode() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 
 	return nil
@@ -286,7 +283,7 @@ func (win *Win) SaveScreenshot() error {
 
 var g_dropPath string //dirty trick, because, when drop, the mouse position is invalid
 
-func (win *Win) Event() (bool, bool, error) {
+func (win *Win) Event() (bool, bool) {
 	io := win.io
 	inputChanged := false
 
@@ -296,7 +293,7 @@ func (win *Win) Event() (bool, bool, error) {
 		switch val := event.(type) {
 		case *sdl.QuitEvent:
 			fmt.Println("Exiting ...")
-			return false, false, nil
+			return false, false
 
 		case *sdl.WindowEvent:
 			switch val.Event {
@@ -336,7 +333,7 @@ func (win *Win) Event() (bool, bool, error) {
 				io.Touch.End = true
 				sdl.CaptureMouse(false)
 			}
-			return true, true, nil
+			return true, true
 
 		case *sdl.MouseWheelEvent:
 			if IsCtrlActive() { // zoom
@@ -351,7 +348,7 @@ func (win *Win) Event() (bool, bool, error) {
 				io.Touch.Wheel = -int(val.Y) // divide by -WHEEL_DELTA
 				io.Touch.wheel_last_sec = OsTime()
 			}
-			return true, true, nil
+			return true, true
 
 		case *sdl.KeyboardEvent:
 			if val.Type == sdl.KEYDOWN {
@@ -422,24 +419,24 @@ func (win *Win) Event() (bool, bool, error) {
 
 				keys.HasChanged = true
 			}
-			return true, true, nil
+			return true, true
 
 		case *sdl.TextInputEvent:
 			if !(IsCtrlActive() && len(val.Text) > 0 && val.Text[0] == ' ') { // ignore ctrl+space
 				io.Keys.Text += val.GetText()
 				io.Keys.HasChanged = true
 			}
-			return true, true, nil
+			return true, true
 
 		case *sdl.DropEvent:
 			if val.Type == sdl.DROPFILE {
 				g_dropPath = val.File
 			}
-			return true, true, nil
+			return true, true
 		}
 	}
 
-	return true, inputChanged, nil
+	return true, inputChanged
 }
 
 func (win *Win) Maintenance() {
@@ -501,10 +498,8 @@ func (win *Win) UpdateIO() (bool, bool, error) {
 		return true, false, nil
 	}
 
-	run, redraw, err := win.Event()
-	if err != nil {
-		return run, true, fmt.Errorf("Event() failed: %w", err)
-	}
+	run, redraw := win.Event()
+
 	if !run {
 		return false, redraw, nil
 	}
@@ -564,7 +559,7 @@ func (win *Win) UpdateIO() (bool, bool, error) {
 	if io.Keys.F8 {
 		err := win.SaveScreenshot()
 		if err != nil {
-			return true, true, fmt.Errorf("SaveScreenshot() failed: %w", err)
+			return true, true, err
 		}
 	}
 
@@ -649,8 +644,8 @@ func (win *Win) EndRender(present bool, show_stats bool) error {
 			fullFlag = uint32(sdl.WINDOW_FULLSCREEN_DESKTOP)
 		}
 		err := win.window.SetFullscreen(fullFlag)
-		if err != nil {
-			return fmt.Errorf("SetFullscreen() failed: %w", err)
+		if LogsError(err) != nil {
+			return err
 		}
 		if fullFlag == 0 {
 			win.window.SetSize(win.recover_fullscreen_size.Get32()) //otherwise, wierd bug happens

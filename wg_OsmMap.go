@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"image/color"
 	"math"
@@ -152,9 +151,9 @@ func (st *OsmMap) Build(layout *Layout) {
 		}
 	}
 
-	copyright := layout.AddButton(3, 1, 1, 1, layout.ui.router.sync.Map.Copyright)
+	copyright := layout.AddButton(3, 1, 1, 1, layout.ui.router.services.sync.Map.Copyright)
 	copyright.Background = 0
-	copyright.BrowserUrl = layout.ui.router.sync.Map.Copyright_url
+	copyright.BrowserUrl = layout.ui.router.services.sync.Map.Copyright_url
 
 }
 
@@ -208,7 +207,7 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 					}
 
 					var out GetTile
-					er := json.Unmarshal(dataJs, &out)
+					er := LogsJsonUnmarshal(dataJs, &out)
 					if er != nil {
 						fnDone(nil, er)
 						return

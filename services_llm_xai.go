@@ -1,14 +1,15 @@
 package main
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type LLMMistralLanguageModel struct {
+type LLMxAILanguageModel struct {
 	Id               string
 	Created          int64
 	Version          string
@@ -22,7 +23,7 @@ type LLMMistralLanguageModel struct {
 	Aliases []string
 }
 
-type LLMMistralImageModel struct {
+type LLMxAIImageModel struct {
 	Id                string
 	Created           int64
 	Version           string
@@ -33,36 +34,37 @@ type LLMMistralImageModel struct {
 	Aliases []string
 }
 
-type LLMMistralMsgStats struct {
+type LLMxAIMsgStats struct {
 	Function string
 	Usage    LLMMsgUsage
 }
 
-// Mistral LLM settings.
-type LLMMistral struct {
+// xAI LLM settings.
+type LLMxAI struct {
 	Provider   string
 	OpenAI_url string
 	DevUrl     string
 	API_key    string
 
-	LanguageModels []*LLMMistralLanguageModel
-	ImageModels    []*LLMMistralImageModel
+	LanguageModels []*LLMxAILanguageModel
+	ImageModels    []*LLMxAIImageModel
 
-	Stats []LLMMistralMsgStats
+	Stats []LLMxAIMsgStats
 }
 
-func (mst *LLMMistral) Check() error {
-	if mst.API_key == "" {
-		return fmt.Errorf("%s API key is empty", mst.Provider)
+func (xai *LLMxAI) Check() error {
+
+	if xai.API_key == "" {
+		return LogsErrorf("%s API key is empty", xai.Provider)
 	}
 
 	return nil
 }
 
-func (mst *LLMMistral) FindModel(name string) (*LLMMistralLanguageModel, *LLMMistralImageModel) {
+func (xai *LLMxAI) FindModel(name string) (*LLMxAILanguageModel, *LLMxAIImageModel) {
 	name = strings.ToLower(name)
 
-	for _, model := range mst.LanguageModels {
+	for _, model := range xai.LanguageModels {
 		if strings.ToLower(model.Id) == name {
 			return model, nil
 		}
@@ -72,7 +74,7 @@ func (mst *LLMMistral) FindModel(name string) (*LLMMistralLanguageModel, *LLMMis
 			}
 		}
 	}
-	for _, model := range mst.ImageModels {
+	for _, model := range xai.ImageModels {
 		if strings.ToLower(model.Id) == name {
 			return nil, model
 		}
@@ -86,76 +88,12 @@ func (mst *LLMMistral) FindModel(name string) (*LLMMistralLanguageModel, *LLMMis
 	return nil, nil
 }
 
-/*func (mst *LLMMistral) ReloadModels() error {
-
-	//reset
-	mst.LanguageModels = nil
-	mst.ImageModels = nil
-
-	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
-		Id:                             "devstral-small-latest",
-		Input_modalities:               []string{"text"},
-		Prompt_text_token_price:        0,
-		Cached_prompt_text_token_price: 0,
-		Completion_text_token_price:    0,
-	})
-
-	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
-		Id:                             "mistral-small-latest",
-		Input_modalities:               []string{"text"},
-		Prompt_text_token_price:        0,
-		Cached_prompt_text_token_price: 0,
-		Completion_text_token_price:    0,
-	})
-
-	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
-		Id:                             "magistral-small-latest",
-		Input_modalities:               []string{"text"},
-		Prompt_text_token_price:        0,
-		Cached_prompt_text_token_price: 0,
-		Completion_text_token_price:    0,
-	})
-
-	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
-		Id:                             "pixtral-12b-latest",
-		Input_modalities:               []string{"text", "image"},
-		Prompt_text_token_price:        0,
-		Cached_prompt_text_token_price: 0,
-		Completion_text_token_price:    0,
-	})
-	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
-		Id:                             "pixtral-large-latest",
-		Input_modalities:               []string{"text", "image"},
-		Prompt_text_token_price:        20000,
-		Cached_prompt_text_token_price: 20000,
-		Completion_text_token_price:    60000,
-	})
-
-	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
-		Id:                             "codestral-latest",
-		Input_modalities:               []string{"text"},
-		Prompt_text_token_price:        3000,
-		Cached_prompt_text_token_price: 3000,
-		Completion_text_token_price:    9000,
-	})
-
-	mst.LanguageModels = append(mst.LanguageModels, &LLMMistralLanguageModel{
-		Id:                             "mistral-large-latest",
-		Input_modalities:               []string{"text"},
-		Prompt_text_token_price:        20000,
-		Cached_prompt_text_token_price: 20000,
-		Completion_text_token_price:    60000,
-	})
-
-	return nil
-}*/
-
-func (mst *LLMMistral) GetPricingString(model string) string {
+func (xai *LLMxAI) GetPricingString(model string) string {
 	model = strings.ToLower(model)
 
 	convert_to_dolars := float64(10000)
 
-	lang, img := mst.FindModel(model)
+	lang, img := xai.FindModel(model)
 	if lang != nil {
 		//in, cached, out, image
 		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
@@ -168,7 +106,8 @@ func (mst *LLMMistral) GetPricingString(model string) string {
 	return fmt.Sprintf("model %s not found", model)
 }
 
-func (model *LLMMistralLanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
+func (model *LLMxAILanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
+
 	convert_to_dolars := float64(10000)
 
 	Input_price := float64(model.Prompt_text_token_price) / convert_to_dolars / 1000000
@@ -179,8 +118,84 @@ func (model *LLMMistralLanguageModel) GetTextPrice(in, reason, cached, out int) 
 	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price
 }
 
-func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpenAI_completion_tool, router *ToolsRouter, msg *ToolsRouterMsg) error {
-	err := mst.Check()
+/*func (xai *LLMxAI) downloadList(url_part string) ([]byte, error) {
+	if xai.API_key == "" {
+		return nil, LogsErrorf("%s API key is empty", xai.Provider)
+	}
+
+	Completion_url := xai.OpenAI_url
+	if !strings.HasSuffix(Completion_url, "/") {
+		Completion_url += "/"
+	}
+	Completion_url += url_part
+
+	body := bytes.NewReader(nil)
+	req, err := http.NewRequest(http.MethodGet, Completion_url, body) //http.MethodPost
+	if LogsError(err) != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+xai.API_key)
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if LogsError(err) != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	js, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	return js, nil
+}*/
+
+func (xai *LLMxAI) GenerateImage(st *LLMGenerateImage, msg *AppsRouterMsg) error {
+	err := xai.Check()
+	if err != nil {
+		return err
+	}
+
+	model := "grok-2-image"
+
+	props := OpenAI_getImage_props{
+		Model:           model,
+		N:               st.Num_images,
+		Response_format: "b64_json",
+	}
+
+	jsProps, err := LogsJsonMarshal(props)
+	if err != nil {
+		return err
+	}
+	out, status, dt, err := OpenAI_genImage_Run(jsProps, xai.OpenAI_url, xai.API_key)
+	st.Out_dtime_sec = dt
+	st.Out_StatusCode = status
+	if err != nil {
+		return err
+	}
+
+	for _, it := range out.Data {
+		img, err := base64.StdEncoding.DecodeString(it.B64_json)
+		if err != nil {
+			return err
+		}
+
+		sep := bytes.IndexByte(img, ',')
+		if sep < 0 {
+			sep = 0
+		}
+
+		st.Out_images = append(st.Out_images, img[sep:])
+		st.Out_revised_prompts = append(st.Out_revised_prompts, it.Revised_prompt)
+	}
+
+	return nil
+}
+
+func (xai *LLMxAI) Complete(st *LLMComplete, app_port int, tools []*ToolsOpenAI_completion_tool, msg *AppsRouterMsg) error {
+	err := xai.Check()
 	if err != nil {
 		return err
 	}
@@ -188,29 +203,29 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 	//Messages
 	var msgs ChatMsgs
 	if len(st.PreviousMessages) > 0 {
-		err := json.Unmarshal(st.PreviousMessages, &msgs)
+		err := LogsJsonUnmarshal(st.PreviousMessages, &msgs)
 		if err != nil {
-			return fmt.Errorf("PreviousMessages failed: %v", err)
+			return err
 		}
 	}
 
 	if st.UserMessage != "" || len(st.UserFiles) > 0 {
 		m1, err := msgs.AddUserMessage(st.UserMessage, st.UserFiles)
 		if err != nil {
-			return fmt.Errorf("AddUserMessage() failed: %v", err)
+			return err
 		}
 		if st.delta != nil {
 			st.delta(m1)
 		}
 	}
 
-	/*seed := 1
+	seed := 1
 	if len(msgs.Messages) > 0 {
 		seed = msgs.Messages[len(msgs.Messages)-1].Seed
 		if seed <= 0 {
 			seed = 1
 		}
-	}*/
+	}
 
 	last_final_msg := ""
 	last_reasoning_msg := ""
@@ -233,10 +248,10 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 		}
 
 		props := OpenAI_completion_props{
-			Stream: true,
-			//Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
-			//Seed:  seed,
+			Stream:         true,
+			Stream_options: OpenAI_completion_Stream_options{Include_usage: true},
 
+			Seed:  seed,
 			Model: st.Out_usage.Model,
 
 			Tools:    tools,
@@ -254,7 +269,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 		}
 
 		fnStreaming := func(chatMsg *ChatMsg) bool {
-			//chatMsg.Seed = seed
+			chatMsg.Seed = seed
 			chatMsg.Stream = true
 			chatMsg.ShowParameters = true
 			chatMsg.ShowReasoning = true
@@ -268,20 +283,20 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 
 		//print
 		{
-			js, err := json.MarshalIndent(props, "", "  ")
+			js, err := LogsJsonMarshalIndent(props)
 			if err == nil {
 				fmt.Printf("---\n" + string(js) + "\n---\n")
 			}
 		}
 
-		jsProps, err := json.Marshal(props)
+		jsProps, err := LogsJsonMarshal(props)
 		if err != nil {
-			return fmt.Errorf("props failed: %v", err)
+			return err
 		}
-		out, status, dt, time_to_first_token, err := OpenAI_completion_Run(jsProps, mst.OpenAI_url, mst.API_key, fnStreaming)
+		out, status, dt, time_to_first_token, err := OpenAI_completion_Run(jsProps, xai.OpenAI_url, xai.API_key, fnStreaming)
 		st.Out_StatusCode = status
 		if err != nil {
-			return fmt.Errorf("OpenAI_completion_Run() failed: %v", err)
+			return err
 		}
 
 		if !msg.Progress(0, "completing") {
@@ -297,13 +312,13 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 				usage.Completion_tokens = out.Usage.Completion_tokens
 				usage.Reasoning_tokens = out.Usage.Completion_tokens_details.Reasoning_tokens
 
-				usage.Provider = mst.Provider
+				usage.Provider = xai.Provider
 				usage.Model = st.Out_usage.Model
 				usage.CreatedTimeSec = float64(time.Now().UnixMicro()) / 1000000
 				usage.TimeToFirstToken = time_to_first_token
 				usage.DTime = dt
 
-				mod, _ := mst.FindModel(st.Out_usage.Model)
+				mod, _ := xai.FindModel(st.Out_usage.Model)
 				if mod != nil {
 					usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price = mod.GetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens)
 				}
@@ -327,8 +342,8 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 				var result string
 
 				//call it
-				resJs, uiJs, cmdsJs, err := _ToolsCaller_CallBuild(app_port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments), router.log.Error)
-				if router.log.Error(err) != nil {
+				resJs, uiJs, cmdsJs, err := _ToolsCaller_CallBuild(app_port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments))
+				if err != nil {
 					return err
 				}
 				//resJs, tool_ui, err := CallToolApp(st.AppName, call.Function.Name, []byte(call.Function.Arguments), caller)
@@ -337,60 +352,54 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 				msg.out_flushed_cmds = append(msg.out_flushed_cmds, cmdsJs)
 
 				resMap := make(map[string]interface{})
-				if err == nil {
-					err = json.Unmarshal(resJs, &resMap)
-					if err != nil {
-						return fmt.Errorf("resJs failed: %v", err)
-					}
+				err = LogsJsonUnmarshal(resJs, &resMap)
+				if err != nil {
+					return err
+				}
 
-					//Out_ -> result
-					{
-						num_outs := 0
-						for nm := range resMap {
-							if strings.HasPrefix(strings.ToLower(nm), "out") {
-								num_outs++
-							}
+				//Out_ -> result
+				{
+					num_outs := 0
+					for nm := range resMap {
+						if strings.HasPrefix(strings.ToLower(nm), "out") {
+							num_outs++
 						}
-						for nm, val := range resMap {
-							if strings.HasPrefix(strings.ToLower(nm), "out") {
-								var vv string
-								var tp string
-								switch v := val.(type) {
-								case string:
-									tp = "string"
-									vv = v
-								case float64:
-									tp = "float64"
-									vv = strconv.FormatFloat(v, 'f', -1, 64)
-								case int:
-									tp = "int"
-									vv = strconv.FormatInt(int64(v), 10)
-								case int64:
-									tp = "int64"
-									vv = strconv.FormatInt(int64(v), 10)
-								default:
-									tp = "unknown"
-									vv = fmt.Sprintf("%v", v)
-								}
+					}
+					for nm, val := range resMap {
+						if strings.HasPrefix(strings.ToLower(nm), "out") {
+							var vv string
+							var tp string
+							switch v := val.(type) {
+							case string:
+								tp = "string"
+								vv = v
+							case float64:
+								tp = "float64"
+								vv = strconv.FormatFloat(v, 'f', -1, 64)
+							case int:
+								tp = "int"
+								vv = strconv.FormatInt(int64(v), 10)
+							case int64:
+								tp = "int64"
+								vv = strconv.FormatInt(int64(v), 10)
+							default:
+								tp = "unknown"
+								vv = fmt.Sprintf("%v", v)
+							}
 
-								if num_outs == 1 {
-									result = vv
-									break
-								} else {
-									result += fmt.Sprintf("%s(%s): %s\n", nm, tp, vv)
-								}
+							if num_outs == 1 {
+								result = vv
+								break
+							} else {
+								result += fmt.Sprintf("%s(%s): %s\n", nm, tp, vv)
 							}
 						}
 					}
-				} else {
-					result = "Error: " + err.Error()
 				}
 
 				var tool_ui UI
-				if err == nil {
-					err = json.Unmarshal(uiJs, &tool_ui)
-					router.log.Error(err)
-				}
+				LogsJsonUnmarshal(uiJs, &tool_ui)
+
 				hasUI := tool_ui.Is()
 				if hasUI {
 					if result != "" {
@@ -410,7 +419,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 			}
 
 			//log stats
-			mst.Stats = append(mst.Stats, LLMMistralMsgStats{
+			xai.Stats = append(xai.Stats, LLMxAIMsgStats{
 				Function: "completion",
 				Usage:    usage,
 			})
@@ -427,15 +436,15 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 
 	//print
 	{
-		js, err := json.MarshalIndent(msgs, "", "  ")
+		js, err := LogsJsonMarshalIndent(msgs)
 		if err == nil {
 			fmt.Printf("+++\n" + string(js) + "\n+++\n")
 		}
 	}
 
-	st.Out_messages, err = json.Marshal(msgs)
+	st.Out_messages, err = LogsJsonMarshal(msgs)
 	if err != nil {
-		return fmt.Errorf("out_messages failed: %v", err)
+		return err
 	}
 
 	return nil

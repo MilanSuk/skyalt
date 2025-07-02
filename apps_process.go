@@ -76,7 +76,7 @@ func (app *ToolsAppProcess) WaitUntilExited() string {
 	return app.cmd_error
 }
 
-func (app *ToolsAppProcess) CheckRun(router *ToolsRouter) error {
+func (app *ToolsAppProcess) CheckRun(router *AppsRouter) error {
 	if !app.IsRunning() {
 
 		if app.cmd_exited {
@@ -97,7 +97,7 @@ func (app *ToolsAppProcess) CheckRun(router *ToolsRouter) error {
 		cmd.Stderr = ErrStr
 		err := cmd.Start()
 		if err != nil {
-			return fmt.Errorf("'%s' start failed: %w", app.Compile.GetFolderPath(), err)
+			return LogsErrorf("'%s' start failed: %w", app.Compile.GetFolderPath(), err)
 		}
 		app.cmd = cmd //running
 

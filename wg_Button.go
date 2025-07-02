@@ -190,7 +190,7 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 			cd.A = 0 //no back
 		}
 
-		paint.RectRad(rectLabel, cd, cdBack_over, cdBack_down, 0, layout.ui.router.sync.GetRounding())
+		paint.RectRad(rectLabel, cd, cdBack_over, cdBack_down, 0, layout.ui.router.services.sync.GetRounding())
 	}
 
 	//draw icon
@@ -234,7 +234,7 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	//draw border
 	if st.Border {
-		paint.RectRad(rc, cdBack, cdBack_over, cdBack_down, 0.03, layout.ui.router.sync.GetRounding())
+		paint.RectRad(rc, cdBack, cdBack_over, cdBack_down, 0.03, layout.ui.router.services.sync.GetRounding())
 	}
 
 	return
@@ -309,7 +309,7 @@ func OsOpenBrowser(url string) error {
 	case "darwin":
 		err = exec.Command("open", url).Start()
 	default:
-		err = fmt.Errorf("unsupported platform")
+		err = LogsErrorf("unsupported platform")
 	}
 	return err
 }

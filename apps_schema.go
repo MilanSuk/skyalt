@@ -143,8 +143,8 @@ func _exprToString(expr ast.Expr) string {
 
 func BuildToolsOpenAI_completion_tool(toolName string, fileName string, code any) (*ToolsOpenAI_completion_tool, error) {
 	node, err := parser.ParseFile(token.NewFileSet(), fileName, code, parser.ParseComments)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing file: %v", err)
+	if LogsError(err) != nil {
+		return nil, err
 	}
 
 	var oai *ToolsOpenAI_completion_tool
@@ -219,7 +219,7 @@ func BuildToolsOpenAI_completion_tool(toolName string, fileName string, code any
 
 	if !isIgnored {
 		if oai == nil {
-			return nil, fmt.Errorf("struct '%s' not found", toolName)
+			return nil, LogsErrorf("struct '%s' not found", toolName)
 		}
 	}
 

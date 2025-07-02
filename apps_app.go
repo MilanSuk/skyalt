@@ -17,8 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -34,7 +32,7 @@ type ToolsSdkChange struct {
 }
 
 type ToolsApp struct {
-	router *ToolsRouter
+	router *AppsRouter
 	lock   sync.Mutex
 
 	Process *ToolsAppProcess
@@ -44,14 +42,14 @@ type ToolsApp struct {
 	storage_changes int64
 }
 
-func NewToolsApp(appName string, router *ToolsRouter) (*ToolsApp, error) {
+func NewToolsApp(appName string, router *AppsRouter) (*ToolsApp, error) {
 	app := &ToolsApp{router: router}
 
 	app.Process = NewToolsAppRun(appName)
 
 	fl, err := os.ReadFile(app.GetToolsJsonPath())
 	if err == nil {
-		err = json.Unmarshal(fl, app)
+		err = LogsJsonUnmarshal(fl, app)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +82,7 @@ func (app *ToolsApp) Rename(newName string) (string, error) {
 	//check
 	newName = _ToolsPrompt_getValidFileName(newName)
 	if newName == "" {
-		return oldName, fmt.Errorf("Rename failed: empty newName")
+		return oldName, LogsErrorf("Rename failed: empty newName")
 	}
 
 	app.lock.Lock()
@@ -96,7 +94,7 @@ func (app *ToolsApp) Rename(newName string) (string, error) {
 	//rename
 	err := os.Rename(filepath.Join("apps", oldName), filepath.Join("apps", newName))
 	if err != nil {
-		return oldName, fmt.Errorf("Rename failed: empty newName")
+		return oldName, LogsErrorf("Rename failed: empty newName")
 	}
 
 	return newName, nil
@@ -147,11 +145,11 @@ func (app *ToolsApp) CheckRun() error {
 	defer app.lock.Unlock()
 
 	if app.Process.Compile.Error != "" {
-		return fmt.Errorf("'%s' app has compilation error: %s", app.Process.Compile.GetFolderPath(), app.Process.cmd_error)
+		return LogsErrorf("'%s' app has compilation error: %s", app.Process.Compile.GetFolderPath(), app.Process.cmd_error)
 	}
 
 	if app.Process.Compile.AppFileTime == 0 {
-		return fmt.Errorf("'%s' app is waiting for compilation", app.Process.Compile.GetFolderPath())
+		return LogsErrorf("'%s' app is waiting for compilation", app.Process.Compile.GetFolderPath())
 	}
 
 	return app.Process.CheckRun(app.router)
@@ -275,7 +273,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 			//Storage
 			N_msgs := 3
 			for N_msgs >= 0 {
-				err := app.Prompts.GenerateStructureCode(msg, app.router.llms)
+				err := app.Prompts.GenerateStructureCode(msg, app.router.services.llms)
 				if err != nil {
 					return err
 				}
@@ -300,7 +298,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 			if N_msgs >= 0 {
 				N_msgs = 3
 				for N_msgs >= 0 {
-					err := app.Prompts.GenerateToolsCode(msg, app.router.llms)
+					err := app.Prompts.GenerateToolsCode(msg, app.router.services.llms)
 					if err != nil {
 						return err
 					}

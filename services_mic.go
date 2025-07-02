@@ -15,7 +15,7 @@ import (
 	"github.com/go-audio/wav"
 )
 
-type ToolsMicMalgoRecord struct {
+type ServicesMicRecord struct {
 	data          []byte //int=hash
 	startUnixTime float64
 	Stop          atomic.Bool
@@ -23,35 +23,35 @@ type ToolsMicMalgoRecord struct {
 	fnFinished func(buff *audio.IntBuffer)
 }
 
-type ToolsMicInfo struct {
+type ServicesMicInfo struct {
 	Active              bool
 	Decibels            float64
 	Decibels_normalized float64
 }
 
-type ToolsMicMalgo struct {
-	router *ToolsRouter
+type ServicesMic struct {
+	services *Services
 
 	lock   sync.Mutex
 	device *malgo.Device
-	mics   map[uint64]*ToolsMicMalgoRecord //int=hash
+	mics   map[uint64]*ServicesMicRecord //int=hash
 
-	info ToolsMicInfo
+	info ServicesMicInfo
 }
 
-func NewToolsMicMalgo(router *ToolsRouter) *ToolsMicMalgo {
-	mlg := &ToolsMicMalgo{router: router}
+func NewServicesMic(services *Services) *ServicesMic {
+	mic := &ServicesMic{services: services}
 
-	mlg.mics = make(map[uint64]*ToolsMicMalgoRecord)
+	mic.mics = make(map[uint64]*ServicesMicRecord)
 
-	return mlg
+	return mic
 }
 
-func (mlg *ToolsMicMalgo) Destroy() {
-	mlg.FinishAll(true)
+func (mic *ServicesMic) Destroy() {
+	mic.FinishAll(true)
 }
 
-func _ToolsMicMalgo_GetDB(samples []byte) float64 {
+func _ServicesMic_GetDB(samples []byte) float64 {
 	if len(samples) < 2 || len(samples)%2 != 0 {
 		return -100.0
 	}
@@ -76,9 +76,9 @@ func _ToolsMicMalgo_GetDB(samples []byte) float64 {
 	return 20.0 * math.Log10(rms)
 }
 
-func (mlg *ToolsMicMalgo) _checkDevice() error {
+func (mic *ServicesMic) _checkDevice() error {
 
-	if mlg.device != nil {
+	if mic.device != nil {
 		return nil
 	}
 
@@ -87,7 +87,7 @@ func (mlg *ToolsMicMalgo) _checkDevice() error {
 		return err
 	}
 
-	source_mic := &mlg.router.sync.Mic
+	source_mic := &mic.services.sync.Mic
 
 	deviceConfig := malgo.DefaultDeviceConfig(malgo.Duplex)
 	deviceConfig.Capture.Format = malgo.FormatS16
@@ -98,20 +98,20 @@ func (mlg *ToolsMicMalgo) _checkDevice() error {
 	deviceConfig.Alsa.NoMMap = 1
 
 	onRecvFrames := func(pSample2, pSample []byte, framecount uint32) {
-		for key := range mlg.mics {
+		for key := range mic.mics {
 			//there is 200ms delay between this and .Start()
-			if mlg.mics[key].startUnixTime == 0 {
-				mlg.mics[key].startUnixTime = float64(time.Now().UnixMilli()) / 1000
+			if mic.mics[key].startUnixTime == 0 {
+				mic.mics[key].startUnixTime = float64(time.Now().UnixMilli()) / 1000
 			}
 			//add data
-			mlg.mics[key].data = append(mlg.mics[key].data, pSample...) //add
+			mic.mics[key].data = append(mic.mics[key].data, pSample...) //add
 
-			mlg.info.Decibels = _ToolsMicMalgo_GetDB(pSample)
-			mlg.updateDecibels_normalized()
+			mic.info.Decibels = _ServicesMic_GetDB(pSample)
+			mic.updateDecibels_normalized()
 		}
 	}
 
-	mlg.device, err = malgo.InitDevice(ctx.Context, deviceConfig, malgo.DeviceCallbacks{Data: onRecvFrames})
+	mic.device, err = malgo.InitDevice(ctx.Context, deviceConfig, malgo.DeviceCallbacks{Data: onRecvFrames})
 	if err != nil {
 		return err
 	}
@@ -119,8 +119,8 @@ func (mlg *ToolsMicMalgo) _checkDevice() error {
 	return nil
 }
 
-func (mlg *ToolsMicMalgo) updateDecibels_normalized() {
-	d := OsClampFloat(mlg.info.Decibels, -60, -20)
+func (mic *ServicesMic) updateDecibels_normalized() {
+	d := OsClampFloat(mic.info.Decibels, -60, -20)
 	d += 20
 
 	diff := 40.0
@@ -129,107 +129,107 @@ func (mlg *ToolsMicMalgo) updateDecibels_normalized() {
 		d /= diff //<0-1>
 	}
 
-	mlg.info.Decibels_normalized = d
+	mic.info.Decibels_normalized = d
 }
 
-func (mlg *ToolsMicMalgo) Find(uid uint64) *ToolsMicMalgoRecord {
-	mlg.lock.Lock()
-	defer mlg.lock.Unlock()
+func (mic *ServicesMic) Find(uid uint64) *ServicesMicRecord {
+	mic.lock.Lock()
+	defer mic.lock.Unlock()
 
-	return mlg.mics[uid]
+	return mic.mics[uid]
 }
 
-func (mlg *ToolsMicMalgo) Start(uid uint64) (*ToolsMicMalgoRecord, error) {
-	mlg.lock.Lock()
-	defer mlg.lock.Unlock()
+func (mic *ServicesMic) Start(uid uint64) (*ServicesMicRecord, error) {
+	mic.lock.Lock()
+	defer mic.lock.Unlock()
 
-	err := mlg._checkDevice()
+	err := mic._checkDevice()
 	if err != nil {
 		return nil, err
 	}
 
 	//add
-	_, found := mlg.mics[uid]
+	_, found := mic.mics[uid]
 	if found {
-		return nil, fmt.Errorf("mic UID '%d' already recording", uid)
+		return nil, LogsErrorf("mic UID '%d' already recording", uid)
 	}
 
-	mic := &ToolsMicMalgoRecord{}
-	mlg.mics[uid] = mic
-	mlg.info.Active = true
+	micr := &ServicesMicRecord{}
+	mic.mics[uid] = micr
+	mic.info.Active = true
 
-	if !mlg.device.IsStarted() {
-		err := mlg.device.Start()
+	if !mic.device.IsStarted() {
+		err := mic.device.Start()
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	//fmt.Printf("Mic recording started: %d\n", hash)
-	return mic, nil
+	return micr, nil
 }
 
-func (mlg *ToolsMicMalgo) _finished(uid uint64, cancel bool) (audio.IntBuffer, error) {
+func (mic *ServicesMic) _finished(uid uint64, cancel bool) (audio.IntBuffer, error) {
 
 	//remove
-	mic, found := mlg.mics[uid]
+	micr, found := mic.mics[uid]
 	if !found {
-		return audio.IntBuffer{}, fmt.Errorf("uid '%d' not found", uid)
+		return audio.IntBuffer{}, LogsErrorf("uid '%d' not found", uid)
 	}
-	delete(mlg.mics, uid)
+	delete(mic.mics, uid)
 
-	Sample_rate := int(mlg.device.SampleRate())
-	NumChannels := int(mlg.device.CaptureChannels())
+	Sample_rate := int(mic.device.SampleRate())
+	NumChannels := int(mic.device.CaptureChannels())
 
 	//stop loop
-	mic.Stop.Store(true)
+	micr.Stop.Store(true)
 
 	//stop device
-	if len(mlg.mics) == 0 && mlg.device.IsStarted() {
-		mlg.device.Uninit()
-		mlg.device = nil
+	if len(mic.mics) == 0 && mic.device.IsStarted() {
+		mic.device.Uninit()
+		mic.device = nil
 	}
 
-	if len(mlg.mics) == 0 {
+	if len(mic.mics) == 0 {
 		//deactivate
-		mlg.info.Active = false
-		mlg.info.Decibels = -100 //silence
-		mlg.info.Decibels_normalized = 0
+		mic.info.Active = false
+		mic.info.Decibels = -100 //silence
+		mic.info.Decibels_normalized = 0
 	}
 
 	if cancel {
 		return audio.IntBuffer{}, nil
 	}
 
-	intData := make([]int, len(mic.data)/2)
-	for i := 0; i+1 < len(mic.data); i += 2 {
-		value := int(binary.LittleEndian.Uint16(mic.data[i : i+2]))
+	intData := make([]int, len(micr.data)/2)
+	for i := 0; i+1 < len(micr.data); i += 2 {
+		value := int(binary.LittleEndian.Uint16(micr.data[i : i+2]))
 		intData[i/2] = value
 	}
 
 	ret_buff := audio.IntBuffer{Data: intData, Format: &audio.Format{SampleRate: Sample_rate, NumChannels: NumChannels}}
 
-	if mic.fnFinished != nil {
-		mic.fnFinished(&ret_buff)
+	if micr.fnFinished != nil {
+		micr.fnFinished(&ret_buff)
 	}
 
 	//fmt.Printf("Mic recording stoped: %d\n", hash)
 	return ret_buff, nil
 }
 
-func (mlg *ToolsMicMalgo) Finished(uid uint64, cancel bool) (audio.IntBuffer, error) {
-	mlg.lock.Lock()
-	defer mlg.lock.Unlock()
+func (mic *ServicesMic) Finished(uid uint64, cancel bool) (audio.IntBuffer, error) {
+	mic.lock.Lock()
+	defer mic.lock.Unlock()
 
-	return mlg._finished(uid, cancel)
+	return mic._finished(uid, cancel)
 }
 
-func (mlg *ToolsMicMalgo) FinishAll(cancel bool) {
-	mlg.lock.Lock()
-	defer mlg.lock.Unlock()
+func (mic *ServicesMic) FinishAll(cancel bool) {
+	mic.lock.Lock()
+	defer mic.lock.Unlock()
 
-	for uid := range mlg.mics {
-		mlg._finished(uid, cancel) //err ....
+	for uid := range mic.mics {
+		mic._finished(uid, cancel) //err ....
 	}
 }
 
@@ -243,7 +243,7 @@ func FFMpeg_convertIntoFile(input *audio.IntBuffer, format string, sampleRate in
 
 	//file := &OsWriterSeeker{}	//....
 	file, err := os.Create(path)
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, err
 	}
 

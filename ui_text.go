@@ -60,7 +60,7 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 	}
 
 	//draw selection
-	cdSelection := Color_Aprox(ui.router.sync.GetPalette().B, frontCd, 0.3)
+	cdSelection := Color_Aprox(ui.router.services.sync.GetPalette().B, frontCd, 0.3)
 	var range_sx, range_ex int
 	if selection || editable {
 		if edit.Is(layout) {
@@ -120,7 +120,7 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 			ui.GetWin().SetTextCursorMove()
 		}
 
-		currCd := ui.router.sync.GetPalette().OnB
+		currCd := ui.router.services.sync.GetPalette().OnB
 		if multi_line {
 			y := WinGph_CursorLineY(lines, cursorPos)
 			ln, ln_cursorPos := WinGph_CursorLine(value, lines, cursorPos)
@@ -387,13 +387,13 @@ func (ui *Ui) _UiText_Keys(layout *Layout, text string, lines []WinGphLine, tabI
 		*s = firstCur
 		*e = firstCur
 	} else if keys.RecordMic {
-		if layout.ui.router.mic.Find(layout.UID) == nil {
-			layout.ui.router.mic.FinishAll(false) //finish all previous
+		if layout.ui.router.services.mic.Find(layout.UID) == nil {
+			layout.ui.router.services.mic.FinishAll(false) //finish all previous
 
-			mic, _ := layout.ui.router.mic.Start(layout.UID) //err ....
+			mic, _ := layout.ui.router.services.mic.Start(layout.UID) //err ....
 
 			mic.fnFinished = func(buff *audio.IntBuffer) {
-				transcript, err := layout.ui.router.llms.TranscribeBuff(buff, "wav", "text")
+				transcript, err := layout.ui.router.services.llms.TranscribeBuff(buff, "wav", "text")
 				if err == nil {
 
 					transcript = strings.TrimSpace(transcript)
@@ -412,7 +412,7 @@ func (ui *Ui) _UiText_Keys(layout *Layout, text string, lines []WinGphLine, tabI
 				}
 			}
 		} else {
-			layout.ui.router.mic.Finished(layout.UID, false)
+			layout.ui.router.services.mic.Finished(layout.UID, false)
 		}
 
 		layout.ui.SetRefresh()

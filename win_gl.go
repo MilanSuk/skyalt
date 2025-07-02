@@ -18,7 +18,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -39,12 +38,12 @@ func NewWinRender(window *sdl.Window) (*WinRender, error) {
 
 	var err error
 	ren.render, err = window.GLCreateContext()
-	if err != nil {
-		return nil, fmt.Errorf("GLCreateContext() failed: %w", err)
+	if LogsError(err) != nil {
+		return nil, err
 	}
 
 	err = gl.Init()
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, err
 	}
 	return ren, nil
@@ -311,7 +310,7 @@ func InitWinTextureFromImage(img image.Image) (*WinTexture, error) {
 
 func InitWinTextureFromBlob(blob []byte) (*WinTexture, image.Image, error) {
 	img, _, err := image.Decode(bytes.NewReader(blob))
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, nil, err
 	}
 
@@ -321,17 +320,21 @@ func InitWinTextureFromBlob(blob []byte) (*WinTexture, image.Image, error) {
 
 func InitWinTextureFromFile(path string) (*WinTexture, image.Image, error) {
 	imgFile, err := os.Open(path)
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, nil, err
 	}
 	defer imgFile.Close()
 
 	img, _, err := image.Decode(imgFile)
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, nil, err
 	}
 
 	tex, err := InitWinTextureFromImage(img)
+	if LogsError(err) != nil {
+		return nil, nil, err
+	}
+
 	return tex, img, err
 }
 

@@ -18,7 +18,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -58,11 +57,11 @@ func Tools_GetFileTime(path string) int64 {
 	return 0
 }
 
-func Tools_WriteJSONFile(path string, st interface{}) (bool, error) {
+func Tools_WriteJSONFile(path string, st any) (bool, error) {
 	// Pack into JSON
-	fl, err := json.Marshal(st)
+	fl, err := LogsJsonMarshal(st)
 	if err != nil {
-		return false, fmt.Errorf("Marshal() failed: %w", err)
+		return false, err
 	}
 
 	oldFl, _ := os.ReadFile(path)
@@ -71,8 +70,8 @@ func Tools_WriteJSONFile(path string, st interface{}) (bool, error) {
 	// Save into file
 	if diff {
 		err = os.WriteFile(path, fl, 0644)
-		if err != nil {
-			return false, fmt.Errorf("WriteFile() failed: %vw", err)
+		if LogsError(err) != nil {
+			return false, err
 		}
 	}
 

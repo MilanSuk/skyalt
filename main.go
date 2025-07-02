@@ -42,7 +42,14 @@ func main() {
 	defer win.Destroy()
 
 	//Tools
-	router, err := NewToolsRouter(8000)
+	services, err := NewServices()
+	if err != nil {
+		log.Fatalf("NewServices() failed: %v\n", err)
+	}
+	defer services.Destroy()
+
+	//Tools
+	router, err := NewAppsRouter(8000, services)
 	if err != nil {
 		log.Fatalf("NewToolsRouter() failed: %v\n", err)
 	}
@@ -79,7 +86,7 @@ func main() {
 				msg := router.FindRecompileMsg("Root")
 				if msg != nil && !msg.out_done.Load() {
 					//compiling
-					pl := ui.router.sync.GetPalette()
+					pl := ui.router.services.sync.GetPalette()
 					particles_cd := Color_Aprox(pl.P, pl.B, 0.5)
 					win.RenderProgress(msg.progress_label, particles_cd, 0, ui.Cell())
 				} else {
@@ -88,7 +95,7 @@ func main() {
 				}
 
 			}
-			win.EndRender(true, ui.router.sync.GetStats())
+			win.EndRender(true, ui.router.services.sync.GetStats())
 
 		} else {
 			win.StopProgress()
@@ -105,7 +112,7 @@ func main() {
 			if win_redraw {
 				win.StartRender(color.RGBA{220, 220, 220, 255})
 				ui.Draw()
-				win.EndRender(true, ui.router.sync.GetStats())
+				win.EndRender(true, ui.router.services.sync.GetStats())
 
 				num_sleeps = 0 //reset
 			} else {

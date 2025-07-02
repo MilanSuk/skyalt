@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -123,8 +121,8 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 	body := bytes.NewReader(jsProps)
 
 	req, err := http.NewRequest(http.MethodPost, Completion_url, body)
-	if err != nil {
-		return OpenAIOut{}, -1, 0, -1, fmt.Errorf("NewRequest() failed: %w", err)
+	if LogsError(err) != nil {
+		return OpenAIOut{}, -1, 0, -1, err
 	}
 	req.Header.Add("Content-Type", "application/json")
 	if api_key == "" {
@@ -141,8 +139,8 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 
 	client := &http.Client{}
 	res, err := client.Do(req)
-	if err != nil {
-		return OpenAIOut{}, -1, 0, -1, fmt.Errorf("Do() failed: %w", err)
+	if LogsError(err) != nil {
+		return OpenAIOut{}, -1, 0, -1, err
 	}
 	defer res.Body.Close()
 
@@ -154,7 +152,7 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 		// Check response status
 		if res.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(res.Body)
-			return OpenAIOut{}, -1, 0, -1, fmt.Errorf("unexpected status code: %d, body: %s", res.StatusCode, string(body))
+			return OpenAIOut{}, -1, 0, -1, LogsErrorf("unexpected status code: %d, body: %s", res.StatusCode, string(body))
 		}
 
 		// Read streaming response
@@ -166,7 +164,7 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 				if err == io.EOF {
 					break
 				}
-				return OpenAIOut{}, -1, 0, -1, fmt.Errorf("error reading stream: %w", err)
+				return OpenAIOut{}, -1, 0, -1, LogsErrorf("error reading stream: %w", err)
 			}
 
 			line = strings.TrimSpace(line)
@@ -202,8 +200,9 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 			}
 			var streamResp StreamResponse
 
-			if err := json.Unmarshal([]byte(data), &streamResp); err != nil {
-				return OpenAIOut{}, -1, 0, -1, fmt.Errorf("failed to parse stream response: %w", err)
+			err = LogsJsonUnmarshal([]byte(data), &streamResp)
+			if err != nil {
+				return OpenAIOut{}, -1, 0, -1, err
 			}
 
 			if streamResp.Usage.Total_tokens > 0 {
@@ -254,16 +253,16 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 		}
 
 		if res.StatusCode != http.StatusOK {
-			return OpenAIOut{}, res.StatusCode, 0, -1, fmt.Errorf("statusCode %d != %d, response: %s", res.StatusCode, http.StatusOK, string(js))
+			return OpenAIOut{}, res.StatusCode, 0, -1, LogsErrorf("statusCode %d != %d, response: %s", res.StatusCode, http.StatusOK, string(js))
 		}
 
 		if len(js) == 0 {
-			return OpenAIOut{}, res.StatusCode, 0, -1, fmt.Errorf("output is empty")
+			return OpenAIOut{}, res.StatusCode, 0, -1, LogsErrorf("output is empty")
 		}
 
-		err = json.Unmarshal(js, &ret)
+		err = LogsJsonUnmarshal(js, &ret)
 		if err != nil {
-			return OpenAIOut{}, res.StatusCode, 0, -1, fmt.Errorf("%w. %s", err, string(js))
+			return OpenAIOut{}, res.StatusCode, 0, -1, err
 		}
 
 		if ret.Error != nil && ret.Error.Message != "" {
@@ -331,16 +330,16 @@ func OpenAI_genImage_Run(jsProps []byte, Completion_url string, api_key string) 
 	body := bytes.NewReader(jsProps)
 
 	req, err := http.NewRequest(http.MethodPost, Completion_url, body)
-	if err != nil {
-		return OpenAIGenImageOut{}, -1, 0, fmt.Errorf("NewRequest() failed: %w", err)
+	if LogsError(err) != nil {
+		return OpenAIGenImageOut{}, -1, 0, err
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+api_key)
 
 	client := &http.Client{}
 	res, err := client.Do(req)
-	if err != nil {
-		return OpenAIGenImageOut{}, -1, 0, fmt.Errorf("Do() failed: %w", err)
+	if LogsError(err) != nil {
+		return OpenAIGenImageOut{}, -1, 0, err
 	}
 	defer res.Body.Close()
 
@@ -350,20 +349,20 @@ func OpenAI_genImage_Run(jsProps []byte, Completion_url string, api_key string) 
 	}
 
 	if len(js) == 0 {
-		return OpenAIGenImageOut{}, res.StatusCode, 0, fmt.Errorf("output is empty")
+		return OpenAIGenImageOut{}, res.StatusCode, 0, LogsErrorf("output is empty")
 	}
 
 	var out OpenAIGenImageOut
-	err = json.Unmarshal(js, &out)
+	err = LogsJsonUnmarshal(js, &out)
 	if err != nil {
-		return OpenAIGenImageOut{}, res.StatusCode, 0, fmt.Errorf("%w. %s", err, string(js))
+		return OpenAIGenImageOut{}, res.StatusCode, 0, err
 	}
 	if out.Error != nil && out.Error.Message != "" {
 		return OpenAIGenImageOut{}, res.StatusCode, 0, errors.New(out.Error.Message)
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return OpenAIGenImageOut{}, res.StatusCode, 0, fmt.Errorf("statusCode %d != 200, response: %s", res.StatusCode, string(js))
+		return OpenAIGenImageOut{}, res.StatusCode, 0, LogsErrorf("statusCode %d != 200, response: %s", res.StatusCode, string(js))
 	}
 
 	tm := float64(time.Now().UnixMicro()-st) / 1000000
@@ -425,14 +424,14 @@ func (msg *OpenAI_completion_msgContent) AddImage(data []byte, media_type string
 }
 func (msg *OpenAI_completion_msgContent) AddImageFile(path string) error {
 	data, err := os.ReadFile(path)
-	if err != nil {
+	if LogsError(err) != nil {
 		return err
 	}
 
 	ext := filepath.Ext(path)
 	ext, _ = strings.CutPrefix(ext, ".")
 	if ext == "" {
-		return fmt.Errorf("missing file type(.ext)")
+		return LogsErrorf("missing file type(.ext)")
 	}
 
 	msg.AddImage(data, "image/"+ext)

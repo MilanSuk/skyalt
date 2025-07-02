@@ -48,52 +48,51 @@ static void setup_video_callbacks(libvlc_media_player_t* player, void* data) {
 import "C"
 
 import (
-	"fmt"
 	"sync"
 	"unsafe"
 )
 
-type ToolsPlayer struct {
-	router *ToolsRouter
+type ServicesPlayer struct {
+	services *Services
 
 	vlcInstance *C.libvlc_instance_t
 
 	lock sync.Mutex
 
-	media   []*ToolsPlayerItem
+	media   []*ServicesPlayerItem
 	playing bool //false = pause all
 
 	last_volume float64
 }
 
-func NewToolsPlayer(router *ToolsRouter) (*ToolsPlayer, error) {
-	sps := &ToolsPlayer{router: router}
+func NewServicesPlayer(services *Services) (*ServicesPlayer, error) {
+	sps := &ServicesPlayer{services: services}
 	sps.playing = true
 	sps.last_volume = 1
 	return sps, nil
 }
 
-func (sps *ToolsPlayer) Destroy() {
+func (sps *ServicesPlayer) Destroy() {
 	sps.RemoveAll()
 }
 
-func (sps *ToolsPlayer) _tryActivateDevice() error {
+func (sps *ServicesPlayer) _tryActivateDevice() error {
 	if sps.vlcInstance == nil {
 		sps.vlcInstance = C.libvlc_new(0, nil)
 		if sps.vlcInstance == nil {
-			return fmt.Errorf("VLC instance creation failed")
+			return LogsErrorf("VLC instance creation failed")
 		}
 	}
 	return nil
 }
-func (sps *ToolsPlayer) _tryDeactivateDevice() {
+func (sps *ServicesPlayer) _tryDeactivateDevice() {
 	if len(sps.media) == 0 && sps.vlcInstance != nil {
 		C.libvlc_release(sps.vlcInstance)
 		sps.vlcInstance = nil
 	}
 }
 
-func (sps *ToolsPlayer) _setPlay(play bool) {
+func (sps *ServicesPlayer) _setPlay(play bool) {
 	if play {
 		//play last
 		if len(sps.media) > 0 {
@@ -108,21 +107,21 @@ func (sps *ToolsPlayer) _setPlay(play bool) {
 	sps.playing = play
 }
 
-func (sps *ToolsPlayer) SetPlay(play bool) {
+func (sps *ServicesPlayer) SetPlay(play bool) {
 	sps.lock.Lock()
 	defer sps.lock.Unlock()
 
 	sps._setPlay(play)
 }
 
-func (sps *ToolsPlayer) Add(path string) error {
+func (sps *ServicesPlayer) Add(path string) error {
 	sps.lock.Lock()
 	defer sps.lock.Unlock()
 
 	sps._tryActivateDevice()
 
 	//create new media
-	sp, err := NewToolsPlayerItem(path, sps)
+	sp, err := NewServicesPlayerItem(path, sps)
 	if err != nil {
 		sps._tryDeactivateDevice()
 	}
@@ -140,7 +139,7 @@ func (sps *ToolsPlayer) Add(path string) error {
 	return nil
 }
 
-func (sps *ToolsPlayer) Remove(path string) {
+func (sps *ServicesPlayer) Remove(path string) {
 	sps.lock.Lock()
 	defer sps.lock.Unlock()
 
@@ -157,7 +156,7 @@ func (sps *ToolsPlayer) Remove(path string) {
 	sps._tryDeactivateDevice()
 }
 
-func (sps *ToolsPlayer) RemoveAll() {
+func (sps *ServicesPlayer) RemoveAll() {
 	sps.lock.Lock()
 	defer sps.lock.Unlock()
 
@@ -168,11 +167,11 @@ func (sps *ToolsPlayer) RemoveAll() {
 	sps._tryDeactivateDevice()
 }
 
-func (sps *ToolsPlayer) Tick() {
+func (sps *ServicesPlayer) Tick() {
 	sps.lock.Lock()
 	defer sps.lock.Unlock()
 
-	volume := sps.router.sync.Device.Volume
+	volume := sps.services.sync.Device.Volume
 
 	if volume != sps.last_volume {
 		for _, it := range sps.media {
@@ -182,7 +181,7 @@ func (sps *ToolsPlayer) Tick() {
 	}
 }
 
-type ToolsPlayerItem struct {
+type ServicesPlayerItem struct {
 	path   string
 	player *C.libvlc_media_player_t
 	media  *C.libvlc_media_t
@@ -193,13 +192,13 @@ type ToolsPlayerItem struct {
 	duration_ms int
 }
 
-func NewToolsPlayerItem(path string, speakers *ToolsPlayer) (*ToolsPlayerItem, error) {
-	sp := &ToolsPlayerItem{path: path}
+func NewServicesPlayerItem(path string, speakers *ServicesPlayer) (*ServicesPlayerItem, error) {
+	sp := &ServicesPlayerItem{path: path}
 
 	// Create media player
 	sp.player = C.libvlc_media_player_new(speakers.vlcInstance)
 	if sp.player == nil {
-		return nil, fmt.Errorf("VLC player creation failed")
+		return nil, LogsErrorf("VLC player creation failed")
 	}
 
 	// Load media
@@ -207,7 +206,7 @@ func NewToolsPlayerItem(path string, speakers *ToolsPlayer) (*ToolsPlayerItem, e
 	defer C.free(unsafe.Pointer(mediaPath))
 	sp.media = C.libvlc_media_new_path(speakers.vlcInstance, mediaPath)
 	if sp.media == nil {
-		return nil, fmt.Errorf("media '%s' creation failed", path)
+		return nil, LogsErrorf("media '%s' creation failed", path)
 	}
 
 	var width, height C.uint
@@ -242,12 +241,12 @@ func NewToolsPlayerItem(path string, speakers *ToolsPlayer) (*ToolsPlayerItem, e
 	return sp, nil
 }
 
-func (sp *ToolsPlayerItem) GetSeek() (int, int) {
+func (sp *ServicesPlayerItem) GetSeek() (int, int) {
 	pos_ms := C.libvlc_media_player_get_time(sp.player)
 	return int(pos_ms), sp.duration_ms
 }
 
-func (sp *ToolsPlayerItem) SetSeek(pos_ms int) {
+func (sp *ServicesPlayerItem) SetSeek(pos_ms int) {
 	if pos_ms < 0 {
 		pos_ms = 0
 	}
@@ -257,7 +256,7 @@ func (sp *ToolsPlayerItem) SetSeek(pos_ms int) {
 	C.libvlc_media_player_set_time(sp.player, C.libvlc_time_t(pos_ms))
 }
 
-func (sp *ToolsPlayerItem) Destroy() {
+func (sp *ServicesPlayerItem) Destroy() {
 	C.libvlc_media_release(sp.media)
 
 	C.libvlc_media_player_stop(sp.player)
@@ -265,16 +264,16 @@ func (sp *ToolsPlayerItem) Destroy() {
 	C.free(sp.pixels)
 }
 
-func (sp *ToolsPlayerItem) Pause() {
+func (sp *ServicesPlayerItem) Pause() {
 	if C.libvlc_media_player_is_playing(sp.player) > 0 {
 		C.libvlc_media_player_pause(sp.player)
 	}
 }
 
-func (sp *ToolsPlayerItem) Play() {
+func (sp *ServicesPlayerItem) Play() {
 	C.libvlc_media_player_play(sp.player)
 }
 
-func (sp *ToolsPlayerItem) SetVolume(t float64) { //<0, 1>
+func (sp *ServicesPlayerItem) SetVolume(t float64) { //<0, 1>
 	C.libvlc_audio_set_volume(sp.player, C.int(t*100)) //(0 = mute, 100 = 0dB)
 }

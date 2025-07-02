@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"image/color"
 	"os"
@@ -114,16 +113,12 @@ type WinIO struct {
 func NewWinIO() (*WinIO, error) {
 	var io WinIO
 
-	err := io._IO_setDefault()
-	if err != nil {
-		return nil, fmt.Errorf("_IO_setDefault() failed: %w", err)
-	}
+	io._IO_setDefault()
 
 	return &io, nil
 }
 
-func (io *WinIO) Destroy() error {
-	return nil
+func (io *WinIO) Destroy() {
 }
 
 func (io *WinIO) ResetTouchAndKeys() {
@@ -143,28 +138,25 @@ func (io *WinIO) Open(path string) error {
 
 	//create ini if not exist
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("OpenFile() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 	f.Close()
 
 	//load ini
 	file, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("ReadFile() failed: %w", err)
+	if LogsError(err) != nil {
+		return err
 	}
 
 	if len(file) > 0 {
-		err = json.Unmarshal(file, &io.Ini)
+		err = LogsJsonUnmarshal(file, &io.Ini)
 		if err != nil {
-			return fmt.Errorf("WinIO - Unmarshal() failed: %w", err)
+			return err
 		}
 	}
 
-	err = io._IO_setDefault()
-	if err != nil {
-		return fmt.Errorf("_IO_setDefault() failed: %w", err)
-	}
+	io._IO_setDefault()
 
 	return nil
 }
@@ -177,7 +169,7 @@ func (io *WinIO) Save(path string) {
 
 }
 
-func (io *WinIO) _IO_setDefault() error {
+func (io *WinIO) _IO_setDefault() {
 	//window coord
 	if io.Ini.WinW == 0 || io.Ini.WinH == 0 {
 		io.Ini.WinX = 50
@@ -185,8 +177,6 @@ func (io *WinIO) _IO_setDefault() error {
 		io.Ini.WinW = 1280
 		io.Ini.WinH = 720
 	}
-
-	return nil
 }
 
 func GetDeviceDPI() int {

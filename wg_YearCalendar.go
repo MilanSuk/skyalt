@@ -64,7 +64,7 @@ func _formMonthCalendar(year, month int, layout *Layout) {
 	}
 
 	// Day names(short)
-	if layout.ui.router.sync.GetDateFormat() == "us" {
+	if layout.ui.router.services.sync.GetDateFormat() == "us" {
 		//"us"
 		txt, txtLay := layout.AddText2(0, 0, 1, 1, layout.GetDayTextShort(7))
 		txt.Align_h = 1
@@ -88,7 +88,7 @@ func _formMonthCalendar(year, month int, layout *Layout) {
 	dt := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
 	{
 		firstDay := time.Monday
-		if layout.ui.router.sync.GetDateFormat() == "us" {
+		if layout.ui.router.services.sync.GetDateFormat() == "us" {
 			firstDay = time.Sunday
 		}
 		for dt.Weekday() != firstDay {

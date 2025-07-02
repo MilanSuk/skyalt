@@ -32,10 +32,10 @@ func (st *ProgressBar) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	rect = rect.CutTop(margin_y)
 	rect = rect.CutBottom(margin_y)
 
-	paint.RectRad(rect, cdRest, cdRest, cdRest, 0, layout.ui.router.sync.GetRounding()) //100%
+	paint.RectRad(rect, cdRest, cdRest, cdRest, 0, layout.ui.router.services.sync.GetRounding()) //100%
 
 	rect.W *= st.Value
-	paint.RectRad(rect, cdDone, cdDone, cdDone, 0, layout.ui.router.sync.GetRounding()) //done
+	paint.RectRad(rect, cdDone, cdDone, cdDone, 0, layout.ui.router.services.sync.GetRounding()) //done
 
 	return
 }

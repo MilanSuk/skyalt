@@ -30,12 +30,12 @@ type ToolsClient struct {
 
 func NewToolsClient(addr string, port int) (*ToolsClient, error) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", addr, port))
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, err
 	}
 
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, err
 	}
 
@@ -48,7 +48,7 @@ func (client *ToolsClient) Destroy() {
 func (client *ToolsClient) ReadInt() (uint64, error) {
 	var sz [8]byte
 	_, err := client.conn.Read(sz[:])
-	if err != nil {
+	if LogsError(err) != nil {
 		return 0, err
 	}
 
@@ -59,7 +59,7 @@ func (client *ToolsClient) WriteInt(value uint64) error {
 	var val [8]byte
 	binary.LittleEndian.PutUint64(val[:], value)
 	_, err := client.conn.Write(val[:])
-	if err != nil {
+	if LogsError(err) != nil {
 		return err
 	}
 	return nil
@@ -77,7 +77,7 @@ func (client *ToolsClient) ReadArray() ([]byte, error) {
 	p := 0
 	for p < int(size) {
 		n, err := client.conn.Read(data[p:])
-		if err != nil {
+		if LogsError(err) != nil {
 			return nil, err
 		}
 		p += n
@@ -95,7 +95,7 @@ func (client *ToolsClient) WriteArray(data []byte) error {
 
 	//send data
 	_, err = client.conn.Write(data)
-	if err != nil {
+	if LogsError(err) != nil {
 		return err
 	}
 
@@ -124,7 +124,7 @@ type ToolsServerClient struct {
 	conn net.Conn
 }
 
-type ToolsServer struct {
+type AppsServer struct {
 	port     int
 	listener net.Listener
 	exiting  bool
@@ -132,8 +132,8 @@ type ToolsServer struct {
 	info *ToolsServerInfo
 }
 
-func NewToolsServer(port int) *ToolsServer {
-	server := &ToolsServer{}
+func NewToolsServer(port int) *AppsServer {
+	server := &AppsServer{}
 
 	port_last := port + 1000
 	for port < port_last {
@@ -145,7 +145,7 @@ func NewToolsServer(port int) *ToolsServer {
 		port++
 	}
 	if port == port_last {
-		log.Fatal(fmt.Errorf("can not Listen()"))
+		log.Fatal("can not Listen()")
 	}
 	server.port = port
 	server.info = &ToolsServerInfo{}
@@ -154,7 +154,7 @@ func NewToolsServer(port int) *ToolsServer {
 	return server
 }
 
-func (server *ToolsServer) Destroy() {
+func (server *AppsServer) Destroy() {
 	server.exiting = true
 	server.listener.Close()
 
@@ -162,7 +162,7 @@ func (server *ToolsServer) Destroy() {
 	fmt.Printf("Server port: %d closed\n", server.port)
 }
 
-func (server *ToolsServer) Accept() (*ToolsServerClient, error) {
+func (server *AppsServer) Accept() (*ToolsServerClient, error) {
 	conn, err := server.listener.Accept()
 	if err != nil {
 		if server.exiting {
@@ -180,7 +180,7 @@ func (client *ToolsServerClient) Destroy() {
 func (client *ToolsServerClient) ReadInt() (uint64, error) {
 	var sz [8]byte
 	_, err := client.conn.Read(sz[:])
-	if err != nil {
+	if LogsError(err) != nil {
 		return 0, err
 	}
 	client.info.AddReadBytes(8)
@@ -192,7 +192,7 @@ func (client *ToolsServerClient) WriteInt(value uint64) error {
 	var val [8]byte
 	binary.LittleEndian.PutUint64(val[:], value)
 	_, err := client.conn.Write(val[:])
-	if err != nil {
+	if LogsError(err) != nil {
 		return err
 	}
 
@@ -212,7 +212,7 @@ func (client *ToolsServerClient) ReadArray() ([]byte, error) {
 	p := 0
 	for p < int(size) {
 		n, err := client.conn.Read(data[p:])
-		if err != nil {
+		if LogsError(err) != nil {
 			return nil, err
 		}
 		p += n
@@ -232,7 +232,7 @@ func (client *ToolsServerClient) WriteArray(data []byte) error {
 
 	//send data
 	_, err = client.conn.Write(data)
-	if err != nil {
+	if LogsError(err) != nil {
 		return err
 	}
 	client.info.AddWrittenBytes(len(data))

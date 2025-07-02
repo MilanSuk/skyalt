@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -26,7 +25,7 @@ import (
 	"time"
 )
 
-type ToolsRouterMsg struct {
+type AppsRouterMsg struct {
 	msg_id   uint64
 	user_uid string
 	ui_uid   uint64
@@ -54,14 +53,14 @@ type ToolsRouterMsg struct {
 	drawit bool
 }
 
-func (msg *ToolsRouterMsg) Stop() {
+func (msg *AppsRouterMsg) Stop() {
 	msg.stop.Store(true)
 }
 
-func (msg *ToolsRouterMsg) Done() {
+func (msg *AppsRouterMsg) Done() {
 	msg.out_done.Store(true)
 }
-func (msg *ToolsRouterMsg) Progress(done float64, label string) bool {
+func (msg *AppsRouterMsg) Progress(done float64, label string) bool {
 
 	msg.progress_done = done
 	msg.progress_label = label
@@ -69,52 +68,31 @@ func (msg *ToolsRouterMsg) Progress(done float64, label string) bool {
 	return !msg.stop.Load()
 }
 
-type ToolsRouter struct {
-	server *ToolsServer
+type AppsRouter struct {
+	server *AppsServer
 
 	lock sync.Mutex
 
-	log ToolsLog
-
-	msgs         map[uint64]*ToolsRouterMsg
+	msgs         map[uint64]*AppsRouterMsg
 	msgs_counter atomic.Uint64 //to create unique msg_id
 
 	apps map[string]*ToolsApp
 
 	refresh_progress_time float64
 
-	llms *LLMs
-	sync *ToolsSync
-
-	mic    *ToolsMicMalgo
-	player *ToolsPlayer
+	services *Services
 }
 
-func NewToolsRouter(start_port int) (*ToolsRouter, error) {
-	var err error
+func NewAppsRouter(start_port int, services *Services) (*AppsRouter, error) {
+	router := &AppsRouter{}
 
-	router := &ToolsRouter{}
-
-	router.mic = NewToolsMicMalgo(router)
-	router.player, err = NewToolsPlayer(router)
-	if err != nil {
-		return nil, err
-	}
+	router.services = services
+	router.services.fnCallBuildAsync = router.CallBuildAsync
+	router.services.fnGetAppPortAndTools = router.GetAppPortAndTools
 
 	router.server = NewToolsServer(start_port)
-	router.msgs = make(map[uint64]*ToolsRouterMsg)
+	router.msgs = make(map[uint64]*AppsRouterMsg)
 	router.apps = make(map[string]*ToolsApp)
-	router.log.Name = "ToolsRouter"
-
-	router.llms, err = NewLLMs(router)
-	if err != nil {
-		return nil, err
-	}
-
-	router.sync, err = NewToolsSync(router)
-	if err != nil {
-		return nil, err
-	}
 
 	//hot reload
 	go func() {
@@ -122,8 +100,8 @@ func NewToolsRouter(start_port int) (*ToolsRouter, error) {
 		for {
 			router._hotReload()
 			if !inited {
-				router.sync.Upload_LoadFiles()
-				router.sync.Upload_deviceDefaultDPI()
+				router.services.sync.Upload_LoadFiles()
+				router.services.sync.Upload_deviceDefaultDPI()
 				inited = true
 			}
 
@@ -137,25 +115,61 @@ func NewToolsRouter(start_port int) (*ToolsRouter, error) {
 	return router, nil
 }
 
-func (router *ToolsRouter) Destroy() {
+func (router *AppsRouter) Destroy() {
 	for _, app := range router.apps {
 		app.Destroy() //send exit
 	}
 
 	router.server.Destroy()
 
-	router.mic.Destroy()
-	router.player.Destroy()
-
 	router.Save()
 }
 
-func (router *ToolsRouter) Save() {
+func (router *AppsRouter) Tick() bool {
+	refresh := false
+	devApp := router.FindApp("Device")
+	if devApp != nil {
+		refresh = router.services.Tick(devApp.storage_changes)
+		if refresh {
+			router.CallUpdateDev()
+		}
+	}
+
+	return refresh
+}
+
+func (router *AppsRouter) GetAppPortAndTools(appName string) (int, []*ToolsOpenAI_completion_tool, error) {
+
+	var tools []*ToolsOpenAI_completion_tool
+	app_port := -1
+
+	if appName != "" {
+		app := router.FindApp(appName)
+		if app != nil {
+			tools = app.GetAllSchemas()
+
+			//start it
+			err := app.CheckRun()
+			if err != nil {
+				return -1, nil, err
+			}
+
+			app_port = app.Process.port
+
+		} else {
+			return -1, nil, LogsErrorf("app '%s' not found", appName)
+		}
+	}
+
+	return app_port, tools, nil
+}
+
+func (router *AppsRouter) Save() {
 	router.lock.Lock()
 	defer router.lock.Unlock()
 }
 
-func (router *ToolsRouter) FindApp(appName string) *ToolsApp {
+func (router *AppsRouter) FindApp(appName string) *ToolsApp {
 	router.lock.Lock()
 	app := router.apps[appName]
 	router.lock.Unlock()
@@ -170,21 +184,21 @@ func (router *ToolsRouter) FindApp(appName string) *ToolsApp {
 	}
 
 	if app == nil {
-		router.log.Error(fmt.Errorf("app '%s' not found", appName))
+		LogsErrorf("app '%s' not found", appName)
 	}
 
 	return app
 }
 
-func (router *ToolsRouter) GetRootApp() *ToolsApp {
+func (router *AppsRouter) GetRootApp() *ToolsApp {
 	return router.FindApp("Root")
 }
 
-func (router *ToolsRouter) GetSortedMsgs() []*ToolsRouterMsg {
+func (router *AppsRouter) GetSortedMsgs() []*AppsRouterMsg {
 	router.lock.Lock()
 	defer router.lock.Unlock()
 
-	var sortedMsgs []*ToolsRouterMsg
+	var sortedMsgs []*AppsRouterMsg
 	for _, msg := range router.msgs {
 		if msg != nil {
 			sortedMsgs = append(sortedMsgs, msg)
@@ -202,7 +216,7 @@ func _ToolsRouter_getJSON(params any) ([]byte, error) {
 	jsParams := []byte("{}")
 	if params != nil {
 		var err error
-		jsParams, err = json.Marshal(params)
+		jsParams, err = LogsJsonMarshal(params)
 		if err != nil {
 			return nil, err
 		}
@@ -210,25 +224,25 @@ func _ToolsRouter_getJSON(params any) ([]byte, error) {
 	return jsParams, nil
 }
 
-func (router *ToolsRouter) CallUpdateDev() {
+func (router *AppsRouter) CallUpdateDev() {
 	router.lock.Lock()
 	defer router.lock.Unlock()
 
 	for _, app := range router.apps {
 		if app.Process.IsRunning() {
-			_ToolsCaller_UpdateDev(app.Process.port, router.log.Error)
+			_ToolsCaller_UpdateDev(app.Process.port)
 		}
 	}
 }
 
-func (router *ToolsRouter) CallUpdateAsync(ui_uid uint64, sub_uid uint64, appName string, funcName string, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
+func (router *AppsRouter) CallUpdateAsync(ui_uid uint64, sub_uid uint64, appName string, funcName string, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
 	app := router.FindApp(appName)
 	if app == nil {
 		return
 	}
 
 	msg_id := router.msgs_counter.Add(1)
-	msg := &ToolsRouterMsg{msg_id: msg_id, user_uid: "", appName: appName, funcName: "_update_" + funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: Tools_Time()}
+	msg := &AppsRouterMsg{msg_id: msg_id, user_uid: "", appName: appName, funcName: "_update_" + funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: Tools_Time()}
 	//msg.drawit = true
 
 	router.lock.Lock()
@@ -239,10 +253,10 @@ func (router *ToolsRouter) CallUpdateAsync(ui_uid uint64, sub_uid uint64, appNam
 	go func() {
 		defer msg.Done()
 
-		out_subUiJs, out_cmdsJs, out_error := _ToolsCaller_CallUpdate(app.Process.port, msg_id, ui_uid, sub_uid, router.log.Error)
+		out_subUiJs, out_cmdsJs, out_error := _ToolsCaller_CallUpdate(app.Process.port, msg_id, ui_uid, sub_uid)
 		msg.out_error = out_error
 
-		if router.log.Error(out_error) == nil {
+		if out_error == nil {
 			msg.out_ui = out_subUiJs
 			msg.out_cmds = out_cmdsJs
 		}
@@ -250,14 +264,14 @@ func (router *ToolsRouter) CallUpdateAsync(ui_uid uint64, sub_uid uint64, appNam
 	}()
 }
 
-func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, appName string, funcName string, change ToolsSdkChange, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
+func (router *AppsRouter) CallChangeAsync(ui_uid uint64, appName string, funcName string, change ToolsSdkChange, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
 	app := router.FindApp(appName)
 	if app == nil {
 		return
 	}
 
 	msg_id := router.msgs_counter.Add(1)
-	msg := &ToolsRouterMsg{msg_id: msg_id, user_uid: "", appName: appName, funcName: "_change_" + funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: Tools_Time()}
+	msg := &AppsRouterMsg{msg_id: msg_id, user_uid: "", appName: appName, funcName: "_change_" + funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: Tools_Time()}
 
 	msg.drawit = true
 
@@ -269,10 +283,10 @@ func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, appName string, funcNa
 	go func() {
 		defer msg.Done()
 
-		out_dataJs, out_cmdsJs, out_error := _ToolsCaller_CallChange(app.Process.port, msg_id, ui_uid, change, router.log.Error)
+		out_dataJs, out_cmdsJs, out_error := _ToolsCaller_CallChange(app.Process.port, msg_id, ui_uid, change)
 		msg.out_error = out_error
 
-		if router.log.Error(out_error) == nil {
+		if out_error == nil {
 			msg.out_data = out_dataJs
 			msg.out_cmds = out_cmdsJs
 		}
@@ -280,21 +294,21 @@ func (router *ToolsRouter) CallChangeAsync(ui_uid uint64, appName string, funcNa
 	}()
 }
 
-func (router *ToolsRouter) CallBuildAsync(ui_uid uint64, appName string, funcName string, params interface{}, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) *ToolsRouterMsg {
+func (router *AppsRouter) CallBuildAsync(ui_uid uint64, appName string, funcName string, params interface{}, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) *AppsRouterMsg {
 	app := router.FindApp(appName)
 	if app == nil {
 		return nil
 	}
 
 	msg_id := router.msgs_counter.Add(1)
-	msg := &ToolsRouterMsg{msg_id: msg_id, user_uid: "", ui_uid: ui_uid, appName: appName, funcName: funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: Tools_Time()}
+	msg := &AppsRouterMsg{msg_id: msg_id, user_uid: "", ui_uid: ui_uid, appName: appName, funcName: funcName, fnProgress: fnProgress, fnDone: fnDone, start_time: Tools_Time()}
 
 	router.lock.Lock()
 	router.msgs[msg_id] = msg
 	router.lock.Unlock()
 
 	jsParams, err := _ToolsRouter_getJSON(params)
-	if router.log.Error(err) != nil {
+	if err != nil {
 		return nil
 	}
 
@@ -304,22 +318,21 @@ func (router *ToolsRouter) CallBuildAsync(ui_uid uint64, appName string, funcNam
 
 		//start it
 		err = app.CheckRun()
-		if router.log.Error(err) != nil {
+		if err != nil {
 			msg.out_error = err
 			return
 		}
 
 		//call it - no parent!
-		msg.out_data, msg.out_ui, msg.out_cmds, msg.out_error = _ToolsCaller_CallBuild(app.Process.port, msg_id, ui_uid, funcName, jsParams, router.log.Error)
-		router.log.Error(msg.out_error)
+		msg.out_data, msg.out_ui, msg.out_cmds, msg.out_error = _ToolsCaller_CallBuild(app.Process.port, msg_id, ui_uid, funcName, jsParams)
 	}()
 
 	return msg
 }
 
-func (router *ToolsRouter) AddRecompileMsg(appName string) *ToolsRouterMsg {
+func (router *AppsRouter) AddRecompileMsg(appName string) *AppsRouterMsg {
 	msg_id := router.msgs_counter.Add(1)
-	msg := &ToolsRouterMsg{msg_id: msg_id, user_uid: "_compile_", ui_uid: 0, appName: appName, funcName: "_compile_", fnDone: nil, start_time: Tools_Time()}
+	msg := &AppsRouterMsg{msg_id: msg_id, user_uid: "_compile_", ui_uid: 0, appName: appName, funcName: "_compile_", fnDone: nil, start_time: Tools_Time()}
 
 	router.lock.Lock()
 	router.msgs[msg_id] = msg
@@ -328,7 +341,7 @@ func (router *ToolsRouter) AddRecompileMsg(appName string) *ToolsRouterMsg {
 	return msg
 }
 
-func (router *ToolsRouter) FindRecompileMsg(appName string) *ToolsRouterMsg {
+func (router *AppsRouter) FindRecompileMsg(appName string) *AppsRouterMsg {
 	router.lock.Lock()
 	defer router.lock.Unlock()
 
@@ -340,7 +353,7 @@ func (router *ToolsRouter) FindRecompileMsg(appName string) *ToolsRouterMsg {
 	return nil
 }
 
-func (router *ToolsRouter) FindMessage(user_uid string) *ToolsRouterMsg {
+func (router *AppsRouter) FindMessage(user_uid string) *AppsRouterMsg {
 	router.lock.Lock()
 	defer router.lock.Unlock()
 
@@ -352,7 +365,7 @@ func (router *ToolsRouter) FindMessage(user_uid string) *ToolsRouterMsg {
 	return nil
 }
 
-func (router *ToolsRouter) NeedMsgRedraw() bool {
+func (router *AppsRouter) NeedMsgRedraw() bool {
 	router.lock.Lock()
 	defer router.lock.Unlock()
 
@@ -368,10 +381,10 @@ func (router *ToolsRouter) NeedMsgRedraw() bool {
 	return false
 }
 
-func (router *ToolsRouter) Flush() bool {
+func (router *AppsRouter) Flush() bool {
 	redraw := false
 
-	var doneMsgs []*ToolsRouterMsg
+	var doneMsgs []*AppsRouterMsg
 	router.lock.Lock()
 	{
 		//redraw progress/threads with delay
@@ -424,7 +437,7 @@ func (router *ToolsRouter) Flush() bool {
 	return redraw
 }
 
-func (router *ToolsRouter) RunNet() {
+func (router *AppsRouter) RunNet() {
 
 	type SdkMsg struct {
 		Id             string
@@ -437,7 +450,7 @@ func (router *ToolsRouter) RunNet() {
 
 	for {
 		cl, err := router.server.Accept()
-		if router.log.Error(err) != nil {
+		if LogsError(err) != nil {
 			continue
 		}
 		if cl == nil {
@@ -449,23 +462,23 @@ func (router *ToolsRouter) RunNet() {
 			defer cl.Destroy()
 
 			mode, err := cl.ReadArray()
-			if router.log.Error(err) == nil {
+			if err == nil {
 				switch string(mode) {
 
 				case "print":
 					appName, err := cl.ReadArray()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						str, err := cl.ReadArray()
-						if router.log.Error(err) == nil {
+						if err == nil {
 							fmt.Printf("Router's print '%s' app: %s\n", string(appName), string(str))
 						}
 					}
 
 				case "register":
 					appName, err := cl.ReadArray()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						port, err := cl.ReadInt()
-						if router.log.Error(err) == nil {
+						if err == nil {
 							app := router.FindApp(string(appName))
 							if app != nil {
 								app.Process.port = int(port)
@@ -475,7 +488,7 @@ func (router *ToolsRouter) RunNet() {
 
 				case "generate_app":
 					appName, err := cl.ReadArray()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						app := router.FindApp(string(appName))
 						if app != nil {
 							app.Tick(true) //err ....
@@ -483,19 +496,17 @@ func (router *ToolsRouter) RunNet() {
 					}
 
 				case "get_llm_usage":
-					usage := router.llms.GetUsage()
+					usage := router.services.llms.GetUsage()
 
-					usageJs, err := json.Marshal(usage)
-					router.log.Error(err)
+					usageJs, _ := LogsJsonMarshal(usage)
 
-					err = cl.WriteArray(usageJs)
-					router.log.Error(err)
+					cl.WriteArray(usageJs)
 
 				case "rename_app":
 					oldName, err := cl.ReadArray()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						newNameBytes, err := cl.ReadArray()
-						if router.log.Error(err) == nil {
+						if err == nil {
 							app := router.FindApp(string(oldName))
 							if app != nil {
 								newName, renameErr := app.Rename(string(newNameBytes))
@@ -504,26 +515,24 @@ func (router *ToolsRouter) RunNet() {
 								}
 
 								//send back
-								err = cl.WriteArray([]byte(newName))
-								router.log.Error(err)
+								cl.WriteArray([]byte(newName))
 
 								var errBytes []byte
 								if renameErr != nil {
 									errBytes = []byte(renameErr.Error())
 								}
-								err = cl.WriteArray(errBytes)
-								router.log.Error(err)
+								cl.WriteArray(errBytes)
 							}
 						}
 					}
 
 				case "progress":
 					msg_id, err := cl.ReadInt()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						done, err := cl.ReadInt()
-						if router.log.Error(err) == nil {
+						if err == nil {
 							label, err := cl.ReadArray()
-							if router.log.Error(err) == nil {
+							if err == nil {
 
 								stop := uint64(0) //not found = sub-ui has same msg_id(which ended)
 								router.lock.Lock()
@@ -541,23 +550,22 @@ func (router *ToolsRouter) RunNet() {
 								}
 								router.lock.Unlock()
 
-								err = cl.WriteInt(stop)
-								router.log.Error(err)
+								cl.WriteInt(stop)
 							}
 						}
 					}
 
 				case "sub_call":
 					msg_id, err := cl.ReadInt()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						ui_uid, err := cl.ReadInt()
-						if router.log.Error(err) == nil {
+						if err == nil {
 							appName, err := cl.ReadArray()
-							if router.log.Error(err) == nil {
+							if err == nil {
 								funcName, err := cl.ReadArray()
-								if router.log.Error(err) == nil {
+								if err == nil {
 									jsParams, err := cl.ReadArray()
-									if router.log.Error(err) == nil {
+									if err == nil {
 										var dataJs []byte
 										var uiJs []byte
 										var cmdsJs []byte
@@ -566,14 +574,12 @@ func (router *ToolsRouter) RunNet() {
 										if app != nil {
 											//start it
 											out_Error = app.CheckRun()
-											if router.log.Error(out_Error) == nil {
+											if out_Error == nil {
 												//call it
-												dataJs, uiJs, cmdsJs, out_Error = _ToolsCaller_CallBuild(app.Process.port, msg_id, ui_uid, string(funcName), jsParams, router.log.Error)
-												router.log.Error(out_Error)
+												dataJs, uiJs, cmdsJs, out_Error = _ToolsCaller_CallBuild(app.Process.port, msg_id, ui_uid, string(funcName), jsParams)
 											}
 										} else {
-											out_Error = fmt.Errorf("app '%s' not found", string(appName))
-											router.log.Error(out_Error)
+											out_Error = LogsErrorf("app '%s' not found", string(appName))
 										}
 
 										errStr := ""
@@ -581,14 +587,10 @@ func (router *ToolsRouter) RunNet() {
 											errStr = out_Error.Error()
 										}
 
-										err = cl.WriteArray(dataJs)
-										router.log.Error(err)
-										err = cl.WriteArray(uiJs)
-										router.log.Error(err)
-										err = cl.WriteArray(cmdsJs)
-										router.log.Error(err)
-										err = cl.WriteArray([]byte(errStr))
-										router.log.Error(err)
+										cl.WriteArray(dataJs)
+										cl.WriteArray(uiJs)
+										cl.WriteArray(cmdsJs)
+										cl.WriteArray([]byte(errStr))
 									}
 								}
 							}
@@ -597,9 +599,9 @@ func (router *ToolsRouter) RunNet() {
 
 				case "add_cmds":
 					msg_id, err := cl.ReadInt()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						cmdsJs, err := cl.ReadArray()
-						if router.log.Error(err) == nil {
+						if err == nil {
 
 							router.lock.Lock()
 							{
@@ -621,36 +623,31 @@ func (router *ToolsRouter) RunNet() {
 						}
 					}
 
-					msgsJs, err := json.Marshal(msgs)
-					if router.log.Error(err) == nil {
-						err = cl.WriteArray(msgsJs)
-						router.log.Error(err)
-					}
+					msgsJs, _ := LogsJsonMarshal(msgs)
+					cl.WriteArray(msgsJs)
 
 				case "get_logs":
 					start_i, err := cl.ReadInt()
-					if router.log.Error(err) == nil {
-						logs := router.log.Get(int(start_i))
-						logsJs, err := json.Marshal(logs)
-						router.log.Error(err)
-						err = cl.WriteArray(logsJs)
-						router.log.Error(err)
+					if err == nil {
+						logs := g_logs.Get(int(start_i))
+						logsJs, _ := LogsJsonMarshal(logs)
+
+						cl.WriteArray(logsJs)
 					}
 
 				case "get_mic_info":
-					micJs, err := json.Marshal(&router.mic.info)
-					router.log.Error(err)
-					err = cl.WriteArray(micJs)
-					router.log.Error(err)
+					micJs, _ := LogsJsonMarshal(&router.services.mic.info)
+
+					cl.WriteArray(micJs)
 
 				case "stop_mic":
-					router.mic.FinishAll(false)
+					router.services.mic.FinishAll(false)
 
 				case "set_msg_name":
 					user_uid, err := cl.ReadInt()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						user_id, err := cl.ReadArray()
-						if router.log.Error(err) == nil {
+						if err == nil {
 							router.lock.Lock()
 							{
 								msg, found := router.msgs[user_uid]
@@ -664,29 +661,24 @@ func (router *ToolsRouter) RunNet() {
 
 				case "find_msg_name":
 					user_uid, err := cl.ReadArray()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						msg := router.FindMessage(string(user_uid))
 
 						if msg != nil {
-							err := cl.WriteInt(1) //exist
-							router.log.Error(err)
+							cl.WriteInt(1) //exist
 
 							msg := SdkMsg{Id: string(user_uid), AppName: msg.appName, FuncName: msg.funcName, Progress_label: msg.progress_label, Progress_done: msg.progress_done, Start_time: msg.start_time}
-							msgJs, err := json.Marshal(msg)
-							if router.log.Error(err) == nil {
-								err = cl.WriteArray(msgJs)
-								router.log.Error(err)
-							}
+							msgJs, _ := LogsJsonMarshal(msg)
+							cl.WriteArray(msgJs)
 
 						} else {
-							err := cl.WriteInt(0) //non-exist
-							router.log.Error(err)
+							cl.WriteInt(0) //non-exist
 						}
 					}
 
 				case "stop_msg":
 					user_uid, err := cl.ReadArray()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						msg := router.FindMessage(string(user_uid))
 						if msg != nil {
 							msg.Stop()
@@ -695,7 +687,7 @@ func (router *ToolsRouter) RunNet() {
 
 				case "get_tools_shemas":
 					appName, err := cl.ReadArray()
-					if router.log.Error(err) == nil {
+					if err == nil {
 
 						var schemas []*ToolsOpenAI_completion_tool
 						app := router.FindApp(string(appName))
@@ -703,31 +695,27 @@ func (router *ToolsRouter) RunNet() {
 							schemas = app.GetAllSchemas()
 						}
 
-						oaiJs, err := json.Marshal(schemas)
-						router.log.Error(err)
+						oaiJs, _ := LogsJsonMarshal(schemas)
 
-						err = cl.WriteArray(oaiJs)
-						router.log.Error(err)
+						cl.WriteArray(oaiJs)
 					}
 
 				case "get_tool_data":
 					appName, err := cl.ReadArray()
-					if router.log.Error(err) == nil {
+					if err == nil {
 
 						var promptsJs []byte
 
 						app := router.FindApp(string(appName))
 						if app != nil {
-							promptsJs, err = json.MarshalIndent(app.Prompts, "", " ")
-							router.log.Error(err)
+							promptsJs, _ = LogsJsonMarshalIndent(app.Prompts)
 						}
-						err = cl.WriteArray(promptsJs)
-						router.log.Error(err)
+						cl.WriteArray(promptsJs)
 					}
 
 				case "storage_changed":
 					appName, err := cl.ReadArray()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						app := router.FindApp(string(appName))
 						if app != nil {
 							app.storage_changes++
@@ -736,11 +724,11 @@ func (router *ToolsRouter) RunNet() {
 
 				case "llm_complete":
 					msg_id, err := cl.ReadInt()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						compJs, err := cl.ReadArray()
-						if router.log.Error(err) == nil {
+						if err == nil {
 
-							var msg *ToolsRouterMsg
+							var msg *AppsRouterMsg
 							router.lock.Lock()
 							{
 								msg = router.msgs[msg_id]
@@ -750,46 +738,39 @@ func (router *ToolsRouter) RunNet() {
 							//exe
 							if msg != nil {
 								var comp LLMComplete
-								err := json.Unmarshal(compJs, &comp)
-								if router.log.Error(err) == nil {
+								err := LogsJsonUnmarshal(compJs, &comp)
+								if err == nil {
 
 									comp.delta = func(msg *ChatMsg) {
-										msgJs, err := json.Marshal(msg)
-										if router.log.Error(err) == nil {
-											err = cl.WriteArray(msgJs) //send delta
-											router.log.Error(err)
-										}
+										msgJs, _ := LogsJsonMarshal(msg)
+										cl.WriteArray(msgJs) //send delta
 									}
 
 									usecase := "chat"
 									if comp.AppName != "" {
 										usecase = "tools"
 									}
-									err = router.llms.Complete(&comp, msg, usecase)
-									if router.log.Error(err) == nil {
+									err = router.services.llms.Complete(&comp, msg, usecase)
+									if err == nil {
 										//save back
-										compJs, err = json.Marshal(&comp)
-										router.log.Error(err)
+										compJs, _ = LogsJsonMarshal(&comp)
 									}
 								}
 							}
 
 							//send back
-							err = cl.WriteArray(nil) //empty delta
-							router.log.Error(err)
-
-							err = cl.WriteArray(compJs)
-							router.log.Error(err)
+							cl.WriteArray(nil) //empty delta
+							cl.WriteArray(compJs)
 						}
 					}
 
 				case "llm_transcribe":
 					msg_id, err := cl.ReadInt()
-					if router.log.Error(err) == nil {
+					if err == nil {
 						compJs, err := cl.ReadArray()
-						if router.log.Error(err) == nil {
+						if err == nil {
 
-							var msg *ToolsRouterMsg
+							var msg *AppsRouterMsg
 							router.lock.Lock()
 							{
 								msg = router.msgs[msg_id]
@@ -799,24 +780,20 @@ func (router *ToolsRouter) RunNet() {
 							//exe
 							if msg != nil {
 								var comp LLMTranscribe
-								err := json.Unmarshal(compJs, &comp)
-								if router.log.Error(err) == nil {
+								err := LogsJsonUnmarshal(compJs, &comp)
+								if err == nil {
 
-									err = router.llms.Transcribe(&comp)
-									if router.log.Error(err) == nil {
+									err = router.services.llms.Transcribe(&comp)
+									if err == nil {
 										//save back
-										compJs, err = json.Marshal(&comp)
-										router.log.Error(err)
+										compJs, _ = LogsJsonMarshal(&comp)
 									}
 								}
 							}
 
 							//send back
-							err = cl.WriteArray(nil) //empty delta
-							router.log.Error(err)
-
-							err = cl.WriteArray(compJs)
-							router.log.Error(err)
+							cl.WriteArray(nil) //empty delta
+							cl.WriteArray(compJs)
 						}
 					}
 				}
@@ -825,9 +802,9 @@ func (router *ToolsRouter) RunNet() {
 	}
 }
 
-func (router *ToolsRouter) _reloadAppList() {
+func (router *AppsRouter) _reloadAppList() {
 	files, err := os.ReadDir("apps")
-	if router.log.Error(err) != nil {
+	if LogsError(err) != nil {
 		return
 	}
 
@@ -845,7 +822,7 @@ func (router *ToolsRouter) _reloadAppList() {
 		_, found := router.apps[appName]
 		if !found {
 			app, err := NewToolsApp(appName, router)
-			if router.log.Error(err) == nil {
+			if err == nil {
 				router.apps[appName] = app
 			}
 		}
@@ -867,19 +844,12 @@ func (router *ToolsRouter) _reloadAppList() {
 	}
 }
 
-func (router *ToolsRouter) _hotReload() {
+func (router *AppsRouter) _hotReload() {
 
 	router._reloadAppList()
 
 	//ticks
-	for appName, app := range router.apps {
-		err := app.Tick(false)
-		if err != nil {
-			router.log.Error(fmt.Errorf("%s: %w", appName, err))
-		}
+	for _, app := range router.apps {
+		app.Tick(false)
 	}
-}
-
-func (router *ToolsRouter) Tick() {
-	router.player.Tick()
 }

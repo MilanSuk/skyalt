@@ -19,7 +19,6 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"image/color"
 	"math"
@@ -285,7 +284,7 @@ func (layout *Layout) GetSettings() *UiRootSettings {
 }
 
 func (layout *Layout) GetPalette() *DevPalette {
-	return layout.ui.router.sync.GetPalette()
+	return layout.ui.router.services.sync.GetPalette()
 }
 
 func (layout *Layout) projectScroll() {
@@ -524,14 +523,15 @@ func (layout *Layout) RowResize(pos int, val float64) {
 	}
 }
 
-func (layout *Layout) rebuildLevel() {
+func (layout *Layout) rebuildLevel() bool {
 
-	winRect := layout.ui.winRect
+	winRect := layout.ui.winRect //window
 
 	layout.canvas = winRect
 	layout.view = winRect
 	layout.crop = winRect
 
+	resized := false
 	if !layout.IsBase() { //dom.IsDialog()
 		//get size
 		coord := layout.GetLevelSize()
@@ -539,7 +539,9 @@ func (layout *Layout) rebuildLevel() {
 		//coord
 		diaS := layout.ui.settings.FindDialog(layout.UID)
 		if diaS != nil {
-			coord = diaS.GetDialogCoord(coord, layout.ui)
+			new_coord := diaS.GetDialogCoord(coord, layout.ui)
+			resized = !coord.Size.Cmp(new_coord.Size)
+			coord = new_coord
 		}
 
 		//set & rebuild with new size
@@ -547,6 +549,8 @@ func (layout *Layout) rebuildLevel() {
 		layout.view = coord
 		layout.crop = coord
 	}
+
+	return resized
 }
 
 func (layout *Layout) IsShown() bool {
@@ -638,8 +642,18 @@ func (layout *Layout) _relayoutInner() {
 	}
 
 	if layout.IsDialog() {
-		layout.rebuildLevel() //for dialogs, it needs to know dialog size
-		layout.updateCoord(0, 0, 1, 1)
+		if layout.rebuildLevel() { //for dialogs, it needs to know dialog size
+
+			layout.updateCoord(0, 0, 1, 1)
+			/*if layout._relayoutFromChild() {
+				layout.updateCoord(0, 0, 1, 1)
+			}
+
+			layout._relayoutFromChild()
+			layout.updateCoord(0, 0, 1, 1)
+			layout._relayout()*/
+		}
+		//layout.updateCoord(0, 0, 1, 1)
 	}
 
 	//order List
@@ -652,64 +666,67 @@ func (layout *Layout) _relayoutInner() {
 	}
 }
 
+func (layout *Layout) _relayoutFromChild() bool {
+
+	changed := false
+
+	for i, c := range layout.UserCols {
+		if c.SetFromChild_min > 0 || c.SetFromChild_max > 0 {
+			v := c.SetFromChild_min
+			for _, it := range layout.childs {
+				if it.IsShown() {
+					if it.X == c.Pos && it.W == 1 {
+						vv := it._getWidth()
+						if it.scrollV.Is() {
+							vv += float64(it.scrollV._GetWidth(it.ui)) / float64(it.Cell()) //add scroll width
+						}
+						v = OsMaxFloat(v, vv)
+					}
+				}
+			}
+
+			v = OsClampFloat(v, c.SetFromChild_min, c.SetFromChild_max)
+			layout.UserCols[i].Min = v
+			layout.UserCols[i].Max = v
+
+			changed = true
+		}
+	}
+
+	for i, r := range layout.UserRows {
+		if r.SetFromChild_min > 0 || r.SetFromChild_max > 0 {
+			v := r.SetFromChild_min
+			for _, it := range layout.childs {
+				if it.IsShown() {
+					if it.Y == r.Pos && it.H == 1 {
+						vv := it._getHeight()
+						if it.scrollH.Is() {
+							//vv += float64(it.scrollH._GetWidth(it.ui)) / float64(it.Cell()) //add scroll width
+						}
+						v = OsMaxFloat(v, vv)
+					}
+				}
+			}
+
+			v = OsClampFloat(v, r.SetFromChild_min, r.SetFromChild_max)
+			layout.UserRows[i].Min = v
+			layout.UserRows[i].Max = v
+
+			changed = true
+		}
+	}
+
+	return changed
+}
+
 func (layout *Layout) _relayout() {
 
 	layout._relayoutInner()
 
-	//setFromSubs
-	{
-		changed := false
-
-		for i, c := range layout.UserCols {
-			if c.SetFromChild_min > 0 || c.SetFromChild_max > 0 {
-				v := c.SetFromChild_min
-				for _, it := range layout.childs {
-					if it.IsShown() {
-						if it.X == c.Pos && it.W == 1 {
-							vv := it._getWidth()
-							if it.scrollV.Is() {
-								vv += float64(it.scrollV._GetWidth(it.ui)) / float64(it.Cell()) //add scroll width
-							}
-							v = OsMaxFloat(v, vv)
-						}
-					}
-				}
-
-				v = OsClampFloat(v, c.SetFromChild_min, c.SetFromChild_max)
-				layout.UserCols[i].Min = v
-				layout.UserCols[i].Max = v
-
-				changed = true
-			}
-		}
-
-		for i, r := range layout.UserRows {
-			if r.SetFromChild_min > 0 || r.SetFromChild_max > 0 {
-				v := r.SetFromChild_min
-				for _, it := range layout.childs {
-					if it.IsShown() {
-						if it.Y == r.Pos && it.H == 1 {
-							vv := it._getHeight()
-							if it.scrollH.Is() {
-								//vv += float64(it.scrollH._GetWidth(it.ui)) / float64(it.Cell()) //add scroll width
-							}
-							v = OsMaxFloat(v, vv)
-						}
-					}
-				}
-
-				v = OsClampFloat(v, r.SetFromChild_min, r.SetFromChild_max)
-				layout.UserRows[i].Min = v
-				layout.UserRows[i].Max = v
-
-				changed = true
-			}
-		}
-
-		if changed {
-			layout._relayoutInner() //it's same 'dom', so avoid recursion - setFromSubs
-		}
+	if layout._relayoutFromChild() {
+		layout._relayoutInner() //it's same 'dom', so avoid recursion - setFromSubs
 	}
+
 }
 
 func (layout *Layout) rebuildList() {
@@ -912,10 +929,10 @@ func (layout *Layout) renderBuffer(buffer []LayoutDrawPrim) (hasBrush bool) {
 				if layout.ui.edit.Is(layout) {
 					width *= 2
 				}
-				rounding := layout.ui.CellWidth(layout.ui.router.sync.GetRounding())
+				rounding := layout.ui.CellWidth(layout.ui.router.services.sync.GetRounding())
 
 				cd := layout.GetPalette().P
-				if layout.ui.router.mic.Find(layout.UID) != nil {
+				if layout.ui.router.services.mic.Find(layout.UID) != nil {
 					cd = layout.GetPalette().E
 				}
 				buff.AddRectRound(layout.crop, rounding, cd, layout.ui.CellWidth(width))
@@ -1250,7 +1267,7 @@ func (layout *Layout) Draw() {
 			if layApp != nil {
 				//alpha grey background
 				backCanvas := layApp.CropWithScroll()
-				buff.StartLevel(layDia.CropWithScroll(), layout.GetPalette().B, backCanvas, layout.ui.CellWidth(layout.ui.router.sync.GetRounding()))
+				buff.StartLevel(layDia.CropWithScroll(), layout.GetPalette().B, backCanvas, layout.ui.CellWidth(layout.ui.router.services.sync.GetRounding()))
 			}
 
 			layDia.drawBuffers() //add renderToTexture optimalization ....
@@ -1304,7 +1321,7 @@ func (layout *Layout) drawBuffers() {
 
 	rad := 0
 	if layout.Back_rounding {
-		rad = layout.ui.CellWidth(layout.ui.router.sync.GetRounding())
+		rad = layout.ui.CellWidth(layout.ui.router.services.sync.GetRounding())
 	}
 
 	if layout.Back_cd.A > 0 {
@@ -1935,7 +1952,7 @@ func (layout *Layout) CallLayoutUpdates(appName string, funcName string, parent_
 			}
 
 			var subUI UI
-			err = json.Unmarshal(uiJs, &subUI)
+			err = LogsJsonUnmarshal(uiJs, &subUI)
 			if err != nil {
 				return
 			}
@@ -1948,7 +1965,7 @@ func (layout *Layout) CallLayoutUpdates(appName string, funcName string, parent_
 			layout.ui.SetRedrawBuffer()
 
 			var cmds []ToolCmd
-			err = json.Unmarshal(cmdsJs, &cmds)
+			err = LogsJsonUnmarshal(cmdsJs, &cmds)
 			if err == nil {
 				layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
 			}

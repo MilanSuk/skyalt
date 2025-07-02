@@ -40,7 +40,7 @@ func (st *Microphone) Build(layout *Layout) {
 	micBt.Shortcut_key = st.Shortcut
 	micBt.Tooltip = "Start recording audio"
 
-	if layout.ui.router.mic.Find(layout.UID) != nil {
+	if layout.ui.router.services.mic.Find(layout.UID) != nil {
 		micBt.Background = 1 //active
 		micBt.Cd = layout.GetPalette().E
 		micBt.Tooltip = "Stop recording audio"
@@ -50,8 +50,8 @@ func (st *Microphone) Build(layout *Layout) {
 
 		layout.ui.SetRefresh()
 
-		if layout.ui.router.mic.Find(layout.UID) == nil {
-			mic, err := layout.ui.router.mic.Start(layout.UID)
+		if layout.ui.router.services.mic.Find(layout.UID) == nil {
+			mic, err := layout.ui.router.services.mic.Start(layout.UID)
 			if err != nil {
 				return //err ....
 			}
@@ -76,7 +76,7 @@ func (st *Microphone) Build(layout *Layout) {
 						Response_format: st.Transcribe_response_format,
 					}
 
-					err = layout.ui.router.llms.Transcribe(&comp)
+					err = layout.ui.router.services.llms.Transcribe(&comp)
 					if err != nil {
 						return //err ....
 					}
@@ -93,7 +93,7 @@ func (st *Microphone) Build(layout *Layout) {
 			}
 
 		} else {
-			_, err := layout.ui.router.mic.Finished(layout.UID, false) //will call mic.fnFinished() above
+			_, err := layout.ui.router.services.mic.Finished(layout.UID, false) //will call mic.fnFinished() above
 			if err != nil {
 				return //err ....
 			}

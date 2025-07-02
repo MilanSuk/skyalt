@@ -60,7 +60,7 @@ func NewWinParticles(win *Win) (*WinParticles, error) {
 	var err error
 	ptcs.logo, ptcs.img, err = InitWinTextureFromFile(Win_SKYALT_LOGO)
 	if err != nil {
-		return nil, fmt.Errorf("CreateTextureFromImage() failed: %w", err)
+		return nil, err
 	}
 
 	ptcs.noiseX = NewWinNoise(ptcs.logo.size)
@@ -179,7 +179,7 @@ func (ptcs *WinParticles) UpdateEmit() float64 {
 	return ptcs.done
 }
 
-func (ptcs *WinParticles) GetLogoCoord() (OsV4, error) {
+func (ptcs *WinParticles) GetLogoCoord() OsV4 {
 
 	screen := ptcs.win.GetScreenCoord()
 	SX := float64(screen.Size.X) / 4
@@ -187,7 +187,7 @@ func (ptcs *WinParticles) GetLogoCoord() (OsV4, error) {
 	size := OsV2{int(SX), int(SX * float64(ptcs.logo.size.Y) / float64(ptcs.logo.size.X))}
 	start := screen.Size.Sub(size).MulV(0.5)
 
-	return OsV4{start, size}, nil
+	return OsV4{start, size}
 }
 
 func (ptcs *WinParticles) GetPosSmoothRepeat(noise *WinNoise, p OsV2) byte {
@@ -211,10 +211,7 @@ func (ptcs *WinParticles) Draw(cd_theme color.RGBA, depth int, win *Win) (bool, 
 
 	cd := color.RGBA{50, 50, 50, 255}
 
-	coord, err := ptcs.GetLogoCoord()
-	if err != nil {
-		return false, fmt.Errorf("Draw() GetLogoCoord() failed: %w", err)
-	}
+	coord := ptcs.GetLogoCoord()
 
 	ptcs.logo.DrawQuad(coord, depth, cd_theme)
 	{

@@ -89,7 +89,7 @@ func (st *Editbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	//background
 	cd := layout.GetPalette().B
-	paint.RectRad(rect, cd, cd, cd, 0, layout.ui.router.sync.GetRounding())
+	paint.RectRad(rect, cd, cd, cd, 0, layout.ui.router.services.sync.GetRounding())
 
 	//text
 	st.addPaintText(&paint)
@@ -264,7 +264,7 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 		dia.Close()
 	}
 
-	STT := dia.Layout.AddButton(0, 4, 1, 1, OsTrnString(layout.ui.router.mic.Find(layout.UID) == nil, "Start", "Stop")+" recording speech")
+	STT := dia.Layout.AddButton(0, 4, 1, 1, OsTrnString(layout.ui.router.services.mic.Find(layout.UID) == nil, "Start", "Stop")+" recording speech")
 	STT.Tooltip = "Record microphone and convert speech-to-text"
 	STT.Align = 0
 	STT.Background = 0.25

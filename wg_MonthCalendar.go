@@ -50,7 +50,7 @@ func (st *MonthCalendar) Build(layout *Layout) {
 	layout.AddText(0, 0, 7, 1, fmt.Sprintf("<b>%s %d</b>", layout.GetMonthText(st.Month), st.Year)).Align_h = 1
 
 	//--Day names(short)--
-	if layout.ui.router.sync.GetDateFormat() == "us" {
+	if layout.ui.router.services.sync.GetDateFormat() == "us" {
 		//"us"
 		tx := layout.AddText(0, 1, 1, 1, layout.GetDayTextShort(7))
 		tx.Align_h = 1 //center
@@ -71,7 +71,7 @@ func (st *MonthCalendar) Build(layout *Layout) {
 		dt := time.Date(st.Year, time.Month(st.Month), 1, 0, 0, 0, 0, time.Local)
 		{
 			firstDay := time.Monday
-			if layout.ui.router.sync.GetDateFormat() == "us" {
+			if layout.ui.router.services.sync.GetDateFormat() == "us" {
 				firstDay = time.Sunday
 			}
 			for dt.Weekday() != firstDay {

@@ -45,7 +45,7 @@ func NewToolsSecrets(path string) (*ToolsSecrets, error) {
 	cipher, err := os.ReadFile(path)
 	if err == nil {
 		plain, err := sec.decryptAESGCM(cipher)
-		if err != nil {
+		if LogsError(err) != nil {
 			return nil, err
 		}
 
@@ -83,17 +83,18 @@ func (sec *ToolsSecrets) encryptAESGCM(plainText []byte) ([]byte, error) {
 	key := sha256.Sum256([]byte(sec.key))
 
 	block, err := aes.NewCipher(key[:])
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, err
 	}
 
 	aesGCM, err := cipher.NewGCM(block)
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, err
 	}
 
 	nonce := make([]byte, aesGCM.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+	_, err = io.ReadFull(rand.Reader, nonce)
+	if LogsError(err) != nil {
 		return nil, err
 	}
 
@@ -105,23 +106,23 @@ func (sec *ToolsSecrets) decryptAESGCM(cipherText []byte) ([]byte, error) {
 	key := sha256.Sum256([]byte(sec.key))
 
 	block, err := aes.NewCipher(key[:])
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, err
 	}
 
 	aesGCM, err := cipher.NewGCM(block)
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, err
 	}
 
 	nonceSize := aesGCM.NonceSize()
 	if len(cipherText) < nonceSize {
-		return nil, fmt.Errorf("cipherText too short")
+		return nil, LogsErrorf("cipherText too short")
 	}
 
 	nonce, ciphertext := cipherText[:nonceSize], cipherText[nonceSize:]
 	plainText, err := aesGCM.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
+	if LogsError(err) != nil {
 		return nil, err
 	}
 
