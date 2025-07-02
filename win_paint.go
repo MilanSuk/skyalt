@@ -248,7 +248,7 @@ func (b *WinPaintBuff) AddImage(path WinImagePath, screen OsV4, cd color.RGBA, a
 
 	//draw image
 	imgRectBackup := b.AddCrop(b.crop.GetIntersect(screen))
-	alt := img.Draw(q, b.depth, cd)
+	alt := img.Draw(q, b.depth, cd, b.win)
 	if alt != "" {
 		b.win.DrawText(alt, InitWinFontPropsDef(cell), errCd, q, b.depth, OsV2{1, 1}, 0, 1)
 	}

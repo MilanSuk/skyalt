@@ -238,7 +238,7 @@ func InitWinTextureSize(size OsV2) (*WinTexture, error) {
 	return &tex, nil
 }
 
-func InitWinVideo(size OsV2) (*WinTexture, error) {
+func InitWinTextureVideo(size OsV2) (*WinTexture, error) {
 	var tex WinTexture
 
 	gl.GenTextures(1, &tex.id)
@@ -345,7 +345,7 @@ func (tex *WinTexture) Destroy() {
 	}
 }
 
-func (tex *WinTexture) UpdateContent(size OsV2, pixels unsafe.Pointer) {
+func (tex *WinTexture) UpdateContent(pixels unsafe.Pointer) {
 	gl.BindTexture(gl.TEXTURE_2D, tex.id)
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(tex.size.X), int32(tex.size.Y), 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 }

@@ -93,11 +93,13 @@ type Win struct {
 	start_time_unix int64
 
 	quit bool
+
+	services *Services
 }
 
 // disk can be nil
-func NewWin() (*Win, error) {
-	win := &Win{}
+func NewWin(services *Services) (*Win, error) {
+	win := &Win{services: services}
 
 	win.buff = NewWinPaintBuff(win)
 
@@ -164,7 +166,7 @@ func (win *Win) Destroy() error {
 		sdl.FreeCursor(cur.cursor)
 	}
 
-	win.images.Destroy()
+	win.images.Destroy(win)
 
 	win.gph.Destroy()
 
@@ -440,7 +442,7 @@ func (win *Win) Event() (bool, bool) {
 }
 
 func (win *Win) Maintenance() {
-	win.images.Maintenance()
+	win.images.Maintenance(win)
 
 	win.gph.Maintenance()
 }

@@ -34,19 +34,19 @@ func main() {
 	}
 	defer DestroySDLGlobal()
 
-	//Window(GL)
-	win, err := NewWin()
-	if err != nil {
-		log.Fatalf("NewWin() failed: %v\n", err)
-	}
-	defer win.Destroy()
-
-	//Tools
+	//Services
 	services, err := NewServices()
 	if err != nil {
 		log.Fatalf("NewServices() failed: %v\n", err)
 	}
 	defer services.Destroy()
+
+	//Window(GL)
+	win, err := NewWin(services)
+	if err != nil {
+		log.Fatalf("NewWin() failed: %v\n", err)
+	}
+	defer win.Destroy()
 
 	//Tools
 	router, err := NewAppsRouter(8000, services)

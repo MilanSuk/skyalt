@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/gif"
@@ -55,6 +54,8 @@ type WinImage struct {
 	lastDrawTick int64
 
 	file_timestamp int64
+
+	media *ServicesPlayerItem
 }
 
 func NewWinImage(path WinImagePath, win *Win) *WinImage {
@@ -70,24 +71,29 @@ func NewWinImage(path WinImagePath, win *Win) *WinImage {
 
 	if path.fnGetBlob != nil {
 		img.err = path.fnGetBlob(fnDone)
-	} else {
-		img.err = fmt.Errorf("fnGetBlob is nil")
 	}
 
 	if img.path.fnGetTimestamp != nil {
 		img.file_timestamp, img.err = img.path.fnGetTimestamp()
 	}
 
+	if img.path.service_path != "" {
+		img.media, img.err = win.services.player.Add(img.path.service_path) //load in other thread as images ....
+	}
+
 	return img
 }
 
-func (img *WinImage) FreeTexture() error {
+func (img *WinImage) FreeTexture(win *Win) {
 	if img.texture != nil {
 		img.texture.Destroy()
 	}
-
 	img.texture = nil
-	return nil
+
+	if img.path.service_path != "" {
+		win.services.player.Remove(img.path.service_path)
+		img.media = nil
+	}
 }
 
 func (img *WinImage) GetBytes() int {
@@ -99,16 +105,15 @@ func (img *WinImage) GetBytes() int {
 	return 0
 }
 
-func (img *WinImage) Destroy() {
-	if img.texture != nil {
-		img.FreeTexture()
-	}
+func (img *WinImage) Destroy(win *Win) {
+	img.FreeTexture(win)
 }
 
-func (img *WinImage) Maintenance() (bool, error) {
+func (img *WinImage) Maintenance(win *Win) (bool, error) {
 	// free un-used
 	if img.texture != nil && !OsIsTicksIn(img.lastDrawTick, 60000) {
-		img.FreeTexture()
+		img.FreeTexture(win)
+
 		return false, nil
 	}
 
@@ -120,7 +125,7 @@ func (img *WinImage) Tick() error {
 	return nil
 }
 
-func (img *WinImage) Draw(coord OsV4, depth int, cd color.RGBA) string {
+func (img *WinImage) Draw(coord OsV4, depth int, cd color.RGBA, win *Win) string {
 
 	if len(img.loaded_blob) > 0 {
 		img.texture, _, img.err = InitWinTextureFromBlob(img.loaded_blob)
@@ -130,6 +135,19 @@ func (img *WinImage) Draw(coord OsV4, depth int, cd color.RGBA) string {
 		}
 
 		img.loaded_blob = nil //reset
+	}
+
+	if img.media != nil {
+		//img.media.Update()
+
+		if img.media.size.Is() {
+			if img.texture == nil && img.err == nil {
+				img.texture, img.err = InitWinTextureVideo(img.media.size)
+			}
+
+			img.texture.UpdateContent(img.media.pixels)
+		}
+
 	}
 
 	if coord.Size.Is() {
@@ -169,12 +187,12 @@ func NewWinImages(win *Win) *WinImages {
 	return img
 }
 
-func (imgs *WinImages) Destroy() {
+func (imgs *WinImages) Destroy(win *Win) {
 	imgs.lock.Lock()
 	defer imgs.lock.Unlock()
 
 	for _, it := range imgs.images {
-		it.Destroy()
+		it.Destroy(win)
 	}
 }
 
@@ -219,12 +237,12 @@ func (imgs *WinImages) AddImage(path WinImagePath) *WinImage {
 	return img
 }
 
-func (imgs *WinImages) Maintenance() {
+func (imgs *WinImages) Maintenance(win *Win) {
 	imgs.lock.Lock()
 	defer imgs.lock.Unlock()
 
 	for i := len(imgs.images) - 1; i >= 0; i-- {
-		ok, _ := imgs.images[i].Maintenance()
+		ok, _ := imgs.images[i].Maintenance(win)
 		if !ok {
 			imgs.images = slices.Delete(imgs.images, i, i+1)
 		}

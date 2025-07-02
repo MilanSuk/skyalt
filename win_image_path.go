@@ -20,12 +20,16 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 type WinImagePath struct {
 	uid            string
 	fnGetBlob      func(fnDone func(bytes []byte, err error)) error
 	fnGetTimestamp func() (int64, error)
+
+	service_path string
 }
 
 func InitWinImagePath_blob(blob []byte) WinImagePath {
@@ -40,12 +44,24 @@ func InitWinImagePath_blob(blob []byte) WinImagePath {
 }
 func InitWinImagePath_file(path string) WinImagePath {
 	uid := path
-	fnGetBlob := func(fnDone func(bytes []byte, err error)) error {
-		go func() {
-			fnDone(os.ReadFile(path))
-		}()
-		return nil
+
+	var fnGetBlob func(fnDone func(bytes []byte, err error)) error
+	var service_path string
+	ext := strings.ToLower(filepath.Ext(path))
+	if ext == ".mp4" || ext == ".mkv" || ext == ".webm" || ext == ".mov" || ext == ".avi" || ext == ".flv" ||
+		ext == ".wav" || ext == ".mp3" || ext == ".opus" || ext == ".aac" || ext == ".ogg" || ext == ".flac" || ext == ".pcm" {
+		//audio/video
+		service_path = path
+	} else {
+		//images
+		fnGetBlob = func(fnDone func(bytes []byte, err error)) error {
+			go func() {
+				fnDone(os.ReadFile(path))
+			}()
+			return nil
+		}
 	}
+
 	fnGetTimestamp := func() (int64, error) {
 		inf, err := os.Stat(path)
 		if err == nil && inf != nil {
@@ -53,7 +69,7 @@ func InitWinImagePath_file(path string) WinImagePath {
 		}
 		return -1, err
 	}
-	return WinImagePath{uid: uid, fnGetBlob: fnGetBlob, fnGetTimestamp: fnGetTimestamp}
+	return WinImagePath{uid: uid, fnGetBlob: fnGetBlob, fnGetTimestamp: fnGetTimestamp, service_path: service_path}
 }
 func InitWinImagePath_load(load_uid string, fnGetBlob func(fnDone func(bytes []byte, err error)) error) WinImagePath {
 	uid := "func: " + load_uid

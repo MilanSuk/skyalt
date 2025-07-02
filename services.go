@@ -66,7 +66,6 @@ func (srs *Services) Tick(devApp_storage_changes int64) bool {
 }
 
 func (srs *Services) CallBuildAsync(ui_uid uint64, appName string, funcName string, params interface{}, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) *AppsRouterMsg {
-
 	if srs.fnCallBuildAsync == nil {
 		log.Fatalf("fnCallBuildAsync is nill")
 	}

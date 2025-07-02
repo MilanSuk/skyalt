@@ -48,7 +48,9 @@ static void setup_video_callbacks(libvlc_media_player_t* player, void* data) {
 import "C"
 
 import (
+	"slices"
 	"sync"
+	"time"
 	"unsafe"
 )
 
@@ -114,7 +116,7 @@ func (sps *ServicesPlayer) SetPlay(play bool) {
 	sps._setPlay(play)
 }
 
-func (sps *ServicesPlayer) Add(path string) error {
+func (sps *ServicesPlayer) Add(path string) (*ServicesPlayerItem, error) {
 	sps.lock.Lock()
 	defer sps.lock.Unlock()
 
@@ -136,7 +138,7 @@ func (sps *ServicesPlayer) Add(path string) error {
 		sp.Play()
 	}
 
-	return nil
+	return sp, nil
 }
 
 func (sps *ServicesPlayer) Remove(path string) {
@@ -144,9 +146,11 @@ func (sps *ServicesPlayer) Remove(path string) {
 	defer sps.lock.Unlock()
 
 	//stop and remove 'path'
-	for _, it := range sps.media {
+	for i := len(sps.media) - 1; i >= 0; i-- {
+		it := sps.media[i]
 		if it.path == path {
 			it.Destroy()
+			sps.media = slices.Delete(sps.media, i, i+1)
 		}
 	}
 
@@ -209,13 +213,59 @@ func NewServicesPlayerItem(path string, speakers *ServicesPlayer) (*ServicesPlay
 		return nil, LogsErrorf("media '%s' creation failed", path)
 	}
 
-	var width, height C.uint
-	result := C.libvlc_video_get_size(sp.player, 0, &width, &height)
+	//get video size and duration
+	{
+		// Parse media to get track information
+		if C.libvlc_media_parse_with_options(sp.media, C.libvlc_media_parse_local, -1) != 0 {
+			return nil, LogsErrorf("failed to parse media")
+		}
 
-	if result == 0 && width > 0 && height > 0 {
-		sp.size.X = int(width)
-		sp.size.Y = int(height)
+		// Wait for parsing to complete (timeout after 5 seconds)
+		for i := range 50 {
+			status := C.libvlc_media_get_parsed_status(sp.media)
+			if status == C.libvlc_media_parsed_status_done {
+				break
+			}
+			if status == C.libvlc_media_parsed_status_failed {
+				return nil, LogsErrorf("media parsing failed")
+			}
+			// Sleep for 100ms
+			time.Sleep(100 * time.Millisecond)
+			if i == 49 {
+				return nil, LogsErrorf("media parsing timeout")
+			}
+		}
 
+		// Get tracks
+		var tracks **C.libvlc_media_track_t
+		trackCount := C.libvlc_media_tracks_get(sp.media, &tracks)
+		if trackCount == 0 {
+			return nil, LogsErrorf("no tracks found in media")
+		}
+		defer C.libvlc_media_tracks_release(tracks, trackCount)
+
+		// Look for video track
+		for i := 0; i < int(trackCount); i++ {
+
+			cTrack := unsafe.Pointer(uintptr(unsafe.Pointer(tracks)) + uintptr(i)*unsafe.Sizeof(*tracks))
+			track := *(**C.libvlc_media_track_t)(cTrack)
+
+			if track.i_type == C.libvlc_track_video {
+				video := *(**C.libvlc_video_track_t)(unsafe.Pointer(&track.anon0[0]))
+				if video == nil {
+					break
+				}
+
+				sp.size.X = int(video.i_width)
+				sp.size.Y = int(video.i_height)
+			}
+		}
+
+		duration := C.libvlc_media_get_duration(sp.media)
+		sp.duration_ms = int(duration)
+	}
+
+	if sp.size.Is() {
 		pixelSize := sp.size.X * sp.size.Y * 4 // RGBA
 		sp.pixels = C.malloc(C.size_t(pixelSize))
 
@@ -235,8 +285,7 @@ func NewServicesPlayerItem(path string, speakers *ServicesPlayer) (*ServicesPlay
 
 	C.libvlc_media_player_set_media(sp.player, sp.media)
 
-	duration := C.libvlc_media_player_get_length(sp.player)
-	sp.duration_ms = int(duration)
+	//sp.Play()
 
 	return sp, nil
 }
@@ -257,11 +306,10 @@ func (sp *ServicesPlayerItem) SetSeek(pos_ms int) {
 }
 
 func (sp *ServicesPlayerItem) Destroy() {
-	C.libvlc_media_release(sp.media)
-
 	C.libvlc_media_player_stop(sp.player)
-	C.libvlc_media_player_release(sp.player)
 	C.free(sp.pixels)
+	C.libvlc_media_player_release(sp.player)
+	C.libvlc_media_release(sp.media)
 }
 
 func (sp *ServicesPlayerItem) Pause() {
