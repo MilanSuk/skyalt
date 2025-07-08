@@ -779,6 +779,35 @@ func callFuncGetMicInfo() SdkMicInfo {
 	return SdkMicInfo{}
 }
 
+type SdkMediaItem struct {
+	Path      string
+	Volume    float64
+	Seek      int64
+	Duration  int64
+	IsPlaying bool
+}
+
+func callFuncGetMediaInfo() map[uint64]SdkMediaItem {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("get_media_info"))
+		if Tool_Error(err) == nil {
+
+			micJs, err := cl.ReadArray()
+			if Tool_Error(err) == nil {
+				var st map[uint64]SdkMediaItem
+				json.Unmarshal(micJs, &st)
+				Tool_Error(err)
+
+				return st
+			}
+		}
+	}
+	return map[uint64]SdkMediaItem{}
+}
+
 func callFuncStopMic() {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
@@ -1802,7 +1831,7 @@ type UI struct {
 	OsmMap            *UIOsmMap            `json:",omitempty"`
 	ChartLines        *UIChartLines        `json:",omitempty"`
 	ChartColumns      *UIChartColumns      `json:",omitempty"`
-	Image             *UIImage             `json:",omitempty"`
+	Media             *UIMedia             `json:",omitempty"`
 	YearCalendar      *UIYearCalendar      `json:",omitempty"`
 	MonthCalendar     *UIMonthCalendar     `json:",omitempty"`
 	DayCalendar       *UIDayCalendar       `json:",omitempty"`
@@ -2124,7 +2153,7 @@ type UIChartColumns struct {
 	ColumnMargin   float64
 }
 
-type UIImage struct {
+type UIMedia struct {
 	layout *UI
 
 	Blob    []byte
@@ -2507,17 +2536,17 @@ func (ui *UI) AddChartColumns(x, y, w, h int, columns []UIChartColumn, x_labels 
 	return item
 }
 
-func (ui *UI) _addImage(x, y, w, h int, path string, blob []byte, cd color.RGBA) *UIImage {
-	item := &UIImage{Path: path, Blob: blob, Align_h: 1, Align_v: 1, Margin: 0.1, Cd: cd, layout: _newUIItem(x, y, w, h)}
-	item.layout.Image = item
+func (ui *UI) _addMedia(x, y, w, h int, path string, blob []byte, cd color.RGBA) *UIMedia {
+	item := &UIMedia{Path: path, Blob: blob, Align_h: 1, Align_v: 1, Margin: 0.1, Cd: cd, layout: _newUIItem(x, y, w, h)}
+	item.layout.Media = item
 	ui._addUISub(item.layout, "")
 	return item
 }
-func (ui *UI) AddImagePath(x, y, w, h int, path string) *UIImage {
-	return ui._addImage(x, y, w, h, path, nil, color.RGBA{255, 255, 255, 255})
+func (ui *UI) AddMediaPath(x, y, w, h int, path string) *UIMedia {
+	return ui._addMedia(x, y, w, h, path, nil, color.RGBA{255, 255, 255, 255})
 }
-func (ui *UI) AddImageBlob(x, y, w, h int, blob []byte) *UIImage {
-	return ui._addImage(x, y, w, h, "", blob, color.RGBA{255, 255, 255, 255})
+func (ui *UI) AddMediaBlob(x, y, w, h int, blob []byte) *UIMedia {
+	return ui._addMedia(x, y, w, h, "", blob, color.RGBA{255, 255, 255, 255})
 }
 
 func (ui *UI) AddLayoutList(x, y, w, h int, autoSpacing bool) *UIList {

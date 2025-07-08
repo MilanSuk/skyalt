@@ -450,7 +450,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 			ImgDia.UI.SetColumn(0, 5, 12)
 			ImgDia.UI.SetColumn(1, 3, 3)
 			ImgDia.UI.SetRow(1, 5, 15)
-			ImgDia.UI.AddImagePath(0, 1, 2, 1, file)
+			ImgDia.UI.AddMediaPath(0, 1, 2, 1, file)
 			ImgDia.UI.AddText(0, 0, 1, 1, file)
 			RemoveBt := ImgDia.UI.AddButton(1, 0, 1, 1, "Remove")
 			RemoveBt.clicked = func() error {
@@ -823,7 +823,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 					ImgDia := layout.AddDialog(fmt.Sprintf("msg_%d_image_%d", msg_i, i))
 					ImgDia.UI.SetColumn(0, 5, 15)
 					ImgDia.UI.SetRow(0, 5, 15)
-					ImgDia.UI.AddImageBlob(0, 0, 1, 1, imgBlob)
+					ImgDia.UI.AddMediaBlob(0, 0, 1, 1, imgBlob)
 
 					imgLay := ImgsList.AddItem()
 					imgLay.SetColumn(0, 2, 2)

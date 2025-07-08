@@ -286,6 +286,12 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				tx.Cd = UI_GetPalette().E
 			}
 		}
+
+		/*FooterDiv.SetRow(1, 10, 10)
+		FooterDiv.AddMediaPath(0, 1, 1, 1, "vid.mkv")
+
+		FooterDiv.SetRow(2, 3, 3)
+		FooterDiv.AddMediaPath(0, 2, 1, 1, "aud.mp3")*/
 	}
 
 	//Side panel

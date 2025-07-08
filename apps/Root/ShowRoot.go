@@ -63,7 +63,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			AboutDia := AppsDiv.AddDialog("about")
 			st.buildAbout(&AboutDia.UI)
 
-			//logo := HeaderDiv.AddImagePath(x, 0, 1, 1, "resources/logo_small.png")
 			logoBt := AppsDiv.AddButton(0, y, 1, 1, "")
 			y++
 			logoBt.Icon_align = 1
@@ -240,10 +239,22 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			LogsDia := AppsDiv.AddDialog("logs")
 			st.buildLog(&LogsDia.UI, logs, caller)
 
-			LogBt := AppsDiv.AddButton(0, y, 1, 1, "LOG")
+			hasNewErrs := (len(logs) > 0 && logs[len(logs)-1].Time > source_root.Last_log_time)
+			label := "LOG"
+			if hasNewErrs {
+				n := 0
+				for _, it := range logs {
+					if it.Time > source_root.Last_log_time {
+						n++
+					}
+				}
+				label = fmt.Sprintf("LOG(%d)", n)
+			}
+
+			LogBt := AppsDiv.AddButton(0, y, 1, 1, label)
 			y++
 			LogBt.Background = 0.25
-			if len(logs) > 0 && logs[len(logs)-1].Time > source_root.Last_log_time {
+			if hasNewErrs {
 				LogBt.Background = 1
 				LogBt.Cd = UI_GetPalette().E
 			}
@@ -285,6 +296,57 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			y++
 			MicBt.clicked = func() error {
 				callFuncStopMic()
+				return nil
+			}
+		}
+
+		//Media statuc
+		mediaInfo := callFuncGetMediaInfo()
+		if len(mediaInfo) > 0 {
+
+			MediaDia := AppsDiv.AddDialog("media")
+			{
+				MediaDia.UI.SetColumnFromSub(0, 1, 20)
+				MediaDia.UI.SetColumn(1, 1, 2)
+				MediaDia.UI.SetColumn(2, 2, 5)
+				yy := 0
+				for playerID, it := range mediaInfo {
+					//path
+					tx := MediaDia.UI.AddText(0, yy, 1, 1, it.Path)
+					tx.Tooltip = fmt.Sprintf("%d", playerID)
+
+					//time
+					MediaDia.UI.AddText(1, yy, 1, 1, fmt.Sprintf("%d%%", int(float64(it.Seek)/float64(it.Duration)*100)))
+
+					//pause ....
+
+					//stop ....
+
+					//volume ....
+
+					vol := it.Volume
+					volume := MediaDia.UI.AddSlider(2, yy, 1, 1, &vol, 0, 1, 0.1)
+					volume.changed = func() error {
+						//send back new value ....
+						return nil
+					}
+
+					yy++
+				}
+
+				//stop all ....
+				//pause all ....
+			}
+
+			MediaBt := AppsDiv.AddButton(0, y, 1, 1, "")
+			MediaBt.Tooltip = "Show media"
+			MediaBt.Icon_align = 1
+			MediaBt.IconPath = "resources/speaker.png"
+			MediaBt.Icon_margin = 0.2
+			MediaBt.Background = 0.25
+			y++
+			MediaBt.clicked = func() error {
+				MediaDia.OpenRelative(MediaBt.layout, caller)
 				return nil
 			}
 		}
