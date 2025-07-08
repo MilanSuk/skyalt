@@ -1,0 +1,448 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	"log"
+	"time"
+	"unsafe"
+
+	"github.com/go-gl/gl/v2.1/gl"
+	"github.com/veandco/go-sdl2/sdl"
+)
+
+/*
+#cgo LDFLAGS: -lvlc
+#include <vlc/vlc.h>
+#include <stdlib.h>
+
+typedef struct {
+    void* pixels;
+    int width;
+    int height;
+} video_ctx;
+
+static void* video_lock_cb(void* data, void** p_pixels) {
+    video_ctx* ctx = (video_ctx*)data;
+    *p_pixels = ctx->pixels;
+    return NULL;
+}
+
+static void video_unlock_cb(void* data, void* id, void* const* p_pixels) {
+    // Nothing to do
+}
+
+static void video_display_cb(void* data, void* id) {
+    // Nothing to do - OpenGL will handle display
+}
+
+static void setup_video_callbacks(libvlc_media_player_t* player, void* data) {
+    libvlc_video_set_callbacks(player, video_lock_cb, video_unlock_cb, video_display_cb, data);
+}
+*/
+import "C"
+
+const (
+	windowWidth    = 800
+	windowHeight   = 600
+	videoX         = 100 // Video area X position (in pixels)
+	videoY         = 50  // Video area Y position (in pixels)
+	videoWidth     = 400 // Video area width
+	videoHeight    = 300 // Video area height
+	timelineX      = 100 // Timeline X position
+	timelineY      = 370 // Timeline Y position (below video)
+	timelineWidth  = 400 // Timeline width
+	timelineHeight = 20  // Timeline height
+)
+
+var (
+	textureID uint32
+	pixels    unsafe.Pointer
+)
+
+func initOpenGL() error {
+	if err := gl.Init(); err != nil {
+		return err
+	}
+
+	// Set up OpenGL 1.0 state
+	gl.Enable(gl.TEXTURE_2D)
+	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
+
+	// Generate texture
+	gl.GenTextures(1, &textureID)
+	gl.BindTexture(gl.TEXTURE_2D, textureID)
+
+	// Set texture parameters
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+	//gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP)
+	//gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP)
+
+	return nil
+}
+
+func renderVideo(player *C.libvlc_media_player_t) {
+	// Clear screen
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+
+	// Update texture with video data
+	gl.BindTexture(gl.TEXTURE_2D, textureID)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, videoWidth, videoHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+
+	// Set up orthographic projection
+	gl.MatrixMode(gl.PROJECTION)
+	gl.LoadIdentity()
+	gl.Ortho(0, windowWidth, windowHeight, 0, -1, 1)
+
+	gl.MatrixMode(gl.MODELVIEW)
+	gl.LoadIdentity()
+
+	// Calculate normalized coordinates for video area
+	x1 := float64(videoX)
+	y1 := float64(videoY)
+	x2 := float64(videoX + videoWidth)
+	y2 := float64(videoY + videoHeight)
+
+	// Render textured quad
+	gl.Begin(gl.QUADS)
+	gl.TexCoord2f(0.0, 0.0)
+	gl.Vertex2f(float32(x1), float32(y1))
+	gl.TexCoord2f(1.0, 0.0)
+	gl.Vertex2f(float32(x2), float32(y1))
+	gl.TexCoord2f(1.0, 1.0)
+	gl.Vertex2f(float32(x2), float32(y2))
+	gl.TexCoord2f(0.0, 1.0)
+	gl.Vertex2f(float32(x1), float32(y2))
+	gl.End()
+
+	// Render timeline
+	//renderTimeline(player)
+}
+
+func renderTimeline(player *C.libvlc_media_player_t) {
+	// Disable texture for timeline rendering
+	gl.Disable(gl.TEXTURE_2D)
+
+	// Get current position and duration
+	currentTime := C.libvlc_media_player_get_time(player)
+	duration := C.libvlc_media_player_get_length(player)
+
+	// Timeline background (dark gray)
+	gl.Color3f(0.3, 0.3, 0.3)
+	gl.Begin(gl.QUADS)
+	gl.Vertex2f(timelineX, timelineY)
+	gl.Vertex2f(timelineX+timelineWidth, timelineY)
+	gl.Vertex2f(timelineX+timelineWidth, timelineY+timelineHeight)
+	gl.Vertex2f(timelineX, timelineY+timelineHeight)
+	gl.End()
+
+	// Timeline border (light gray)
+	gl.Color3f(0.6, 0.6, 0.6)
+	gl.Begin(gl.LINE_LOOP)
+	gl.Vertex2f(timelineX, timelineY)
+	gl.Vertex2f(timelineX+timelineWidth, timelineY)
+	gl.Vertex2f(timelineX+timelineWidth, timelineY+timelineHeight)
+	gl.Vertex2f(timelineX, timelineY+timelineHeight)
+	gl.End()
+
+	// Progress bar (only if we have valid duration)
+	if duration > 0 {
+		progress := float32(currentTime) / float32(duration)
+		if progress > 1.0 {
+			progress = 1.0
+		}
+		if progress < 0.0 {
+			progress = 0.0
+		}
+
+		progressWidth := float32(timelineWidth) * progress
+
+		// Progress bar (blue)
+		gl.Color3f(0.2, 0.6, 1.0)
+		gl.Begin(gl.QUADS)
+		gl.Vertex2f(timelineX, timelineY)
+		gl.Vertex2f(timelineX+progressWidth, timelineY)
+		gl.Vertex2f(timelineX+progressWidth, timelineY+timelineHeight)
+		gl.Vertex2f(timelineX, timelineY+timelineHeight)
+		gl.End()
+
+		// Progress indicator (white line)
+		gl.Color3f(1.0, 1.0, 1.0)
+		gl.LineWidth(2.0)
+		gl.Begin(gl.LINES)
+		gl.Vertex2f(timelineX+progressWidth, timelineY)
+		gl.Vertex2f(timelineX+progressWidth, timelineY+timelineHeight)
+		gl.End()
+		gl.LineWidth(1.0)
+	}
+
+	// Re-enable texture and reset color
+	gl.Enable(gl.TEXTURE_2D)
+	gl.Color3f(1.0, 1.0, 1.0)
+}
+
+func main() {
+
+	//GetVideoDimensions("/mnt/71B6519602C5EB56/torrent/Final Destination Bloodlines 2025 1080p WEB-DL HEVC x265 5.1 BONE.mkv")
+
+	// Initialize VLC
+	vlcInstance := C.libvlc_new(0, nil)
+	if vlcInstance == nil {
+		log.Fatal("VLC instance creation failed")
+	}
+	defer C.libvlc_release(vlcInstance)
+
+	// Load media (replace with your video file path)
+	mediaPath := C.CString("vid.mkv")
+	defer C.free(unsafe.Pointer(mediaPath))
+
+	media := C.libvlc_media_new_path(vlcInstance, mediaPath)
+	if media == nil {
+		log.Fatal("Media creation failed")
+	}
+	defer C.libvlc_media_release(media)
+
+	{
+		// Parse media to get track information
+		if C.libvlc_media_parse_with_options(media, C.libvlc_media_parse_local, -1) != 0 {
+			return //errors.New("failed to parse media")
+		}
+
+		// Wait for parsing to complete (timeout after 5 seconds)
+		for i := range 50 {
+			status := C.libvlc_media_get_parsed_status(media)
+			if status == C.libvlc_media_parsed_status_done {
+				break
+			}
+			if status == C.libvlc_media_parsed_status_failed {
+				return //errors.New("media parsing failed")
+			}
+			// Sleep for 100ms
+			time.Sleep(100 * time.Millisecond)
+			if i == 49 {
+				return //errors.New("media parsing timeout")
+			}
+		}
+
+		// Get tracks
+		var tracks **C.libvlc_media_track_t
+		trackCount := C.libvlc_media_tracks_get(media, &tracks)
+		if trackCount == 0 {
+			return //errors.New("no tracks found in media")
+		}
+		defer C.libvlc_media_tracks_release(tracks, trackCount)
+
+		// Look for video track
+		for i := 0; i < int(trackCount); i++ {
+
+			cTrack := unsafe.Pointer(uintptr(unsafe.Pointer(tracks)) + uintptr(i)*unsafe.Sizeof(*tracks))
+			track := *(**C.libvlc_media_track_t)(cTrack)
+
+			if track.i_type == C.libvlc_track_video {
+				video := *(**C.libvlc_video_track_t)(unsafe.Pointer(&track.anon0[0]))
+				if video == nil {
+					break
+				}
+
+				fmt.Println(uint32(video.i_width), uint32(video.i_height))
+			}
+		}
+	}
+
+	// Create media player
+	player := C.libvlc_media_player_new(vlcInstance)
+	if player == nil {
+		log.Fatal("VLC player creation failed")
+	}
+	defer C.libvlc_media_player_release(player)
+
+	// Allocate pixel buffer
+	pixelSize := videoWidth * videoHeight * 4 // RGBA
+	pixels = C.malloc(C.size_t(pixelSize))
+	defer C.free(pixels)
+
+	// Setup video context
+	var videoCtx C.video_ctx
+	videoCtx.pixels = pixels
+	videoCtx.width = C.int(videoWidth)
+	videoCtx.height = C.int(videoHeight)
+
+	// Setup VLC video callbacks
+	C.setup_video_callbacks(player, unsafe.Pointer(&videoCtx))
+
+	// Set video format
+	formatStr := C.CString("RGBA")
+	defer C.free(unsafe.Pointer(formatStr))
+	C.libvlc_video_set_format(player, formatStr, C.uint(videoWidth), C.uint(videoHeight), C.uint(videoWidth*4))
+
+	C.libvlc_media_player_set_media(player, media)
+
+	// Start playback
+	C.libvlc_media_player_play(player)
+
+	// Initialize SDL
+	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {
+		log.Fatal("SDL Init failed:", err)
+	}
+	defer sdl.Quit()
+
+	// Set OpenGL attributes
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 1)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 0)
+	sdl.GLSetAttribute(sdl.GL_DOUBLEBUFFER, 1)
+
+	// Create OpenGL window
+	window, err := sdl.CreateWindow(
+		"SDL2 + VLC + OpenGL Video Player",
+		sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
+		windowWidth, windowHeight,
+		sdl.WINDOW_RESIZABLE|sdl.WINDOW_OPENGL|sdl.WINDOW_SHOWN,
+	)
+	if err != nil {
+		log.Fatal("Window creation failed:", err)
+	}
+	defer window.Destroy()
+
+	// Create OpenGL context
+	context, err := window.GLCreateContext()
+	if err != nil {
+		log.Fatal("OpenGL context creation failed:", err)
+	}
+	defer sdl.GLDeleteContext(context)
+
+	// Initialize OpenGL
+	if err := initOpenGL(); err != nil {
+		log.Fatal("OpenGL init failed:", err)
+	}
+
+	// Set viewport
+	gl.Viewport(0, 0, windowWidth, windowHeight)
+
+	go func() {
+		for {
+			fmt.Println(time.Now().Unix())
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	// Main loop
+	running := true
+	for running {
+		// Handle events
+		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+			switch e := event.(type) {
+			case *sdl.QuitEvent:
+				running = false
+			case *sdl.KeyboardEvent:
+				if e.Type == sdl.KEYDOWN {
+					switch e.Keysym.Sym {
+					case sdl.K_LEFT:
+						// Seek backward 1 minute (60000 ms)
+						currentTime := C.libvlc_media_player_get_time(player)
+						newTime := currentTime - 60000
+						if newTime < 0 {
+							newTime = 0
+						}
+						C.libvlc_media_player_set_time(player, newTime)
+					case sdl.K_RIGHT:
+						// Seek forward 1 minute (60000 ms)
+						currentTime := C.libvlc_media_player_get_time(player)
+						newTime := currentTime + 60000
+						C.libvlc_media_player_set_time(player, newTime)
+
+					case sdl.K_SPACE:
+
+						C.libvlc_media_player_is_playing(player)
+
+						C.libvlc_media_player_next_frame(player)
+						C.libvlc_media_player_pause(player)
+
+					}
+				}
+			}
+		}
+
+		// Render video
+		renderVideo(player)
+
+		// Swap buffers
+		window.GLSwap()
+
+		//sdl.Delay(3000) // ~60 FPS
+	}
+
+	// Stop playback
+	C.libvlc_media_player_stop(player)
+
+	// Clean up OpenGL
+	gl.DeleteTextures(1, &textureID)
+}
+
+// GetVideoDimensions retrieves video width and height from a file using libvlc
+func GetVideoDimensions(filePath string) error {
+	// Initialize libvlc instance
+	vlcInstance := C.libvlc_new(0, nil)
+	if vlcInstance == nil {
+		return errors.New("failed to create VLC instance")
+	}
+	defer C.libvlc_release(vlcInstance)
+
+	// Create media from file path
+	cFilePath := C.CString(filePath)
+	defer C.free(unsafe.Pointer(cFilePath))
+
+	media := C.libvlc_media_new_path(vlcInstance, cFilePath)
+	if media == nil {
+		return errors.New("failed to create media from file path")
+	}
+	defer C.libvlc_media_release(media)
+
+	// Parse media to get track information
+	if C.libvlc_media_parse_with_options(media, C.libvlc_media_parse_local, -1) != 0 {
+		return errors.New("failed to parse media")
+	}
+
+	// Wait for parsing to complete (timeout after 5 seconds)
+	for i := 0; i < 50; i++ {
+		status := C.libvlc_media_get_parsed_status(media)
+		if status == C.libvlc_media_parsed_status_done {
+			break
+		}
+		if status == C.libvlc_media_parsed_status_failed {
+			return errors.New("media parsing failed")
+		}
+		// Sleep for 100ms
+		time.Sleep(100 * time.Millisecond)
+		if i == 49 {
+			return errors.New("media parsing timeout")
+		}
+	}
+
+	// Get tracks
+	var tracks **C.libvlc_media_track_t
+	trackCount := C.libvlc_media_tracks_get(media, &tracks)
+	if trackCount == 0 {
+		return errors.New("no tracks found in media")
+	}
+	defer C.libvlc_media_tracks_release(tracks, trackCount)
+
+	// Look for video track
+	for i := 0; i < int(trackCount); i++ {
+
+		cTrack := unsafe.Pointer(uintptr(unsafe.Pointer(tracks)) + uintptr(i)*unsafe.Sizeof(*tracks))
+		track := *(**C.libvlc_media_track_t)(cTrack)
+
+		if track.i_type == C.libvlc_track_video {
+			video := *(**C.libvlc_video_track_t)(unsafe.Pointer(&track.anon0[0]))
+			if video == nil {
+				break
+			}
+
+			fmt.Println(uint32(video.i_width), uint32(video.i_height))
+			return nil
+		}
+	}
+
+	return errors.New("no video track found in media")
+}
