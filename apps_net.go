@@ -24,11 +24,11 @@ import (
 	"sync/atomic"
 )
 
-type ToolsClient struct {
+type AppsClient struct {
 	conn *net.TCPConn
 }
 
-func NewToolsClient(addr string, port int) (*ToolsClient, error) {
+func NewToolsClient(addr string, port int) (*AppsClient, error) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if LogsError(err) != nil {
 		return nil, err
@@ -39,13 +39,13 @@ func NewToolsClient(addr string, port int) (*ToolsClient, error) {
 		return nil, err
 	}
 
-	return &ToolsClient{conn: conn}, nil
+	return &AppsClient{conn: conn}, nil
 }
-func (client *ToolsClient) Destroy() {
+func (client *AppsClient) Destroy() {
 	client.conn.Close()
 }
 
-func (client *ToolsClient) ReadInt() (uint64, error) {
+func (client *AppsClient) ReadInt() (uint64, error) {
 	var sz [8]byte
 	_, err := client.conn.Read(sz[:])
 	if LogsError(err) != nil {
@@ -55,7 +55,7 @@ func (client *ToolsClient) ReadInt() (uint64, error) {
 	return binary.LittleEndian.Uint64(sz[:]), nil
 }
 
-func (client *ToolsClient) WriteInt(value uint64) error {
+func (client *AppsClient) WriteInt(value uint64) error {
 	var val [8]byte
 	binary.LittleEndian.PutUint64(val[:], value)
 	_, err := client.conn.Write(val[:])
@@ -65,7 +65,7 @@ func (client *ToolsClient) WriteInt(value uint64) error {
 	return nil
 }
 
-func (client *ToolsClient) ReadArray() ([]byte, error) {
+func (client *AppsClient) ReadArray() ([]byte, error) {
 	//recv size
 	size, err := client.ReadInt()
 	if err != nil {
@@ -86,7 +86,7 @@ func (client *ToolsClient) ReadArray() ([]byte, error) {
 	return data, nil
 }
 
-func (client *ToolsClient) WriteArray(data []byte) error {
+func (client *AppsClient) WriteArray(data []byte) error {
 	//send size
 	err := client.WriteInt(uint64(len(data)))
 	if err != nil {
@@ -102,25 +102,25 @@ func (client *ToolsClient) WriteArray(data []byte) error {
 	return nil
 }
 
-type ToolsServerInfo struct {
+type AppsServerInfo struct {
 	bytes_written atomic.Int64
 	bytes_read    atomic.Int64
 }
 
-func (info *ToolsServerInfo) AddReadBytes(size int) {
+func (info *AppsServerInfo) AddReadBytes(size int) {
 	info.bytes_read.Add(int64(size))
 }
-func (info *ToolsServerInfo) AddWrittenBytes(size int) {
+func (info *AppsServerInfo) AddWrittenBytes(size int) {
 	info.bytes_written.Add(int64(size))
 }
 
-func (info *ToolsServerInfo) Print() {
+func (info *AppsServerInfo) Print() {
 	fmt.Println("Server stats: written", Tools_FormatBytes(int(info.bytes_written.Load())))
 	fmt.Println("Server stats: read", Tools_FormatBytes(int(info.bytes_read.Load())))
 }
 
-type ToolsServerClient struct {
-	info *ToolsServerInfo
+type AppsServerClient struct {
+	info *AppsServerInfo
 	conn net.Conn
 }
 
@@ -129,10 +129,10 @@ type AppsServer struct {
 	listener net.Listener
 	exiting  bool
 
-	info *ToolsServerInfo
+	info *AppsServerInfo
 }
 
-func NewToolsServer(port int) *AppsServer {
+func NewAppsServer(port int) *AppsServer {
 	server := &AppsServer{}
 
 	port_last := port + 1000
@@ -148,7 +148,7 @@ func NewToolsServer(port int) *AppsServer {
 		log.Fatal("can not Listen()")
 	}
 	server.port = port
-	server.info = &ToolsServerInfo{}
+	server.info = &AppsServerInfo{}
 
 	fmt.Printf("Server is running on port: %d\n", server.port)
 	return server
@@ -159,10 +159,10 @@ func (server *AppsServer) Destroy() {
 	server.listener.Close()
 
 	server.info.Print()
-	fmt.Printf("Server port: %d closed\n", server.port)
+	fmt.Printf("App server port: %d closed\n", server.port)
 }
 
-func (server *AppsServer) Accept() (*ToolsServerClient, error) {
+func (server *AppsServer) Accept() (*AppsServerClient, error) {
 	conn, err := server.listener.Accept()
 	if err != nil {
 		if server.exiting {
@@ -170,14 +170,14 @@ func (server *AppsServer) Accept() (*ToolsServerClient, error) {
 		}
 		return nil, err
 	}
-	return &ToolsServerClient{info: server.info, conn: conn}, nil
+	return &AppsServerClient{info: server.info, conn: conn}, nil
 }
 
-func (client *ToolsServerClient) Destroy() {
+func (client *AppsServerClient) Destroy() {
 	client.conn.Close()
 }
 
-func (client *ToolsServerClient) ReadInt() (uint64, error) {
+func (client *AppsServerClient) ReadInt() (uint64, error) {
 	var sz [8]byte
 	_, err := client.conn.Read(sz[:])
 	if LogsError(err) != nil {
@@ -188,7 +188,7 @@ func (client *ToolsServerClient) ReadInt() (uint64, error) {
 	return binary.LittleEndian.Uint64(sz[:]), nil
 }
 
-func (client *ToolsServerClient) WriteInt(value uint64) error {
+func (client *AppsServerClient) WriteInt(value uint64) error {
 	var val [8]byte
 	binary.LittleEndian.PutUint64(val[:], value)
 	_, err := client.conn.Write(val[:])
@@ -200,7 +200,7 @@ func (client *ToolsServerClient) WriteInt(value uint64) error {
 	return nil
 }
 
-func (client *ToolsServerClient) ReadArray() ([]byte, error) {
+func (client *AppsServerClient) ReadArray() ([]byte, error) {
 	//recv size
 	size, err := client.ReadInt()
 	if err != nil {
@@ -223,7 +223,7 @@ func (client *ToolsServerClient) ReadArray() ([]byte, error) {
 	return data, nil
 }
 
-func (client *ToolsServerClient) WriteArray(data []byte) error {
+func (client *AppsServerClient) WriteArray(data []byte) error {
 	//send size
 	err := client.WriteInt(uint64(len(data)))
 	if err != nil {

@@ -90,7 +90,7 @@ func NewAppsRouter(start_port int, services *Services) (*AppsRouter, error) {
 	router.services.fnCallBuildAsync = router.CallBuildAsync
 	router.services.fnGetAppPortAndTools = router.GetAppPortAndTools
 
-	router.server = NewToolsServer(start_port)
+	router.server = NewAppsServer(start_port)
 	router.msgs = make(map[uint64]*AppsRouterMsg)
 	router.apps = make(map[string]*ToolsApp)
 
@@ -642,6 +642,10 @@ func (router *AppsRouter) RunNet() {
 
 				case "stop_mic":
 					router.services.mic.FinishAll(false)
+
+				case "get_media_info":
+					infoJs, _ := router.services.media.GetInfo()
+					cl.WriteArray(infoJs)
 
 				case "set_msg_name":
 					user_uid, err := cl.ReadInt()

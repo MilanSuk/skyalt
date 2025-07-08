@@ -22,22 +22,18 @@ type Services struct {
 	llms *LLMs
 	sync *ServicesSync
 
-	mic    *ServicesMic
-	player *ServicesPlayer
+	mic   *ServicesMic
+	media *Media
 
 	fnCallBuildAsync     func(ui_uid uint64, appName string, funcName string, params interface{}, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) *AppsRouterMsg
 	fnGetAppPortAndTools func(appName string) (int, []*ToolsOpenAI_completion_tool, error)
 }
 
-func NewServices() (*Services, error) {
+func NewServices(media *Media) (*Services, error) {
 	var err error
-	srs := &Services{}
+	srs := &Services{media: media}
 
 	srs.mic = NewServicesMic(srs)
-	srs.player, err = NewServicesPlayer(srs)
-	if err != nil {
-		return nil, err
-	}
 
 	srs.llms, err = NewLLMs(srs)
 	if err != nil {
@@ -54,13 +50,10 @@ func NewServices() (*Services, error) {
 
 func (srs *Services) Destroy() {
 	srs.mic.Destroy()
-	srs.player.Destroy()
 	srs.sync.Destroy()
 }
 
 func (srs *Services) Tick(devApp_storage_changes int64) bool {
-	srs.player.Tick()
-
 	return srs.sync.Tick(devApp_storage_changes)
 
 }

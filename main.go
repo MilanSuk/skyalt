@@ -34,8 +34,14 @@ func main() {
 	}
 	defer DestroySDLGlobal()
 
+	media, err := NewMedia(10000)
+	if err != nil {
+		log.Fatalf("NewMedia() failed: %v\n", err)
+	}
+	defer media.Destroy()
+
 	//Services
-	services, err := NewServices()
+	services, err := NewServices(media)
 	if err != nil {
 		log.Fatalf("NewServices() failed: %v\n", err)
 	}
@@ -49,7 +55,7 @@ func main() {
 	defer win.Destroy()
 
 	//Tools
-	router, err := NewAppsRouter(8000, services)
+	router, err := NewAppsRouter(9000, services)
 	if err != nil {
 		log.Fatalf("NewToolsRouter() failed: %v\n", err)
 	}
@@ -68,6 +74,7 @@ func main() {
 	for run {
 		var win_redraw bool
 		var err error
+		//run, _, err = win.UpdateIO()
 		run, win_redraw, err = win.UpdateIO()
 		if err != nil {
 			log.Fatalf("UpdateIO() failed: %v\n", err)
@@ -81,7 +88,6 @@ func main() {
 			if rootApp.Process.Compile.Error != "" {
 				//error
 				win.RenderError("Error: " + rootApp.Process.Compile.Error)
-
 			} else {
 				msg := router.FindRecompileMsg("Root")
 				if msg != nil && !msg.out_done.Load() {
@@ -93,8 +99,8 @@ func main() {
 					//try run it
 					rootApp.CheckRun()
 				}
-
 			}
+
 			win.EndRender(true, ui.router.services.sync.GetStats())
 
 		} else {
@@ -116,7 +122,7 @@ func main() {
 
 				num_sleeps = 0 //reset
 			} else {
-				if num_sleeps > 60 {
+				if num_sleeps > 10 {
 					time.Sleep((1000 / 5) * time.Millisecond) //deep sleep
 				} else {
 					time.Sleep((1000 / 60) * time.Millisecond) //light sleep

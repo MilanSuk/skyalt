@@ -18,7 +18,6 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 	"math"
 	"math/rand"
@@ -40,8 +39,8 @@ type WinParticles struct {
 
 	num_draw int
 
-	logo *WinTexture
-	img  image.Image
+	logo     *WinTexture
+	raw_logo []byte
 
 	done    float64
 	oldDone float64
@@ -57,11 +56,13 @@ func NewWinParticles(win *Win) (*WinParticles, error) {
 	var ptcs WinParticles
 	ptcs.win = win
 
-	var err error
-	ptcs.logo, ptcs.img, err = InitWinTextureFromFile(Win_SKYALT_LOGO)
+	width, height, rgba, _, _, _, err := win.services.media.Frame(Win_SKYALT_LOGO, nil, 0, true)
 	if err != nil {
 		return nil, err
 	}
+
+	ptcs.raw_logo = rgba
+	ptcs.logo = InitWinTextureFromImageRGBAPix(rgba, OsV2{width, height})
 
 	ptcs.noiseX = NewWinNoise(ptcs.logo.size)
 	ptcs.noiseY = NewWinNoise(ptcs.logo.size)
@@ -105,9 +106,8 @@ func (ptcs *WinParticles) Tick(cd_orig color.RGBA, depth int, win *Win) bool {
 	return ptcs.num_draw > 0
 }
 
-func (ptcs *WinParticles) GetImageAlpha(x, y int) float32 {
-	_, _, _, cdA := ptcs.img.At(x, y).RGBA()
-	return float32(cdA >> 8)
+func (ptcs *WinParticles) GetImageAlpha(x, y int) byte {
+	return ptcs.raw_logo[(y*ptcs.logo.size.X+x)*4+3] //4=rgba, 3=[alpha]
 }
 
 func (ptcs *WinParticles) Emit() error {

@@ -150,16 +150,17 @@ func (b *WinPaintBuff) AddCircle(coord OsV4, cd color.RGBA, width int) {
 }
 
 func (b *WinPaintBuff) AddImage(path WinImagePath, screen OsV4, cd color.RGBA, align OsV2, Translate_x, Translate_y, Scale_x, Scale_y *float64, errCd color.RGBA, cell int) {
-	img := b.win.images.AddImage(path)
+	img := b.win.images.Add(path, nil)
 
-	origSize := img.origSize
+	//origSize := img.origSize
 
 	//position
 	q := screen
 
-	if img.origSize.Is() {
-		fill := OsV2_OutRatio(screen.Size, origSize)
-		fit := OsV4_center(screen, OsV2_InRatio(screen.Size, origSize))
+	if img.texture != nil && img.texture.size.Is() {
+
+		fill := OsV2_OutRatio(screen.Size, img.texture.size)
+		fit := OsV4_center(screen, OsV2_InRatio(screen.Size, img.texture.size))
 
 		if *Scale_x < 0 {
 			//fill
@@ -169,7 +170,7 @@ func (b *WinPaintBuff) AddImage(path WinImagePath, screen OsV4, cd color.RGBA, a
 			q.Start.X = fit.Start.X
 			q.Size.X = fit.Size.X //from layout
 		} else {
-			q.Size.X = int(float64(origSize.X) * *Scale_x) //from orig
+			q.Size.X = int(float64(img.texture.size.X) * *Scale_x) //from orig
 		}
 
 		if *Scale_y < 0 {
@@ -180,7 +181,7 @@ func (b *WinPaintBuff) AddImage(path WinImagePath, screen OsV4, cd color.RGBA, a
 			q.Start.Y = fit.Start.Y
 			q.Size.Y = fit.Size.Y //from layout
 		} else {
-			q.Size.Y = int(float64(origSize.Y) * *Scale_y) //from orig
+			q.Size.Y = int(float64(img.texture.size.Y) * *Scale_y) //from orig
 		}
 
 		//align
@@ -240,8 +241,8 @@ func (b *WinPaintBuff) AddImage(path WinImagePath, screen OsV4, cd color.RGBA, a
 			q.Start.Y = OsClamp(q.Start.Y, min_y, max_y)
 		}
 
-		*Scale_x = float64(q.Size.X) / float64(origSize.X)
-		*Scale_y = float64(q.Size.Y) / float64(origSize.Y)
+		*Scale_x = float64(q.Size.X) / float64(img.texture.size.X)
+		*Scale_y = float64(q.Size.Y) / float64(img.texture.size.Y)
 		*Translate_x = float64(q.Start.X - screen.Start.X)
 		*Translate_y = float64(q.Start.Y - screen.Start.Y)
 	}

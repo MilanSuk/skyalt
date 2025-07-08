@@ -17,12 +17,9 @@ limitations under the License.
 package main
 
 import (
-	"bytes"
 	"image"
 	"image/color"
-	"image/draw"
 	"math"
-	"os"
 	"unsafe"
 
 	"github.com/go-gl/gl/v2.1/gl"
@@ -222,23 +219,24 @@ type WinTexture struct {
 	size OsV2
 }
 
-func InitWinTextureSize(size OsV2) (*WinTexture, error) {
+func InitWinTextureSize(size OsV2) *WinTexture {
 	var tex WinTexture
 
 	gl.GenTextures(1, &tex.id)
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, tex.id)
+
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
 	tex.size = size
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.SRGB_ALPHA, int32(tex.size.X), int32(tex.size.Y), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
 
-	return &tex, nil
+	return &tex
 }
 
-func InitWinTextureVideo(size OsV2) (*WinTexture, error) {
+func InitWinTextureVideo(size OsV2) *WinTexture {
 	var tex WinTexture
 
 	gl.GenTextures(1, &tex.id)
@@ -248,21 +246,22 @@ func InitWinTextureVideo(size OsV2) (*WinTexture, error) {
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP)
+	//gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP)
+	//gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP)
 
 	tex.size = size
 
-	return &tex, nil
+	return &tex
 }
 
-func InitWinTextureFromImageRGBAPix(rgba []byte, size OsV2) (*WinTexture, error) {
+func InitWinTextureFromImageRGBAPix(rgba []byte, size OsV2) *WinTexture {
 	var tex WinTexture
 
 	gl.GenTextures(1, &tex.id)
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, tex.id)
+
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
@@ -272,9 +271,9 @@ func InitWinTextureFromImageRGBAPix(rgba []byte, size OsV2) (*WinTexture, error)
 	//gl.GenerateMipmap(texture.id)
 	gl.BindTexture(gl.TEXTURE_2D, 0) //unbind
 
-	return &tex, nil
+	return &tex
 }
-func InitWinTextureFromImageAlphaPix(alpha []byte, size OsV2) (*WinTexture, error) {
+func InitWinTextureFromImageAlphaPix(alpha []byte, size OsV2) *WinTexture {
 	var tex WinTexture
 
 	gl.GenTextures(1, &tex.id)
@@ -289,26 +288,25 @@ func InitWinTextureFromImageAlphaPix(alpha []byte, size OsV2) (*WinTexture, erro
 
 	gl.BindTexture(gl.TEXTURE_2D, 0) //unbind
 
-	return &tex, nil
+	return &tex
 }
 
-func InitWinTextureFromImageRGBA(rgba *image.RGBA) (*WinTexture, error) {
+/*func InitWinTextureFromImageRGBA(rgba *image.RGBA) (*WinTexture, error) {
 	return InitWinTextureFromImageRGBAPix(rgba.Pix, OsV2{rgba.Rect.Size().X, rgba.Rect.Size().Y})
-}
+}*/
 
-func InitWinTextureFromImageAlpha(alpha *image.Alpha) (*WinTexture, error) {
+func InitWinTextureFromImageAlpha(alpha *image.Alpha) *WinTexture {
 	return InitWinTextureFromImageAlphaPix(alpha.Pix, OsV2{alpha.Rect.Size().X, alpha.Rect.Size().Y})
 }
 
-func InitWinTextureFromImage(img image.Image) (*WinTexture, error) {
-
+/*func InitWinTextureFromImage(img image.Image) (*WinTexture, error) {
 	rgba := image.NewRGBA(img.Bounds())
 	draw.Draw(rgba, rgba.Bounds(), img, image.Pt(0, 0), draw.Src)
 
 	return InitWinTextureFromImageRGBA(rgba)
-}
+}*/
 
-func InitWinTextureFromBlob(blob []byte) (*WinTexture, image.Image, error) {
+/*func InitWinTextureFromBlob(blob []byte) (*WinTexture, image.Image, error) {
 	img, _, err := image.Decode(bytes.NewReader(blob))
 	if LogsError(err) != nil {
 		return nil, nil, err
@@ -316,9 +314,9 @@ func InitWinTextureFromBlob(blob []byte) (*WinTexture, image.Image, error) {
 
 	tex, err := InitWinTextureFromImage(img)
 	return tex, img, err
-}
+}*/
 
-func InitWinTextureFromFile(path string) (*WinTexture, image.Image, error) {
+/*func InitWinTextureFromFile(path string) (*WinTexture, image.Image, error) {
 	imgFile, err := os.Open(path)
 	if LogsError(err) != nil {
 		return nil, nil, err
@@ -336,7 +334,7 @@ func InitWinTextureFromFile(path string) (*WinTexture, image.Image, error) {
 	}
 
 	return tex, img, err
-}
+}*/
 
 func (tex *WinTexture) Destroy() {
 	if tex.id > 0 {
@@ -345,9 +343,9 @@ func (tex *WinTexture) Destroy() {
 	}
 }
 
-func (tex *WinTexture) UpdateContent(pixels unsafe.Pointer) {
+func (tex *WinTexture) UpdateContent(rgba []byte) {
 	gl.BindTexture(gl.TEXTURE_2D, tex.id)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(tex.size.X), int32(tex.size.Y), 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(tex.size.X), int32(tex.size.Y), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(rgba))
 }
 
 func (tex *WinTexture) DrawQuadUV(coord OsV4, depth int, cd color.RGBA, sUV, eUV OsV2f) {

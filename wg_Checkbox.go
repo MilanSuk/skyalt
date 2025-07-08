@@ -84,10 +84,9 @@ func (st *Checkbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 }
 
 func (st *Checkbox) Input(in LayoutInput, layout *Layout) {
-	clicked := false
 	active := in.IsActive
 	inside := in.IsInside && (active || !in.IsUse)
-	clicked = in.IsUp && active && inside
+	clicked := in.IsUp && active && inside
 
 	if clicked {
 		if *st.Value > 0 {

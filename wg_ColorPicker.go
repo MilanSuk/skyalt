@@ -24,7 +24,8 @@ func (st *ColorPicker) Build(layout *Layout) {
 	layout.SetRow(4, 1.5, 1.5)
 
 	//Final
-	Final := layout.AddImageCd(0, 0, 2, 1, "", nil, *st.Cd)
+	Final := layout.AddImage(0, 0, 2, 1, "", nil)
+	Final.Cd = *st.Cd
 	Final.Draw_border = true
 	Final.Margin = 0.1
 

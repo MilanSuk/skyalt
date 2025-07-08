@@ -160,7 +160,7 @@ type UIChartColumns struct {
 	ColumnMargin   float64
 }
 
-type UIImage struct {
+type UIMedia struct {
 	Blob    []byte
 	Path    string
 	Tooltip string
@@ -285,7 +285,7 @@ type UI struct {
 	OsmMap            *UIOsmMap
 	ChartLines        *UIChartLines
 	ChartColumns      *UIChartColumns
-	Image             *UIImage
+	Media             *UIMedia
 	YearCalendar      *UIYearCalendar
 	MonthCalendar     *UIMonthCalendar
 	DayCalendar       *UIDayCalendar
@@ -404,7 +404,38 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 		layout.setLayoutFromUI(ui)
 	}
 
-	layout.HasUpdate = ui.HasUpdate
+	if ui.HasUpdate {
+		layout.fnUpdate = func() {
+			fnDone := func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
+				if err != nil {
+					return
+				}
+
+				var subUI UI
+				err = LogsJsonUnmarshal(uiJs, &subUI)
+				if err != nil {
+					return
+				}
+
+				layout.parent.addLayoutComp(&subUI, appName, funcName, parent_UID, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
+				//subUI.addLayout(layout, appName, funcName, parent_UID, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
+				layout._build()
+				layout._relayout()
+				layout._draw()
+				layout.ui.SetRedrawBuffer()
+
+				var cmds []ToolCmd
+				err = LogsJsonUnmarshal(cmdsJs, &cmds)
+				if err == nil {
+					layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
+				}
+
+				fmt.Printf("_updated(): %.4fsec\n", OsTime()-start_time)
+			}
+
+			layout.ui.router.CallUpdateAsync(parent_UID, layout.UID, appName, funcName, layout.ui._addLayout_FnProgress, fnDone)
+		}
+	}
 
 	if ui.AppName != "" {
 		pre_appName := appName
@@ -701,18 +732,36 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 		ch.ColumnMargin = it.ChartColumns.ColumnMargin
 
 		//itemLLMTip ....
-	} else if it.Image != nil {
-		img := layout.AddImageCd(it.X, it.Y, it.W, it.H, it.Image.Path, it.Image.Blob, it.Image.Cd)
-		img.Tooltip = it.Image.Tooltip
-		img.Draw_border = it.Image.Draw_border
-		img.Margin = it.Image.Margin
-		img.Align_h = it.Image.Align_h
-		img.Align_v = it.Image.Align_v
+	} else if it.Media != nil {
 
-		img.Translate_x = it.Image.Translate_x
-		img.Translate_y = it.Image.Translate_y
-		img.Scale_x = it.Image.Scale_x
-		img.Scale_y = it.Image.Scale_y
+		tp, _ := layout.ui.router.services.media.Type(it.Media.Path)
+
+		switch tp {
+		case 0:
+			img := layout.AddImage(it.X, it.Y, it.W, it.H, it.Media.Path, it.Media.Blob)
+			img.Cd = it.Media.Cd
+			img.Tooltip = it.Media.Tooltip
+			img.Draw_border = it.Media.Draw_border
+			img.Margin = it.Media.Margin
+			img.Align_h = it.Media.Align_h
+			img.Align_v = it.Media.Align_v
+
+			img.Translate_x = it.Media.Translate_x
+			img.Translate_y = it.Media.Translate_y
+			img.Scale_x = it.Media.Scale_x
+			img.Scale_y = it.Media.Scale_y
+		case 1:
+			vid := layout.AddVideo(it.X, it.Y, it.W, it.H, it.Media.Path)
+			vid.Cd = it.Media.Cd
+			vid.Tooltip = it.Media.Tooltip
+			vid.Draw_border = it.Media.Draw_border
+			vid.Margin = it.Media.Margin
+			vid.Align_h = it.Media.Align_h
+			vid.Align_v = it.Media.Align_v
+		case 2:
+			vid := layout.AddAudio(it.X, it.Y, it.W, it.H, it.Media.Path)
+			vid.Tooltip = it.Media.Tooltip
+		}
 
 		//itemLLMTip ....
 	} else if it.Button != nil {

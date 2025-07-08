@@ -105,11 +105,9 @@ func (st *Switch) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 }
 
 func (st *Switch) Input(in LayoutInput, layout *Layout) {
-	clicked := false
-
 	active := in.IsActive
 	inside := in.IsInside && (active || !in.IsUse)
-	clicked = in.IsUp && active && inside
+	clicked := in.IsUp && active && inside
 
 	if clicked {
 		*st.Value = !*st.Value

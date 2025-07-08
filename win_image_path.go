@@ -19,67 +19,31 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 type WinImagePath struct {
-	uid            string
-	fnGetBlob      func(fnDone func(bytes []byte, err error)) error
-	fnGetTimestamp func() (int64, error)
+	uid      string
+	playerID uint64
 
-	service_path string
+	path string
+	blob []byte
+
+	play_pos      uint64
+	play_duration uint64
+
+	is_playing bool
+
+	tp int //type(0=image, 1=video, 2=audio)
 }
 
-func InitWinImagePath_blob(blob []byte) WinImagePath {
+func InitWinImagePath_file(path string, playerID uint64) WinImagePath {
+	return WinImagePath{uid: "file:" + path, path: path, playerID: playerID}
+}
+func InitWinImagePath_blob(blob []byte, playerID uint64) WinImagePath {
 	hash := sha256.Sum256(blob)
-
-	uid := "hash: " + hex.EncodeToString(hash[:])
-	fnGetBlob := func(fnDone func(bytes []byte, err error)) error {
-		fnDone(blob, nil)
-		return nil
-	}
-	return WinImagePath{uid: uid, fnGetBlob: fnGetBlob}
-}
-func InitWinImagePath_file(path string) WinImagePath {
-	uid := path
-
-	var fnGetBlob func(fnDone func(bytes []byte, err error)) error
-	var service_path string
-	ext := strings.ToLower(filepath.Ext(path))
-	if ext == ".mp4" || ext == ".mkv" || ext == ".webm" || ext == ".mov" || ext == ".avi" || ext == ".flv" ||
-		ext == ".wav" || ext == ".mp3" || ext == ".opus" || ext == ".aac" || ext == ".ogg" || ext == ".flac" || ext == ".pcm" {
-		//audio/video
-		service_path = path
-	} else {
-		//images
-		fnGetBlob = func(fnDone func(bytes []byte, err error)) error {
-			go func() {
-				fnDone(os.ReadFile(path))
-			}()
-			return nil
-		}
-	}
-
-	fnGetTimestamp := func() (int64, error) {
-		inf, err := os.Stat(path)
-		if err == nil && inf != nil {
-			return inf.ModTime().UnixNano(), nil //ok
-		}
-		return -1, err
-	}
-	return WinImagePath{uid: uid, fnGetBlob: fnGetBlob, fnGetTimestamp: fnGetTimestamp, service_path: service_path}
-}
-func InitWinImagePath_load(load_uid string, fnGetBlob func(fnDone func(bytes []byte, err error)) error) WinImagePath {
-	uid := "func: " + load_uid
-	return WinImagePath{uid: uid, fnGetBlob: fnGetBlob}
-}
-
-func (ip *WinImagePath) GetString() string {
-	return ip.uid
+	return WinImagePath{uid: "blob: " + hex.EncodeToString(hash[:]), blob: blob, playerID: playerID}
 }
 
 func (a *WinImagePath) Cmp(b *WinImagePath) bool {
-	return a.uid == b.uid
+	return a.uid == b.uid && a.playerID == b.playerID
 }

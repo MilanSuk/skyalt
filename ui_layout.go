@@ -155,15 +155,11 @@ func (layout *Layout) _recomputeHash() {
 	}
 
 	//this
-	h.Write([]byte(fmt.Sprintf("%s(%d,%d,%d,%d)", layout.Name, layout.X, layout.Y, layout.W, layout.H)))
+	h.Write(fmt.Appendf(nil, "%s(%d,%d,%d,%d)", layout.Name, layout.X, layout.Y, layout.W, layout.H))
 
 	layout.UID = binary.LittleEndian.Uint64(h.Sum(nil))
 }
 func (layout *Layout) _build() {
-	if layout.UID == 0 {
-		layout._recomputeHash()
-	}
-
 	if layout.fnBuild != nil {
 		layout.fnBuild(layout)
 	}
@@ -185,6 +181,8 @@ func _newLayout(x, y, w, h int, name string, parent *Layout) *Layout {
 
 	layout.scrollV.Init()
 	layout.scrollH.Init()
+
+	layout._recomputeHash()
 
 	return layout
 }
@@ -265,7 +263,7 @@ type Layout struct {
 
 	List_autoSpacing bool
 
-	HasUpdate bool
+	fnUpdate func() //here
 }
 
 func NewUiLayoutDOM_root(ui *Ui) *Layout {
@@ -1257,7 +1255,7 @@ func (layout *Layout) Draw() {
 	buff.AddRect(buff.crop, layout.GetPalette().B, 0)
 
 	//base
-	layout.drawBuffers()
+	layout._drawBuffers()
 
 	//dialogs
 	for _, dia := range layout.ui.settings.Dialogs {
@@ -1270,7 +1268,7 @@ func (layout *Layout) Draw() {
 				buff.StartLevel(layDia.CropWithScroll(), layout.GetPalette().B, backCanvas, layout.ui.CellWidth(layout.ui.router.services.sync.GetRounding()))
 			}
 
-			layDia.drawBuffers() //add renderToTexture optimalization ....
+			layDia._drawBuffers() //add renderToTexture optimalization ....
 		}
 	}
 
@@ -1311,7 +1309,7 @@ func (layout *Layout) postDraw(depth int, num_cds *int) {
 	}
 }
 
-func (layout *Layout) drawBuffers() {
+func (layout *Layout) _drawBuffers() {
 	buff := layout.ui.GetWin().buff
 
 	buff.AddCrop(layout.CropWithScroll())
@@ -1341,7 +1339,7 @@ func (layout *Layout) drawBuffers() {
 	//subs
 	for _, tx := range layout.childs {
 		if tx.IsShown() {
-			tx.drawBuffers()
+			tx._drawBuffers()
 		}
 	}
 
@@ -1933,52 +1931,19 @@ func (layout *Layout) GetLLMTip() string {
 	return str
 }
 
-func (layout *Layout) CallLayoutUpdates(appName string, funcName string, parent_UID uint64) {
+func (layout *Layout) CallLayoutUpdates() {
 
-	if layout.AppName != "" {
-		//pre_appName := appName
-		//pre_parent_UID := parent_UID
+	if layout.fnUpdate != nil {
+		layout.fnUpdate()
 
-		appName = layout.AppName
-		funcName = layout.FuncName
-		parent_UID = layout.UID
-	}
-
-	if layout.HasUpdate {
-
-		fnDone := func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
-			if err != nil {
-				return
-			}
-
-			var subUI UI
-			err = LogsJsonUnmarshal(uiJs, &subUI)
-			if err != nil {
-				return
-			}
-
-			layout.parent.addLayoutComp(&subUI, appName, funcName, parent_UID, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
-			//subUI.addLayout(layout, appName, funcName, parent_UID, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
-			layout._build()
-			layout._relayout()
-			layout._draw()
-			layout.ui.SetRedrawBuffer()
-
-			var cmds []ToolCmd
-			err = LogsJsonUnmarshal(cmdsJs, &cmds)
-			if err == nil {
-				layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
-			}
-
-			fmt.Printf("_updated(): %.4fsec\n", OsTime()-start_time)
-		}
-
-		layout.ui.router.CallUpdateAsync(parent_UID, layout.UID, appName, funcName, layout.ui._addLayout_FnProgress, fnDone)
-
+		layout._build()
+		layout._relayout()
+		layout._draw()
+		layout.ui.SetRedrawBuffer()
 	}
 
 	for _, it := range layout.childs {
-		it.CallLayoutUpdates(appName, funcName, parent_UID)
+		it.CallLayoutUpdates()
 	}
 
 }

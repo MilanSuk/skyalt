@@ -102,7 +102,6 @@ func NewWin(services *Services) (*Win, error) {
 	win := &Win{services: services}
 
 	win.buff = NewWinPaintBuff(win)
-
 	win.images = NewWinImages(win)
 
 	var err error
@@ -117,8 +116,13 @@ func NewWin(services *Services) (*Win, error) {
 
 	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "2")
 
+	// Set OpenGL attributes
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 1)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 0)
+	sdl.GLSetAttribute(sdl.GL_DOUBLEBUFFER, 1)
+
 	// create SDL
-	win.window, err = sdl.CreateWindow("Skyalt", int32(win.io.Ini.WinX), int32(win.io.Ini.WinY), int32(win.io.Ini.WinW), int32(win.io.Ini.WinH), sdl.WINDOW_RESIZABLE|sdl.WINDOW_OPENGL)
+	win.window, err = sdl.CreateWindow("Skyalt", int32(win.io.Ini.WinX), int32(win.io.Ini.WinY), int32(win.io.Ini.WinW), int32(win.io.Ini.WinH), sdl.WINDOW_RESIZABLE|sdl.WINDOW_OPENGL|sdl.WINDOW_SHOWN)
 	if LogsError(err) != nil {
 		return nil, err
 	}
@@ -141,7 +145,7 @@ func NewWin(services *Services) (*Win, error) {
 
 	win.cursors = append(win.cursors, WinCursor{"res_col", sdl.SYSTEM_CURSOR_SIZEWE, sdl.CreateSystemCursor(sdl.SYSTEM_CURSOR_SIZEWE)})
 	win.cursors = append(win.cursors, WinCursor{"res_row", sdl.SYSTEM_CURSOR_SIZENS, sdl.CreateSystemCursor(sdl.SYSTEM_CURSOR_SIZENS)})
-	win.cursors = append(win.cursors, WinCursor{"res_nwse", sdl.SYSTEM_CURSOR_SIZENESW, sdl.CreateSystemCursor(sdl.SYSTEM_CURSOR_SIZENESW)}) // bug(already fixed) in SDL: https://github.com/libsdl-org/SDL/issues/2123
+	win.cursors = append(win.cursors, WinCursor{"res_nwse", sdl.SYSTEM_CURSOR_SIZENESW, sdl.CreateSystemCursor(sdl.SYSTEM_CURSOR_SIZENESW)})
 	win.cursors = append(win.cursors, WinCursor{"res_nesw", sdl.SYSTEM_CURSOR_SIZENWSE, sdl.CreateSystemCursor(sdl.SYSTEM_CURSOR_SIZENWSE)})
 	win.cursors = append(win.cursors, WinCursor{"move", sdl.SYSTEM_CURSOR_SIZEALL, sdl.CreateSystemCursor(sdl.SYSTEM_CURSOR_SIZEALL)})
 
@@ -448,10 +452,6 @@ func (win *Win) Maintenance() {
 }
 
 func (win *Win) needRedraw(inputChanged bool) bool {
-	if win == nil {
-		return true
-	}
-
 	if win.cursorEdit {
 		if inputChanged {
 			win.cursorEdit = false
@@ -496,11 +496,9 @@ func (win *Win) SetRedrawNewImage() {
 }
 
 func (win *Win) UpdateIO() (bool, bool, error) {
-	if win == nil {
-		return true, false, nil
-	}
-
 	run, redraw := win.Event()
+
+	win.images.Tick(win)
 
 	if !run {
 		return false, redraw, nil
@@ -608,9 +606,6 @@ func (win *Win) StopProgress() {
 }
 
 func (win *Win) StartRender(clearCd color.RGBA) error {
-	if win == nil {
-		return nil
-	}
 
 	win.render.StartRender(win.GetScreenCoord(), clearCd)
 
@@ -619,9 +614,6 @@ func (win *Win) StartRender(clearCd color.RGBA) error {
 }
 
 func (win *Win) EndRender(present bool, show_stats bool) error {
-	if win == nil {
-		return nil
-	}
 
 	win.stat.Update(int(OsTicks() - win.start_time_unix))
 	if show_stats {
@@ -685,7 +677,7 @@ func (win *Win) renderStats() {
 	runtime.ReadMemStats(&mem)
 	text := fmt.Sprintf("FPS(worst: %.1f, best: %.1f, avg: %.1f), Memory(%d imgs: %.2fMB, process: %.2fMB), Threads(%d), Text(live: %d, created: %d, removed: %d)",
 		win.stat.out_worst_fps, win.stat.out_best_fps, win.stat.out_avg_fps,
-		win.images.NumTextures(), float64(win.images.GetImagesBytes())/1024/1024, float64(mem.Sys)/1024/1024, runtime.NumGoroutine(),
+		win.images.NumTextures(), float64(win.images.GetBytes())/1024/1024, float64(mem.Sys)/1024/1024, runtime.NumGoroutine(),
 		len(win.gph.texts), win.gph.texts_num_created, win.gph.texts_num_remove)
 
 	sz := win.GetTextSize(-1, text, props)
@@ -718,10 +710,6 @@ func (win *Win) RenderError(errStr string) {
 }
 
 func (win *Win) PaintCursor(name string) error {
-	if win == nil {
-		return nil
-	}
-
 	for i, cur := range win.cursors {
 		if strings.EqualFold(cur.name, name) {
 			win.cursorId = i

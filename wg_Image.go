@@ -20,38 +20,31 @@ type Image struct {
 	Scale_x, Scale_y         float64
 
 	User_input bool //scroll, double-click, move
-
-	orig_width, orig_height int
 }
 
-func (layout *Layout) AddImageCd(x, y, w, h int, path string, blob []byte, cd color.RGBA) *Image {
-	props := &Image{Path: path, Blob: blob, Align_h: 1, Align_v: 1, Margin: 0.1, Cd: cd}
+func (layout *Layout) AddImage(x, y, w, h int, path string, blob []byte) *Image {
+	props := &Image{Path: path, Blob: blob, Align_h: 1, Align_v: 1, Margin: 0.1, Cd: color.RGBA{255, 255, 255, 255}}
 	layout._createDiv(x, y, w, h, "Image", nil, props.Draw, props.Input)
 	return props
 }
 
-func (layout *Layout) AddImage(x, y, w, h int, path string, blob []byte) *Image {
-	return layout.AddImageCd(x, y, w, h, path, blob, color.RGBA{255, 255, 255, 255})
-}
-
 func (st *Image) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
-
 	paint.Tooltip(st.Tooltip, rect)
 
 	Cd := st.Cd
 
 	rc := rect.Cut(st.Margin)
 	if len(st.Blob) > 0 {
-		paint.File(rc, InitWinImagePath_blob(st.Blob), Cd, Cd, Cd, uint8(st.Align_h), uint8(st.Align_v))
+		paint.File(rc, InitWinImagePath_blob(st.Blob, layout.UID), Cd, Cd, Cd, uint8(st.Align_h), uint8(st.Align_v))
 	} else if st.Path != "" {
-
-		paint.File(rc, InitWinImagePath_file(st.Path), Cd, Cd, Cd, uint8(st.Align_h), uint8(st.Align_v))
+		path := InitWinImagePath_file(st.Path, layout.UID)
+		paint.File(rc, path, Cd, Cd, Cd, uint8(st.Align_h), uint8(st.Align_v))
 	} else {
 		paint.Rect(rc, Cd, Cd, Cd, 0)
 	}
 
 	if st.Draw_border {
-		cd := color.RGBA{0, 0, 0, 255} //layout.GetPalette().P
+		cd := layout.GetPalette().GetGrey(0.5)
 		paint.Rect(rc, cd, cd, cd, 0.03)
 	}
 	return
@@ -120,8 +113,11 @@ func (st *Image) Input(in LayoutInput, layout *Layout) {
 			if zoom != 1.0 {
 				cell := float64(layout.Cell())
 
-				iw := (float64(st.orig_width) * st.Scale_x / cell) //image cells
-				ih := (float64(st.orig_height) * st.Scale_y / cell)
+				img := layout.ui.win.images.Add(InitWinImagePath_file(st.Path, layout.UID), nil)
+				orig_size := img.texture.size
+
+				iw := (float64(orig_size.X) * st.Scale_x / cell) //image cells
+				ih := (float64(orig_size.Y) * st.Scale_y / cell)
 				ix := (touch_x - st.Translate_x) / iw //<0-1> in image(zoomed)
 				iy := (touch_y - st.Translate_y) / ih
 
@@ -141,8 +137,8 @@ func (st *Image) Input(in LayoutInput, layout *Layout) {
 				}
 
 				//compute again, after zoom
-				iw = (float64(st.orig_width) * st.Scale_x / cell)
-				ih = (float64(st.orig_height) * st.Scale_y / cell)
+				iw = (float64(orig_size.X) * st.Scale_x / cell)
+				ih = (float64(orig_size.Y) * st.Scale_y / cell)
 
 				//translation
 				st.Translate_x = (touch_x - iw*ix)

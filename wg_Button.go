@@ -220,9 +220,9 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 		var pt WinImagePath
 		if st.IconPath != "" {
-			pt = InitWinImagePath_file(st.IconPath)
+			pt = InitWinImagePath_file(st.IconPath, layout.UID)
 		} else {
-			pt = InitWinImagePath_blob(st.IconBlob)
+			pt = InitWinImagePath_blob(st.IconBlob, layout.UID)
 		}
 		paint.File(rectIcon, pt, cdText, cdText_over, cdText_down, 1, 1)
 	}
@@ -271,10 +271,9 @@ func (st *Button) addPaintText(cdText, cdText_over, cdText_down color.RGBA, pain
 }
 
 func (st *Button) Input(in LayoutInput, layout *Layout) {
-	clicked := false
 	active := in.IsActive
 	inside := in.IsInside && (active || !in.IsUse)
-	clicked = in.IsUp && active && inside
+	clicked := in.IsUp && active && inside
 
 	if st.Shortcut_key != 0 && st.Shortcut_key == in.Shortcut_key {
 		clicked = true

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"math"
 	"strconv"
@@ -190,7 +189,7 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 				continue
 			}
 
-			fnGetBlob := func(fnDone func(bytes []byte, err error)) error {
+			/*fnGetBlob := func(fnDone func(bytes []byte, err error)) error {
 
 				type GetTile struct {
 					X    int //tile's X position
@@ -219,14 +218,21 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 				//un-design ....
 				layout.ui.router.CallBuildAsync(0, "Device", "GetMapTile", GetTile{X: int(x), Y: int(y), Zoom: int(zoom)}, nil, fnAsyncDone)
 				return nil
-
-			}
+			}*/
 
 			tileCoord_sx := (x - float64(bbStart.X)) * tile
 			tileCoord_sy := (y - float64(bbStart.Y)) * tile
 			cdWhite := color.RGBA{255, 255, 255, 255}
+			type GetTile struct {
+				X    int //tile's X position
+				Y    int //tile's Y position
+				Zoom int //map's zoom
+
+				Out_image []byte
+			}
 			paint.File(Rect{X: tileCoord_sx, Y: tileCoord_sy, W: tile, H: tile},
-				InitWinImagePath_load(fmt.Sprintf("map_tile:%d-%d-%d", int(x), int(y), int(zoom)), fnGetBlob),
+				InitWinImagePath_file("map_tile", layout.UID), //..........
+				//InitWinImagePath_call("Device", "GetMapTile", GetTile{X: int(x), Y: int(y), Zoom: int(zoom)}, fmt.Sprintf("Device:GetMapTile(%d-%d-%d)", int(x), int(y), int(zoom))),
 				cdWhite, cdWhite, cdWhite,
 				0, 0)
 		}
@@ -250,7 +256,7 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 			locRect := Rect{X: tileCoord_sx - rad/2, Y: tileCoord_sy - rad, W: rad, H: rad}
 
-			paint.File(locRect, InitWinImagePath_file("resources/locator.png"), cd, cd_over, cd_down, 1, 1)
+			paint.File(locRect, InitWinImagePath_file("resources/locator.png", layout.UID), cd, cd_over, cd_down, 1, 1)
 		}
 	}
 

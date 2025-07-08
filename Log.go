@@ -80,14 +80,14 @@ func LogsJsonMarshal(v any) ([]byte, error) {
 	if LogsError(err) != nil {
 		return nil, err
 	}
-	return data, err
+	return data, nil
 }
 func LogsJsonMarshalIndent(v any) ([]byte, error) {
 	data, err := json.MarshalIndent(v, "", " ")
 	if LogsError(err) != nil {
 		return nil, err
 	}
-	return data, err
+	return data, nil
 }
 
 func LogsJsonUnmarshal(data []byte, v any) error {
@@ -95,5 +95,5 @@ func LogsJsonUnmarshal(data []byte, v any) error {
 	if LogsError(err) != nil {
 		return err
 	}
-	return err
+	return nil
 }

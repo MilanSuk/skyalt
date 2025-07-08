@@ -24,6 +24,7 @@ import (
 	"image/png"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/image/bmp"
@@ -42,44 +43,27 @@ func InitImageGlobal() {
 }
 
 type WinImage struct {
-	origSize OsV2
+	path WinImagePath
 
-	path        WinImagePath
-	loaded_blob []byte
+	loaded_lock sync.Mutex
+	loaded_rgba []byte
+	loaded_size OsV2
+
+	num_loads atomic.Uint64
 
 	err error
 
 	texture *WinTexture
 
 	lastDrawTick int64
-
-	file_timestamp int64
-
-	media *ServicesPlayerItem
 }
 
-func NewWinImage(path WinImagePath, win *Win) *WinImage {
-	img := &WinImage{path: path, file_timestamp: -1}
+func NewWinImage(path WinImagePath, win *Win, inited func()) *WinImage {
+	img := &WinImage{path: path}
 
 	img.path = path
 
-	fnDone := func(bytes []byte, err error) {
-		img.loaded_blob = bytes
-		img.err = err
-		win.SetRedrawNewImage()
-	}
-
-	if path.fnGetBlob != nil {
-		img.err = path.fnGetBlob(fnDone)
-	}
-
-	if img.path.fnGetTimestamp != nil {
-		img.file_timestamp, img.err = img.path.fnGetTimestamp()
-	}
-
-	if img.path.service_path != "" {
-		img.media, img.err = win.services.player.Add(img.path.service_path) //load in other thread as images ....
-	}
+	go img._loadFromMedia(win, inited)
 
 	return img
 }
@@ -89,11 +73,45 @@ func (img *WinImage) FreeTexture(win *Win) {
 		img.texture.Destroy()
 	}
 	img.texture = nil
+}
 
-	if img.path.service_path != "" {
-		win.services.player.Remove(img.path.service_path)
-		img.media = nil
+func (img *WinImage) _loadFromMedia(win *Win, inited func()) {
+	defer img.num_loads.Add(1)
+
+	if inited != nil {
+		defer inited()
 	}
+
+	w, h, rgba, play_pos, play_duration, tp, err := win.services.media.Frame(img.path.path, img.path.blob, img.path.playerID, img.err == nil)
+
+	img.loaded_lock.Lock()
+	defer img.loaded_lock.Unlock()
+
+	img.err = err
+	if err != nil {
+		return
+	}
+
+	img.path.play_pos = play_pos
+	img.path.play_duration = play_duration
+	img.path.tp = tp
+	img.loaded_size = OsV2{w, h}
+	img.loaded_rgba = rgba
+
+	win.SetRedrawNewImage()
+
+	//fmt.Println(img.path.path, play_pos, play_duration)
+	//fmt.Println("_loadFromMedia()", time.Now().UnixMilli())
+}
+
+func (img *WinImage) SetPlay(playIt bool, win *Win) {
+	img.path.is_playing = playIt
+	win.services.media.Play(img.path.path, img.path.playerID, playIt)
+}
+
+func (img *WinImage) SetSeek(pos_ms uint64, win *Win) {
+	img.path.play_pos = pos_ms
+	win.services.media.Seek(img.path.path, img.path.playerID, pos_ms)
 }
 
 func (img *WinImage) GetBytes() int {
@@ -126,28 +144,20 @@ func (img *WinImage) Tick() error {
 }
 
 func (img *WinImage) Draw(coord OsV4, depth int, cd color.RGBA, win *Win) string {
+	if len(img.loaded_rgba) > 0 {
+		img.loaded_lock.Lock()
+		defer img.loaded_lock.Unlock()
 
-	if len(img.loaded_blob) > 0 {
-		img.texture, _, img.err = InitWinTextureFromBlob(img.loaded_blob)
-
-		if img.texture != nil {
-			img.origSize = img.texture.size
+		if img.texture == nil || !img.texture.size.Cmp(img.loaded_size) {
+			//new
+			img.texture = InitWinTextureFromImageRGBAPix(img.loaded_rgba, img.loaded_size)
+		} else {
+			//update
+			//fmt.Println("UpdateContent()", time.Now().UnixMilli())
+			img.texture.UpdateContent(img.loaded_rgba)
 		}
 
-		img.loaded_blob = nil //reset
-	}
-
-	if img.media != nil {
-		//img.media.Update()
-
-		if img.media.size.Is() {
-			if img.texture == nil && img.err == nil {
-				img.texture, img.err = InitWinTextureVideo(img.media.size)
-			}
-
-			img.texture.UpdateContent(img.media.pixels)
-		}
-
+		img.loaded_rgba = nil //reset
 	}
 
 	if coord.Size.Is() {
@@ -179,7 +189,7 @@ func NewWinImages(win *Win) *WinImages {
 	//hot reload
 	go func() {
 		for {
-			img._hotReload()
+			img._hotReload(win)
 			time.Sleep(1 * time.Second)
 		}
 	}()
@@ -209,7 +219,7 @@ func (imgs *WinImages) NumTextures() int {
 	return n
 }
 
-func (imgs *WinImages) GetImagesBytes() int {
+func (imgs *WinImages) GetBytes() int {
 	imgs.lock.Lock()
 	defer imgs.lock.Unlock()
 
@@ -220,7 +230,7 @@ func (imgs *WinImages) GetImagesBytes() int {
 	return n
 }
 
-func (imgs *WinImages) AddImage(path WinImagePath) *WinImage {
+func (imgs *WinImages) Add(path WinImagePath, inited func()) *WinImage {
 	imgs.lock.Lock()
 	defer imgs.lock.Unlock()
 
@@ -232,7 +242,7 @@ func (imgs *WinImages) AddImage(path WinImagePath) *WinImage {
 	}
 
 	//add
-	img := NewWinImage(path, imgs.win)
+	img := NewWinImage(path, imgs.win, inited)
 	imgs.images = append(imgs.images, img)
 	return img
 }
@@ -249,24 +259,41 @@ func (imgs *WinImages) Maintenance(win *Win) {
 	}
 }
 
-func (imgs *WinImages) _hotReload() {
+func (imgs *WinImages) Tick(win *Win) {
+	imgs.lock.Lock()
+	defer imgs.lock.Unlock()
 
-	if imgs.lock.TryLock() {
-		//imgs.lock.Lock()
-		defer imgs.lock.Unlock()
+	//find
+	redraw := false
+	for _, img := range imgs.images {
 
-		for i := len(imgs.images) - 1; i >= 0; i-- {
-			img := imgs.images[i]
+		playing, changed := imgs.win.services.media.Check(img.path.path, img.path.playerID)
+		img.path.is_playing = playing
+		if changed || (img.path.tp == 2 && playing) { //video changed || audio is playing(get seek pos)
+			img._loadFromMedia(win, nil)
+		}
 
-			if img.path.fnGetTimestamp != nil {
-				timestamp, err := img.path.fnGetTimestamp()
-				if err == nil {
-					if img.file_timestamp != timestamp {
-						imgs.images = slices.Delete(imgs.images, i, i+1)
-						imgs.win.SetRedrawNewImage()
-					}
-				}
+		redraw = true
+	}
+
+	if redraw {
+		win.SetRedrawNewImage()
+	}
+}
+
+func (imgs *WinImages) _hotReload(win *Win) {
+	imgs.lock.Lock()
+	images := append([]*WinImage(nil), imgs.images...)
+	imgs.lock.Unlock()
+
+	for _, img := range images {
+		if img.num_loads.Load() > 0 {
+			playing, changed := imgs.win.services.media.Check(img.path.path, img.path.playerID)
+			img.path.is_playing = playing
+			if changed || (img.path.tp == 2 && playing) { //video changed || audio is playing(get seek pos)
+				img._loadFromMedia(win, nil)
 			}
 		}
 	}
+
 }

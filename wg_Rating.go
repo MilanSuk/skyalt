@@ -40,7 +40,7 @@ func (st *Rating) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 			icon = "resources/star_empty.png"
 		}
 
-		paint.File(rect, InitWinImagePath_file(icon), cd, cd, cd, 1, 1)
+		paint.File(rect, InitWinImagePath_file(icon, layout.UID), cd, cd, cd, 1, 1)
 
 		rect.X += rect.W
 	}
