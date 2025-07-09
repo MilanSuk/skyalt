@@ -1905,32 +1905,6 @@ func (ui *UI) addRow(height float64) *UI { //'height: -1' => auto-resize based o
 	return rowUi
 }
 
-/*
-api.go:
-
-//pouze základní structs + funcs(with comments) .....
-
-*/
-
-/*
-Example: .......
-func (st *Example) run(caller *ToolCaller, ui *UI) error {
-	person := LoadPersonInfo()
-
-	desc_width := 5	//description column width
-
-	r := ui.addRow()	//add new row
-	r.addText(desc_width, "Born")	//add description
-	r.addEditboxInt(-1, &person.Born)	//add editable text field
-
-	r = ui.addRow()
-	r.addText(desc_width, "Height")
-	r.addEditboxInt(-1, &person.Height)
-
-	return nil
-}
-*/
-
 type UIText struct {
 	layout  *UI
 	Label   string
