@@ -50,7 +50,7 @@ type Root struct {
 }
 
 func NewRoot(file string) (*Root, error) {
-	st := &Root{}
+	st := &Root{ShowSettings: true}
 
 	return LoadFile(file, "Root", "json", st, true)
 }
