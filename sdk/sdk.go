@@ -990,9 +990,9 @@ func callFuncPrint(str string) {
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
-		err = cl.WriteArray([]byte(g_main.appName))
+		err = cl.WriteArray([]byte("print"))
 		if Tool_Error(err) == nil {
-			err = cl.WriteArray([]byte("print"))
+			err = cl.WriteArray([]byte(g_main.appName))
 			if Tool_Error(err) == nil {
 				err = cl.WriteArray([]byte(str))
 				Tool_Error(err)
@@ -1284,6 +1284,9 @@ func (ui *UI) runChange(change SdkChange) error {
 	if it == nil {
 		return fmt.Errorf("UID %d not found", change.UID)
 	}
+
+	//itJs, _ := json.MarshalIndent(it, "", "   ")
+	//callFuncPrint("runChange() found:" + string(itJs))
 
 	//sub-app
 	if it.changed != nil {
