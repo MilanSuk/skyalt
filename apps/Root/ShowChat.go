@@ -305,7 +305,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 	x := 0
 	y := 0
 	{
-		ui.SetColumnFromSub(x, 3, 10)
+		ui.SetColumnFromSub(x, 3, 5)
 		DivStart := ui.AddLayout(x, y, 1, 1)
 		DivStart.SetRow(0, 0, 100)
 		DivStart.Enable = !isRunning
@@ -358,6 +358,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 
 				return nil
 			}
+			xx++
 		}
 
 		//Reset brushes
@@ -373,7 +374,6 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 				//}
 				input.Text = ""
 				input.Picks = nil
-
 				return nil
 			}
 			xx++
