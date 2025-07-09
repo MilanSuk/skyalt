@@ -181,6 +181,8 @@ type WinImages struct {
 	win    *Win
 	images []*WinImage
 	lock   sync.Mutex
+
+	last_tick int64
 }
 
 func NewWinImages(win *Win) *WinImages {
@@ -190,7 +192,7 @@ func NewWinImages(win *Win) *WinImages {
 	go func() {
 		for {
 			img._hotReload(win)
-			time.Sleep(1 * time.Second)
+			time.Sleep(1000 * time.Millisecond)
 		}
 	}()
 
@@ -264,16 +266,25 @@ func (imgs *WinImages) Tick(win *Win) {
 	defer imgs.lock.Unlock()
 
 	//find
-	redraw := false
+	isPlaying := false
 	for _, img := range imgs.images {
+		if img.path.is_playing {
+			isPlaying = true
+		}
+	}
 
-		playing, changed := imgs.win.services.media.Check(img.path.path, img.path.playerID)
-		img.path.is_playing = playing
-		if changed || (img.path.tp == 2 && playing) { //video changed || audio is playing(get seek pos)
-			img._loadFromMedia(win, nil)
+	redraw := false
+	if isPlaying || (OsTicks()-imgs.last_tick) > 100 { //every 100ms
+		for _, img := range imgs.images {
+			playing, changed := imgs.win.services.media.Check(img.path.path, img.path.playerID)
+			img.path.is_playing = playing
+			if changed || (img.path.tp == 2 && playing) { //video changed || audio is playing(get seek pos)
+				img._loadFromMedia(win, nil)
+				redraw = true
+			}
 		}
 
-		redraw = true
+		imgs.last_tick = OsTicks()
 	}
 
 	if redraw {

@@ -109,7 +109,7 @@ func main() {
 			}
 			lock.Unlock()
 
-			time.Sleep(1 * time.Second)
+			time.Sleep(10 * time.Second)
 		}
 	}()
 
@@ -129,7 +129,7 @@ func main() {
 			diff := false
 			tp := getType(string(path))
 			if tp > 0 { //audio/video
-				playing, diff = vlc.Check(string(path), playerID) //pro zvuk je diff = 0 .................
+				playing, diff = vlc.Check(string(path), playerID)
 			} else {
 				diff = imgs.Check(string(path))
 			}
@@ -187,8 +187,6 @@ func main() {
 					seek_ms = uint64(item.GetSeek())
 					play_duration = uint64(item.GetDuration())
 					data = unsafe.Slice((*byte)(item.videoCtx.pixels), item.pixels_size)
-
-					//item.downloaded_seek_ms = int64(seek_ms)
 				} else {
 					errBytes = []byte(err.Error())
 				}
