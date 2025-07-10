@@ -388,20 +388,20 @@ func (msgs *ChatMsgs) AddUserMessage(text string, files []string) (*ChatMsg, err
 	return msg, nil
 }
 
-func ChatMsg_GetReasoningTextIntro() string {
-	return "\n\nReasoning: "
+func ChatMsg_GetDivAfterReasoning() string {
+	return "\n\nFinal message: "
 }
 
 func (msgs *ChatMsgs) AddAssistentCalls(reasoning_text, final_text string, tool_calls []OpenAI_completion_msg_Content_ToolCall, usage LLMMsgUsage) *ChatMsg {
 	text := final_text
 	if reasoning_text != "" {
-		text = final_text + ChatMsg_GetReasoningTextIntro() + reasoning_text
+		text = reasoning_text + ChatMsg_GetDivAfterReasoning() + final_text
 	}
 
 	content := OpenAI_content{}
 	content.Calls = &OpenAI_completion_msgCalls{Role: "assistant", Content: text, Tool_calls: tool_calls}
 
-	msg := &ChatMsg{Content: content, Usage: usage, FinalTextSize: len(final_text)}
+	msg := &ChatMsg{Content: content, Usage: usage, ReasoningSize: len(reasoning_text) + len(ChatMsg_GetDivAfterReasoning())}
 	msgs.Messages = append(msgs.Messages, msg)
 	return msg
 }

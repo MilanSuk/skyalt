@@ -850,10 +850,9 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 	if msg.Content.Calls != nil {
 		txt = msg.Content.Calls.Content
 		{
-			rsp_intro := "" //ChatMsg_GetReasoningTextIntro()
-			if msg.FinalTextSize >= 0 && len(txt) >= (msg.FinalTextSize+len(rsp_intro)) {
-				rsp_txt = txt[msg.FinalTextSize+len(rsp_intro):]
-				txt = txt[:msg.FinalTextSize]
+			if msg.ReasoningSize >= 0 && len(txt) >= msg.ReasoningSize {
+				rsp_txt = txt[:msg.ReasoningSize]
+				txt = txt[msg.ReasoningSize:]
 			}
 			rsp_txt = strings.TrimSpace(rsp_txt)
 			txt = strings.TrimSpace(txt)

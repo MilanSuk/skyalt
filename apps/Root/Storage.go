@@ -251,7 +251,7 @@ type ChatMsg struct {
 
 	Content OpenAI_content
 
-	FinalTextSize int //without reasoning
+	ReasoningSize int //Final text is after
 	ShowReasoning bool
 
 	UI_func     string

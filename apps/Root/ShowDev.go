@@ -226,26 +226,31 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				diff := sdk_app.Changed //(promptsFileTime != sdk_app.PromptsFileTime || secretsFileTime != sdk_app.SecretsFileTime)
 
 				SaveDiv := FooterRightDiv.AddLayout(0, 0, 1, 1)
-				SaveDiv.SetColumn(0, 1, 100)
 
 				if isGenerating {
+					x := 0
 					if !app.Dev.ShowSide {
-						CompBt := SaveDiv.AddButton(0, 0, 1, 1, "Generating")
+						SaveDiv.SetColumn(x, 1, 100)
+						CompBt := SaveDiv.AddButton(x, 0, 1, 1, "Show")
+						CompBt.Background = 0.5
 						CompBt.Tooltip = "Show generation"
 						CompBt.clicked = func() error {
 							app.Dev.ShowSide = true
 							return nil
 						}
-					} else {
-						StopBt := SaveDiv.AddButton(0, 0, 1, 1, "Stop")
-						StopBt.Cd = UI_GetPalette().E
-						StopBt.Tooltip = "Stop generating"
-						StopBt.clicked = func() error {
-							//....
-							return nil
-						}
+						x++
+					}
+
+					SaveDiv.SetColumn(x, 1, 100)
+					StopBt := SaveDiv.AddButton(x, 0, 1, 1, "Stop")
+					StopBt.Cd = UI_GetPalette().E
+					StopBt.Tooltip = "Stop generating"
+					StopBt.clicked = func() error {
+						//....
+						return nil
 					}
 				} else {
+					SaveDiv.SetColumn(0, 1, 100)
 					GenerateBt := SaveDiv.AddButton(0, 0, 1, 1, "Generate")
 					GenerateBt.Tooltip = "Save & Generate code"
 					GenerateBt.clicked = func() error {

@@ -75,7 +75,7 @@ type ChatMsg struct {
 
 	Content OpenAI_content
 
-	FinalTextSize int //without reasoning
+	ReasoningSize int //Final text is after
 	ShowReasoning bool
 
 	UI_func     string
@@ -237,12 +237,9 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 	switch strings.ToLower(dev.Chat_provider) {
 
 	case "xai":
-		model = "grok-3"
-		if !dev.Chat_smarter {
-			model += "-mini"
-		}
-		if dev.Chat_faster {
-			model += "-fast"
+		model = "grok-3-mini"
+		if dev.Chat_smarter {
+			model = "grok-4"
 		}
 
 	case "mistral":
