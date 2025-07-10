@@ -116,10 +116,212 @@ type UIButton struct {
 
 func (ui *UI) addButton(width float64, label string) *UIButton
 
+type UICombo struct {
+	layout *UI
+	Value  *string
+	Labels []string
+	Values []string
+
+	changed func() error
+}
+
+func (ui *UI) addCombo(width float64, value *string, labels []string, values []string) *UICombo
+
+type UISwitch struct {
+	layout  *UI
+	Label   string
+	Tooltip string
+	Value   *bool
+
+	changed func() error
+}
+
+func (ui *UI) addSwitch(width float64, label string, value *bool) *UISwitch
+
+type UICheckbox struct {
+	layout  *UI
+	Label   string
+	Tooltip string
+	Value   *float64
+
+	changed func() error
+}
+
+func (ui *UI) addCheckbox(width float64, label string, value *float64) *UICheckbox
+
+type UISlider struct {
+	layout *UI
+	Value  *float64
+	Min    float64
+	Max    float64
+	Step   float64
+
+	changed func() error
+}
+
+func (ui *UI) addSlider(width float64, value *float64, min, max, step float64) *UISlider
+
+type UIDivider struct {
+	layout     *UI
+	Horizontal bool
+}
+
+func (ui *UI) addDivider(width float64, horizontal bool) *UIDivider
+
+type UIMapLoc struct {
+	Lon   float64
+	Lat   float64
+	Label string
+}
+type UIMapLocators struct {
+	Locators []UIMapLoc
+	clicked  func(i int, caller *ToolCaller)
+}
+
+type UIMapSegmentTrk struct {
+	Lon  float64
+	Lat  float64
+	Ele  float64
+	Time string
+	Cd   color.RGBA
+}
+type UIMapSegment struct {
+	Trkpts []UIMapSegmentTrk
+	Label  string
+}
+type UIMapRoute struct {
+	Segments []UIMapSegment
+}
+type UIMap struct {
+	layout         *UI
+	Lon, Lat, Zoom *float64
+	Locators       []UIMapLocators
+	Routes         []UIMapRoute
+}
+
+func (ui *UI) addMap(width float64, lon, lat, zoom *float64) *UIMap
+func (mp *UIMap) addLocators(loc UIMapLocators)
+func (mp *UIMap) addRoute(route UIMapRoute)
+
+type UICalendarEvent struct {
+	EventID int64
+	GroupID int64
+
+	Title string
+
+	Start    int64 //unix time
+	Duration int64 //seconds
+
+	Color color.RGBA
+}
+
+type UIYearCalendar struct {
+	layout *UI
+	Year   int
+}
+
+func (ui *UI) addYearCalendar(width float64, Year int) *UIYearCalendar
+
+type UIMonthCalendar struct {
+	layout *UI
+	Year   int
+	Month  int //1=January, 2=February, etc.
+
+	Events []UICalendarEvent
+}
+
+func (ui *UI) addMonthCalendar(width float64, Year int, Month int, Events []UICalendarEvent) *UIMonthCalendar
+
+type UIDayCalendar struct {
+	layout *UI
+	Days   []int64
+	Events []UICalendarEvent
+}
+
+func (ui *UI) addDayCalendar(width float64, Days []int64, Events []UICalendarEvent) *UIDayCalendar
+
+type UIFilePickerButton struct {
+	layout      *UI
+	Path        *string
+	Preview     bool
+	OnlyFolders bool
+
+	changed func() error
+}
+
+func (ui *UI) addFilePickerButton(width float64, path *string, preview bool, onlyFolders bool) *UIFilePickerButton
+
+type UIDatePickerButton struct {
+	layout   *UI
+	Date     *int64
+	Page     *int64
+	ShowTime bool
+	changed  func() error
+}
+
+func (ui *UI) addDatePickerButton(width float64, date *int64, page *int64, showTime bool) *UIDatePickerButton
+
+type UIColorPickerButton struct {
+	layout  *UI
+	Cd      *color.RGBA
+	changed func() error
+}
+
+func (ui *UI) addColorPickerButton(width float64, cd *color.RGBA) *UIColorPickerButton
+
+type UIChartPoint struct {
+	X  float64
+	Y  float64
+	Cd color.RGBA
+}
+
+type UIChartLine struct {
+	Points []UIChartPoint
+	Label  string
+	Cd     color.RGBA
+}
+
+type UIChartLines struct {
+	layout *UI
+
+	Lines []UIChartLine
+
+	X_unit, Y_unit        string
+	Bound_x0, Bound_y0    bool
+	Point_rad, Line_thick float64
+	Draw_XHelpLines       bool
+	Draw_YHelpLines       bool
+}
+
+func (ui *UI) addChartLines(width float64, Lines []UIChartLine) *UIChartLines
+
+type UIChartColumnValue struct {
+	Value float64
+	Label string
+	Cd    color.RGBA
+}
+
+type UIChartColumn struct {
+	Values []UIChartColumnValue
+}
+
+type UIChartColumns struct {
+	layout *UI
+
+	X_unit, Y_unit string
+	Bound_y0       bool
+	Y_as_time      bool
+	Columns        []UIChartColumn
+	X_Labels       []string
+	ColumnMargin   float64
+}
+
+func (ui *UI) addChartColumns(width float64, columns []UIChartColumn, x_labels []string) *UIChartColumns
+
 // accepts unix time and returns date(formated by user)
 func SdkGetDate(unix_sec int64) string
 
-// accepts unix time and returns date(formated by user) + hour + minute + seconds
+// accepts unix time and returns date(formated by user) + hour:minute:second
 func SdkGetDateTime(unix_sec int64) string
 
 type LLMCompletion struct {

@@ -254,6 +254,7 @@ var g_main ToolProgram
 var g_dev ToolDeviceSettings
 
 var g_logs []SdkLog
+var g_logs_previous int
 var g_logs_lock sync.Mutex
 
 func main() {
@@ -728,7 +729,7 @@ func callFuncGetLogs() []SdkLog {
 		err = cl.WriteArray([]byte("get_logs"))
 		if Tool_Error(err) == nil {
 
-			err = cl.WriteInt(uint64(len(g_logs))) //sync only latest
+			err = cl.WriteInt(uint64(g_logs_previous + len(g_logs))) //sync only latest
 			if Tool_Error(err) == nil {
 
 				logsJs, err := cl.ReadArray()
@@ -749,6 +750,7 @@ func callFuncGetLogs() []SdkLog {
 func clearLogs() {
 	g_logs_lock.Lock()
 	defer g_logs_lock.Unlock()
+	g_logs_previous += len(g_logs)
 	g_logs = nil
 }
 
@@ -1396,8 +1398,8 @@ func (ui *UI) runChange(change SdkChange) error {
 		}
 	}
 
-	if it.OsmMap != nil {
-		fmt.Sscanf(change.ValueString, "%f %f %f", it.OsmMap.Lon, it.OsmMap.Lat, it.OsmMap.Zoom)
+	if it.Map != nil {
+		fmt.Sscanf(change.ValueString, "%f %f %f", it.Map.Lon, it.Map.Lat, it.Map.Zoom)
 	}
 
 	if it.Button != nil {
@@ -1831,7 +1833,7 @@ type UI struct {
 	Checkbox          *UICheckbox          `json:",omitempty"`
 	Microphone        *UIMicrophone        `json:",omitempty"`
 	Divider           *UIDivider           `json:",omitempty"`
-	OsmMap            *UIOsmMap            `json:",omitempty"`
+	Map               *UIMap               `json:",omitempty"`
 	ChartLines        *UIChartLines        `json:",omitempty"`
 	ChartColumns      *UIChartColumns      `json:",omitempty"`
 	Media             *UIMedia             `json:",omitempty"`
@@ -1854,37 +1856,132 @@ func (ui *UI) addText(width float64, label string) *UIText {
 	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Text = item
 	ui._addUISubCol(item.layout, width)
-
 	return item
 }
 func (ui *UI) addEditboxString(width float64, value *string) *UIEditbox {
 	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
 	item.layout.Editbox = item
 	ui._addUISubCol(item.layout, width)
-
 	return item
 }
 func (ui *UI) addEditboxInt(width float64, value *int) *UIEditbox {
 	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
 	item.layout.Editbox = item
 	ui._addUISubCol(item.layout, width)
-
 	return item
 }
 func (ui *UI) addEditboxFloat(width float64, value *float64, precision int) *UIEditbox {
 	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
 	item.layout.Editbox = item
 	ui._addUISubCol(item.layout, width)
-
 	return item
 }
 func (ui *UI) addButton(width float64, label string) *UIButton {
 	item := &UIButton{Label: label, Background: 1, Align: 1, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
 	item.layout.Button = item
 	ui._addUISubCol(item.layout, width)
-
 	return item
 }
+func (ui *UI) addCombo(width float64, value *string, labels []string, values []string) *UICombo {
+	item := &UICombo{Value: value, Labels: labels, Values: values, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.Combo = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+
+func (ui *UI) addSwitch(width float64, label string, value *bool) *UISwitch {
+	item := &UISwitch{Label: label, Value: value, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.Switch = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+
+func (ui *UI) addCheckbox(width float64, label string, value *float64) *UICheckbox {
+	item := &UICheckbox{Label: label, Value: value, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.Checkbox = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+
+func (ui *UI) addSlider(width float64, value *float64, min, max, step float64) *UISlider {
+	item := &UISlider{Value: value, Min: min, Max: max, Step: step, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.Slider = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+
+func (ui *UI) addDivider(width float64, horizontal bool) *UIDivider {
+	item := &UIDivider{Horizontal: horizontal, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.Divider = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+
+func (ui *UI) addMap(width float64, lon, lat, zoom *float64) *UIMap {
+	item := &UIMap{Lon: lon, Lat: lat, Zoom: zoom, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.Map = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+func (mp *UIMap) addLocators(loc UIMapLocators) {
+	mp.Locators = append(mp.Locators, loc)
+}
+func (mp *UIMap) addRoute(route UIMapRoute) {
+	mp.Routes = append(mp.Routes, route)
+}
+
+func (ui *UI) addYearCalendar(width float64, Year int) *UIYearCalendar {
+	item := &UIYearCalendar{Year: Year, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.YearCalendar = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+
+func (ui *UI) addMonthCalendar(width float64, Year int, Month int, Events []UICalendarEvent) *UIMonthCalendar {
+	item := &UIMonthCalendar{Year: Year, Month: Month, Events: Events, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.MonthCalendar = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+func (ui *UI) addDayCalendar(width float64, Days []int64, Events []UICalendarEvent) *UIDayCalendar {
+	item := &UIDayCalendar{Days: Days, Events: Events, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.DayCalendar = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+
+func (ui *UI) addFilePickerButton(width float64, path *string, preview bool, onlyFolders bool) *UIFilePickerButton {
+	item := &UIFilePickerButton{Path: path, Preview: preview, OnlyFolders: onlyFolders, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.FilePickerButton = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+func (ui *UI) addDatePickerButton(width float64, date *int64, page *int64, showTime bool) *UIDatePickerButton {
+	item := &UIDatePickerButton{Date: date, Page: page, ShowTime: showTime, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.DatePickerButton = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+func (ui *UI) addColorPickerButton(width float64, cd *color.RGBA) *UIColorPickerButton {
+	item := &UIColorPickerButton{Cd: cd, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.ColorPickerButton = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+
+func (ui *UI) addChartLines(width float64, Lines []UIChartLine) *UIChartLines {
+	item := &UIChartLines{Lines: Lines, Point_rad: 0.2, Line_thick: 0.03, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.ChartLines = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+func (ui *UI) addChartColumns(width float64, columns []UIChartColumn, x_labels []string) *UIChartColumns {
+	item := &UIChartColumns{Columns: columns, X_Labels: x_labels, ColumnMargin: 0.2, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+	item.layout.ChartColumns = item
+	ui._addUISubCol(item.layout, width)
+	return item
+}
+
 func (ui *UI) addUI(width float64) *UI {
 	item := _newUIItem(ui.temp_col, 0, 1, 1)
 	item.base = true
@@ -2054,35 +2151,35 @@ type UIMicrophone struct {
 	finished func(audio []byte, transcript string) error
 }
 
-type UIOsmMapLoc struct {
+type UIMapLoc struct {
 	Lon   float64
 	Lat   float64
 	Label string
 }
-type UIOsmMapLocators struct {
-	Locators []UIOsmMapLoc
+type UIMapLocators struct {
+	Locators []UIMapLoc
 	clicked  func(i int, caller *ToolCaller)
 }
 
-type UIOsmMapSegmentTrk struct {
+type UIMapSegmentTrk struct {
 	Lon  float64
 	Lat  float64
 	Ele  float64
 	Time string
 	Cd   color.RGBA
 }
-type UIOsmMapSegment struct {
-	Trkpts []UIOsmMapSegmentTrk
+type UIMapSegment struct {
+	Trkpts []UIMapSegmentTrk
 	Label  string
 }
-type UIOsmMapRoute struct {
-	Segments []UIOsmMapSegment
+type UIMapRoute struct {
+	Segments []UIMapSegment
 }
-type UIOsmMap struct {
+type UIMap struct {
 	layout         *UI
 	Lon, Lat, Zoom *float64
-	Locators       []UIOsmMapLocators
-	Routes         []UIOsmMapRoute
+	Locators       []UIMapLocators
+	Routes         []UIMapRoute
 }
 
 type UIChartPoint struct {
@@ -2487,16 +2584,16 @@ func (ui *UI) AddDivider(x, y, w, h int, horizontal bool) *UIDivider {
 	return item
 }
 
-func (ui *UI) AddOsmMap(x, y, w, h int, lon, lat, zoom *float64) *UIOsmMap {
-	item := &UIOsmMap{Lon: lon, Lat: lat, Zoom: zoom, layout: _newUIItem(x, y, w, h)}
-	item.layout.OsmMap = item
+func (ui *UI) AddMap(x, y, w, h int, lon, lat, zoom *float64) *UIMap {
+	item := &UIMap{Lon: lon, Lat: lat, Zoom: zoom, layout: _newUIItem(x, y, w, h)}
+	item.layout.Map = item
 	ui._addUISub(item.layout, "")
 	return item
 }
-func (mp *UIOsmMap) AddLocators(loc UIOsmMapLocators) {
+func (mp *UIMap) AddLocators(loc UIMapLocators) {
 	mp.Locators = append(mp.Locators, loc)
 }
-func (mp *UIOsmMap) AddRoute(route UIOsmMapRoute) {
+func (mp *UIMap) AddRoute(route UIMapRoute) {
 	mp.Routes = append(mp.Routes, route)
 }
 
