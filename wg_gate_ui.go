@@ -135,10 +135,10 @@ type UIDivider struct {
 	Horizontal bool
 }
 
-type UIOsmMap struct {
+type UIMap struct {
 	Lon, Lat, Zoom *float64
-	Locators       []OsmMapLocators
-	Routes         []OsmMapRoute
+	Locators       []MapLocators
+	Routes         []MapRoute
 }
 
 type UIChartLines struct {
@@ -282,7 +282,7 @@ type UI struct {
 	Checkbox          *UICheckbox
 	Microphone        *UIMicrophone
 	Divider           *UIDivider
-	OsmMap            *UIOsmMap
+	Map               *UIMap
 	ChartLines        *UIChartLines
 	ChartColumns      *UIChartColumns
 	Media             *UIMedia
@@ -700,10 +700,10 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 	} else if it.Divider != nil {
 		layout.AddDivider(it.X, it.Y, it.W, it.H, it.Divider.Horizontal)
 
-	} else if it.OsmMap != nil {
-		mp := layout.AddOsmMap(it.X, it.Y, it.W, it.H, &OsmMapCam{Lon: *it.OsmMap.Lon, Lat: *it.OsmMap.Lat, Zoom: *it.OsmMap.Zoom})
-		mp.Locators = it.OsmMap.Locators
-		mp.Routes = it.OsmMap.Routes
+	} else if it.Map != nil {
+		mp := layout.AddMap(it.X, it.Y, it.W, it.H, &MapCam{Lon: *it.Map.Lon, Lat: *it.Map.Lat, Zoom: *it.Map.Zoom})
+		mp.Locators = it.Map.Locators
+		mp.Routes = it.Map.Routes
 
 		mp.changed = func() {
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%f %f %f", mp.Cam.Lon, mp.Cam.Lat, mp.Cam.Zoom)}, fnProgress, fnDone)

@@ -7,61 +7,61 @@ import (
 	"time"
 )
 
-type OsmMapLoc struct {
+type MapLoc struct {
 	Lon   float64
 	Lat   float64
 	Label string
 }
-type OsmMapLocators struct {
-	Locators []OsmMapLoc
+type MapLocators struct {
+	Locators []MapLoc
 	clicked  func(i int)
 }
 
-type OsmMapSegmentTrk struct {
+type MapSegmentTrk struct {
 	Lon  float64
 	Lat  float64
 	Ele  float64
 	Time string
 	Cd   color.RGBA
 }
-type OsmMapSegment struct {
-	Trkpts []OsmMapSegmentTrk
+type MapSegment struct {
+	Trkpts []MapSegmentTrk
 	Label  string
 }
 
-type OsmMapRoute struct {
-	Segments []OsmMapSegment
+type MapRoute struct {
+	Segments []MapSegment
 }
 
-type OsmMapCam struct {
+type MapCam struct {
 	Lon, Lat, Zoom float64
 }
 
-type OsmMap struct {
-	Cam *OsmMapCam
+type Map struct {
+	Cam *MapCam
 
-	Locators []OsmMapLocators
-	Routes   []OsmMapRoute
+	Locators []MapLocators
+	Routes   []MapRoute
 
 	changed func()
 
 	rect Rect
 }
 
-func (layout *Layout) AddOsmMap(x, y, w, h int, cam *OsmMapCam) *OsmMap {
-	props := &OsmMap{Cam: cam}
-	layout._createDiv(x, y, w, h, "OsmMap", props.Build, props.Draw, props.Input)
+func (layout *Layout) AddMap(x, y, w, h int, cam *MapCam) *Map {
+	props := &Map{Cam: cam}
+	layout._createDiv(x, y, w, h, "Map", props.Build, props.Draw, props.Input)
 	return props
 }
 
-func (mp *OsmMap) AddLocators(loc OsmMapLocators) {
+func (mp *Map) AddLocators(loc MapLocators) {
 	mp.Locators = append(mp.Locators, loc)
 }
-func (mp *OsmMap) AddRoute(route OsmMapRoute) {
+func (mp *Map) AddRoute(route MapRoute) {
 	mp.Routes = append(mp.Routes, route)
 }
 
-func (st *OsmMap) Build(layout *Layout) {
+func (st *Map) Build(layout *Layout) {
 	layout.SetColumn(0, 5, 100)
 	layout.SetColumn(1, 6, 12)
 	layout.SetColumn(2, 0.1, 100)
@@ -120,7 +120,7 @@ func (st *OsmMap) Build(layout *Layout) {
 		btS.Background = 0.5
 		btT.Background = 0.5
 		btA.clicked = func() {
-			newZoom := _CompOsmMap_zoomClamp(st.Cam.Zoom + 1)
+			newZoom := _CompMap_zoomClamp(st.Cam.Zoom + 1)
 
 			st.activateCam(st.Cam.Lon, st.Cam.Lat, newZoom, layout)
 
@@ -129,7 +129,7 @@ func (st *OsmMap) Build(layout *Layout) {
 			}
 		}
 		btS.clicked = func() {
-			newZoom := _CompOsmMap_zoomClamp(st.Cam.Zoom - 1)
+			newZoom := _CompMap_zoomClamp(st.Cam.Zoom - 1)
 
 			st.activateCam(st.Cam.Lon, st.Cam.Lat, newZoom, layout)
 
@@ -156,7 +156,7 @@ func (st *OsmMap) Build(layout *Layout) {
 
 }
 
-func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
+func (st *Map) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	st.rect = rect
 
 	//zoom into default position
@@ -177,10 +177,10 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 		layout.RedrawThis()
 	}
 
-	lon, lat = _CompOsmMap_camCheck(canvas_size, tile, lon, lat, zoom)
-	st.Cam.Lon, st.Cam.Lat = _CompOsmMap_camCheck(canvas_size, tile, st.Cam.Lon, st.Cam.Lat, st.Cam.Zoom)
+	lon, lat = _CompMap_camCheck(canvas_size, tile, lon, lat, zoom)
+	st.Cam.Lon, st.Cam.Lat = _CompMap_camCheck(canvas_size, tile, st.Cam.Lon, st.Cam.Lat, st.Cam.Zoom)
 
-	bbStart, bbEnd, _ := _CompOsmMap_camBbox(canvas_size, tile, lon, lat, zoom)
+	bbStart, bbEnd, _ := _CompMap_camBbox(canvas_size, tile, lon, lat, zoom)
 
 	//draw tiles
 	for y := float64(int(bbStart.Y)); y < float64(bbEnd.Y); y++ {
@@ -248,7 +248,7 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 		for _, it := range locator.Locators {
 
-			p := _CompOsmMap_lonLatToPos(it.Lon, it.Lat, zoom)
+			p := _CompMap_lonLatToPos(it.Lon, it.Lat, zoom)
 
 			tileCoord_sx := float64(p.X-bbStart.X) * tile
 			tileCoord_sy := float64(p.Y-bbStart.Y) * tile
@@ -268,7 +268,7 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 			var last OsV2f
 			for i, pt := range segs.Trkpts {
 
-				p := _CompOsmMap_lonLatToPos(pt.Lon, pt.Lat, zoom)
+				p := _CompMap_lonLatToPos(pt.Lon, pt.Lat, zoom)
 				pos := p.Sub(bbStart).Mul(tl)
 
 				if pos.Sub(last).Len() < 0.008 {
@@ -291,7 +291,7 @@ func (st *OsmMap) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	return
 }
 
-func (st *OsmMap) activateCam(lonNew, latNew, zoomNew float64, layout *Layout) {
+func (st *Map) activateCam(lonNew, latNew, zoomNew float64, layout *Layout) {
 	g_map.dom_uid = layout.UID
 
 	g_map.lonOld = st.Cam.Lon
@@ -302,13 +302,13 @@ func (st *OsmMap) activateCam(lonNew, latNew, zoomNew float64, layout *Layout) {
 	st.Cam.Lat = latNew
 	st.Cam.Zoom = zoomNew
 
-	g_map.zoom_start_time = _CompOsmMap_getTime()
+	g_map.zoom_start_time = _CompMap_getTime()
 	g_map.zoom_active = true
 	layout.RedrawThis()
 }
 
-func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
-	st.Cam.Zoom = _CompOsmMap_zoomClamp(st.Cam.Zoom) //check
+func (st *Map) Input(in LayoutInput, layout *Layout) {
+	st.Cam.Zoom = _CompMap_zoomClamp(st.Cam.Zoom) //check
 
 	canvas_size := OsV2f{float32(in.Rect.W), float32(in.Rect.H)}
 	lon, lat, zoom, scale, isZooming := g_map.GetAnim(layout, st.Cam.Lon, st.Cam.Lat, st.Cam.Zoom)
@@ -317,7 +317,7 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 	}
 	tile := 256 / float64(layout.Cell()) * scale
 
-	bbStart, _, bbSize := _CompOsmMap_camBbox(canvas_size, tile, lon, lat, zoom)
+	bbStart, _, bbSize := _CompMap_camBbox(canvas_size, tile, lon, lat, zoom)
 
 	start := in.IsStart
 	inside := in.IsInside
@@ -333,22 +333,22 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 	if start && inside {
 		g_map.start_pos.X = touch_x //rel, not pixels!
 		g_map.start_pos.Y = touch_y
-		g_map.start_tile = _CompOsmMap_lonLatToPos(lon, lat, zoom)
+		g_map.start_tile = _CompMap_lonLatToPos(lon, lat, zoom)
 	}
 
 	if wheel != 0 && inside && !isZooming && layout.findParentScroll() == nil {
 		g_map.zoomOld = st.Cam.Zoom
-		zoomNew := _CompOsmMap_zoomClamp(g_map.zoomOld - float64(wheel))
+		zoomNew := _CompMap_zoomClamp(g_map.zoomOld - float64(wheel))
 		if g_map.zoomOld != zoomNew {
 			//get touch lon and lat
-			touch_lon, touch_lat := _CompOsmMap_posToLonLat(OsV2f{bbStart.X + bbSize.X*touch_x, bbStart.Y + bbSize.Y*touch_y}, g_map.zoomOld)
+			touch_lon, touch_lat := _CompMap_posToLonLat(OsV2f{bbStart.X + bbSize.X*touch_x, bbStart.Y + bbSize.Y*touch_y}, g_map.zoomOld)
 			//get new zoom touch pos
-			pos := _CompOsmMap_lonLatToPos(touch_lon, touch_lat, zoomNew)
+			pos := _CompMap_lonLatToPos(touch_lon, touch_lat, zoomNew)
 			//get center
 			pos.X -= bbSize.X * (touch_x - 0.5)
 			pos.Y -= bbSize.Y * (touch_y - 0.5)
 			//get new zoom lon and lat
-			lonNew, latNew := _CompOsmMap_posToLonLat(pos, zoomNew)
+			lonNew, latNew := _CompMap_posToLonLat(pos, zoomNew)
 
 			st.activateCam(lonNew, latNew, zoomNew, layout)
 		}
@@ -368,7 +368,7 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 		tileX := g_map.start_tile.X + rx
 		tileY := g_map.start_tile.Y + ry
 
-		lonNew, latNew := _CompOsmMap_posToLonLat(OsV2f{tileX, tileY}, st.Cam.Zoom)
+		lonNew, latNew := _CompMap_posToLonLat(OsV2f{tileX, tileY}, st.Cam.Zoom)
 
 		if st.Cam.Lon != lonNew || st.Cam.Lat != latNew {
 			layout.RedrawThis()
@@ -387,18 +387,18 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 		}
 
 		g_map.zoomOld = st.Cam.Zoom
-		zoomNew := _CompOsmMap_zoomClamp(g_map.zoomOld + z)
+		zoomNew := _CompMap_zoomClamp(g_map.zoomOld + z)
 
 		if g_map.zoomOld != zoomNew {
 			//get touch lon and lat
-			touch_lon, touch_lat := _CompOsmMap_posToLonLat(OsV2f{bbStart.X + bbSize.X*touch_x, bbStart.Y + bbSize.Y*touch_y}, g_map.zoomOld)
+			touch_lon, touch_lat := _CompMap_posToLonLat(OsV2f{bbStart.X + bbSize.X*touch_x, bbStart.Y + bbSize.Y*touch_y}, g_map.zoomOld)
 			//get new zoom touch pos
-			pos := _CompOsmMap_lonLatToPos(touch_lon, touch_lat, zoomNew)
+			pos := _CompMap_lonLatToPos(touch_lon, touch_lat, zoomNew)
 			//get center
 			pos.X -= bbSize.X * (touch_x - 0.5)
 			pos.Y -= bbSize.Y * (touch_y - 0.5)
 			//get new zoom lon and lat
-			lonNew, latNew := _CompOsmMap_posToLonLat(pos, zoomNew)
+			lonNew, latNew := _CompMap_posToLonLat(pos, zoomNew)
 
 			st.activateCam(lonNew, latNew, zoomNew, layout)
 		}
@@ -410,7 +410,7 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 
 			this_i := i
 
-			p := _CompOsmMap_lonLatToPos(it.Lon, it.Lat, zoom)
+			p := _CompMap_lonLatToPos(it.Lon, it.Lat, zoom)
 
 			tileCoord_sx := float64(p.X-bbStart.X) * tile
 			tileCoord_sy := float64(p.Y-bbStart.Y) * tile
@@ -434,21 +434,21 @@ func (st *OsmMap) Input(in LayoutInput, layout *Layout) {
 	}
 }
 
-func _CompOsmMap_getTime() float64 {
+func _CompMap_getTime() float64 {
 	return float64(time.Now().UnixMilli()) / 1000
 }
 
-func _CompOsmMap_metersPerPixel(lat, zoom float64) float64 {
+func _CompMap_metersPerPixel(lat, zoom float64) float64 {
 	return 156543.034 * math.Cos(lat/180*math.Pi) / math.Pow(2, zoom)
 }
 
-func _CompOsmMap_lonLatToPos(lon, lat, zoom float64) OsV2f {
+func _CompMap_lonLatToPos(lon, lat, zoom float64) OsV2f {
 	x := (lon + 180) / 360 * math.Pow(2, zoom)
 	y := (1 - math.Log(math.Tan(lat*math.Pi/180)+1/math.Cos(lat*math.Pi/180))/math.Pi) / 2 * math.Pow(2, zoom)
 	return OsV2f{float32(x), float32(y)}
 }
 
-func _CompOsmMap_posToLonLat(pos OsV2f, zoom float64) (float64, float64) {
+func _CompMap_posToLonLat(pos OsV2f, zoom float64) (float64, float64) {
 	lon := float64(pos.X)/math.Pow(2, zoom)*360 - 180 //long
 
 	n := math.Pi - 2*math.Pi*float64(pos.Y)/math.Pow(2, zoom)
@@ -456,7 +456,7 @@ func _CompOsmMap_posToLonLat(pos OsV2f, zoom float64) (float64, float64) {
 	return lon, lat
 }
 
-func _CompOsmMap_clamp(v, min, max float64) float64 {
+func _CompMap_clamp(v, min, max float64) float64 {
 	if v < min {
 		v = min
 	}
@@ -466,30 +466,30 @@ func _CompOsmMap_clamp(v, min, max float64) float64 {
 	return v
 }
 
-func _CompOsmMap_camBbox(res OsV2f, tile float64, lon, lat, zoom float64) (OsV2f, OsV2f, OsV2f) {
+func _CompMap_camBbox(res OsV2f, tile float64, lon, lat, zoom float64) (OsV2f, OsV2f, OsV2f) {
 	hres := res.MulV(0.5)
 
-	tilePos := _CompOsmMap_lonLatToPos(lon, lat, zoom)
+	tilePos := _CompMap_lonLatToPos(lon, lat, zoom)
 	max_res := math.Pow(2, zoom)
 
 	var start, end OsV2f
 
-	start.X = float32(_CompOsmMap_clamp((float64(tilePos.X)*tile-float64(hres.X))/tile, 0, max_res))
-	start.Y = float32(_CompOsmMap_clamp((float64(tilePos.Y)*tile-float64(hres.Y))/tile, 0, max_res))
-	end.X = float32(_CompOsmMap_clamp((float64(tilePos.X)*tile+float64(hres.X))/tile, 0, max_res))
-	end.Y = float32(_CompOsmMap_clamp((float64(tilePos.Y)*tile+float64(hres.Y))/tile, 0, max_res))
+	start.X = float32(_CompMap_clamp((float64(tilePos.X)*tile-float64(hres.X))/tile, 0, max_res))
+	start.Y = float32(_CompMap_clamp((float64(tilePos.Y)*tile-float64(hres.Y))/tile, 0, max_res))
+	end.X = float32(_CompMap_clamp((float64(tilePos.X)*tile+float64(hres.X))/tile, 0, max_res))
+	end.Y = float32(_CompMap_clamp((float64(tilePos.Y)*tile+float64(hres.Y))/tile, 0, max_res))
 
 	size := end.Sub(start)
 
 	return start, end, size
 }
 
-func _CompOsmMap_camCheck(res OsV2f, tile float64, lon, lat, zoom float64) (float64, float64) {
+func _CompMap_camCheck(res OsV2f, tile float64, lon, lat, zoom float64) (float64, float64) {
 	if res.X <= 0 || res.Y <= 0 {
 		return 0, 0
 	}
 
-	bbStart, bbEnd, bbSize := _CompOsmMap_camBbox(res, tile, lon, lat, zoom)
+	bbStart, bbEnd, bbSize := _CompMap_camBbox(res, tile, lon, lat, zoom)
 
 	maxTiles := math.Pow(2, zoom)
 
@@ -521,16 +521,16 @@ func _CompOsmMap_camCheck(res OsV2f, tile float64, lon, lat, zoom float64) (floa
 		}
 	}
 
-	return _CompOsmMap_posToLonLat(OsV2f{bbStart.X + bbSize.X/2, bbStart.Y + bbSize.Y/2}, zoom)
+	return _CompMap_posToLonLat(OsV2f{bbStart.X + bbSize.X/2, bbStart.Y + bbSize.Y/2}, zoom)
 }
 
-func _CompOsmMap_zoomClamp(z float64) float64 {
-	return _CompOsmMap_clamp(z, 0, 19)
+func _CompMap_zoomClamp(z float64) float64 {
+	return _CompMap_clamp(z, 0, 19)
 }
 
-func (st *OsmMap) DrawMeasureStrip(rect Rect, paint *LayoutPaint, layout *Layout) {
+func (st *Map) DrawMeasureStrip(rect Rect, paint *LayoutPaint, layout *Layout) {
 
-	metersPerPixels := _CompOsmMap_metersPerPixel(st.Cam.Lat, st.Cam.Zoom)
+	metersPerPixels := _CompMap_metersPerPixel(st.Cam.Lat, st.Cam.Zoom)
 
 	W := float64(1.5) //strip width
 	metersPerStrip := metersPerPixels * W * float64(layout.Cell())
@@ -580,9 +580,9 @@ func (st *OsmMap) DrawMeasureStrip(rect Rect, paint *LayoutPaint, layout *Layout
 	paint.Text(rtext, "<small>"+strconv.FormatFloat(meters*3, 'f', 0, 64)+" "+unitText, "", cdB, cdB, cdB, false, false, 1, 1)
 }
 
-func (st *OsmMap) GetDefaultCam(canvas_size OsV2f, tile float64) OsmMapCam {
+func (st *Map) GetDefaultCam(canvas_size OsV2f, tile float64) MapCam {
 
-	var cam OsmMapCam
+	var cam MapCam
 	if len(st.Locators) > 0 {
 		lon := 0.0
 		lat := 0.0
@@ -601,14 +601,14 @@ func (st *OsmMap) GetDefaultCam(canvas_size OsV2f, tile float64) OsmMapCam {
 		var starts [20]OsV2f
 		var ends [20]OsV2f
 		for z := range starts {
-			starts[z], ends[z], _ = _CompOsmMap_camBbox(canvas_size, tile, cam.Lon, cam.Lat, float64(z))
+			starts[z], ends[z], _ = _CompMap_camBbox(canvas_size, tile, cam.Lon, cam.Lat, float64(z))
 		}
 
 		zooms_fail := 20
 		for _, loc := range st.Locators {
 			for _, lc := range loc.Locators {
 				for z := 0; z < zooms_fail; z++ {
-					p := _CompOsmMap_lonLatToPos(lc.Lon, lc.Lat, float64(z))
+					p := _CompMap_lonLatToPos(lc.Lon, lc.Lat, float64(z))
 					if p.X < starts[z].X || p.Y < starts[z].Y || p.X >= ends[z].X || p.Y >= ends[z].Y {
 						//fail
 						if z < zooms_fail {
@@ -644,7 +644,7 @@ func (st *OsmMap) GetDefaultCam(canvas_size OsV2f, tile float64) OsmMapCam {
 		var starts [20]OsV2f
 		var ends [20]OsV2f
 		for z := range starts {
-			starts[z], ends[z], _ = _CompOsmMap_camBbox(canvas_size, tile, cam.Lon, cam.Lat, float64(z))
+			starts[z], ends[z], _ = _CompMap_camBbox(canvas_size, tile, cam.Lon, cam.Lat, float64(z))
 		}
 
 		zooms_fail := 20
@@ -652,7 +652,7 @@ func (st *OsmMap) GetDefaultCam(canvas_size OsV2f, tile float64) OsmMapCam {
 			for _, seg := range route.Segments {
 				for _, pts := range seg.Trkpts {
 					for z := 0; z < zooms_fail; z++ {
-						p := _CompOsmMap_lonLatToPos(pts.Lon, pts.Lat, float64(z))
+						p := _CompMap_lonLatToPos(pts.Lon, pts.Lat, float64(z))
 						if p.X < starts[z].X || p.Y < starts[z].Y || p.X >= ends[z].X || p.Y >= ends[z].Y {
 							//fail
 							if z < zooms_fail {
@@ -672,7 +672,7 @@ func (st *OsmMap) GetDefaultCam(canvas_size OsV2f, tile float64) OsmMapCam {
 	return cam
 }
 
-type OsmMapActive struct {
+type MapActive struct {
 	dom_uid uint64
 
 	lonOld, latOld, zoomOld float64
@@ -682,12 +682,12 @@ type OsmMapActive struct {
 	zoom_active             bool
 }
 
-var g_map OsmMapActive
+var g_map MapActive
 
-func (mp *OsmMapActive) isZooming() (bool, float64, float64) {
+func (mp *MapActive) isZooming() (bool, float64, float64) {
 
 	ANIM_TIME := 0.2
-	dt := _CompOsmMap_getTime() - mp.zoom_start_time
+	dt := _CompMap_getTime() - mp.zoom_start_time
 
 	if mp.zoom_active && dt > ANIM_TIME {
 		mp.zoom_active = false
@@ -697,7 +697,7 @@ func (mp *OsmMapActive) isZooming() (bool, float64, float64) {
 	return isZooming, dt, ANIM_TIME
 }
 
-func (mp *OsmMapActive) GetAnim(layout *Layout, lon float64, lat float64, zoom float64) (float64, float64, float64, float64, bool) {
+func (mp *MapActive) GetAnim(layout *Layout, lon float64, lat float64, zoom float64) (float64, float64, float64, float64, bool) {
 
 	scale := float64(1)
 	isZooming, dt, ANIM_TIME := mp.isZooming()

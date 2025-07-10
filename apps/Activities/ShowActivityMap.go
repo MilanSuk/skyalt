@@ -36,9 +36,9 @@ func (st *ShowActivityMap) run(caller *ToolCaller, ui *UI) error {
 
 	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Map - %s", SdkGetDate(int64(activity.Date))))
 
-	mp := ui.AddOsmMap(0, 1, 1, 1, &st.Out_CamLon, &st.Out_CamLat, &st.Out_CamZoom)
+	mp := ui.AddMap(0, 1, 1, 1, &st.Out_CamLon, &st.Out_CamLat, &st.Out_CamZoom)
 	if len(segments) > 0 {
-		mp.AddRoute(UIOsmMapRoute{Segments: segments})
+		mp.AddRoute(UIMapRoute{Segments: segments})
 	}
 
 	return nil

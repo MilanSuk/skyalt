@@ -227,15 +227,15 @@ func (gpx *Gpx) haversine(lat1, lon1, lat2, lon2 float64) float64 {
 	return earthRadius * c
 }
 
-func (gpx *Gpx) getGPXSegments() (segments []UIOsmMapSegment) {
+func (gpx *Gpx) getGPXSegments() (segments []UIMapSegment) {
 	for _, track := range gpx.Trk {
 		for _, seg := range track.Segment {
-			mapSeg := UIOsmMapSegment{
+			mapSeg := UIMapSegment{
 				Label:  track.Name,
-				Trkpts: make([]UIOsmMapSegmentTrk, len(seg.Points)),
+				Trkpts: make([]UIMapSegmentTrk, len(seg.Points)),
 			}
 			for i, point := range seg.Points {
-				mapSeg.Trkpts[i] = UIOsmMapSegmentTrk{
+				mapSeg.Trkpts[i] = UIMapSegmentTrk{
 					Lon:  point.Lon,
 					Lat:  point.Lat,
 					Ele:  point.Ele,
@@ -279,7 +279,7 @@ func (gpx *Gpx) speedToColor(speed, minSpeed, maxSpeed, avgSpeed float64) color.
 	return gpx.getSpeedColor(normalizedSpeed)
 }
 
-func (gpx *Gpx) computeSpeedColors(segments []UIOsmMapSegment) {
+func (gpx *Gpx) computeSpeedColors(segments []UIMapSegment) {
 
 	var minSpeed, maxSpeed float64
 	var speeds []float64
