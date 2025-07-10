@@ -197,8 +197,10 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 			var codeErrors []ToolsCodeError
 			lines := strings.Split(stderr.String(), "\n")
 			for _, line := range lines {
-				itErr, _ := _ToolsAppCompile_parseErrorString(line)
-				codeErrors = append(codeErrors, itErr)
+				codeErrLn, err := _ToolsAppCompile_parseErrorString(line)
+				if err == nil {
+					codeErrors = append(codeErrors, codeErrLn)
+				}
 			}
 
 			cmpl.Error = stderr.String()

@@ -271,9 +271,10 @@ func (app *ToolsApp) Tick(generate bool) error {
 			defer msg.Done()
 
 			//Storage
-			N_msgs := 3
-			for N_msgs >= 0 {
-				err := app.Prompts.GenerateStructureCode(msg, app.router.services.llms)
+			MAX_Errors_tries := 10
+			var storagePrompt *ToolsPrompt
+			for range MAX_Errors_tries {
+				storagePrompt, err = app.Prompts.GenerateStructureCode(msg, app.router.services.llms)
 				if err != nil {
 					return err
 				}
@@ -291,13 +292,11 @@ func (app *ToolsApp) Tick(generate bool) error {
 				if len(codeErrors) == 0 {
 					break
 				}
-				N_msgs--
 			}
 
 			//Tools
-			if N_msgs >= 0 {
-				N_msgs = 3
-				for N_msgs >= 0 {
+			if storagePrompt != nil && len(storagePrompt.Errors) == 0 {
+				for range MAX_Errors_tries {
 					err := app.Prompts.GenerateToolsCode(msg, app.router.services.llms)
 					if err != nil {
 						return err
@@ -316,7 +315,6 @@ func (app *ToolsApp) Tick(generate bool) error {
 					if len(codeErrors) == 0 {
 						break
 					}
-					N_msgs--
 				}
 			}
 		}
@@ -327,6 +325,11 @@ func (app *ToolsApp) Tick(generate bool) error {
 		return err
 	}
 	err = app.Process.Compile.RemoveOldBins()
+	if err != nil {
+		return err
+	}
+
+	err = app.Prompts.UpdateSchemas()
 	if err != nil {
 		return err
 	}

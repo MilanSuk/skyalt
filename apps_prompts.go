@@ -336,7 +336,6 @@ func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *
 			}
 		}
 		code := strings.Join(lines, "\n")
-
 		comp.UserMessage = "```go" + code + "```\n"
 		comp.UserMessage += "Above code has compiler error(s), marked in line comments(//Error). Please fix them by rewriting above code. Also remove comments with errors."
 	}
@@ -372,7 +371,7 @@ func _ToolsPrompts_prepareLLMCompleteStruct() *LLMComplete {
 	return comp
 }
 
-func (app *ToolsPrompts) GenerateStructureCode(msg *AppsRouterMsg, llms *LLMs) error {
+func (app *ToolsPrompts) GenerateStructureCode(msg *AppsRouterMsg, llms *LLMs) (*ToolsPrompt, error) {
 
 	defer func() {
 		//reset
@@ -383,10 +382,10 @@ func (app *ToolsPrompts) GenerateStructureCode(msg *AppsRouterMsg, llms *LLMs) e
 	//find Storage
 	storagePrompt := app.FindPromptName("Storage")
 	if storagePrompt == nil {
-		return LogsErrorf("'Storage' prompt not found")
+		return nil, LogsErrorf("'Storage' prompt not found")
 	}
 
-	return app.generatePromptCode(storagePrompt, storagePrompt, _ToolsPrompts_prepareLLMCompleteStruct(), msg, llms)
+	return storagePrompt, app.generatePromptCode(storagePrompt, storagePrompt, _ToolsPrompts_prepareLLMCompleteStruct(), msg, llms)
 }
 
 func (app *ToolsPrompts) GenerateToolsCode(msg *AppsRouterMsg, llms *LLMs) error {
@@ -406,6 +405,10 @@ func (app *ToolsPrompts) GenerateToolsCode(msg *AppsRouterMsg, llms *LLMs) error
 	//then generate tools code
 	for _, prompt := range app.Prompts {
 		if prompt == storagePrompt || prompt.Prompt == "" {
+			continue
+		}
+
+		if prompt.Code != "" && len(prompt.Errors) == 0 {
 			continue
 		}
 
@@ -457,6 +460,10 @@ func (app *ToolsPrompts) WriteFiles(folderPath string, secrets *ToolsSecrets) er
 		}
 	}
 
+	return nil
+}
+
+func (app *ToolsPrompts) UpdateSchemas() error {
 	for _, prompt := range app.Prompts {
 		err := prompt.updateSchema()
 		if err != nil {
