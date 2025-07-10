@@ -38,7 +38,6 @@ type DeviceSettings struct {
 
 	Chat_provider  string
 	Chat_smarter   bool
-	Chat_faster    bool
 	Image_provider string
 	STT_provider   string
 }
@@ -697,6 +696,14 @@ func (xai *LLMxAI) ReloadModels() error {
 	//reset
 	xai.LanguageModels = nil
 	xai.ImageModels = nil
+
+	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+		Id:                             "grok-4",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        30000,
+		Cached_prompt_text_token_price: 7500,
+		Completion_text_token_price:    150000,
+	})
 
 	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
 		Id:                             "grok-3",

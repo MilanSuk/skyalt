@@ -44,7 +44,6 @@ type ServicesSyncDeviceSettings struct {
 
 	Chat_provider  string
 	Chat_smarter   bool
-	Chat_faster    bool
 	Image_provider string
 	STT_provider   string
 }

@@ -67,9 +67,6 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 
 		smarterSw := ChatDiv.AddSwitch(0, 2, 2, 1, "Smarter", &source_dev.Chat_smarter)
 		smarterSw.layout.Enable = (source_dev.Chat_provider != "")
-
-		fastSw := ChatDiv.AddSwitch(0, 3, 2, 1, "Faster", &source_dev.Chat_faster)
-		fastSw.layout.Enable = (source_dev.Chat_provider == "xAI")
 	}
 	y++
 	ui.AddDivider(0, y, 1, 1, true)
