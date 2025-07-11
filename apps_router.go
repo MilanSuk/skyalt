@@ -135,6 +135,13 @@ func (router *AppsRouter) Tick() bool {
 		}
 	}
 
+	//ticks
+	for _, app := range router.apps {
+		if app.NeedRefresh() {
+			refresh = true
+		}
+	}
+
 	return refresh
 }
 

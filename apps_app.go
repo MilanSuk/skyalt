@@ -194,8 +194,15 @@ func (app *ToolsApp) getPromptFileTime() (int64, int64, bool, error) {
 	}
 }
 
-func (app *ToolsApp) Tick(generate bool) error {
+func (app *ToolsApp) NeedRefresh() bool {
+	if app.Prompts.refresh {
+		app.Prompts.refresh = false
+		return true
+	}
+	return false
+}
 
+func (app *ToolsApp) Tick(generate bool) error {
 	app.lock.Lock()
 	defer app.lock.Unlock()
 
@@ -206,9 +213,13 @@ func (app *ToolsApp) Tick(generate bool) error {
 
 	binFileMissing := !Tools_IsFileExists(app.Process.Compile.GetBinPath()) && app.Process.Compile.Error == ""
 
+	old := app.Prompts.Changed
 	app.Prompts.Changed = (app.Process.Compile.AppFileTime != appFilesTime || binFileMissing)
 	if !app.Prompts.Changed {
 		return nil //ok
+	}
+	if old != app.Prompts.Changed {
+		app.Prompts.refresh = true
 	}
 
 	if !hasPrompts {
