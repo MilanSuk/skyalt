@@ -850,7 +850,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 	if msg.Content.Calls != nil {
 		txt = msg.Content.Calls.Content
 		{
-			if msg.ReasoningSize >= 0 && len(txt) >= msg.ReasoningSize {
+			if msg.ReasoningSize > 0 && len(txt) >= msg.ReasoningSize {
 				rsp_txt = txt[:msg.ReasoningSize]
 				txt = txt[msg.ReasoningSize:]
 			}
