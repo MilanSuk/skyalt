@@ -293,7 +293,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, app_port int, tools []*ToolsOpenAI_
 		if err != nil {
 			return err
 		}
-		out, status, dt, time_to_first_token, err := OpenAI_completion_Run(jsProps, xai.OpenAI_url, xai.API_key, fnStreaming)
+		out, status, dt, time_to_first_token, err := OpenAI_completion_Run(jsProps, xai.OpenAI_url, xai.API_key, fnStreaming, msg)
 		st.Out_StatusCode = status
 		if err != nil {
 			return err

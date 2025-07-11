@@ -73,8 +73,9 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 		StartPrompt string
 
-		Generating_name string
-		Generating_msg  string
+		Generating_msg_id string
+		Generating_prompt string
+		Generating_msg    string
 	}
 	var sdk_app SdkToolsPrompts
 	appJs, err := callFuncGetToolData(app.Name)
@@ -86,7 +87,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		return err
 	}
 
-	isGenerating := (sdk_app.Generating_name != "")
+	isGenerating := (sdk_app.Generating_msg_id != "")
 	prompts_path := filepath.Join("..", app.Name, "skyalt")
 	secrets_path := filepath.Join("..", app.Name, "secrets")
 
@@ -246,7 +247,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					StopBt.Cd = UI_GetPalette().E
 					StopBt.Tooltip = "Stop generating"
 					StopBt.clicked = func() error {
-						//....
+						callFuncMsgStop(sdk_app.Generating_msg_id)
 						return nil
 					}
 				} else {
@@ -325,7 +326,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					return nil
 				}
 
-				HeaderDiv.AddText(1, 0, 1, 1, "Generating code for <i>"+sdk_app.Generating_name)
+				HeaderDiv.AddText(1, 0, 1, 1, "Generating code for <i>"+sdk_app.Generating_prompt)
 
 			}
 

@@ -166,8 +166,16 @@ type LLMComplete struct {
 	delta func(msg *ChatMsg)
 }
 
-func NewLLMCompletion(systemMessage string, userMessage string) *LLMComplete {
-	return &LLMComplete{Temperature: 0.2, Max_tokens: 16384, Top_p: 0.95, SystemMessage: systemMessage, UserMessage: userMessage}
+func NewLLMCompletion() *LLMComplete {
+	comp := &LLMComplete{}
+	comp.Temperature = 0.2
+	comp.Max_tokens = 32768 //65536
+	comp.Top_p = 0.95       //1.0
+	comp.Frequency_penalty = 0
+	comp.Presence_penalty = 0
+	comp.Reasoning_effort = ""
+	comp.Max_iteration = 1
+	return comp
 }
 
 func (a *LLMComplete) Cmp(b *LLMComplete) bool {
@@ -275,32 +283,6 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 	}
 
 	st.Out_usage.Model = model
-
-	//get provider & model name
-	/*if llms.router.sync.LLM_xai != nil {
-		chat, _ := llms.router.sync.LLM_xai.FindModel(st.Model)
-		if chat != nil {
-			st.Model = chat.Id
-			provider = "xai"
-		}
-	}
-	if llms.router.sync.LLM_mistral != nil {
-		chat, _ := llms.router.sync.LLM_mistral.FindModel(st.Model)
-		if chat != nil {
-			st.Model = chat.Id
-			provider = "mistral"
-		}
-	}
-	if llms.router.sync.LLM_openai != nil {
-		chat, _ := llms.router.sync.LLM_openai.FindModel(st.Model)
-		if chat != nil {
-			st.Model = chat.Id
-			provider = "openai"
-		}
-	}
-	if provider == "" && st.Model == "llamacpp" {
-		provider = "llamacpp"
-	}*/
 
 	//Tools
 	if llms.services.fnGetAppPortAndTools == nil {

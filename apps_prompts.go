@@ -98,8 +98,11 @@ type ToolsPrompts struct {
 
 	StartPrompt string
 
-	Generating_name string
-	Generating_msg  string
+	Generating_msg_id string
+	Generating_prompt string
+	Generating_msg    string
+
+	refresh bool
 }
 
 func (app *ToolsPrompts) Destroy() error {
@@ -309,7 +312,8 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 	return saveFile, nil
 }
 
-func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *ToolsPrompt, comp *LLMComplete, msg *AppsRouterMsg, llms *LLMs) error {
+func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *ToolsPrompt, msg *AppsRouterMsg, llms *LLMs) error {
+	comp := NewLLMCompletion()
 
 	var err error
 	if prompt == storagePrompt {
@@ -341,7 +345,7 @@ func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *
 	}
 
 	comp.delta = func(msg *ChatMsg) {
-		app.Generating_name = prompt.Name
+		app.Generating_prompt = prompt.Name
 		if msg.Content.Calls != nil {
 			app.Generating_msg = msg.Content.Calls.Content
 		}
@@ -357,50 +361,39 @@ func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *
 	return nil
 }
 
-func _ToolsPrompts_prepareLLMCompleteStruct() *LLMComplete {
-	comp := &LLMComplete{}
-	comp.Temperature = 0.2
-	comp.Max_tokens = 32768 //65536
-	comp.Top_p = 0.95       //1.0
-	comp.Frequency_penalty = 0
-	comp.Presence_penalty = 0
-	comp.Reasoning_effort = ""
-	comp.Max_iteration = 1
-	//comp.Model = "gpt-4.1-mini"
-
-	return comp
-}
-
 func (app *ToolsPrompts) GenerateStructureCode(msg *AppsRouterMsg, llms *LLMs) (*ToolsPrompt, error) {
-
-	defer func() {
-		//reset
-		app.Generating_name = ""
-		app.Generating_msg = ""
-	}()
-
 	//find Storage
 	storagePrompt := app.FindPromptName("Storage")
 	if storagePrompt == nil {
 		return nil, LogsErrorf("'Storage' prompt not found")
 	}
 
-	return storagePrompt, app.generatePromptCode(storagePrompt, storagePrompt, _ToolsPrompts_prepareLLMCompleteStruct(), msg, llms)
+	defer func() {
+		//reset
+		app.Generating_msg_id = ""
+		app.Generating_prompt = ""
+		app.Generating_msg = ""
+	}()
+	app.Generating_msg_id = msg.user_uid
+
+	return storagePrompt, app.generatePromptCode(storagePrompt, storagePrompt, msg, llms)
 }
 
 func (app *ToolsPrompts) GenerateToolsCode(msg *AppsRouterMsg, llms *LLMs) error {
-
-	defer func() {
-		//reset
-		app.Generating_name = ""
-		app.Generating_msg = ""
-	}()
 
 	//find Storage
 	storagePrompt := app.FindPromptName("Storage")
 	if storagePrompt == nil {
 		return LogsErrorf("'Storage' prompt not found")
 	}
+
+	defer func() {
+		//reset
+		app.Generating_msg_id = ""
+		app.Generating_prompt = ""
+		app.Generating_msg = ""
+	}()
+	app.Generating_msg_id = msg.user_uid
 
 	//then generate tools code
 	for _, prompt := range app.Prompts {
@@ -412,7 +405,7 @@ func (app *ToolsPrompts) GenerateToolsCode(msg *AppsRouterMsg, llms *LLMs) error
 			continue
 		}
 
-		err := app.generatePromptCode(prompt, storagePrompt, _ToolsPrompts_prepareLLMCompleteStruct(), msg, llms)
+		err := app.generatePromptCode(prompt, storagePrompt, msg, llms)
 		if err != nil {
 			return err
 		}
@@ -486,7 +479,7 @@ func (app *ToolsPrompts) _getStorageMsg(structPrompt *ToolsPrompt) (string, stri
 		return "", "", err
 	}
 
-	systemMessage := "You are a programmer. You write code in the Go language. You write production code, no placeholder or simulated comments. Here is the list of files in the project folder.\n"
+	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
 	systemMessage += "file - storage.go:\n```go" + string(exampleFile) + "```\n"
@@ -537,7 +530,7 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 }
 `, prompt.Name, prompt.Name)
 
-	systemMessage := "You are a programmer. You write code in the Go language. You write production code, no placeholder or simulated comments. Here is the list of files in the project folder.\n"
+	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
 	systemMessage += "file - storage.go:\n```go" + storageFile + "```\n"

@@ -107,7 +107,7 @@ type OpenAI_completion_props struct {
 
 var g_global_OpenAI_completion_lock sync.Mutex
 
-func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string, fnStreaming func(msg *ChatMsg) bool) (OpenAIOut, int, float64, float64, error) {
+func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string, fnStreaming func(msg *ChatMsg) bool, msg *AppsRouterMsg) (OpenAIOut, int, float64, float64, error) {
 	g_global_OpenAI_completion_lock.Lock()
 	defer g_global_OpenAI_completion_lock.Unlock()
 
@@ -243,6 +243,10 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 					streaming_ok = false
 					break //interrupted
 				}
+			}
+
+			if !msg.Progress(0, "completing") {
+				return OpenAIOut{}, res.StatusCode, 0, -1, LogsErrorf("interrupted")
 			}
 		}
 
@@ -401,7 +405,7 @@ func (msgs *ChatMsgs) AddAssistentCalls(reasoning_text, final_text string, tool_
 	content := OpenAI_content{}
 	content.Calls = &OpenAI_completion_msgCalls{Role: "assistant", Content: text, Tool_calls: tool_calls}
 
-	msg := &ChatMsg{Content: content, Usage: usage, ReasoningSize: len(reasoning_text) + len(ChatMsg_GetDivAfterReasoning())}
+	msg := &ChatMsg{Content: content, Usage: usage, ReasoningSize: OsTrn(len(reasoning_text) == 0, 0, len(reasoning_text)+len(ChatMsg_GetDivAfterReasoning()))}
 	msgs.Messages = append(msgs.Messages, msg)
 	return msg
 }
