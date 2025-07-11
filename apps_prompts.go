@@ -486,20 +486,20 @@ func (app *ToolsPrompts) _getStorageMsg(structPrompt *ToolsPrompt) (string, stri
 		return "", "", err
 	}
 
-	systemMessage := "You are a programmer. You write code in Go language. You write production code, no placeholder or simulating comments. Here is the list of files in project folder.\n"
+	systemMessage := "You are a programmer. You write code in the Go language. You write production code, no placeholder or simulated comments. Here is the list of files in the project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
 	systemMessage += "file - storage.go:\n```go" + string(exampleFile) + "```\n"
 
-	systemMessage += "Based on user message, rewrite storage.go file. Your job is to design structures. Write additional functions only if user ask for them. You may write multiple structures.\n"
+	systemMessage += "Based on the user message, rewrite the storage.go file. Your job is to design structures. Write additional functions only if the user asks for them. You may write multiple structures.\n"
 
-	systemMessage += "Structure attributes can not have pointers, because they will be saved as JSON, so instead of pointer(s) use ID which is saved in map[interger or string ID].\n"
+	systemMessage += "Structure attributes can not have pointers, because they will be saved as JSON, so instead of pointers, use ID, which is saved in a map[integer or string ID].\n"
 
 	systemMessage += "Load<name_of_struct>() functions always returns pointer, not array."
 
 	systemMessage += "Do not call os.ReadFile() + json.Unmarshal(), instead call ReadJSONFile(). Do not call os.WriteFile(), saving data in structures into disk is automatic."
 
-	systemMessage += "Never define constants('const') use variables('var') for everything.\n"
+	systemMessage += "Never define constants('const'), use variables('var') for everything.\n"
 
 	//maybe add old file structures, because it's needed that struct and attributes names are same ....
 
@@ -537,22 +537,24 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 }
 `, prompt.Name, prompt.Name)
 
-	systemMessage := "You are a programmer. You write code in Go language. You write production code, no placeholder or simulating comments. Here is the list of files in project folder.\n"
+	systemMessage := "You are a programmer. You write code in the Go language. You write production code, no placeholder or simulated comments. Here is the list of files in the project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
 	systemMessage += "file - storage.go:\n```go" + storageFile + "```\n"
 	systemMessage += "file - example.go:\n```go" + string(exampleFile) + "```\n"
 	systemMessage += "file - tool.go:\n```go" + toolFile + "```\n"
 
-	systemMessage += "Based on user message, rewrite tool.go file. Your job is to design function(tool). Look into example.go to understand how APIs and storage functions work.\n"
+	systemMessage += "Based on the user message, rewrite the tool.go file. Your job is to design a function(tool). Look into an example.go to understand how APIs and storage functions work.\n"
 
-	systemMessage += "Figure out <tool's arguments> based on user prompt. They are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with upper letter. Every argument must have description as comment. You can add extra marks(with brackets []) at the end of comment. You may add multiple marks with own pair of brackets. Here are the marks:\n"
-	systemMessage += "[optional] - caller can ignore attribute"
-	systemMessage += `[options: <list of options>] - caller must pick up from list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]`
+	systemMessage += "Figure out <tool's arguments> based on the user prompt. There are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with an upper-case letter. Every argument must have a description as a comment. You can add extra marks(with brackets []) at the end of a comment. You may add multiple marks with your pair of brackets. Here are the marks:\n"
+	systemMessage += "[optional] - caller can ignore the attribute"
+	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]`
 
-	systemMessage += "If you need to access the storage, call function Load...() from storage.go which return data. Don't call save/write on that data, it's automaticaly called after function ends.\n"
+	systemMessage += "To access the storage, call the Load...() function in storage.go, which returns the data. Don't call save/write on that data, it's automatically called after the function ends.\n"
 
-	systemMessage += "Never define constants('const') use variables('var') for everything.\n"
+	systemMessage += "Never define constants('const'), use variables('var') for everything.\n"
+
+	systemMessage += "UI has the attribute LLMTip. LLMTip is a string that describes what is on the screen. It should contain the type and identification of the data.\n"
 
 	//systemMessage += fmt.Sprintf("You may add help functions into tool.go. They should start with ```func (st *%s)NameOfHelpFunction```\n", prompt.Name)
 
