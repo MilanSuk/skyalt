@@ -697,7 +697,7 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 		y++
 	}
 	if len(logs) > MAX_N {
-		ListDiv.AddText(0, y, 2, 1, "...")
+		ListDiv.AddText(0, y, 2, 1, "...").Align_h = 1
 	}
 
 }
