@@ -158,25 +158,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
-		//Progress
-		{
-			msgs := callFuncGetMsgs()
-			if len(msgs) > 0 {
-				ProgressDia := AppsDiv.AddDialog("progress")
-				ProgressDia.UI.SetColumn(0, 5, 15)
-				ProgressDia.UI.SetRowFromSub(0, 1, 10)
-				st.buildThreads(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs)
-
-				ProgressBt := AppsDiv.AddButton(0, y, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
-				y++
-				ProgressBt.Background = 0
-				ProgressBt.clicked = func() error {
-					ProgressDia.OpenRelative(ProgressBt.layout, caller)
-					return nil
-				}
-			}
-		}
-
 		//create an app
 		{
 			newAppBt := AppsDiv.AddButton(0, y, 1, 1, "<h1>+")
@@ -233,6 +214,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				return nil
 			}
 		}
+
 		//Log/Errors
 		{
 			logs := callFuncGetLogs()
@@ -282,8 +264,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			MicBt.layout.update = func() error {
 				micInfo := callFuncGetMicInfo()
 
-				callFuncPrint(fmt.Sprintf("***************** Updated(%f)", micInfo.Decibels_normalized))
-
 				MicBt.Cd = UI_GetPalette().E
 				MicBt.Cd.A = byte(255 * micInfo.Decibels_normalized)
 				if MicBt.Cd.A == 0 {
@@ -300,7 +280,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
-		//Media statuc
+		//Media status
 		mediaInfo := callFuncGetMediaInfo()
 		if len(mediaInfo) > 0 {
 
@@ -348,6 +328,25 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			MediaBt.clicked = func() error {
 				MediaDia.OpenRelative(MediaBt.layout, caller)
 				return nil
+			}
+		}
+
+		//Progress
+		{
+			msgs := callFuncGetMsgs()
+			if len(msgs) > 0 {
+				ProgressDia := AppsDiv.AddDialog("progress")
+				ProgressDia.UI.SetColumn(0, 5, 15)
+				ProgressDia.UI.SetRowFromSub(0, 1, 10)
+				st.buildThreads(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs)
+
+				ProgressBt := AppsDiv.AddButton(0, y, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
+				y++
+				ProgressBt.Background = 0
+				ProgressBt.clicked = func() error {
+					ProgressDia.OpenRelative(ProgressBt.layout, caller)
+					return nil
+				}
 			}
 		}
 
@@ -642,11 +641,6 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
 func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 	ui.SetColumn(0, 1, 20)
 
-	slices.Reverse(logs) //newest top
-	if len(logs) > 20 {
-		logs = logs[:20] //cut
-	}
-
 	{
 		HeaderDiv := ui.AddLayout(0, 0, 1, 1)
 		HeaderDiv.SetColumn(0, 5, 100)
@@ -687,8 +681,11 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 	ListDiv.SetColumn(0, 1, 4)
 	ListDiv.SetColumn(1, 1, 26)
 
+	MAX_N := 20
 	y := 0
-	for _, it := range logs {
+	for i := len(logs) - 1; i >= 0 && i >= len(logs)-MAX_N; i-- {
+		it := logs[i]
+
 		ListDiv.SetRowFromSub(y, 1, 5)
 
 		ListDiv.AddText(0, y, 1, 1, SdkGetDateTime(int64(it.Time)))
@@ -698,6 +695,9 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 		tx.Cd = UI_GetPalette().E
 
 		y++
+	}
+	if len(logs) > MAX_N {
+		ListDiv.AddText(0, y, 2, 1, "...")
 	}
 
 }
