@@ -127,16 +127,12 @@ func (snc *ServicesSync) _loadFiles() error {
 }
 
 func (snc *ServicesSync) Tick(devApp_storage_changes int64) bool {
-
 	if snc.last_dev_storage_change != devApp_storage_changes {
-
 		snc.last_dev_storage_change = devApp_storage_changes
 
 		snc._loadFiles()
-
 		return true
 	}
-
 	return false
 }
 

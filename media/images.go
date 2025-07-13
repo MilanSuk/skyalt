@@ -54,9 +54,7 @@ func (imgs *Images) UpdateFileTimes() {
 func (imgs *Images) Maintenance(min_time int64) {
 	for id, it := range imgs.media {
 		if (it.last_use_time > 0 && it.last_use_time < min_time) || it.check_file_time != it.open_file_time {
-
-			fmt.Println("Maintenance() removing " + it.path)
-
+			//fmt.Println("Maintenance() removing " + it.path)
 			it.Destroy()
 			delete(imgs.media, id)
 		}

@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -46,13 +45,7 @@ func NewWinGphItemAlpha(alpha *image.Alpha, realSize OsV2) *WinGphItem {
 
 func (it *WinGphItem) getTexture() *WinTexture {
 	if it.texture == nil {
-		var err error
 		it.texture = InitWinTextureFromImageAlpha(it.alpha)
-		if err != nil {
-			fmt.Printf("getTexture() failed: %v\n", err)
-			return nil
-		}
-
 		it.alpha = nil //not needed anymore
 	}
 	return it.texture

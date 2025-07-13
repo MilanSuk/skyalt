@@ -223,13 +223,13 @@ func (st *Map) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 			tileCoord_sx := (x - float64(bbStart.X)) * tile
 			tileCoord_sy := (y - float64(bbStart.Y)) * tile
 			cdWhite := color.RGBA{255, 255, 255, 255}
-			type GetTile struct {
+			/*type GetTile struct {
 				X    int //tile's X position
 				Y    int //tile's Y position
 				Zoom int //map's zoom
 
 				Out_image []byte
-			}
+			}*/
 			paint.File(Rect{X: tileCoord_sx, Y: tileCoord_sy, W: tile, H: tile},
 				InitWinImagePath_file("map_tile", layout.UID), //..........
 				//InitWinImagePath_call("Device", "GetMapTile", GetTile{X: int(x), Y: int(y), Zoom: int(zoom)}, fmt.Sprintf("Device:GetMapTile(%d-%d-%d)", int(x), int(y), int(zoom))),
