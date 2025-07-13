@@ -19,7 +19,6 @@ package main
 import (
 	"fmt"
 	"image/color"
-	"log"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -65,13 +64,6 @@ func (layout *Layout) _createDiv(x, y, w, h int, name string, fnBuild func(layou
 	lay.fnBuild = fnBuild
 	lay.fnDraw = fnDraw
 	lay.fnInput = fnInput
-
-	var ok bool
-	_, lay.Caller_file, lay.Caller_line, ok = runtime.Caller(2)
-	if !ok {
-		log.Fatal("runtime.Caller failed")
-	}
-	lay.Caller_file = filepath.Base(lay.Caller_file)
 
 	return lay
 }

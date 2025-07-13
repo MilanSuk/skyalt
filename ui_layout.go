@@ -258,9 +258,6 @@ type Layout struct {
 	UserRows       []LayoutCR
 	UserCRFromText *LayoutDrawText
 
-	Caller_file string `json:",omitempty"`
-	Caller_line int    `json:",omitempty"`
-
 	List_autoSpacing bool
 
 	fnUpdate func() //here
@@ -478,21 +475,6 @@ func (layout *Layout) FindShortcut(key byte) *Layout {
 	}
 
 	return nil
-}
-
-// It can 'out' multiple(addButton in for loop)!
-func (layout *Layout) FindAppLine(file string, line int, out *[]*Layout) {
-	if layout.Caller_file == file && layout.Caller_line == line {
-		*out = append(*out, layout)
-	}
-
-	if layout.dialog != nil {
-		layout.dialog.FindAppLine(file, line, out)
-	}
-
-	for _, it := range layout.childs {
-		it.FindAppLine(file, line, out)
-	}
 }
 
 func (layout *Layout) Col(pos int, val float64) {
