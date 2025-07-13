@@ -62,7 +62,7 @@ func (st *Checkbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	}
 
 	//draw checkbox
-	paint.RectRad(rc, cd, cd_over, cd_down, 0.03, rc.H*layout.ui.router.services.sync.GetRounding())
+	paint.RectRad(rc, cd, cd_over, cd_down, 0.03, rc.H*layout.getRounding())
 
 	if *st.Value >= 1 {
 		//check

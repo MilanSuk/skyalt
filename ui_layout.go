@@ -927,7 +927,7 @@ func (layout *Layout) renderBuffer(buffer []LayoutDrawPrim) (hasBrush bool) {
 				if layout.ui.edit.Is(layout) {
 					width *= 2
 				}
-				rounding := layout.ui.CellWidth(layout.ui.router.services.sync.GetRounding())
+				rounding := layout.ui.CellWidth(layout.getRounding())
 
 				cd := layout.GetPalette().P
 				if layout.ui.router.services.mic.Find(layout.UID) != nil {
@@ -1265,7 +1265,7 @@ func (layout *Layout) Draw() {
 			if layApp != nil {
 				//alpha grey background
 				backCanvas := layApp.CropWithScroll()
-				buff.StartLevel(layDia.CropWithScroll(), layout.GetPalette().B, backCanvas, layout.ui.CellWidth(layout.ui.router.services.sync.GetRounding()))
+				buff.StartLevel(layDia.CropWithScroll(), layout.GetPalette().B, backCanvas, layout.ui.CellWidth(layout.getRounding()))
 			}
 
 			layDia._drawBuffers() //add renderToTexture optimalization ....
@@ -1309,6 +1309,32 @@ func (layout *Layout) postDraw(depth int, num_cds *int) {
 	}
 }
 
+func (layout *Layout) _getRoundingInner(rectIn OsV4) float64 {
+	if layout.parent == nil {
+		return layout.ui.router.services.sync.GetRounding()
+	}
+
+	rad := layout.parent._getRoundingInner(rectIn) //from parent
+
+	if layout.Back_rounding && rad > 0 {
+		rectOutter := layout.canvas.Crop(layout.ui.CellWidth(layout.Back_margin))
+
+		s := rectIn.Start.Sub(rectOutter.Start)
+		e := rectOutter.End().Sub(rectIn.End())
+		pad := OsClamp(0, OsMin(s.X, s.Y), OsMin(e.X, e.Y))
+
+		if pad > 0 {
+			r := layout.ui.CellWidth(rad) - pad //inner_rad = outter_rad - pad
+			rad = OsMaxFloat(3/float64(layout.Cell()), float64(r)/float64(layout.Cell()))
+		}
+	}
+
+	return rad
+}
+func (layout *Layout) getRounding() float64 {
+	return layout._getRoundingInner(layout.canvas.Crop(layout.ui.CellWidth(layout.Back_margin)))
+}
+
 func (layout *Layout) _drawBuffers() {
 	buff := layout.ui.GetWin().buff
 
@@ -1319,17 +1345,17 @@ func (layout *Layout) _drawBuffers() {
 
 	rad := 0
 	if layout.Back_rounding {
-		rad = layout.ui.CellWidth(layout.ui.router.services.sync.GetRounding())
+		rad = layout.ui.CellWidth(layout.getRounding())
 	}
 
 	if layout.Back_cd.A > 0 {
-		r := layout.canvas.Crop(layout.ui.CellWidth(layout.Back_margin))
-		buff.AddRectRound(r, rad, layout.Back_cd, 0) //background
+		rc := layout.canvas.Crop(layout.ui.CellWidth(layout.Back_margin))
+		buff.AddRectRound(rc, rad, layout.Back_cd, 0) //background
 	}
 
 	if layout.Border_cd.A > 0 {
-		r := layout.canvas.Crop(layout.ui.CellWidth(layout.Back_margin))
-		buff.AddRectRound(r, rad, layout.Border_cd, layout.ui.CellWidth(0.03)) //background
+		rc := layout.canvas.Crop(layout.ui.CellWidth(layout.Back_margin))
+		buff.AddRectRound(rc, rad, layout.Border_cd, layout.ui.CellWidth(0.03)) //background
 	}
 
 	hasBrush := layout.renderBuffer(layout.buffer)
