@@ -1188,6 +1188,8 @@ func (parent *UI) _addUILine(sub *UI) {
 			parent.SetColumn(0, 1, 100)
 		}
 
+		parent.SetRowFromSub(parent.temp_row, 1, 100)
+
 		parent.temp_row++
 		parent.temp_col = 0
 	}
@@ -1859,8 +1861,6 @@ type UI struct {
 func (ui *UI) addTable() *UITable {
 	item := &UITable{layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.temp_row = -1
-
-	ui.SetRowFromSub(ui.temp_row, 1, 100)
 
 	ui._addUILine(item.layout)
 	return item
