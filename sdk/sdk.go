@@ -1188,8 +1188,6 @@ func (parent *UI) _addUILine(sub *UI) {
 			parent.SetColumn(0, 1, 100)
 		}
 
-		parent.SetRowFromSub(parent.temp_row, 1, 100)
-
 		parent.temp_row++
 		parent.temp_col = 0
 	}
@@ -1858,10 +1856,15 @@ type UI struct {
 	temp_col, temp_row int
 }
 
+func (ui *UI) setRowHeight(min, max float64) {
+	ui.SetRow(ui.temp_row, min, max)
+}
+
 func (ui *UI) addTable() *UITable {
 	item := &UITable{layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.temp_row = -1
 
+	ui.SetRowFromSub(ui.temp_row, 1, 100)
 	ui._addUILine(item.layout)
 	return item
 }
@@ -1873,6 +1876,10 @@ func (table *UITable) addLine() *UI {
 
 	return table.layout
 }
+func (table *UITable) addDivider() {
+	ln := table.addLine()
+	ln.AddDivider(ln.temp_col, ln.temp_row, 1, ln.temp_col+len(ln.Cols), true)
+}
 
 func (ui *UI) addTextH1(label string) *UIText {
 	return ui.addText("<h1>" + label + "</h1>")
@@ -1883,30 +1890,40 @@ func (ui *UI) addTextH2(label string) *UIText {
 func (ui *UI) addText(label string) *UIText {
 	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Text = item
+
+	ui.SetRowFromSub(ui.temp_row, 1, 100)
 	ui._addUILine(item.layout)
 	return item
 }
 func (ui *UI) addEditboxString(value *string) *UIEditbox {
 	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Editbox = item
+
+	ui.SetRowFromSub(ui.temp_row, 1, 100)
 	ui._addUILine(item.layout)
 	return item
 }
 func (ui *UI) addEditboxInt(value *int) *UIEditbox {
 	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Editbox = item
+
+	ui.SetRowFromSub(ui.temp_row, 1, 100)
 	ui._addUILine(item.layout)
 	return item
 }
 func (ui *UI) addEditboxFloat(value *float64, precision int) *UIEditbox {
 	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Editbox = item
+
+	ui.SetRowFromSub(ui.temp_row, 1, 100)
 	ui._addUILine(item.layout)
 	return item
 }
 func (ui *UI) addButton(label string) *UIButton {
 	item := &UIButton{Label: label, Background: 1, Align: 1, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Button = item
+
+	ui.SetRowFromSub(ui.temp_row, 1, 100)
 	ui._addUILine(item.layout)
 	return item
 }
@@ -1962,6 +1979,8 @@ func (ui *UI) addYearCalendar(Year int) *UIYearCalendar {
 	item := &UIYearCalendar{Year: Year, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.YearCalendar = item
 	ui._addUILine(item.layout)
+
+	ui.SetRowFromSub(ui.temp_row-1, 1, 100)
 	return item
 }
 
@@ -1969,12 +1988,16 @@ func (ui *UI) addMonthCalendar(Year int, Month int, Events []UICalendarEvent) *U
 	item := &UIMonthCalendar{Year: Year, Month: Month, Events: Events, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.MonthCalendar = item
 	ui._addUILine(item.layout)
+
+	ui.SetRowFromSub(ui.temp_row-1, 1, 100)
 	return item
 }
 func (ui *UI) addDayCalendar(Days []int64, Events []UICalendarEvent) *UIDayCalendar {
 	item := &UIDayCalendar{Days: Days, Events: Events, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.DayCalendar = item
 	ui._addUILine(item.layout)
+
+	ui.SetRowFromSub(ui.temp_row-1, 1, 100)
 	return item
 }
 
@@ -2000,12 +2023,17 @@ func (ui *UI) addColorPickerButton(cd *color.RGBA) *UIColorPickerButton {
 func (ui *UI) addChartLines(Lines []UIChartLine) *UIChartLines {
 	item := &UIChartLines{Lines: Lines, Point_rad: 0.2, Line_thick: 0.03, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.ChartLines = item
+
+	ui.SetRow(ui.temp_row, 5, 20)
 	ui._addUILine(item.layout)
+
 	return item
 }
 func (ui *UI) addChartColumns(columns []UIChartColumn, x_labels []string) *UIChartColumns {
 	item := &UIChartColumns{Columns: columns, X_Labels: x_labels, ColumnMargin: 0.2, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.ChartColumns = item
+
+	ui.SetRow(ui.temp_row, 5, 20)
 	ui._addUILine(item.layout)
 	return item
 }
@@ -2262,10 +2290,10 @@ type UIList struct {
 
 type UIGridSize struct {
 	Pos int
-	Min float64
-	Max float64
+	Min float64 `json:",omitempty"`
+	Max float64 `json:",omitempty"`
 
-	Default_resize float64
+	Default_resize float64 `json:",omitempty"`
 
 	SetFromChild_min float64 `json:",omitempty"`
 	SetFromChild_max float64 `json:",omitempty"`
@@ -2610,6 +2638,7 @@ func (ui *UI) AddChartLines(x, y, w, h int, Lines []UIChartLine) *UIChartLines {
 	item := &UIChartLines{Lines: Lines, Point_rad: 0.2, Line_thick: 0.03, layout: _newUIItem(x, y, w, h)}
 	item.layout.ChartLines = item
 	ui._addUISub(item.layout, "")
+
 	return item
 }
 func (ui *UI) AddChartColumns(x, y, w, h int, columns []UIChartColumn, x_labels []string) *UIChartColumns {

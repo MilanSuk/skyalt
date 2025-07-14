@@ -7,6 +7,7 @@ import (
 //Note:
 //When ui.addText(), ui.addButton() and other ui.add...() functions are called, every GUI components is added to new line.
 //To add more components on same line, use ui.addTable(). All components in table are aligned by columns which makes tables very usefull for creating forms.
+//Use setRowHeight() only when user prompt require that row has specific height.
 
 type ToolCaller struct {
 }
@@ -26,12 +27,15 @@ type UI struct {
 	changed func(newParams []byte) error
 }
 
+func (ui *UI) setRowHeight(min, max float64) //Set height of current row/line. Must be call before ui.Add...()
+
 type UITable struct {
 	layout *UI
 }
 
 func (ui *UI) addTable() *UITable
 func (table *UITable) addLine() *UI
+func (table *UITable) addDivider() //whole line is horizontal line. Use to separate header from data.
 
 type UIText struct {
 	layout  *UI
