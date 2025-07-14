@@ -547,7 +547,7 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 
 	systemMessage += "Never define constants('const'), use variables('var') for everything.\n"
 
-	systemMessage += "UI has the attribute LLMTip. LLMTip is a string that describes what is on the screen. It should contain the type and identification of the data.\n"
+	systemMessage += "UI has the attribute LLMTip. LLMTip describe content of layout. It must be detailed as possible. Usual form is <content description>=<UID>, for example: 'PersonID=123'\n"
 
 	//systemMessage += fmt.Sprintf("You may add help functions into tool.go. They should start with ```func (st *%s)NameOfHelpFunction```\n", prompt.Name)
 
