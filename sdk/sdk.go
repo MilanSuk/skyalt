@@ -476,7 +476,6 @@ func main() {
 								go func() {
 									ui := _newUIItem(0, 0, 1, 1)
 									ui.UID = caller.ui_uid
-									ui.base = true
 
 									if len(paramsJs) == 0 {
 										paramsJs = []byte("{}")
@@ -1173,20 +1172,25 @@ func (parent *UI) _addUISub(ui *UI, name string) {
 	ui._computeUID(parent, name)
 }
 
-func (parent *UI) _addUISubCol(sub *UI, width float64) {
+func (parent *UI) _addUILine(sub *UI) {
 	parent._addUISub(sub, "")
 
-	if width < 0 {
-		parent.SetColumnFromSub(parent.temp_col, 1, 50)
-	} else {
-		min_width := 1.0
-		if width < min_width {
-			min_width = width
+	if parent.table {
+		//table's line
+		if len(parent.Cols) <= parent.temp_col {
+			parent.SetColumnFromSub(parent.temp_col, 1, 100)
 		}
-		parent.SetColumn(parent.temp_col, min_width, width)
-	}
+		parent.temp_col++
 
-	parent.temp_col++
+	} else {
+		//normal line
+		if len(parent.Cols) == 0 {
+			parent.SetColumn(0, 1, 100)
+		}
+
+		parent.temp_row++
+		parent.temp_col = 0
+	}
 }
 
 func _callTool(funcName string, fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) (*UI, error) {
@@ -1848,79 +1852,103 @@ type UI struct {
 	update    func() error
 	HasUpdate bool
 
-	base               bool
+	table              bool
 	temp_col, temp_row int
 }
 
-func (ui *UI) addText(width float64, label string) *UIText {
+func (ui *UI) addTable() *UITable {
+	item := &UITable{layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+	item.layout.temp_row = -1
+
+	ui.SetRowFromSub(ui.temp_row, 1, 100)
+
+	ui._addUILine(item.layout)
+	return item
+}
+func (table *UITable) addLine() *UI {
+	table.layout.table = true
+
+	table.layout.temp_col = 0
+	table.layout.temp_row++
+
+	return table.layout
+}
+
+func (ui *UI) addTextH1(label string) *UIText {
+	return ui.addText("<h1>" + label + "</h1>")
+}
+func (ui *UI) addTextH2(label string) *UIText {
+	return ui.addText("<h2>" + label + "</h2>")
+}
+func (ui *UI) addText(label string) *UIText {
 	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Text = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addEditboxString(width float64, value *string) *UIEditbox {
-	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addEditboxString(value *string) *UIEditbox {
+	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Editbox = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addEditboxInt(width float64, value *int) *UIEditbox {
-	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addEditboxInt(value *int) *UIEditbox {
+	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Editbox = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addEditboxFloat(width float64, value *float64, precision int) *UIEditbox {
-	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addEditboxFloat(value *float64, precision int) *UIEditbox {
+	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Editbox = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addButton(width float64, label string) *UIButton {
-	item := &UIButton{Label: label, Background: 1, Align: 1, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addButton(label string) *UIButton {
+	item := &UIButton{Label: label, Background: 1, Align: 1, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Button = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addCombo(width float64, value *string, labels []string, values []string) *UICombo {
-	item := &UICombo{Value: value, Labels: labels, Values: values, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addCombo(value *string, labels []string, values []string) *UICombo {
+	item := &UICombo{Value: value, Labels: labels, Values: values, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Combo = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addSwitch(width float64, label string, value *bool) *UISwitch {
-	item := &UISwitch{Label: label, Value: value, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addSwitch(label string, value *bool) *UISwitch {
+	item := &UISwitch{Label: label, Value: value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Switch = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addCheckbox(width float64, label string, value *float64) *UICheckbox {
-	item := &UICheckbox{Label: label, Value: value, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addCheckbox(label string, value *float64) *UICheckbox {
+	item := &UICheckbox{Label: label, Value: value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Checkbox = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addSlider(width float64, value *float64, min, max, step float64) *UISlider {
-	item := &UISlider{Value: value, Min: min, Max: max, Step: step, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addSlider(value *float64, min, max, step float64) *UISlider {
+	item := &UISlider{Value: value, Min: min, Max: max, Step: step, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Slider = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addDivider(width float64, horizontal bool) *UIDivider {
-	item := &UIDivider{Horizontal: horizontal, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addDivider(horizontal bool) *UIDivider {
+	item := &UIDivider{Horizontal: horizontal, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Divider = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addMap(width float64, lon, lat, zoom *float64) *UIMap {
-	item := &UIMap{Lon: lon, Lat: lat, Zoom: zoom, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addMap(lon, lat, zoom *float64) *UIMap {
+	item := &UIMap{Lon: lon, Lat: lat, Zoom: zoom, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.Map = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
 func (mp *UIMap) addLocators(loc UIMapLocators) {
@@ -1930,79 +1958,60 @@ func (mp *UIMap) addRoute(route UIMapRoute) {
 	mp.Routes = append(mp.Routes, route)
 }
 
-func (ui *UI) addYearCalendar(width float64, Year int) *UIYearCalendar {
-	item := &UIYearCalendar{Year: Year, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addYearCalendar(Year int) *UIYearCalendar {
+	item := &UIYearCalendar{Year: Year, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.YearCalendar = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addMonthCalendar(width float64, Year int, Month int, Events []UICalendarEvent) *UIMonthCalendar {
-	item := &UIMonthCalendar{Year: Year, Month: Month, Events: Events, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addMonthCalendar(Year int, Month int, Events []UICalendarEvent) *UIMonthCalendar {
+	item := &UIMonthCalendar{Year: Year, Month: Month, Events: Events, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.MonthCalendar = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addDayCalendar(width float64, Days []int64, Events []UICalendarEvent) *UIDayCalendar {
-	item := &UIDayCalendar{Days: Days, Events: Events, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addDayCalendar(Days []int64, Events []UICalendarEvent) *UIDayCalendar {
+	item := &UIDayCalendar{Days: Days, Events: Events, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.DayCalendar = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addFilePickerButton(width float64, path *string, preview bool, onlyFolders bool) *UIFilePickerButton {
-	item := &UIFilePickerButton{Path: path, Preview: preview, OnlyFolders: onlyFolders, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addFilePickerButton(path *string, preview bool, onlyFolders bool) *UIFilePickerButton {
+	item := &UIFilePickerButton{Path: path, Preview: preview, OnlyFolders: onlyFolders, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.FilePickerButton = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addDatePickerButton(width float64, date *int64, page *int64, showTime bool) *UIDatePickerButton {
-	item := &UIDatePickerButton{Date: date, Page: page, ShowTime: showTime, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addDatePickerButton(date *int64, page *int64, showTime bool) *UIDatePickerButton {
+	item := &UIDatePickerButton{Date: date, Page: page, ShowTime: showTime, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.DatePickerButton = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addColorPickerButton(width float64, cd *color.RGBA) *UIColorPickerButton {
-	item := &UIColorPickerButton{Cd: cd, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addColorPickerButton(cd *color.RGBA) *UIColorPickerButton {
+	item := &UIColorPickerButton{Cd: cd, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.ColorPickerButton = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addChartLines(width float64, Lines []UIChartLine) *UIChartLines {
-	item := &UIChartLines{Lines: Lines, Point_rad: 0.2, Line_thick: 0.03, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addChartLines(Lines []UIChartLine) *UIChartLines {
+	item := &UIChartLines{Lines: Lines, Point_rad: 0.2, Line_thick: 0.03, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.ChartLines = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addChartColumns(width float64, columns []UIChartColumn, x_labels []string) *UIChartColumns {
-	item := &UIChartColumns{Columns: columns, X_Labels: x_labels, ColumnMargin: 0.2, layout: _newUIItem(ui.temp_col, 0, 1, 1)}
+func (ui *UI) addChartColumns(columns []UIChartColumn, x_labels []string) *UIChartColumns {
+	item := &UIChartColumns{Columns: columns, X_Labels: x_labels, ColumnMargin: 0.2, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
 	item.layout.ChartColumns = item
-	ui._addUISubCol(item.layout, width)
+	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addUI(width float64) *UI {
-	item := _newUIItem(ui.temp_col, 0, 1, 1)
-	item.base = true
-	ui._addUISubCol(item, width)
-	return item
-}
-
-func (ui *UI) addRow(height float64) *UI { //'height: -1' => auto-resize based on row content
-	if height < 0 {
-		ui.SetRowFromSub(ui.temp_row, 1, 10)
-	} else {
-		ui.SetRow(ui.temp_row, height, height)
-	}
-
-	if ui.base {
-		ui.SetColumn(0, 1, 100)
-	}
-
-	rowUi := _newUIItem(0, ui.temp_row, 1, 1)
-	ui._addUISub(rowUi, "")
-	return rowUi
+type UITable struct {
+	layout *UI
 }
 
 type UIText struct {

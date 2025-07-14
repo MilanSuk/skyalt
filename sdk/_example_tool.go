@@ -17,15 +17,20 @@ func (st *ShowPersonInfo) run(caller *ToolCaller, ui *UI) error {
 		return fmt.Errorf("%d PersonID not found", st.PersonID)
 	}
 
-	desc_width := 5 //description column width
+	ui.addTextH1("Person infomation")
 
-	r := ui.addRow()                  //add new row
-	r.addText(desc_width, "Born")     //add description 'Born'
-	r.addEditboxInt(-1, &person.Born) //add editable text field, width(-1) is automatic
+	{
+		form := ui.addTable()
+		ln := form.addLine()
+		ln.addText("Born")             //description
+		ln.addEditboxInt(&person.Born) //value
 
-	r = ui.addRow()                     //new line
-	r.addText(desc_width, "Height")     //add description 'Height'
-	r.addEditboxInt(-1, &person.Height) //add editable text field, width(-1) is automatic
+		ln = form.addLine()
+		ln.addText("Height")
+		ln.addEditboxInt(&person.Height)
+	}
+
+	ui.addText(fmt.Sprintf("note: PersonID = %s", st.PersonID)).Align_h = 2 //note which is align to right side
 
 	return nil
 }
