@@ -1089,64 +1089,66 @@ func (layout *Layout) UpdateTouch() {
 }
 
 func (layout *Layout) resizeFromPaintText() (changed bool) {
+	if layout.UserCRFromText == nil {
+		return
+	}
+
 	tx := layout.UserCRFromText
 
-	if tx != nil { //must have text inside
-		value := tx.Text
-		if tx.Editable {
-			if layout.ui.edit.Is(layout) {
-				value = layout.ui.edit.temp
-			}
+	value := tx.Text
+	if tx.Editable {
+		if layout.ui.edit.Is(layout) {
+			value = layout.ui.edit.temp
 		}
+	}
 
-		prop := InitWinFontPropsDef(layout.Cell())
+	prop := InitWinFontPropsDef(layout.Cell())
 
-		var mx, my int
-		if tx.Multiline {
-			max_line_px := layout.ui._UiText_getMaxLinePx(tx.coordText.Size.X, tx.Multiline, tx.Linewrapping)
+	var mx, my int
+	if tx.Multiline {
+		max_line_px := layout.ui._UiText_getMaxLinePx(tx.coordText.Size.X, tx.Multiline, tx.Linewrapping)
+		mx, my = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
+
+		//when vertical scroll will be show, the max_line_px must be smaller
+		if (my * prop.lineH) > layout.scrollV.screen_height {
+			max_line_px = tx.coordText.Size.X - layout.scrollV._GetWidth(layout.ui) //minus scroller width
+
+			max_line_px = layout.ui._UiText_getMaxLinePx(max_line_px, tx.Multiline, tx.Linewrapping)
 			mx, my = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
-
-			//when vertical scroll will be show, the max_line_px must be smaller
-			if (my * prop.lineH) > layout.scrollV.screen_height {
-				max_line_px = tx.coordText.Size.X - layout.scrollV._GetWidth(layout.ui) //minus scroller width
-
-				max_line_px = layout.ui._UiText_getMaxLinePx(max_line_px, tx.Multiline, tx.Linewrapping)
-				mx, my = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
-			}
-
-		} else {
-			mx = layout.ui.win.GetTextSize(-1, value, prop).X
-			my = 1
-		}
-		sizePx := OsV2{mx, my * prop.lineH}
-		sizePx.X += layout.ui.CellWidth(tx.Margin[2]) + layout.ui.CellWidth(tx.Margin[3])
-		sizePx.Y += layout.ui.CellWidth(tx.Margin[0]) + layout.ui.CellWidth(tx.Margin[1])
-		size_x := float64(sizePx.X) / float64(layout.Cell())
-		size_y := float64(sizePx.Y) / float64(layout.Cell())
-		//	size_x := float64(sizePx.X)/float64(layout.Cell()) + 2*tx.Margin
-		//	size_y := float64(sizePx.Y)/float64(layout.Cell()) + 2*tx.Margin
-
-		//column
-		{
-			changed = (len(layout.UserCols) == 0 || layout.UserCols[0].Min != size_x || layout.UserCols[0].Max != size_x)
-
-			if len(layout.UserCols) == 0 {
-				layout.UserCols = make([]LayoutCR, 1)
-			}
-			layout.UserCols[0].Min = size_x
-			layout.UserCols[0].Max = size_x
 		}
 
-		//row
-		if tx.Multiline {
-			changed = (len(layout.UserRows) == 0 || layout.UserRows[0].Min != size_y || layout.UserRows[0].Max != size_y)
+	} else {
+		mx = layout.ui.win.GetTextSize(-1, value, prop).X
+		my = 1
+	}
+	sizePx := OsV2{mx, my * prop.lineH}
+	sizePx.X += layout.ui.CellWidth(tx.Margin[2]) + layout.ui.CellWidth(tx.Margin[3])
+	sizePx.Y += layout.ui.CellWidth(tx.Margin[0]) + layout.ui.CellWidth(tx.Margin[1])
+	size_x := float64(sizePx.X) / float64(layout.Cell())
+	size_y := float64(sizePx.Y) / float64(layout.Cell())
+	//	size_x := float64(sizePx.X)/float64(layout.Cell()) + 2*tx.Margin
+	//	size_y := float64(sizePx.Y)/float64(layout.Cell()) + 2*tx.Margin
 
-			if len(layout.UserRows) == 0 {
-				layout.UserRows = make([]LayoutCR, 1)
-			}
-			layout.UserRows[0].Min = size_y
-			layout.UserRows[0].Max = size_y
+	//column
+	{
+		changed = (len(layout.UserCols) == 0 || layout.UserCols[0].Min != size_x || layout.UserCols[0].Max != size_x)
+
+		if len(layout.UserCols) == 0 {
+			layout.UserCols = make([]LayoutCR, 1)
 		}
+		layout.UserCols[0].Min = size_x
+		layout.UserCols[0].Max = size_x
+	}
+
+	//row
+	if tx.Multiline {
+		changed = (len(layout.UserRows) == 0 || layout.UserRows[0].Min != size_y || layout.UserRows[0].Max != size_y)
+
+		if len(layout.UserRows) == 0 {
+			layout.UserRows = make([]LayoutCR, 1)
+		}
+		layout.UserRows[0].Min = size_y
+		layout.UserRows[0].Max = size_y
 	}
 
 	return changed
