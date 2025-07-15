@@ -64,9 +64,7 @@ type LayoutCR struct {
 
 	SetFromChild_min float64 `json:",omitempty"`
 	SetFromChild_max float64 `json:",omitempty"`
-
-	Caller_file string `json:",omitempty"`
-	Caller_line int    `json:",omitempty"`
+	SetFromChild_fix bool    `json:",omitempty"`
 }
 type LayoutDialog struct {
 	Layout *Layout
@@ -254,9 +252,12 @@ type Layout struct {
 
 	Editbox_name string
 
-	UserCols       []LayoutCR
-	UserRows       []LayoutCR
-	UserCRFromText *LayoutDrawText
+	UserCols []LayoutCR
+	UserRows []LayoutCR
+	//UserCRFromText *LayoutDrawText
+	fnAutoResize          func(layout *Layout) bool
+	fnGetAutoResizeMargin func() [4]float64
+	autoCoord             OsV4
 
 	List_autoSpacing bool
 
@@ -581,8 +582,7 @@ func (layout *Layout) IsLevel() bool {
 }
 
 func (layout *Layout) clearAutoColsRows() {
-	tx := layout.UserCRFromText
-	if tx != nil {
+	if layout.fnAutoResize != nil {
 		layout.UserCols = nil
 		layout.UserRows = nil
 	}
@@ -617,8 +617,10 @@ func (layout *Layout) _relayoutInner() {
 
 	layout.updateCoord(0, 0, 1, 1)
 
-	if layout.resizeFromPaintText() {
-		layout.updateCoord(0, 0, 1, 1)
+	if layout.fnAutoResize != nil {
+		if layout.fnAutoResize(layout) {
+			layout.updateCoord(0, 0, 1, 1)
+		}
 	}
 
 	if layout.IsDialog() {
@@ -667,7 +669,11 @@ func (layout *Layout) _relayoutFromChild() bool {
 
 			v = OsClampFloat(v, c.SetFromChild_min, c.SetFromChild_max)
 			layout.UserCols[i].Min = v
-			layout.UserCols[i].Max = v
+			if c.SetFromChild_fix {
+				layout.UserCols[i].Max = v
+			} else {
+				layout.UserCols[i].Max = c.SetFromChild_max
+			}
 
 			changed = true
 		}
@@ -690,7 +696,11 @@ func (layout *Layout) _relayoutFromChild() bool {
 
 			v = OsClampFloat(v, r.SetFromChild_min, r.SetFromChild_max)
 			layout.UserRows[i].Min = v
-			layout.UserRows[i].Max = v
+			if r.SetFromChild_fix {
+				layout.UserRows[i].Max = v
+			} else {
+				layout.UserRows[i].Max = r.SetFromChild_max
+			}
 
 			changed = true
 		}
@@ -893,8 +903,8 @@ func (layout *Layout) renderBuffer(buffer []LayoutDrawPrim) (hasBrush bool) {
 			prop.formating = tx.Formating
 
 			var coordText OsV4
-			if layout.UserCRFromText != nil {
-				coordText = layout.UserCRFromText.coordText
+			if layout.fnAutoResize != nil {
+				coordText = layout.autoCoord
 			} else {
 				coordText = layout.getCanvasPx(it.Rect).Inner(layout.ui.CellWidth(tx.Margin[0]), layout.ui.CellWidth(tx.Margin[1]), layout.ui.CellWidth(tx.Margin[2]), layout.ui.CellWidth(tx.Margin[3]))
 				//coordText = layout.getCanvasPx(it.Rect.Cut(st.Margin))
@@ -1088,32 +1098,20 @@ func (layout *Layout) UpdateTouch() {
 	}
 }
 
-func (layout *Layout) resizeFromPaintText() (changed bool) {
-	if layout.UserCRFromText == nil {
-		return
-	}
-
-	tx := layout.UserCRFromText
-
-	value := tx.Text
-	if tx.Editable {
-		if layout.ui.edit.Is(layout) {
-			value = layout.ui.edit.temp
-		}
-	}
+func (layout *Layout) resizeFromPaintText(value string, multiline bool, linewrapping bool, margin [4]float64) (changed bool) {
 
 	prop := InitWinFontPropsDef(layout.Cell())
 
 	var mx, my int
-	if tx.Multiline {
-		max_line_px := layout.ui._UiText_getMaxLinePx(tx.coordText.Size.X, tx.Multiline, tx.Linewrapping)
+	if multiline {
+		max_line_px := layout.ui._UiText_getMaxLinePx(layout.autoCoord.Size.X, multiline, linewrapping)
 		mx, my = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
 
 		//when vertical scroll will be show, the max_line_px must be smaller
 		if (my * prop.lineH) > layout.scrollV.screen_height {
-			max_line_px = tx.coordText.Size.X - layout.scrollV._GetWidth(layout.ui) //minus scroller width
+			max_line_px = layout.autoCoord.Size.X - layout.scrollV._GetWidth(layout.ui) //minus scroller width
 
-			max_line_px = layout.ui._UiText_getMaxLinePx(max_line_px, tx.Multiline, tx.Linewrapping)
+			max_line_px = layout.ui._UiText_getMaxLinePx(max_line_px, multiline, linewrapping)
 			mx, my = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
 		}
 
@@ -1123,12 +1121,12 @@ func (layout *Layout) resizeFromPaintText() (changed bool) {
 	}
 
 	sizePx := OsV2{mx, my * prop.lineH}
-	sizePx.X += layout.ui.CellWidth(tx.Margin[2]) + layout.ui.CellWidth(tx.Margin[3])
-	sizePx.Y += layout.ui.CellWidth(tx.Margin[0]) + layout.ui.CellWidth(tx.Margin[1])
+	sizePx.X += layout.ui.CellWidth(margin[2]) + layout.ui.CellWidth(margin[3])
+	sizePx.Y += layout.ui.CellWidth(margin[0]) + layout.ui.CellWidth(margin[1])
 	size_x := float64(sizePx.X) / float64(layout.Cell())
 	size_y := float64(sizePx.Y) / float64(layout.Cell())
-	//	size_x := float64(sizePx.X)/float64(layout.Cell()) + 2*tx.Margin
-	//	size_y := float64(sizePx.Y)/float64(layout.Cell()) + 2*tx.Margin
+	//	size_x := float64(sizePx.X)/float64(layout.Cell()) + 2*margin
+	//	size_y := float64(sizePx.Y)/float64(layout.Cell()) + 2*margin
 
 	//column
 	{
@@ -1142,7 +1140,7 @@ func (layout *Layout) resizeFromPaintText() (changed bool) {
 	}
 
 	//row
-	if tx.Multiline {
+	if multiline {
 		changed = (len(layout.UserRows) == 0 || layout.UserRows[0].Min != size_y || layout.UserRows[0].Max != size_y)
 
 		if len(layout.UserRows) == 0 {
@@ -1174,8 +1172,8 @@ func (layout *Layout) textComp() {
 			prop.formating = tx.Formating
 
 			var coordText OsV4
-			if layout.UserCRFromText != nil {
-				coordText = layout.UserCRFromText.coordText
+			if layout.fnAutoResize != nil {
+				coordText = layout.autoCoord
 			} else {
 				coordText = layout.getCanvasPx(rect).Inner(layout.ui.CellWidth(tx.Margin[0]), layout.ui.CellWidth(tx.Margin[1]), layout.ui.CellWidth(tx.Margin[2]), layout.ui.CellWidth(tx.Margin[3]))
 			}
@@ -1809,17 +1807,13 @@ func (layout *Layout) updateCoord(rx, ry, rw, rh float64) {
 	layout.canvas = layout.canvas.Extend(layout.view)
 
 	//update text
-	txt := layout.UserCRFromText
-	if txt != nil {
-		/*txt.coordText = layout.canvas.Crop(layout.ui.CellWidth(txt.Margin))
-		if txt.coordText.Size.X == 0 {
-			txt.coordText.Size.X = layout.parent.canvas.Size.X - 2*layout.ui.CellWidth(txt.Margin) //from parent
-		}*/
+	if layout.fnGetAutoResizeMargin != nil {
+		margin := layout.fnGetAutoResizeMargin()
 
-		txt.coordText = layout.canvas.Inner(layout.ui.CellWidth(txt.Margin[0]), layout.ui.CellWidth(txt.Margin[1]), layout.ui.CellWidth(txt.Margin[2]), layout.ui.CellWidth(txt.Margin[3]))
-		if txt.coordText.Size.X == 0 {
+		layout.autoCoord = layout.canvas.Inner(layout.ui.CellWidth(margin[0]), layout.ui.CellWidth(margin[1]), layout.ui.CellWidth(margin[2]), layout.ui.CellWidth(margin[3]))
+		if layout.autoCoord.Size.X == 0 {
 			//from parent
-			txt.coordText = layout.parent.canvas.Inner(layout.ui.CellWidth(txt.Margin[0]), layout.ui.CellWidth(txt.Margin[1]), layout.ui.CellWidth(txt.Margin[2]), layout.ui.CellWidth(txt.Margin[3]))
+			layout.autoCoord = layout.parent.canvas.Inner(layout.ui.CellWidth(margin[0]), layout.ui.CellWidth(margin[1]), layout.ui.CellWidth(margin[2]), layout.ui.CellWidth(margin[3]))
 		}
 	}
 }

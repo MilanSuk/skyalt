@@ -37,12 +37,16 @@ func (layout *Layout) AddButton(x, y, w, h int, label string) *Button {
 	props := &Button{Value: label, Align: 1, Background: 1}
 	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
+	lay.fnAutoResize = props.autoResize
+	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
 	return props
 }
 func (layout *Layout) AddButton2(x, y, w, h int, label string) (*Button, *Layout) {
 	props := &Button{Value: label, Align: 1, Background: 1}
 	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
+	lay.fnAutoResize = props.autoResize
+	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
 	return props, lay
 }
 
@@ -50,26 +54,25 @@ func (layout *Layout) AddButtonMenu(x, y, w, h int, label string, icon_path stri
 	props := &Button{Value: label, IconPath: icon_path, Icon_margin: icon_margin, Align: 0, Background: 0.25}
 	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
+	lay.fnAutoResize = props.autoResize
+	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
 	return props
-}
-
-func (layout *Layout) AddButtonMenu2(x, y, w, h int, label string, icon_path string, icon_margin float64) (*Button, *Layout) {
-	props := &Button{Value: label, IconPath: icon_path, Icon_margin: icon_margin, Align: 0, Background: 0.25}
-	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
-	lay.fnHasShortcut = props.HasShortcut
-	return props, lay
 }
 
 func (layout *Layout) AddButtonIcon(x, y, w, h int, icon_path string, icon_margin float64, Tooltip string) *Button {
 	props := &Button{IconPath: icon_path, Icon_align: 1, Icon_margin: icon_margin, Tooltip: Tooltip, Background: 1}
 	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
+	lay.fnAutoResize = props.autoResize
+	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
 	return props
 }
 func (layout *Layout) AddButtonIcon2(x, y, w, h int, icon_path string, icon_margin float64, Tooltip string) (*Button, *Layout) {
 	props := &Button{IconPath: icon_path, Icon_align: 1, Icon_margin: icon_margin, Tooltip: Tooltip, Background: 1}
 	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
+	lay.fnAutoResize = props.autoResize
+	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
 	return props, lay
 }
 
@@ -77,16 +80,14 @@ func (layout *Layout) AddButtonDanger(x, y, w, h int, label string) *Button {
 	props := &Button{Value: label, Align: 1, Background: 1, Cd: layout.GetPalette().E}
 	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
+	lay.fnAutoResize = props.autoResize
+	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
 	return props
 }
 
 func (st *Button) Build(layout *Layout) {
-
-	layout.UserCRFromText = st.addPaintText(st.Cd, st.Cd, st.Cd, &LayoutPaint{})
-
 	layout.scrollV.Show = false
 	layout.scrollH.Show = false
-
 }
 
 func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
@@ -197,10 +198,7 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	if st.IconPath != "" || len(st.IconBlob) > 0 {
 		rectIcon := rectLabel
 
-		icon_w := rectIcon.W
-		if icon_w > 1 {
-			icon_w = 1
-		}
+		icon_w := OsMinFloat(1, rectIcon.W)
 
 		switch st.Icon_align {
 		case 0:
@@ -229,7 +227,10 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	//draw label
 	if st.Value != "" {
-		st.addPaintText(cdText, cdText_over, cdText_down, &paint) //rectLabel.Cut(0.1)
+		tx := paint.Text(Rect{}, st.Value, "", cdText, cdText_over, cdText_down, false, false, uint8(st.Align), 1)
+		tx.Multiline = true
+		tx.Linewrapping = false
+		tx.Margin = st.getAutoResizeMargin()
 	}
 
 	//draw border
@@ -238,36 +239,6 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	}
 
 	return
-}
-
-func (st *Button) addPaintText(cdText, cdText_over, cdText_down color.RGBA, paint *LayoutPaint) *LayoutDrawText {
-
-	if st.Value == "" {
-		return nil
-	}
-
-	tx := paint.Text(Rect{}, st.Value, "", cdText, cdText_over, cdText_down, false, false, uint8(st.Align), 1)
-	tx.Multiline = true
-
-	m := (1 - WinFontProps_GetDefaultLineH()) / 2
-	tx.Margin[0] = m
-	tx.Margin[1] = m
-	tx.Margin[2] = m
-	tx.Margin[3] = m
-
-	if st.IconPath != "" || len(st.IconBlob) > 0 {
-		switch st.Icon_align {
-		case 0:
-			tx.Margin[2] = 1 //left
-		case 1:
-			//full rect
-		case 2:
-			tx.Margin[3] = 1 //right
-		}
-
-	}
-
-	return tx
 }
 
 func (st *Button) Input(in LayoutInput, layout *Layout) {
@@ -292,6 +263,25 @@ func (st *Button) Input(in LayoutInput, layout *Layout) {
 	if st.BrowserUrl != "" && clicked {
 		OsOpenBrowser(st.BrowserUrl)
 	}
+}
+
+func (st *Button) autoResize(layout *Layout) bool {
+	return layout.resizeFromPaintText(st.Value, true, false, st.getAutoResizeMargin())
+}
+func (st *Button) getAutoResizeMargin() [4]float64 {
+	m := (1 - WinFontProps_GetDefaultLineH()) / 2
+	margin := [4]float64{m, m, m, m}
+
+	if st.IconPath != "" || len(st.IconBlob) > 0 {
+		switch st.Icon_align {
+		case 0:
+			margin[2] += 1 //left
+		case 2:
+			margin[3] += 1 //right
+		}
+	}
+
+	return margin
 }
 
 func (st *Button) HasShortcut(key byte) bool {

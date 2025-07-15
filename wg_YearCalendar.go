@@ -19,7 +19,7 @@ func (layout *Layout) AddYearCalendar(x, y, w, h int, Year int) *YearCalendar {
 func (st *YearCalendar) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1, 100)
-	layout.SetRowFromSub(1, 5, 100)
+	layout.SetRowFromSub(1, 5, 100, true)
 
 	layout.AddText(0, 0, 1, 1, fmt.Sprintf("<b>Year: %d</b>", st.Year)).Align_h = 1
 

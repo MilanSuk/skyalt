@@ -462,7 +462,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 
 	for _, col := range ui.Cols {
 		if col.SetFromChild_min > 0 || col.SetFromChild_max > 0 {
-			layout.SetColumnFromSub(col.Pos, col.SetFromChild_min, col.SetFromChild_max)
+			layout.SetColumnFromSub(col.Pos, col.SetFromChild_min, col.SetFromChild_max, true)
 		} else {
 			if col.Default_resize > 0 {
 				layout.SetColumnResizable(col.Pos, col.Min, col.Max, col.Default_resize)
@@ -474,7 +474,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 	}
 	for _, row := range ui.Rows {
 		if row.SetFromChild_min > 0 || row.SetFromChild_max > 0 {
-			layout.SetRowFromSub(row.Pos, row.SetFromChild_min, row.SetFromChild_max)
+			layout.SetRowFromSub(row.Pos, row.SetFromChild_min, row.SetFromChild_max, true)
 		} else {
 			if row.Default_resize > 0 {
 				layout.SetRowResizable(row.Pos, row.Min, row.Max, row.Default_resize)

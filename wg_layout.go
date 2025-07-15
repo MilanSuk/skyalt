@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"image/color"
 	"path/filepath"
-	"runtime"
 	"time"
 )
 
@@ -136,9 +135,9 @@ func (layout *Layout) AddDialogBorder(name string, title string, width float64) 
 	if width > 0 {
 		lay.SetColumn(1, 1, width)
 	} else {
-		lay.SetColumnFromSub(1, 1, 100)
+		lay.SetColumnFromSub(1, 1, 100, true)
 	}
-	lay.SetRowFromSub(1, 1, 100)
+	lay.SetRowFromSub(1, 1, 100, true)
 	lay.SetColumn(2, 1, 1)
 	lay.SetRow(2, 1, 1)
 
@@ -149,12 +148,8 @@ func (layout *Layout) AddDialogBorder(name string, title string, width float64) 
 }
 
 func (layout *Layout) SetColumn(grid_x int, min_size, max_size float64) {
-	_, caller_file, caller_line, ok := runtime.Caller(1)
-	if !ok {
-		fmt.Println("runtime.Caller failed")
-	}
+	newItem := LayoutCR{Pos: grid_x, Min: min_size, Max: max_size}
 
-	newItem := LayoutCR{Pos: grid_x, Min: min_size, Max: max_size, Caller_file: _extractFileName(caller_file), Caller_line: caller_line}
 	for i := range layout.UserCols {
 		if layout.UserCols[i].Pos == grid_x {
 			layout.UserCols[i] = newItem
@@ -166,12 +161,7 @@ func (layout *Layout) SetColumn(grid_x int, min_size, max_size float64) {
 }
 
 func (layout *Layout) SetRow(grid_y int, min_size, max_size float64) {
-	_, caller_file, caller_line, ok := runtime.Caller(1)
-	if !ok {
-		fmt.Println("runtime.Caller failed")
-	}
-
-	newItem := LayoutCR{Pos: grid_y, Min: min_size, Max: max_size, Caller_file: _extractFileName(caller_file), Caller_line: caller_line}
+	newItem := LayoutCR{Pos: grid_y, Min: min_size, Max: max_size}
 
 	for i := range layout.UserRows {
 		if layout.UserRows[i].Pos == grid_y {
@@ -183,13 +173,8 @@ func (layout *Layout) SetRow(grid_y int, min_size, max_size float64) {
 	layout.UserRows = append(layout.UserRows, newItem)
 }
 
-func (layout *Layout) SetColumnFromSub(grid_x int, min_size, max_size float64) {
-	_, caller_file, caller_line, ok := runtime.Caller(1)
-	if !ok {
-		fmt.Println("runtime.Caller failed")
-	}
-
-	newItem := LayoutCR{Pos: grid_x, SetFromChild_min: min_size, SetFromChild_max: max_size, Caller_file: _extractFileName(caller_file), Caller_line: caller_line}
+func (layout *Layout) SetColumnFromSub(grid_x int, min_size, max_size float64, fix bool) {
+	newItem := LayoutCR{Pos: grid_x, SetFromChild_min: min_size, SetFromChild_max: max_size, SetFromChild_fix: fix}
 
 	for i := range layout.UserCols {
 		if layout.UserCols[i].Pos == grid_x {
@@ -201,13 +186,8 @@ func (layout *Layout) SetColumnFromSub(grid_x int, min_size, max_size float64) {
 	layout.UserCols = append(layout.UserCols, newItem)
 }
 
-func (layout *Layout) SetRowFromSub(grid_y int, min_size, max_size float64) {
-	_, caller_file, caller_line, ok := runtime.Caller(1)
-	if !ok {
-		fmt.Println("runtime.Caller failed")
-	}
-
-	newItem := LayoutCR{Pos: grid_y, SetFromChild_min: min_size, SetFromChild_max: max_size, Caller_file: _extractFileName(caller_file), Caller_line: caller_line}
+func (layout *Layout) SetRowFromSub(grid_y int, min_size, max_size float64, fix bool) {
+	newItem := LayoutCR{Pos: grid_y, SetFromChild_min: min_size, SetFromChild_max: max_size, SetFromChild_fix: fix}
 
 	for i := range layout.UserRows {
 		if layout.UserRows[i].Pos == grid_y {
@@ -220,21 +200,11 @@ func (layout *Layout) SetRowFromSub(grid_y int, min_size, max_size float64) {
 }
 
 func (layout *Layout) SetColumnResizable(grid_x int, min_size, max_size, default_size float64) {
-	_, caller_file, caller_line, ok := runtime.Caller(1)
-	if !ok {
-		fmt.Println("runtime.Caller failed")
-	}
-
-	layout.UserCols = append(layout.UserCols, LayoutCR{Pos: grid_x, Min: min_size, Max: max_size, Resize_value: default_size, Caller_file: _extractFileName(caller_file), Caller_line: caller_line})
+	layout.UserCols = append(layout.UserCols, LayoutCR{Pos: grid_x, Min: min_size, Max: max_size, Resize_value: default_size})
 
 }
 func (layout *Layout) SetRowResizable(grid_y int, min_size, max_size, default_size float64) {
-	_, caller_file, caller_line, ok := runtime.Caller(1)
-	if !ok {
-		fmt.Println("runtime.Caller failed")
-	}
-
-	layout.UserRows = append(layout.UserRows, LayoutCR{Pos: grid_y, Min: min_size, Max: max_size, Resize_value: default_size, Caller_file: _extractFileName(caller_file), Caller_line: caller_line})
+	layout.UserRows = append(layout.UserRows, LayoutCR{Pos: grid_y, Min: min_size, Max: max_size, Resize_value: default_size})
 }
 
 func (paint *LayoutPaint) Rect(rect Rect, cd, cd_over, cd_down color.RGBA, borderWidth float64) *LayoutDrawRect {

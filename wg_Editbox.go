@@ -31,25 +31,21 @@ type Editbox struct {
 
 func (layout *Layout) AddEditbox(x, y, w, h int, valuePointer interface{}) *Editbox {
 	props := &Editbox{ValuePointer: valuePointer, Align_v: 1, Formating: true, ValueFloatPrec: 2, Cd: layout.GetPalette().OnB}
-	layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
+	lay.fnAutoResize = props.autoResize
+	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
 	return props
 }
 func (layout *Layout) AddEditbox2(x, y, w, h int, valuePointer interface{}) (*Editbox, *Layout) {
 	props := &Editbox{ValuePointer: valuePointer, Align_v: 1, Formating: true, ValueFloatPrec: 2, Cd: layout.GetPalette().OnB}
 	lay := layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
+	lay.fnAutoResize = props.autoResize
+	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
 	return props, lay
-}
-
-func (layout *Layout) AddEditboxMultiline(x, y, w, h int, value *string) *Editbox {
-	props := &Editbox{ValuePointer: value, Formating: true, Multiline: true, Linewrapping: true, Cd: layout.GetPalette().OnB}
-	layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
-	return props
 }
 
 func (st *Editbox) Build(layout *Layout) {
 	layout.Back_rounding = true //for disable
-
-	layout.UserCRFromText = st.addPaintText(&LayoutPaint{})
 
 	st.buildContextDialog(layout)
 
@@ -92,7 +88,13 @@ func (st *Editbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	paint.RectRad(rect, cd, cd, cd, 0, layout.getRounding())
 
 	//text
-	st.addPaintText(&paint)
+	tx := paint.Text(Rect{}, st.getValue(), st.Ghost, st.Cd, st.Cd, st.Cd, true, true, uint8(st.Align_h), uint8(st.Align_v))
+	tx.Formating = st.Formating
+	tx.Multiline = st.Multiline
+	tx.Linewrapping = st.Linewrapping
+	tx.Refresh = st.Refresh
+	tx.Password = st.Password
+	tx.Margin = st.getAutoResizeMargin()
 
 	return
 }
@@ -109,20 +111,16 @@ func (st *Editbox) Input(in LayoutInput, layout *Layout) {
 	}
 }
 
-func (st *Editbox) addPaintText(paint *LayoutPaint) *LayoutDrawText {
-	tx := paint.Text(Rect{}, st.getValue(), st.Ghost, st.Cd, st.Cd, st.Cd, true, true, uint8(st.Align_h), uint8(st.Align_v))
-	tx.Formating = st.Formating
-	tx.Multiline = st.Multiline
-	tx.Linewrapping = st.Linewrapping
-	tx.Refresh = st.Refresh
-	tx.Password = st.Password
-
+func (st *Editbox) autoResize(layout *Layout) bool {
+	value := st.getValue()
+	if layout.ui.edit.Is(layout) {
+		value = layout.ui.edit.temp
+	}
+	return layout.resizeFromPaintText(value, st.Multiline, st.Linewrapping, st.getAutoResizeMargin())
+}
+func (st *Editbox) getAutoResizeMargin() [4]float64 {
 	m := (1 - WinFontProps_GetDefaultLineH()) / 2
-	tx.Margin[0] = m
-	tx.Margin[1] = m
-	tx.Margin[2] = m
-	tx.Margin[3] = m
-	return tx
+	return [4]float64{m, m, m, m}
 }
 
 func (st *Editbox) setValueAdd(value string) bool {

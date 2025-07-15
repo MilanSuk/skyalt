@@ -19,21 +19,19 @@ func (layout *Layout) AddCombo(x, y, w, h int, value *string, labels []string, v
 
 func (st *Combo) Build(layout *Layout) {
 
-	layout.SetColumn(0, 1, 100)
+	layout.SetColumnFromSub(0, 1, 100, false)
 
 	cdialog := layout.AddDialog("dialog")
 
 	//button
-	bt := layout.AddButton(0, 0, 1, 1, Combo_getValueLabel(*st.Value, st.Values, st.Labels)) //from scratch every frame => easy to debug. Hold
+	bt := layout.AddButton(0, 0, 1, 1, Combo_getValueLabel(*st.Value, st.Values, st.Labels))
 	bt.Tooltip = *st.Value
-
 	bt.IconPath = "resources/arrow_down.png"
 	bt.Icon_margin = 0.1
 	bt.Icon_align = 2
 	bt.Align = 0
 	bt.Background = 0
 	bt.Border = true
-
 	bt.clicked = func() {
 		cdialog.OpenRelative(layout.UID)
 	}
@@ -47,7 +45,7 @@ func (st *Combo) Build(layout *Layout) {
 
 	//dialog
 	{
-		cdialog.Layout.SetColumnFromSub(0, 1, 15)
+		cdialog.Layout.SetColumnFromSub(0, 1, 15, true)
 		for i, name := range st.Labels {
 
 			bt := cdialog.Layout.AddButton(0, i, 1, 1, name)

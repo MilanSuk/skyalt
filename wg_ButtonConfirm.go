@@ -45,7 +45,7 @@ func (st *ButtonConfirm) Build(layout *Layout) {
 
 	dia := layout.AddDialog("confirm")
 	{
-		dia.Layout.SetColumnFromSub(0, 6, 20)
+		dia.Layout.SetColumnFromSub(0, 6, 20, true)
 
 		tx := dia.Layout.AddText(0, 0, 1, 1, st.Question)
 		tx.Align_h = 1

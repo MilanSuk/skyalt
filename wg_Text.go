@@ -22,6 +22,10 @@ type Text struct {
 func (layout *Layout) AddText2(x, y, w, h int, value string) (*Text, *Layout) {
 	props := &Text{Value: value, Align_v: 1, Selection: true, Formating: true, Cd: layout.GetPalette().OnB}
 	lay := layout._createDiv(x, y, w, h, "Text", props.Build, props.Draw, props.Input)
+
+	lay.fnAutoResize = props.autoResize
+	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
+
 	return props, lay
 }
 
@@ -30,16 +34,7 @@ func (layout *Layout) AddText(x, y, w, h int, value string) *Text {
 	return props
 }
 
-func (layout *Layout) AddTextMultiline(x, y, w, h int, value string) *Text {
-	props := &Text{Value: value, Selection: true, Formating: true, Multiline: true, Linewrapping: true, Cd: layout.GetPalette().OnB}
-	layout._createDiv(x, y, w, h, "Text", props.Build, props.Draw, props.Input)
-	return props
-}
-
 func (st *Text) Build(layout *Layout) {
-
-	layout.UserCRFromText = st.addPaintText(&LayoutPaint{})
-
 	st.buildContextDialog(layout)
 	if !st.Multiline {
 		layout.scrollH.Narrow = true
@@ -55,7 +50,11 @@ func (st *Text) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	//draw text
 	if st.Value != "" {
-		st.addPaintText(&paint)
+		tx := paint.Text(Rect{}, st.Value, "", st.Cd, st.Cd, st.Cd, st.Selection, false, uint8(st.Align_h), uint8(st.Align_v))
+		tx.Formating = st.Formating
+		tx.Multiline = st.Multiline
+		tx.Linewrapping = st.Linewrapping
+		tx.Margin = st.getAutoResizeMargin()
 	}
 
 	return
@@ -73,18 +72,12 @@ func (st *Text) Input(in LayoutInput, layout *Layout) {
 	}
 }
 
-func (st *Text) addPaintText(paint *LayoutPaint) *LayoutDrawText {
-	tx := paint.Text(Rect{}, st.Value, "", st.Cd, st.Cd, st.Cd, st.Selection, false, uint8(st.Align_h), uint8(st.Align_v))
-	tx.Formating = st.Formating
-	tx.Multiline = st.Multiline
-	tx.Linewrapping = st.Linewrapping
-
+func (st *Text) autoResize(layout *Layout) bool {
+	return layout.resizeFromPaintText(st.Value, st.Multiline, st.Linewrapping, st.getAutoResizeMargin())
+}
+func (st *Text) getAutoResizeMargin() [4]float64 {
 	m := (1 - WinFontProps_GetDefaultLineH()) / 2
-	tx.Margin[0] = m
-	tx.Margin[1] = m
-	tx.Margin[2] = m
-	tx.Margin[3] = m
-	return tx
+	return [4]float64{m, m, m, m}
 }
 
 func (st *Text) buildContextDialog(layout *Layout) {
