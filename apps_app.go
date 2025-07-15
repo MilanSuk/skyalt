@@ -222,6 +222,8 @@ func (app *ToolsApp) Tick(generate bool) error {
 		app.Prompts.refresh = true
 	}
 
+	restart := false
+
 	if !hasPrompts {
 		msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
 		defer msg.Done()
@@ -236,6 +238,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 			return err
 		}
 		app.Prompts.SetCodeErrors(codeErrors)
+		restart = true
 	} else {
 
 		/*app.Prompts.Changed = (app.Process.Compile.SdkFileTime != sdkFileTime || binFileMissing)
@@ -255,6 +258,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 					return err
 				}
 				app.Prompts.SetCodeErrors(codeErrors)
+				restart = true
 			}
 		} else {
 			saved, err := app.Prompts._reloadFromPromptFile(app.Process.Compile.GetFolderPath())
@@ -328,21 +332,24 @@ func (app *ToolsApp) Tick(generate bool) error {
 					}
 				}
 			}
+			restart = true
 		}
 	}
 
-	err = app.StopProcess(true) //stop it
-	if err != nil {
-		return err
-	}
-	err = app.Process.Compile.RemoveOldBins()
-	if err != nil {
-		return err
-	}
+	if restart {
+		err = app.StopProcess(true) //stop it
+		if err != nil {
+			return err
+		}
+		err = app.Process.Compile.RemoveOldBins()
+		if err != nil {
+			return err
+		}
 
-	err = app.Prompts.UpdateSchemas()
-	if err != nil {
-		return err
+		err = app.Prompts.UpdateSchemas()
+		if err != nil {
+			return err
+		}
 	}
 
 	//save 'tools.json'
