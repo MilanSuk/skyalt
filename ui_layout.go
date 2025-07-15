@@ -915,7 +915,7 @@ func (layout *Layout) renderBuffer(buffer []LayoutDrawPrim) (hasBrush bool) {
 				if layout.ui.router.services.mic.Find(layout.UID) != nil {
 					cd = layout.GetPalette().E
 				}
-				buff.AddRectRound(layout.crop, rounding, cd, layout.ui.CellWidth(width))
+				buff.AddRectRound(layout.canvas, rounding, cd, layout.ui.CellWidth(width))
 			}
 		}
 
@@ -1121,6 +1121,7 @@ func (layout *Layout) resizeFromPaintText() (changed bool) {
 		mx = layout.ui.win.GetTextSize(-1, value, prop).X
 		my = 1
 	}
+
 	sizePx := OsV2{mx, my * prop.lineH}
 	sizePx.X += layout.ui.CellWidth(tx.Margin[2]) + layout.ui.CellWidth(tx.Margin[3])
 	sizePx.Y += layout.ui.CellWidth(tx.Margin[0]) + layout.ui.CellWidth(tx.Margin[1])
