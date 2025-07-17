@@ -474,7 +474,7 @@ func main() {
 							if Tool_Error(err) == nil {
 								ok = true
 								go func() {
-									ui := _newUIItem(0, 0, 1, 1)
+									ui := _newUIItem(0, 0, 1, 1, "")
 									ui.UID = caller.ui_uid
 
 									if len(paramsJs) == 0 {
@@ -1138,8 +1138,8 @@ func (caller *ToolCaller) _addCmd(cmd ToolCmd) {
 	caller.cmds = append(caller.cmds, cmd)
 }
 
-func _newUIItem(x, y, w, h int) *UI {
-	item := &UI{X: x, Y: y, W: w, H: h}
+func _newUIItem(x, y, w, h int, tooltip string) *UI {
+	item := &UI{X: x, Y: y, W: w, H: h, Tooltip: tooltip}
 
 	item.Enable = true
 	item.EnableTouch = true
@@ -1178,8 +1178,13 @@ func (parent *UI) _addUILine(sub *UI) {
 	if parent.table {
 		//table's line
 		if len(parent.Cols) <= parent.temp_col {
-			parent.SetColumnFromSub(parent.temp_col, 1, 100)
+			parent.SetColumnFromSub(parent.temp_col, 1, 100, false) //fix as parent.table_fix? ....
 		}
+
+		if len(parent.TooltipGroups) > 0 {
+			parent.TooltipGroups[len(parent.TooltipGroups)-1].W = parent.temp_col //expand line tooltip
+		}
+
 		parent.temp_col++
 
 	} else {
@@ -1799,13 +1804,20 @@ func (client *ToolClient) WriteArray(data []byte) error {
 
 //--- Ui ---
 
+type UITooltip struct {
+	X, Y, W, H int
+	Tooltip    string
+}
+
 type UI struct {
 	AppName  string `json:",omitempty"`
 	FuncName string `json:",omitempty"`
 
 	UID        uint64
 	X, Y, W, H int
-	LLMTip     string `json:",omitempty"`
+
+	Tooltip       string //for layout
+	TooltipGroups []UITooltip
 
 	Cols  []UIGridSize
 	Rows  []UIGridSize
@@ -1860,110 +1872,117 @@ func (ui *UI) setRowHeight(min, max float64) {
 	ui.SetRow(ui.temp_row, min, max)
 }
 
-func (ui *UI) addTable() *UITable {
-	item := &UITable{layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addTooltipGroup(x, y, w, h int, tooltip string) {
+	ui.TooltipGroups = append(ui.TooltipGroups, UITooltip{X: x, Y: y, W: w, H: h, Tooltip: tooltip})
+}
+
+func (ui *UI) addTable(tooltip string) *UITable {
+	item := &UITable{layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.temp_row = -1
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100)
+	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
 	ui._addUILine(item.layout)
 	return item
 }
-func (table *UITable) addLine() *UI {
+
+func (table *UITable) addLine(tooltip string) *UI {
 	table.layout.table = true
 
 	table.layout.temp_col = 0
 	table.layout.temp_row++
 
+	table.layout.addTooltipGroup(table.layout.temp_col, table.layout.temp_row, 1, 1, tooltip)
+
 	return table.layout
 }
 func (table *UITable) addDivider() {
-	ln := table.addLine()
+	ln := table.addLine("")
 	ln.AddDivider(ln.temp_col, ln.temp_row, 1, ln.temp_col+len(ln.Cols), true)
 }
 
 func (ui *UI) addTextH1(label string) *UIText {
-	return ui.addText("<h1>" + label + "</h1>")
+	return ui.addText("<h1>"+label+"</h1>", "")
 }
 func (ui *UI) addTextH2(label string) *UIText {
-	return ui.addText("<h2>" + label + "</h2>")
+	return ui.addText("<h2>"+label+"</h2>", "")
 }
-func (ui *UI) addText(label string) *UIText {
-	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addText(label string, tooltip string) *UIText {
+	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, "")}
 	item.layout.Text = item
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100)
+	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addEditboxString(value *string) *UIEditbox {
-	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addEditboxString(value *string, tooltip string) *UIEditbox {
+	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100)
+	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addEditboxInt(value *int) *UIEditbox {
-	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addEditboxInt(value *int, tooltip string) *UIEditbox {
+	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100)
+	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addEditboxFloat(value *float64, precision int) *UIEditbox {
-	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addEditboxFloat(value *float64, precision int, tooltip string) *UIEditbox {
+	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100)
+	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addButton(label string) *UIButton {
-	item := &UIButton{Label: label, Background: 1, Align: 1, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addButton(label string, tooltip string) *UIButton {
+	item := &UIButton{Label: label, Background: 1, Align: 1, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Button = item
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100)
+	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addCombo(value *string, labels []string, values []string) *UICombo {
-	item := &UICombo{Value: value, Labels: labels, Values: values, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addCombo(value *string, labels []string, values []string, tooltip string) *UICombo {
+	item := &UICombo{Value: value, Labels: labels, Values: values, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Combo = item
 	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addSwitch(label string, value *bool) *UISwitch {
-	item := &UISwitch{Label: label, Value: value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addSwitch(label string, value *bool, tooltip string) *UISwitch {
+	item := &UISwitch{Label: label, Value: value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Switch = item
 	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addCheckbox(label string, value *float64) *UICheckbox {
-	item := &UICheckbox{Label: label, Value: value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addCheckbox(label string, value *float64, tooltip string) *UICheckbox {
+	item := &UICheckbox{Label: label, Value: value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Checkbox = item
 	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addSlider(value *float64, min, max, step float64) *UISlider {
-	item := &UISlider{Value: value, Min: min, Max: max, Step: step, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addSlider(value *float64, min, max, step float64, tooltip string) *UISlider {
+	item := &UISlider{Value: value, Min: min, Max: max, Step: step, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Slider = item
 	ui._addUILine(item.layout)
 	return item
 }
 
 func (ui *UI) addDivider(horizontal bool) *UIDivider {
-	item := &UIDivider{Horizontal: horizontal, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+	item := &UIDivider{Horizontal: horizontal, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, "")}
 	item.layout.Divider = item
 	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addMap(lon, lat, zoom *float64) *UIMap {
-	item := &UIMap{Lon: lon, Lat: lat, Zoom: zoom, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addMap(lon, lat, zoom *float64, tooltip string) *UIMap {
+	item := &UIMap{Lon: lon, Lat: lat, Zoom: zoom, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Map = item
 	ui._addUILine(item.layout)
 	return item
@@ -1976,52 +1995,52 @@ func (mp *UIMap) addRoute(route UIMapRoute) {
 }
 
 func (ui *UI) addYearCalendar(Year int) *UIYearCalendar {
-	item := &UIYearCalendar{Year: Year, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+	item := &UIYearCalendar{Year: Year, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, "")}
 	item.layout.YearCalendar = item
 	ui._addUILine(item.layout)
 
-	ui.SetRowFromSub(ui.temp_row-1, 1, 100)
+	ui.SetRowFromSub(ui.temp_row-1, 1, 100, true)
 	return item
 }
 
 func (ui *UI) addMonthCalendar(Year int, Month int, Events []UICalendarEvent) *UIMonthCalendar {
-	item := &UIMonthCalendar{Year: Year, Month: Month, Events: Events, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+	item := &UIMonthCalendar{Year: Year, Month: Month, Events: Events, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, "")}
 	item.layout.MonthCalendar = item
 	ui._addUILine(item.layout)
 
-	ui.SetRowFromSub(ui.temp_row-1, 1, 100)
+	ui.SetRowFromSub(ui.temp_row-1, 1, 100, true)
 	return item
 }
 func (ui *UI) addDayCalendar(Days []int64, Events []UICalendarEvent) *UIDayCalendar {
-	item := &UIDayCalendar{Days: Days, Events: Events, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+	item := &UIDayCalendar{Days: Days, Events: Events, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, "")}
 	item.layout.DayCalendar = item
 	ui._addUILine(item.layout)
 
-	ui.SetRowFromSub(ui.temp_row-1, 1, 100)
+	ui.SetRowFromSub(ui.temp_row-1, 1, 100, true)
 	return item
 }
 
-func (ui *UI) addFilePickerButton(path *string, preview bool, onlyFolders bool) *UIFilePickerButton {
-	item := &UIFilePickerButton{Path: path, Preview: preview, OnlyFolders: onlyFolders, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addFilePickerButton(path *string, preview bool, onlyFolders bool, tooltip string) *UIFilePickerButton {
+	item := &UIFilePickerButton{Path: path, Preview: preview, OnlyFolders: onlyFolders, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.FilePickerButton = item
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addDatePickerButton(date *int64, page *int64, showTime bool) *UIDatePickerButton {
-	item := &UIDatePickerButton{Date: date, Page: page, ShowTime: showTime, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addDatePickerButton(date *int64, page *int64, showTime bool, tooltip string) *UIDatePickerButton {
+	item := &UIDatePickerButton{Date: date, Page: page, ShowTime: showTime, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.DatePickerButton = item
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addColorPickerButton(cd *color.RGBA) *UIColorPickerButton {
-	item := &UIColorPickerButton{Cd: cd, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addColorPickerButton(cd *color.RGBA, tooltip string) *UIColorPickerButton {
+	item := &UIColorPickerButton{Cd: cd, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.ColorPickerButton = item
 	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addChartLines(Lines []UIChartLine) *UIChartLines {
-	item := &UIChartLines{Lines: Lines, Point_rad: 0.2, Line_thick: 0.03, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addChartLines(Lines []UIChartLine, tooltip string) *UIChartLines {
+	item := &UIChartLines{Lines: Lines, Point_rad: 0.2, Line_thick: 0.03, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.ChartLines = item
 
 	ui.SetRow(ui.temp_row, 5, 20)
@@ -2029,8 +2048,8 @@ func (ui *UI) addChartLines(Lines []UIChartLine) *UIChartLines {
 
 	return item
 }
-func (ui *UI) addChartColumns(columns []UIChartColumn, x_labels []string) *UIChartColumns {
-	item := &UIChartColumns{Columns: columns, X_Labels: x_labels, ColumnMargin: 0.2, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1)}
+func (ui *UI) addChartColumns(columns []UIChartColumn, x_labels []string, tooltip string) *UIChartColumns {
+	item := &UIChartColumns{Columns: columns, X_Labels: x_labels, ColumnMargin: 0.2, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.ChartColumns = item
 
 	ui.SetRow(ui.temp_row, 5, 20)
@@ -2043,12 +2062,12 @@ type UITable struct {
 }
 
 type UIText struct {
-	layout  *UI
+	layout *UI
+
 	Label   string
 	Align_h int
 	Align_v int
 	Cd      color.RGBA
-	Tooltip string
 
 	Selection    bool
 	Formating    bool
@@ -2062,14 +2081,14 @@ type UIText struct {
 	dropFile func(pathes []string) error
 }
 type UIEditbox struct {
-	layout     *UI
+	layout *UI
+
 	Name       string
 	Value      *string
 	ValueFloat *float64
 	ValueInt   *int
 	Precision  int
 	Ghost      string
-	Tooltip    string
 	Password   bool
 
 	Align_h int //0=left, 1=center, 2=right
@@ -2086,18 +2105,19 @@ type UIEditbox struct {
 }
 type UISlider struct {
 	layout *UI
-	Value  *float64
-	Min    float64
-	Max    float64
-	Step   float64
+
+	Value *float64
+	Min   float64
+	Max   float64
+	Step  float64
 
 	changed func() error
 }
 type UIButton struct {
-	layout  *UI
-	Label   string
-	Tooltip string
-	Align   int
+	layout *UI
+
+	Label string
+	Align int
 
 	Shortcut byte
 
@@ -2124,7 +2144,8 @@ type UIButton struct {
 }
 
 type UIFilePickerButton struct {
-	layout      *UI
+	layout *UI
+
 	Path        *string
 	Preview     bool
 	OnlyFolders bool
@@ -2132,20 +2153,23 @@ type UIFilePickerButton struct {
 	changed func() error
 }
 type UIDatePickerButton struct {
-	layout   *UI
+	layout *UI
+
 	Date     *int64
 	Page     *int64
 	ShowTime bool
 	changed  func() error
 }
 type UIColorPickerButton struct {
-	layout  *UI
+	layout *UI
+
 	Cd      *color.RGBA
 	changed func() error
 }
 
 type UICombo struct {
 	layout *UI
+
 	Value  *string
 	Labels []string
 	Values []string
@@ -2154,19 +2178,19 @@ type UICombo struct {
 }
 
 type UISwitch struct {
-	layout  *UI
-	Label   string
-	Tooltip string
-	Value   *bool
+	layout *UI
+
+	Label string
+	Value *bool
 
 	changed func() error
 }
 
 type UICheckbox struct {
-	layout  *UI
-	Label   string
-	Tooltip string
-	Value   *float64
+	layout *UI
+
+	Label string
+	Value *float64
 
 	changed func() error
 }
@@ -2213,7 +2237,9 @@ type UIMapRoute struct {
 	Segments []UIMapSegment
 }
 type UIMap struct {
-	layout         *UI
+	layout  *UI
+	Tooltip string
+
 	Lon, Lat, Zoom *float64
 	Locators       []UIMapLocators
 	Routes         []UIMapRoute
@@ -2232,7 +2258,8 @@ type UIChartLine struct {
 }
 
 type UIChartLines struct {
-	layout *UI
+	layout  *UI
+	Tooltip string
 
 	Lines []UIChartLine
 
@@ -2254,7 +2281,8 @@ type UIChartColumn struct {
 }
 
 type UIChartColumns struct {
-	layout *UI
+	layout  *UI
+	Tooltip string
 
 	X_unit, Y_unit string
 	Bound_y0       bool
@@ -2267,9 +2295,8 @@ type UIChartColumns struct {
 type UIMedia struct {
 	layout *UI
 
-	Blob    []byte
-	Path    string
-	Tooltip string
+	Blob []byte
+	Path string
 
 	Cd          color.RGBA
 	Draw_border bool
@@ -2297,6 +2324,7 @@ type UIGridSize struct {
 
 	SetFromChild_min float64 `json:",omitempty"`
 	SetFromChild_max float64 `json:",omitempty"`
+	SetFromChild_fix bool    `json:",omitempty"`
 }
 type UIScroll struct {
 	Hide   bool
@@ -2479,8 +2507,8 @@ func (ui *UI) SetRowResizable(pos int, min, max, default_size float64) {
 	ui.Rows = append(ui.Rows, UIGridSize{Pos: pos, Min: min, Max: max, Default_resize: default_size})
 }
 
-func (ui *UI) SetColumnFromSub(grid_y int, min_size, max_size float64) {
-	newItem := UIGridSize{Pos: grid_y, SetFromChild_min: min_size, SetFromChild_max: max_size}
+func (ui *UI) SetColumnFromSub(grid_y int, min_size, max_size float64, fix bool) {
+	newItem := UIGridSize{Pos: grid_y, SetFromChild_min: min_size, SetFromChild_max: max_size, SetFromChild_fix: fix}
 
 	for i := range ui.Cols {
 		if ui.Cols[i].Pos == grid_y {
@@ -2491,8 +2519,8 @@ func (ui *UI) SetColumnFromSub(grid_y int, min_size, max_size float64) {
 	ui.Cols = append(ui.Cols, newItem)
 }
 
-func (ui *UI) SetRowFromSub(grid_y int, min_size, max_size float64) {
-	newItem := UIGridSize{Pos: grid_y, SetFromChild_min: min_size, SetFromChild_max: max_size}
+func (ui *UI) SetRowFromSub(grid_y int, min_size, max_size float64, fix bool) {
+	newItem := UIGridSize{Pos: grid_y, SetFromChild_min: min_size, SetFromChild_max: max_size, SetFromChild_fix: fix}
 
 	for i := range ui.Rows {
 		if ui.Rows[i].Pos == grid_y {
@@ -2504,7 +2532,7 @@ func (ui *UI) SetRowFromSub(grid_y int, min_size, max_size float64) {
 }
 
 func (ui *UI) AddText(x, y, w, h int, label string) *UIText {
-	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(x, y, w, h)}
+	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Text = item
 	ui._addUISub(item.layout, "")
 	return item
@@ -2516,113 +2544,113 @@ func (ui *UI) AddTextLabel(x, y, w, h int, value string) *UIText {
 }
 
 func (ui *UI) AddEditboxString(x, y, w, h int, value *string) *UIEditbox {
-	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(x, y, w, h)}
+	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Editbox = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 func (ui *UI) AddEditboxInt(x, y, w, h int, value *int) *UIEditbox {
-	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(x, y, w, h)}
+	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Editbox = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 func (ui *UI) AddEditboxFloat(x, y, w, h int, value *float64, precision int) *UIEditbox {
-	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(x, y, w, h)}
+	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Editbox = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 
 func (ui *UI) AddSlider(x, y, w, h int, value *float64, min, max, step float64) *UISlider {
-	item := &UISlider{Value: value, Min: min, Max: max, Step: step, layout: _newUIItem(x, y, w, h)}
+	item := &UISlider{Value: value, Min: min, Max: max, Step: step, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Slider = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 
 func (ui *UI) AddButton(x, y, w, h int, label string) *UIButton {
-	item := &UIButton{Label: label, Background: 1, Align: 1, layout: _newUIItem(x, y, w, h)}
+	item := &UIButton{Label: label, Background: 1, Align: 1, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Button = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 
 func (ui *UI) AddYearCalendar(x, y, w, h int, Year int) *UIYearCalendar {
-	item := &UIYearCalendar{Year: Year, layout: _newUIItem(x, y, w, h)}
+	item := &UIYearCalendar{Year: Year, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.YearCalendar = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 
 func (ui *UI) AddMonthCalendar(x, y, w, h int, Year int, Month int, Events []UICalendarEvent) *UIMonthCalendar {
-	item := &UIMonthCalendar{Year: Year, Month: Month, Events: Events, layout: _newUIItem(x, y, w, h)}
+	item := &UIMonthCalendar{Year: Year, Month: Month, Events: Events, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.MonthCalendar = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 func (ui *UI) AddDayCalendar(x, y, w, h int, Days []int64, Events []UICalendarEvent) *UIDayCalendar {
-	item := &UIDayCalendar{Days: Days, Events: Events, layout: _newUIItem(x, y, w, h)}
+	item := &UIDayCalendar{Days: Days, Events: Events, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.DayCalendar = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 
 func (ui *UI) AddFilePickerButton(x, y, w, h int, path *string, preview bool, onlyFolders bool) *UIFilePickerButton {
-	item := &UIFilePickerButton{Path: path, Preview: preview, OnlyFolders: onlyFolders, layout: _newUIItem(x, y, w, h)}
+	item := &UIFilePickerButton{Path: path, Preview: preview, OnlyFolders: onlyFolders, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.FilePickerButton = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 func (ui *UI) AddDatePickerButton(x, y, w, h int, date *int64, page *int64, showTime bool) *UIDatePickerButton {
-	item := &UIDatePickerButton{Date: date, Page: page, ShowTime: showTime, layout: _newUIItem(x, y, w, h)}
+	item := &UIDatePickerButton{Date: date, Page: page, ShowTime: showTime, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.DatePickerButton = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 func (ui *UI) AddColorPickerButton(x, y, w, h int, cd *color.RGBA) *UIColorPickerButton {
-	item := &UIColorPickerButton{Cd: cd, layout: _newUIItem(x, y, w, h)}
+	item := &UIColorPickerButton{Cd: cd, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.ColorPickerButton = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 
 func (ui *UI) AddCombo(x, y, w, h int, value *string, labels []string, values []string) *UICombo {
-	item := &UICombo{Value: value, Labels: labels, Values: values, layout: _newUIItem(x, y, w, h)}
+	item := &UICombo{Value: value, Labels: labels, Values: values, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Combo = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 
 func (ui *UI) AddSwitch(x, y, w, h int, label string, value *bool) *UISwitch {
-	item := &UISwitch{Label: label, Value: value, layout: _newUIItem(x, y, w, h)}
+	item := &UISwitch{Label: label, Value: value, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Switch = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 func (ui *UI) AddCheckbox(x, y, w, h int, label string, value *float64) *UICheckbox {
-	item := &UICheckbox{Label: label, Value: value, layout: _newUIItem(x, y, w, h)}
+	item := &UICheckbox{Label: label, Value: value, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Checkbox = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 
 func (ui *UI) AddMicrophone(x, y, w, h int) *UIMicrophone {
-	item := &UIMicrophone{layout: _newUIItem(x, y, w, h)}
+	item := &UIMicrophone{layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Microphone = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 
 func (ui *UI) AddDivider(x, y, w, h int, horizontal bool) *UIDivider {
-	item := &UIDivider{Horizontal: horizontal, layout: _newUIItem(x, y, w, h)}
+	item := &UIDivider{Horizontal: horizontal, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Divider = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 
 func (ui *UI) AddMap(x, y, w, h int, lon, lat, zoom *float64) *UIMap {
-	item := &UIMap{Lon: lon, Lat: lat, Zoom: zoom, layout: _newUIItem(x, y, w, h)}
+	item := &UIMap{Lon: lon, Lat: lat, Zoom: zoom, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Map = item
 	ui._addUISub(item.layout, "")
 	return item
@@ -2635,21 +2663,21 @@ func (mp *UIMap) AddRoute(route UIMapRoute) {
 }
 
 func (ui *UI) AddChartLines(x, y, w, h int, Lines []UIChartLine) *UIChartLines {
-	item := &UIChartLines{Lines: Lines, Point_rad: 0.2, Line_thick: 0.03, layout: _newUIItem(x, y, w, h)}
+	item := &UIChartLines{Lines: Lines, Point_rad: 0.2, Line_thick: 0.03, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.ChartLines = item
 	ui._addUISub(item.layout, "")
 
 	return item
 }
 func (ui *UI) AddChartColumns(x, y, w, h int, columns []UIChartColumn, x_labels []string) *UIChartColumns {
-	item := &UIChartColumns{Columns: columns, X_Labels: x_labels, ColumnMargin: 0.2, layout: _newUIItem(x, y, w, h)}
+	item := &UIChartColumns{Columns: columns, X_Labels: x_labels, ColumnMargin: 0.2, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.ChartColumns = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 
 func (ui *UI) _addMedia(x, y, w, h int, path string, blob []byte, cd color.RGBA) *UIMedia {
-	item := &UIMedia{Path: path, Blob: blob, Align_h: 1, Align_v: 1, Margin: 0.1, Cd: cd, layout: _newUIItem(x, y, w, h)}
+	item := &UIMedia{Path: path, Blob: blob, Align_h: 1, Align_v: 1, Margin: 0.1, Cd: cd, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Media = item
 	ui._addUISub(item.layout, "")
 	return item
@@ -2662,25 +2690,25 @@ func (ui *UI) AddMediaBlob(x, y, w, h int, blob []byte) *UIMedia {
 }
 
 func (ui *UI) AddLayoutList(x, y, w, h int, autoSpacing bool) *UIList {
-	item := &UIList{AutoSpacing: autoSpacing, layout: _newUIItem(x, y, w, h)}
+	item := &UIList{AutoSpacing: autoSpacing, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.List = item
 
 	ui._addUISub(item.layout, "")
 	return item
 }
 func (list *UIList) AddItem() *UI {
-	item := _newUIItem(0, len(list.layout.Items), 1, 1)
+	item := _newUIItem(0, len(list.layout.Items), 1, 1, "")
 	list.layout._addUISub(item, "")
 	return item
 }
 
 func (ui *UI) AddLayout(x, y, w, h int) *UI {
-	item := _newUIItem(x, y, w, h)
+	item := _newUIItem(x, y, w, h, "")
 	ui._addUISub(item, "")
 	return item
 }
 func (ui *UI) AddLayoutWithName(x, y, w, h int, name string) *UI {
-	item := _newUIItem(x, y, w, h)
+	item := _newUIItem(x, y, w, h, "")
 	ui._addUISub(item, name)
 	return item
 }
@@ -2696,7 +2724,7 @@ func (ui *UI) FindDialog(name string) *UIDialog {
 func (ui *UI) AddDialog(uid string) *UIDialog {
 	dia := ui.FindDialog(uid)
 	if dia == nil {
-		dia = &UIDialog{UID: uid, UI: *_newUIItem(0, 0, 0, 0)}
+		dia = &UIDialog{UID: uid, UI: *_newUIItem(0, 0, 0, 0, "")}
 		ui.Dialogs = append(ui.Dialogs, dia)
 		dia.UI._computeUID(ui, uid)
 	} else {
@@ -2708,8 +2736,8 @@ func (ui *UI) AddDialog(uid string) *UIDialog {
 func (ui *UI) AddDialogBorder(name string, title string) (*UIDialog, *UI) {
 	dia := ui.AddDialog(name)
 	lay := dia.UI
-	lay.SetColumnFromSub(1, 1, 100)
-	lay.SetRowFromSub(1, 1, 100)
+	lay.SetColumnFromSub(1, 1, 100, true)
+	lay.SetRowFromSub(1, 1, 100, true)
 	lay.SetColumn(2, 1, 1)
 	lay.SetRow(2, 1, 1)
 
@@ -2720,7 +2748,7 @@ func (ui *UI) AddDialogBorder(name string, title string) (*UIDialog, *UI) {
 }
 
 func (ui *UI) AddTool(x, y, w, h int, fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) (*UI, error) {
-	ret_ui := _newUIItem(x, y, w, h)
+	ret_ui := _newUIItem(x, y, w, h, "")
 	ui._addUISub(ret_ui, "")
 
 	out_error := fnRun(caller, ret_ui)
@@ -2748,7 +2776,7 @@ func (ui *UI) AddTool(x, y, w, h int, fnRun func(caller *ToolCaller, ui *UI) err
 }
 
 func (ui *UI) AddToolApp(x, y, w, h int, appName string, funcName string, jsParams []byte, caller *ToolCaller) (*UI, error) {
-	ret_ui := _newUIItem(x, y, w, h)
+	ret_ui := _newUIItem(x, y, w, h, "")
 	ui._addUISub(ret_ui, "")
 
 	//call router

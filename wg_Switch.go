@@ -1,21 +1,28 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 )
 
 type Switch struct {
-	Label   string
 	Tooltip string
-	Value   *bool
+
+	Label string
+	Value *bool
 
 	changed func()
 }
 
 func (layout *Layout) AddSwitch(x, y, w, h int, label string, value *bool) *Switch {
 	props := &Switch{Label: label, Value: value}
-	layout._createDiv(x, y, w, h, "Switch", nil, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Switch", nil, props.Draw, props.Input)
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
+}
+
+func (st *Switch) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: Switch. Value: %v. Tooltip: %s", *st.Value, st.Tooltip)
 }
 
 func (st *Switch) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {

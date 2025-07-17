@@ -31,7 +31,7 @@ func (st *YearCalendar) Build(layout *Layout) {
 		//this_i := i
 		Item := list.AddListSubItem()
 		space := 0.5
-		Item.LLMTip = fmt.Sprintf("%s, %d", layout.GetMonthText(1+i), st.Year)
+		Item.Tooltip = fmt.Sprintf("%s, %d", layout.GetMonthText(1+i), st.Year)
 		Item.SetColumn(0, 0.2, space)
 		Item.SetColumn(1, 1, 6.5)
 		Item.SetColumn(2, 0.2, space)
@@ -54,7 +54,7 @@ func (st *YearCalendar) Build(layout *Layout) {
 
 func _formMonthCalendar(year, month int, layout *Layout) {
 
-	layout.LLMTip = fmt.Sprintf("%s, %d", layout.GetMonthText(month), year)
+	layout.Tooltip = fmt.Sprintf("%s, %d", layout.GetMonthText(month), year)
 
 	for x := 0; x < 7; x++ {
 		layout.SetColumn(x, 0.9, 100)
@@ -100,7 +100,7 @@ func _formMonthCalendar(year, month int, layout *Layout) {
 		for x := range 7 {
 
 			Day, DayLay := layout.AddText2(x, 1+y, 1, 1, strconv.Itoa(dt.Day()))
-			DayLay.LLMTip = dt.Format("Mon, 02 Jan 2006 15:04")
+			Day.Tooltip = dt.Format("Mon, 02 Jan 2006 15:04")
 			Day.Align_h = 1
 
 			fade := int(dt.Month()) != month

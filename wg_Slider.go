@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 )
 
 type Slider struct {
+	Tooltip      string
 	ValuePointer interface{} //*int, *float64
 
 	Min  float64
@@ -20,7 +22,8 @@ type Slider struct {
 
 func (layout *Layout) AddSlider(x, y, w, h int, valuePointer interface{}, min, max, step float64) *Slider {
 	props := &Slider{ValuePointer: valuePointer, Min: min, Max: max, Step: step}
-	layout._createDiv(x, y, w, h, "Slider", nil, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Slider", nil, props.Draw, props.Input)
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
 }
 func (layout *Layout) AddSliderInt(x, y, w, h int, value *int, min, max, step float64) *Slider {
@@ -32,9 +35,14 @@ func (layout *Layout) AddSliderInt(x, y, w, h int, value *int, min, max, step fl
 	return props
 }
 
+func (st *Slider) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: Slider. Value: %f. Tooltip: %s", st.getValue(), st.Tooltip)
+}
+
 func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 	paint.Cursor("hand", rect)
+	paint.Tooltip(st.Tooltip, rect)
 
 	//colors
 	B := layout.GetPalette().GetGrey(0.5)

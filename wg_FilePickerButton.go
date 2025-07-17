@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"os"
 )
 
 type FilePickerButton struct {
+	Tooltip     string
 	Path        *string
 	Preview     bool
 	OnlyFolders bool
@@ -14,12 +16,16 @@ type FilePickerButton struct {
 
 func (layout *Layout) AddFilePickerButton(x, y, w, h int, path *string, preview bool, onlyFolders bool) *FilePickerButton {
 	props := &FilePickerButton{Path: path, Preview: preview, OnlyFolders: onlyFolders}
-	layout._createDiv(x, y, w, h, "FilePickerButton", props.Build, nil, nil)
+	lay := layout._createDiv(x, y, w, h, "FilePickerButton", props.Build, nil, nil)
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
 }
 
-func (st *FilePickerButton) Build(layout *Layout) {
+func (st *FilePickerButton) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: FilePickerButton. Value: %s. Tooltip: %s", *st.Path, st.Tooltip)
+}
 
+func (st *FilePickerButton) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 100)
 	layout.SetRow(0, 1, 100)
 

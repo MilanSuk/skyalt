@@ -38,7 +38,7 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 
 	ui.SetColumn(0, 1, 100)
 	ui.SetRow(0, 1, 100)
-	ui.SetRowFromSub(1, 1, g_ShowChat_prompt_height)
+	ui.SetRowFromSub(1, 1, g_ShowChat_prompt_height, true)
 
 	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
 
@@ -75,14 +75,14 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 			nxtUI := source_chat.FindNextUI(source_chat.Dash_call_id)
 
 			btClose := DashHeaderDiv.AddButton(0, 0, 1, 1, "<<")
-			btClose.Tooltip = "Hide dashboard"
+			btClose.layout.Tooltip = "Hide dashboard"
 			btClose.Background = 0.5
 			btClose.clicked = func() error {
 				source_chat.Dash_call_id = "" //reset
 				return nil
 			}
 			btBack := DashHeaderDiv.AddButton(2, 0, 1, 1, "<")
-			btBack.Tooltip = "Previous dashboard"
+			btBack.layout.Tooltip = "Previous dashboard"
 			btBack.Background = 0.5
 			btBack.layout.Enable = (preUI != nil)
 			btBack.clicked = func() error {
@@ -92,7 +92,7 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 				return nil
 			}
 			btForward := DashHeaderDiv.AddButton(3, 0, 1, 1, ">")
-			btForward.Tooltip = "Next dashboard"
+			btForward.layout.Tooltip = "Next dashboard"
 			btForward.Background = 0.5
 			btForward.layout.Enable = (nxtUI != nil)
 			btForward.clicked = func() error {
@@ -131,7 +131,7 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 		DivInput.SetColumn(1, 1, 100)
 		DivInput.SetColumn(2, d, d) //space
 		DivInput.SetRow(0, d, d)
-		DivInput.SetRowFromSub(1, 1, g_ShowChat_prompt_height-0.5)
+		DivInput.SetRowFromSub(1, 1, g_ShowChat_prompt_height-0.5, true)
 		DivInput.SetRow(2, d, d)
 
 		Div := DivInput.AddLayout(1, 1, 1, 1)
@@ -140,7 +140,7 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 		Div.SetColumn(1, 1, 100)
 		Div.SetColumn(2, dd, dd) //space
 		Div.SetRow(0, dd, dd)
-		Div.SetRowFromSub(1, 1, g_ShowChat_prompt_height-1)
+		Div.SetRowFromSub(1, 1, g_ShowChat_prompt_height-1, true)
 		Div.SetRow(2, dd, dd)
 
 		Div.Back_cd = UI_GetPalette().B //GetGrey(0.05)
@@ -291,7 +291,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 		preview_height = 2
 	}
 
-	ui.SetRowFromSub(0, 1, g_ShowChat_prompt_height-1-preview_height)
+	ui.SetRowFromSub(0, 1, g_ShowChat_prompt_height-1-preview_height, true)
 
 	if isRunning {
 		MsgsDiv.VScrollToTheBottom(true, caller)
@@ -305,7 +305,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 	x := 0
 	y := 0
 	{
-		ui.SetColumnFromSub(x, 3, 5)
+		ui.SetColumnFromSub(x, 3, 5, true)
 		DivStart := ui.AddLayout(x, y, 1, 1)
 		DivStart.SetRow(0, 0, 100)
 		DivStart.Enable = !isRunning
@@ -327,7 +327,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 		//Auto-send after recording
 		{
 			as := DivStart.AddCheckbox(xx, 1, 1, 1, "", &root.Autosend)
-			as.Tooltip = "Auto-send after recording"
+			as.layout.Tooltip = "Auto-send after recording"
 			xx++
 		}
 
@@ -366,7 +366,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 			DivStart.SetColumn(xx, 2, 2)
 			ClearBt := DivStart.AddButton(xx, 1, 1, 1, "Clear")
 			ClearBt.Background = 0.5
-			ClearBt.Tooltip = "Remove Brushes"
+			ClearBt.layout.Tooltip = "Remove Brushes"
 			ClearBt.clicked = func() error {
 				//remove
 				//for i := range st.Picks {
@@ -402,7 +402,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 		mt := DivML.AddButton(0, 1, 1, 1, "")
 		mt.IconPath = "resources/multiline.png"
 		mt.Icon_margin = 0.1
-		mt.Tooltip = "Enable/disable multi-line prompt"
+		mt.layout.Tooltip = "Enable/disable multi-line prompt"
 		if !input.Multilined {
 			mt.Background = 0
 		}
@@ -465,7 +465,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 			imgBt := imgLay.AddButton(0, 0, 1, 1, "")
 			imgBt.IconPath = file
 			imgBt.Icon_margin = 0
-			imgBt.Tooltip = file
+			imgBt.layout.Tooltip = file
 
 			imgBt.Background = 0
 			imgBt.Cd = UI_GetPalette().B
@@ -492,7 +492,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 
 	//LLMTips/Brushes
 	if len(input.Picks) > 0 {
-		ui.SetRowFromSub(y, 1, 5)
+		ui.SetRowFromSub(y, 1, 5, true)
 		TipsDiv := ui.AddLayout(0, y, x, 1)
 		y++
 		TipsDiv.SetColumn(0, 2, 2)
@@ -505,7 +505,7 @@ func (st *ShowChat) buildInput(ui *UI, caller *ToolCaller, chat *Chat, root *Roo
 				continue //skip
 			}
 
-			TipsDiv.SetRowFromSub(yy, 1, 3)
+			TipsDiv.SetRowFromSub(yy, 1, 3, true)
 			TipsDiv.AddText(0, yy, 1, 1, input.Picks[i].Cd.GetLabel())
 			TipsDiv.AddText(1, yy, 1, 1, strings.TrimSpace(br.LLMTip))
 			yy++
@@ -698,7 +698,7 @@ func (st *ShowChat) buildShowMessages(ui *UI, caller *ToolCaller, source_chat *C
 			y++ //space above user msg
 		}
 
-		ui.SetRowFromSub(y, 1, 100)
+		ui.SetRowFromSub(y, 1, 100, true)
 		st.AddChatMsg(ui.AddLayout(1, y, 1, 1), &source_chat.Messages, msg_i, source_chat, source_root, ui, caller)
 		y++
 
@@ -714,7 +714,7 @@ func (st *ShowChat) buildShowMessages(ui *UI, caller *ToolCaller, source_chat *C
 			continue //skip
 		}
 
-		ui.SetRowFromSub(y, 1, 100)
+		ui.SetRowFromSub(y, 1, 100, true)
 		st.AddChatMsg(ui.AddLayout(1, y, 1, 1), &source_chat.TempMessages, msg_i, source_chat, source_root, ui, caller)
 		y++
 
@@ -744,7 +744,7 @@ func (st *ShowChat) buildShowMessages(ui *UI, caller *ToolCaller, source_chat *C
 			int(source_chat.Messages.GetTotalSpeed(0, -1))))
 		y++
 		info.Align_h = 2 //right
-		info.Tooltip = fmt.Sprintf("%s seconds\n%d input tokens\n%d output tokens\n%s tokens/sec\nTotal: $%s\n- Input: $%s\n- Input cached: $%s\n- Output: $%s",
+		info.layout.Tooltip = fmt.Sprintf("%s seconds\n%d input tokens\n%d output tokens\n%s tokens/sec\nTotal: $%s\n- Input: $%s\n- Input cached: $%s\n- Output: $%s",
 			strconv.FormatFloat(source_chat.Messages.GetTotalTime(0, -1), 'f', -1, 64),
 			source_chat.Messages.GetTotalInputTokens(0, -1),
 			source_chat.Messages.GetTotalOutputTokens(0, -1),
@@ -779,12 +779,12 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 			case "text":
 				txt := strings.TrimSpace(it.Text)
 				if txt != "" {
-					layout.SetRowFromSub(y, 1, 100)
+					layout.SetRowFromSub(y, 1, 100, true)
 
 					UserDiv := layout.AddLayout(0, y, 3, 1)
 					UserDiv.SetColumn(0, 0, 100)
-					UserDiv.SetColumnFromSub(1, 1, 100)
-					UserDiv.SetRowFromSub(0, 1, 100)
+					UserDiv.SetColumnFromSub(1, 1, 100, true)
+					UserDiv.SetRowFromSub(0, 1, 100, true)
 					y++
 
 					tx := UserDiv.AddText(1, 0, 1, 1, txt)
@@ -858,7 +858,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 			txt = strings.TrimSpace(txt)
 
 			if txt != "" {
-				layout.SetRowFromSub(y, 1, 100)
+				layout.SetRowFromSub(y, 1, 100, true)
 				tx := layout.AddText(0, y, 3, 1, txt)
 				tx.Multiline = true
 				//tx.Align_v = 0
@@ -874,7 +874,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				}
 
 				//text
-				layout.SetRowFromSub(y, 1, 100)
+				layout.SetRowFromSub(y, 1, 100, true)
 				tx := layout.AddText(0, y, 3, 1, rsp_txt)
 				tx.Multiline = true
 				//tx.Align_v = 0
@@ -899,9 +899,9 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				if msg.ShowReasoning {
 					ShowRspBt.Background = 1
 				}
-				ShowRspBt.Tooltip = "Show reasoning"
+				ShowRspBt.layout.Tooltip = "Show reasoning"
 				if msg.ShowReasoning {
-					ShowRspBt.Tooltip = "Hide reasoning"
+					ShowRspBt.layout.Tooltip = "Hide reasoning"
 				}
 				ShowRspBt.Align = 0
 				ShowRspBt.Icon_align = 0
@@ -926,7 +926,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				RgnBt.Icon_margin = 0.3
 				RgnBt.IconPath = "resources/reload.png"
 				RgnBt.Background = 0.2
-				RgnBt.Tooltip = "Re-generate response"
+				RgnBt.layout.Tooltip = "Re-generate response"
 				RgnBt.clicked = func() error {
 
 					msgs.Messages[msg_i].Seed++
@@ -948,7 +948,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				DelBt.Icon_margin = 0.25
 				DelBt.IconPath = "resources/delete.png"
 				DelBt.Background = 0.2
-				DelBt.Tooltip = "Delete the message and response"
+				DelBt.layout.Tooltip = "Delete the message and response"
 				DelBt.clicked = func() error {
 					//find next user
 					next_i := msg_i + 1
@@ -987,7 +987,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 
 				InfoDia := DivIcons.AddDialog("info")
 				InfoDia.UI.SetColumn(0, 5, 10)
-				InfoDia.UI.SetRowFromSub(0, 1, 20)
+				InfoDia.UI.SetRowFromSub(0, 1, 20, true)
 				InfoDia.UI.AddText(0, 0, 1, 1, inf)
 
 				InfoBt := DivIcons.AddButton(x, 0, 1, 1, "")
@@ -995,7 +995,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				InfoBt.Icon_margin = 0.3
 				InfoBt.IconPath = "resources/about.png"
 				InfoBt.Background = 0.2
-				InfoBt.Tooltip = inf
+				InfoBt.layout.Tooltip = inf
 				InfoBt.clicked = func() error {
 					InfoDia.OpenRelative(InfoBt.layout, caller)
 					return nil
@@ -1011,7 +1011,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 			CopyBt.Icon_margin = 0.3
 			CopyBt.IconPath = "resources/copy.png"
 			CopyBt.Background = 0.2
-			CopyBt.Tooltip = "Copy into clipboard"
+			CopyBt.layout.Tooltip = "Copy into clipboard"
 			CopyBt.clicked = func() error {
 				if msg.Content.Msg != nil && len(msg.Content.Msg.Content) > 0 {
 					caller.SetClipboardText(msg.Content.Msg.Content[0].Text)
@@ -1070,11 +1070,11 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 		bt := layout.AddButton(1, y, 1, 1, stateStr)
 		if isOpen {
 			bt.Background = 1
-			bt.Tooltip = "Close dashboard"
+			bt.layout.Tooltip = "Close dashboard"
 		} else {
 			bt.Border = true
 			bt.Background = 0.25
-			bt.Tooltip = "Show dashboard"
+			bt.layout.Tooltip = "Show dashboard"
 		}
 
 		bt.clicked = func() error {
@@ -1091,9 +1091,9 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 
 	// parameters
 	if msg.ShowParameters {
-		layout.SetRowFromSub(y, 1, 100)
+		layout.SetRowFromSub(y, 1, 100, true)
 		CallDiv := layout.AddLayout(0, y, 3, 1)
-		CallDiv.SetColumnFromSub(1, 0, 100)
+		CallDiv.SetColumnFromSub(1, 0, 100, true)
 		CallDiv.SetColumn(2, 1, 100)
 		CallDiv.Back_cd = Color_Aprox(UI_GetPalette().P, UI_GetPalette().B, 0.8)
 		y++
@@ -1117,7 +1117,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 
 				valStr := fmt.Sprintf("%s", val)
 
-				CallDiv.SetRowFromSub(yy, 1, 100)
+				CallDiv.SetRowFromSub(yy, 1, 100, true)
 
 				CallDiv.AddText(1, yy, 1, 1, "<i>"+key) //name
 				//tx.Tooltip = //description from agent tool ....
@@ -1136,7 +1136,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 		if msg_result != nil {
 			CallDiv.AddText(0, yy, 3, 1, "Output:")
 			yy++
-			CallDiv.SetRowFromSub(yy, 1, 100)
+			CallDiv.SetRowFromSub(yy, 1, 100, true)
 			tx := CallDiv.AddText(1, yy, 2, 1, msg_result.Content.Result.Content)
 			tx.Multiline = true
 			//tx.Align_v = 0

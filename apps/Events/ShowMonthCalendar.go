@@ -46,7 +46,7 @@ func (st *ShowMonthCalendar) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	ui.SetColumn(0, 1, 100)
-	ui.SetRowFromSub(0, 5, 100)
+	ui.SetRowFromSub(0, 5, 100, true)
 
 	ui.AddMonthCalendar(0, 0, 1, 1, st.Year, st.Month, events)
 

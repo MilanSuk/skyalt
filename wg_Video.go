@@ -5,8 +5,8 @@ import (
 )
 
 type Video struct {
-	Path    string
 	Tooltip string
+	Path    string
 
 	Margin  float64
 	Align_h int

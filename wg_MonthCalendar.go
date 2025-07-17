@@ -82,7 +82,7 @@ func (st *MonthCalendar) Build(layout *Layout) {
 		for y := 0; y < 6; y++ {
 			for x := 0; x < 7; x++ {
 				Div := layout.AddLayout(x, 2+y, 1, 1)
-				Div.LLMTip = dt.Format("Mon, 02 Jan 2006 15:04")
+				Div.Tooltip = dt.Format("Mon, 02 Jan 2006 15:04")
 				{
 					Div.SetColumn(0, 1, 100)
 					Div.SetRow(1, 1, 100)
@@ -119,7 +119,7 @@ func (st *MonthCalendar) Build(layout *Layout) {
 							}
 
 							tx, txLay := Div2.AddText2(0, y, 1, 1, event.Title)
-							txLay.LLMTip = fmt.Sprintf("EventID: %d, Title: %s, Start: %s, End: %s, GroupID: %d", event.EventID, event.Title, layout.ConvertTextDateTime(event.Start), layout.ConvertTextDateTime(event.Start+event.Duration), event.GroupID)
+							tx.Tooltip = fmt.Sprintf("EventID: %d, Title: %s, Start: %s, End: %s, GroupID: %d", event.EventID, event.Title, layout.ConvertTextDateTime(event.Start), layout.ConvertTextDateTime(event.Start+event.Duration), event.GroupID)
 							tx.Tooltip = layout.ConvertTextTime(event.Start) + " - " + layout.ConvertTextTime(event.Start+event.Duration) + "\n" + event.Title
 							txLay.Back_cd = event.Color
 							if txLay.Back_cd.A == 0 {

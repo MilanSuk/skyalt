@@ -5,9 +5,10 @@ import (
 )
 
 type Image struct {
-	Blob    []byte
-	Path    string
 	Tooltip string
+
+	Blob []byte
+	Path string
 
 	Cd          color.RGBA
 	Draw_border bool

@@ -1,17 +1,25 @@
 package main
 
+import "fmt"
+
 type Checkbox struct {
-	Label   string
 	Tooltip string
-	Value   *float64
+
+	Label string
+	Value *float64
 
 	changed func()
 }
 
 func (layout *Layout) AddCheckbox(x, y, w, h int, label string, value *float64) *Checkbox {
 	props := &Checkbox{Label: label, Value: value}
-	layout._createDiv(x, y, w, h, "Checkbox", nil, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Checkbox", nil, props.Draw, props.Input)
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
+}
+
+func (st *Checkbox) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: Checkbox. Value: %f. Tooltip: %s", *st.Value, st.Tooltip)
 }
 
 func (st *Checkbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {

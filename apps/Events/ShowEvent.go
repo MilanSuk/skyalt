@@ -58,10 +58,10 @@ func (st *ShowEvent) run(caller *ToolCaller, ui *UI) error {
 	hours := int(event.Duration / 3600)
 	mins := int((event.Duration % 3600) / 60)
 	h := dur.AddEditboxInt(0, 0, 1, 1, &hours)
-	h.Tooltip = "Hours"
+	h.layout.Tooltip = "Hours"
 	dur.AddText(1, 0, 1, 1, ":").Align_h = 1
 	m := dur.AddEditboxInt(2, 0, 1, 1, &mins)
-	m.Tooltip = "Minutes"
+	m.layout.Tooltip = "Minutes"
 	h.changed = func() error {
 		event.Duration = int64(hours*3600 + mins*60)
 		return nil

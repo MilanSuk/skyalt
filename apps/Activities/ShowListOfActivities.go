@@ -96,7 +96,7 @@ func (st *ShowListOfActivities) run(caller *ToolCaller, ui *UI) error {
 
 func _GetListOfActivities_SetRow(ui *UI, activity_ID string) *UI {
 	if activity_ID != "" {
-		ui.LLMTip = fmt.Sprintf("ActivityID: %s", activity_ID)
+		ui.Tooltip = fmt.Sprintf("ActivityID: %s", activity_ID)
 	}
 
 	ui.SetColumn(0, 1, 4)

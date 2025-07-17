@@ -1,14 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 )
 
 type Text struct {
-	Cd color.RGBA
-
-	Value   string
 	Tooltip string
+	Cd      color.RGBA
+
+	Value string
 
 	Align_h int
 	Align_v int
@@ -25,6 +26,7 @@ func (layout *Layout) AddText2(x, y, w, h int, value string) (*Text, *Layout) {
 
 	lay.fnAutoResize = props.autoResize
 	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
+	lay.fnGetLLMTip = props.getLLMTip
 
 	return props, lay
 }
@@ -32,6 +34,10 @@ func (layout *Layout) AddText2(x, y, w, h int, value string) (*Text, *Layout) {
 func (layout *Layout) AddText(x, y, w, h int, value string) *Text {
 	props, _ := layout.AddText2(x, y, w, h, value)
 	return props
+}
+
+func (st *Text) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: Text. Value: %s. Tooltip: %s", st.Value, st.Tooltip)
 }
 
 func (st *Text) Build(layout *Layout) {

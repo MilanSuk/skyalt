@@ -8,10 +8,10 @@ import (
 )
 
 type Button struct {
-	Value string //label
-
 	Tooltip string
-	Align   int
+	Value   string //label
+
+	Align int
 
 	Background float64
 	Border     bool
@@ -39,6 +39,7 @@ func (layout *Layout) AddButton(x, y, w, h int, label string) *Button {
 	lay.fnHasShortcut = props.HasShortcut
 	lay.fnAutoResize = props.autoResize
 	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
 }
 func (layout *Layout) AddButton2(x, y, w, h int, label string) (*Button, *Layout) {
@@ -47,6 +48,7 @@ func (layout *Layout) AddButton2(x, y, w, h int, label string) (*Button, *Layout
 	lay.fnHasShortcut = props.HasShortcut
 	lay.fnAutoResize = props.autoResize
 	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
+	lay.fnGetLLMTip = props.getLLMTip
 	return props, lay
 }
 
@@ -56,23 +58,26 @@ func (layout *Layout) AddButtonMenu(x, y, w, h int, label string, icon_path stri
 	lay.fnHasShortcut = props.HasShortcut
 	lay.fnAutoResize = props.autoResize
 	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
 }
 
-func (layout *Layout) AddButtonIcon(x, y, w, h int, icon_path string, icon_margin float64, Tooltip string) *Button {
-	props := &Button{IconPath: icon_path, Icon_align: 1, Icon_margin: icon_margin, Tooltip: Tooltip, Background: 1}
+func (layout *Layout) AddButtonIcon(x, y, w, h int, icon_path string, icon_margin float64, tooltip string) *Button {
+	props := &Button{IconPath: icon_path, Icon_align: 1, Icon_margin: icon_margin, Background: 1, Tooltip: tooltip}
 	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
 	lay.fnAutoResize = props.autoResize
 	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
 }
-func (layout *Layout) AddButtonIcon2(x, y, w, h int, icon_path string, icon_margin float64, Tooltip string) (*Button, *Layout) {
-	props := &Button{IconPath: icon_path, Icon_align: 1, Icon_margin: icon_margin, Tooltip: Tooltip, Background: 1}
+func (layout *Layout) AddButtonIcon2(x, y, w, h int, icon_path string, icon_margin float64, tooltip string) (*Button, *Layout) {
+	props := &Button{IconPath: icon_path, Icon_align: 1, Icon_margin: icon_margin, Background: 1, Tooltip: tooltip}
 	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
 	lay.fnAutoResize = props.autoResize
 	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
+	lay.fnGetLLMTip = props.getLLMTip
 	return props, lay
 }
 
@@ -82,12 +87,17 @@ func (layout *Layout) AddButtonDanger(x, y, w, h int, label string) *Button {
 	lay.fnHasShortcut = props.HasShortcut
 	lay.fnAutoResize = props.autoResize
 	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
 }
 
 func (st *Button) Build(layout *Layout) {
 	layout.scrollV.Show = false
 	layout.scrollH.Show = false
+}
+
+func (st *Button) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: Button. Value: %s. Tooltip: %s", st.Value, st.Tooltip)
 }
 
 func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {

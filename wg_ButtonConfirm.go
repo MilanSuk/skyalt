@@ -3,10 +3,11 @@ package main
 import "image/color"
 
 type ButtonConfirm struct {
+	Tooltip string
+
 	Value string //label
 
-	Tooltip string
-	Align   int
+	Align int
 
 	Background float64
 	Border     bool

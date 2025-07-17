@@ -42,7 +42,7 @@ func (st *ShowDayCalendar) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	ui.SetColumn(0, 1, 100)
-	ui.SetRowFromSub(0, 5, 100)
+	ui.SetRowFromSub(0, 5, 100, true)
 
 	ui.AddDayCalendar(0, 0, 1, 1, days, events)
 

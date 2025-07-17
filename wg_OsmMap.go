@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 	"strconv"
@@ -38,7 +39,8 @@ type MapCam struct {
 }
 
 type Map struct {
-	Cam *MapCam
+	Tooltip string
+	Cam     *MapCam
 
 	Locators []MapLocators
 	Routes   []MapRoute
@@ -50,8 +52,13 @@ type Map struct {
 
 func (layout *Layout) AddMap(x, y, w, h int, cam *MapCam) *Map {
 	props := &Map{Cam: cam}
-	layout._createDiv(x, y, w, h, "Map", props.Build, props.Draw, props.Input)
+	lay := layout._createDiv(x, y, w, h, "Map", props.Build, props.Draw, props.Input)
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
+}
+
+func (st *Map) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: Map. Tooltip: %s", st.Tooltip)
 }
 
 func (mp *Map) AddLocators(loc MapLocators) {

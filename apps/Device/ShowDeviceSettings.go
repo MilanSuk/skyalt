@@ -97,7 +97,7 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 
 	// Theme
 	{
-		ui.SetRowFromSub(y, 1, 100)
+		ui.SetRowFromSub(y, 1, 100, true)
 		ui.AddText(0, y, 1, 1, "Theme")
 		ThemeDiv := ui.AddLayout(1, y, 1, 1)
 		y++

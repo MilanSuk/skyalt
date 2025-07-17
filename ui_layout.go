@@ -185,6 +185,19 @@ func _newLayout(x, y, w, h int, name string, parent *Layout) *Layout {
 	return layout
 }
 
+type LayoutTooltip struct {
+	X, Y, W, H int
+	Tooltip    string
+}
+
+// whole layout must be inside, not partially inside!
+func (tip *LayoutTooltip) InInside(layout *Layout) bool {
+	return tip.X <= layout.X &&
+		tip.Y <= layout.Y &&
+		tip.X+tip.W >= layout.X+layout.W &&
+		tip.Y+tip.H >= layout.Y+layout.H
+}
+
 type Layout struct {
 	ui     *Ui
 	parent *Layout
@@ -231,13 +244,15 @@ type Layout struct {
 	X, Y, W, H int
 	Name       string
 
+	Tooltip       string
+	TooltipGroups []LayoutTooltip
+
 	UID uint64
 
 	App bool //touch crop
 
 	Enable      bool
 	EnableTouch bool
-	LLMTip      string
 
 	Back_cd       color.RGBA
 	Back_rounding bool
@@ -254,7 +269,7 @@ type Layout struct {
 
 	UserCols []LayoutCR
 	UserRows []LayoutCR
-	//UserCRFromText *LayoutDrawText
+
 	fnAutoResize          func(layout *Layout) bool
 	fnGetAutoResizeMargin func() [4]float64
 	autoCoord             OsV4
@@ -262,6 +277,8 @@ type Layout struct {
 	List_autoSpacing bool
 
 	fnUpdate func() //here
+
+	fnGetLLMTip func(layout *Layout) string
 }
 
 func NewUiLayoutDOM_root(ui *Ui) *Layout {
@@ -1917,19 +1934,38 @@ func (layout *Layout) HScrollToTheRight() {
 	layout.GetSettings().SetScrollH(layout.UID, UiRootSettings_GetMaxScroll())
 }
 
+func Layout_addTip(str string, tooltip string) string {
+	if str != "" {
+		str += "Part of: "
+	}
+	str += tooltip
+	if str != "" && !strings.HasSuffix(str, ".") {
+		str += "."
+	}
+	return str
+}
+
 func (layout *Layout) GetLLMTip() string {
 	var str string
 
 	for layout != nil {
-		if layout.LLMTip != "" {
-			if str != "" {
-				str += "Part of: "
-			}
-			str += layout.LLMTip
-			if str != "" && !strings.HasSuffix(str, ".") {
-				str += "."
+		var tip string
+		if layout.fnGetLLMTip != nil { //only Button now, add to more components .........
+			tip = layout.fnGetLLMTip(layout)
+		}
+
+		if tip != "" {
+			str = Layout_addTip(str, tip)
+		}
+
+		if layout.parent != nil {
+			for _, gr := range layout.TooltipGroups {
+				if gr.InInside(layout) {
+					str = Layout_addTip(str, gr.Tooltip)
+				}
 			}
 		}
+
 		layout = layout.parent
 	}
 

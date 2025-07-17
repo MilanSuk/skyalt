@@ -119,17 +119,15 @@ func (s *UiSelection) UpdateComp(ui *Ui) (done *LayoutPick) {
 			cqArea := float64(cq.Area())
 			if cqArea > 0 {
 
-				var cover_layouts []*Layout
-				var parent_layout *Layout
 				min_area := 0 //pixel ....
-				appLay.findSelection(cq, cqArea, min_area, &cover_layouts, &parent_layout)
+				coverLay := appLay.findSelection(cq, cqArea, min_area)
 
 				actBr := s.active
 
 				//add tip
 				actBr.LLMTip = ""
-				for _, it := range cover_layouts {
-					tip := strings.ReplaceAll(it.GetLLMTip(), "\n", " ")
+				if coverLay != nil {
+					tip := strings.ReplaceAll(coverLay.GetLLMTip(), "\n", " ")
 					actBr.LLMTip += tip + "\n"
 				}
 
@@ -170,39 +168,39 @@ func (s *UiSelection) getRect() OsV4 {
 	return InitOsV4ab(min, max)
 }
 
-func (layout *Layout) findSelection(cq OsV4, cqArea float64, min_area int, cover_layouts *[]*Layout, parent_layout **Layout) bool {
+func (layout *Layout) findSelection(cq OsV4, cqArea float64, min_area int) *Layout {
 	if !layout.touch {
-		return false
+		return nil
 	}
 
-	found := false
 	if layout.touchDia {
 		inArea := layout.crop.GetIntersect(cq).Area()
 
-		if float64(inArea)/cqArea > 0.9 {
-			*parent_layout = layout
-		}
-
 		for _, it := range layout.childs {
 			if it.IsShown() {
-				if it.findSelection(cq, cqArea, min_area, cover_layouts, parent_layout) {
-					found = true
+				foundLay := it.findSelection(cq, cqArea, min_area)
+				if foundLay != nil {
+					return foundLay
 				}
 			}
 		}
 
-		if !found {
-			if inArea > min_area && layout.LLMTip != "" {
-				*cover_layouts = append(*cover_layouts, layout)
-				found = true
-			}
+		var tip string
+		if layout.fnGetLLMTip != nil {
+			tip = layout.fnGetLLMTip(layout)
 		}
 
+		if inArea > min_area && tip != "" {
+			return layout
+		}
 	}
 
 	if layout.dialog != nil {
-		layout.dialog.findSelection(cq, cqArea, min_area, cover_layouts, parent_layout)
+		foundLay := layout.dialog.findSelection(cq, cqArea, min_area)
+		if foundLay != nil {
+			return foundLay
+		}
 	}
 
-	return found
+	return nil
 }

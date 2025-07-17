@@ -28,7 +28,7 @@ func (st *ShowGroups) run(caller *ToolCaller, ui *UI) error {
 		GroupDiv.SetColumn(1, 3, 4)
 		GroupDiv.SetColumn(3, 3, 3)
 
-		GroupDiv.LLMTip = fmt.Sprintf("Calendar GroupID: %d, Label: %s, Color(RGB): %d,%d,%d", id, group.Label, group.Color.R, group.Color.G, group.Color.B)
+		GroupDiv.Tooltip = fmt.Sprintf("Calendar GroupID: %d, Label: %s, Color(RGB): %d,%d,%d", id, group.Label, group.Color.R, group.Color.G, group.Color.B)
 
 		ed := GroupDiv.AddEditboxString(0, 0, 1, 1, &group.Label)
 		ed.changed = func() error {

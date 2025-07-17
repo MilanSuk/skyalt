@@ -1,8 +1,12 @@
 package main
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 type DatePickerButton struct {
+	Tooltip  string
 	Value    *int64
 	Page     *int64
 	ShowTime bool
@@ -11,8 +15,13 @@ type DatePickerButton struct {
 
 func (layout *Layout) AddDatePickerButton(x, y, w, h int, value *int64, page *int64, showTime bool) *DatePickerButton {
 	props := &DatePickerButton{Value: value, Page: page, ShowTime: showTime}
-	layout._createDiv(x, y, w, h, "DatePickerButton", props.Build, nil, nil)
+	lay := layout._createDiv(x, y, w, h, "DatePickerButton", props.Build, nil, nil)
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
+}
+
+func (st *DatePickerButton) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: DatePickerButton. Value: %s. Tooltip: %s", layout.ConvertTextDate(*st.Value), st.Tooltip)
 }
 
 func (st *DatePickerButton) Build(layout *Layout) {

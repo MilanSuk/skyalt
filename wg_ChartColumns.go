@@ -50,6 +50,8 @@ func ChartColumns_getBound(columns []ChartColumn, bound_y0 bool) (float64, float
 }
 
 type ChartColumns struct {
+	Tooltip string
+
 	X_unit, Y_unit string
 	Bound_y0       bool
 	Y_as_time      bool
@@ -60,8 +62,13 @@ type ChartColumns struct {
 
 func (layout *Layout) AddChartColumns(x, y, w, h int, columns []ChartColumn, x_Labels []string) *ChartColumns {
 	props := &ChartColumns{Columns: columns, X_Labels: x_Labels}
-	layout._createDiv(x, y, w, h, "ChartColumns", props.Build, nil, nil)
+	lay := layout._createDiv(x, y, w, h, "ChartColumns", props.Build, nil, nil)
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
+}
+
+func (st *ChartColumns) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: ChartColumns. Tooltip: %s", st.Tooltip)
 }
 
 func (st *ChartColumns) Build(layout *Layout) {

@@ -26,7 +26,8 @@ type ChartLine struct {
 }
 
 type ChartLines struct {
-	Lines []ChartLine
+	Tooltip string
+	Lines   []ChartLine
 
 	X_unit, Y_unit        string
 	Bound_x0, Bound_y0    bool
@@ -37,8 +38,13 @@ type ChartLines struct {
 
 func (layout *Layout) AddChartLines(x, y, w, h int, lines []ChartLine) *ChartLines {
 	props := &ChartLines{Lines: lines}
-	layout._createDiv(x, y, w, h, "ChartLines", props.Build, nil, nil)
+	lay := layout._createDiv(x, y, w, h, "ChartLines", props.Build, nil, nil)
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
+}
+
+func (st *ChartLines) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: ChartLines. Tooltip: %s", st.Tooltip)
 }
 
 func (st *ChartLines) Build(layout *Layout) {

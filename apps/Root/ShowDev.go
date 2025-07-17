@@ -116,7 +116,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		SettingsBt.IconPath = "resources/settings.png"
 		SettingsBt.Icon_margin = 0.2
 		SettingsBt.Icon_align = 1
-		SettingsBt.Tooltip = "Show app Settings"
+		SettingsBt.layout.Tooltip = "Show app Settings"
 		SettingsBt.clicked = func() error {
 			SettingsDia.OpenRelative(SettingsBt.layout, caller)
 			return nil
@@ -200,11 +200,11 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	{
-		MainDiv.SetRowFromSub(2, 1, 10)
+		MainDiv.SetRowFromSub(2, 1, 10, true)
 		FooterDiv := MainDiv.AddLayout(1, 2, 1, 1)
 		FooterDiv.SetColumn(0, 1, 100)
 		FooterDiv.SetColumn(1, 1, 5)
-		FooterDiv.SetRowFromSub(0, 2, 5)
+		FooterDiv.SetRowFromSub(0, 2, 5, true)
 
 		//Note
 
@@ -234,7 +234,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						SaveDiv.SetColumn(x, 1, 100)
 						CompBt := SaveDiv.AddButton(x, 0, 1, 1, "Show")
 						CompBt.Background = 0.5
-						CompBt.Tooltip = "Show generation"
+						CompBt.layout.Tooltip = "Show generation"
 						CompBt.clicked = func() error {
 							app.Dev.ShowSide = true
 							return nil
@@ -245,7 +245,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					SaveDiv.SetColumn(x, 1, 100)
 					StopBt := SaveDiv.AddButton(x, 0, 1, 1, "Stop")
 					StopBt.Cd = UI_GetPalette().E
-					StopBt.Tooltip = "Stop generating"
+					StopBt.layout.Tooltip = "Stop generating"
 					StopBt.clicked = func() error {
 						callFuncMsgStop(sdk_app.Generating_msg_id)
 						return nil
@@ -253,7 +253,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				} else {
 					SaveDiv.SetColumn(0, 1, 100)
 					GenerateBt := SaveDiv.AddButton(0, 0, 1, 1, "Generate")
-					GenerateBt.Tooltip = "Save & Generate code"
+					GenerateBt.layout.Tooltip = "Save & Generate code"
 					GenerateBt.clicked = func() error {
 
 						app.Dev.PromptsHistory = append(app.Dev.PromptsHistory, string(filePrompts))
@@ -319,7 +319,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				HeaderDiv.ScrollH.Narrow = true
 
 				CloseBt := HeaderDiv.AddButton(0, 0, 1, 1, ">>")
-				CloseBt.Tooltip = "Close side panel"
+				CloseBt.layout.Tooltip = "Close side panel"
 				CloseBt.Background = 0.25
 				CloseBt.clicked = func() error {
 					app.Dev.ShowSide = false //hide
@@ -357,12 +357,12 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 				HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
 				HeaderDiv.SetColumn(1, 3, 100)
-				HeaderDiv.SetColumnFromSub(3, 5, 100)
+				HeaderDiv.SetColumnFromSub(3, 5, 100, true)
 				//HeaderDiv.ScrollV.Hide = true
 				HeaderDiv.ScrollH.Narrow = true
 
 				CloseBt := HeaderDiv.AddButton(0, 0, 1, 1, ">>")
-				CloseBt.Tooltip = "Close side panel"
+				CloseBt.layout.Tooltip = "Close side panel"
 				CloseBt.Background = 0.25
 				CloseBt.clicked = func() error {
 					app.Dev.ShowSide = false //hide
@@ -491,7 +491,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						in := prompt.Usage.Prompt_price
 						inCached := prompt.Usage.Input_cached_price
 						out := prompt.Usage.Completion_price + prompt.Usage.Reasoning_price
-						tx.Tooltip = fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s sec\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
+						tx.layout.Tooltip = fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s sec\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
 							prompt.Usage.Provider+":"+prompt.Usage.Model,
 							SdkGetDateTime(int64(prompt.Usage.CreatedTimeSec)),
 							strconv.FormatFloat(prompt.Usage.TimeToFirstToken, 'f', 3, 64),
@@ -512,10 +512,10 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					{
 						if len(prompt.Errors) > 0 {
 							SideDiv.AddText(0, 3, 1, 1, "Code errors:")
-							SideDiv.SetRowFromSub(4, 1, 5)
+							SideDiv.SetRowFromSub(4, 1, 5, true)
 							ErrsDiv := SideDiv.AddLayout(0, 4, 1, 1)
 							ErrsDiv.ScrollH.Narrow = true
-							ErrsDiv.SetColumnFromSub(0, 1, 100)
+							ErrsDiv.SetColumnFromSub(0, 1, 100, true)
 							for i, er := range prompt.Errors {
 								tx := ErrsDiv.AddText(0, i, 1, 1, fmt.Sprintf("%d:%d: %s", er.Line, er.Col, er.Msg))
 								tx.Linewrapping = false
@@ -528,7 +528,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		}
 	} else {
 		ShowSideBt := ui.AddButton(3, 0, 1, 1, "<<")
-		ShowSideBt.Tooltip = "Show side panel"
+		ShowSideBt.layout.Tooltip = "Show side panel"
 		ShowSideBt.Background = 0.25
 		ShowSideBt.clicked = func() error {
 			app.Dev.ShowSide = true

@@ -69,7 +69,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			logoBt.Background = 0.2
 			logoBt.IconPath = "resources/logo_small.png"
 			logoBt.Icon_margin = 0.1
-			logoBt.Tooltip = "About"
+			logoBt.layout.Tooltip = "About"
 			logoBt.clicked = func() error {
 				AboutDia.OpenRelative(logoBt.layout, caller)
 				return nil
@@ -91,7 +91,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				if i == source_root.Selected_app_i && !source_root.ShowSettings {
 					dd := 1.0
 
-					Apps2Div.SetRowFromSub(yy, 1, 100)
+					Apps2Div.SetRowFromSub(yy, 1, 100, true)
 
 					BtDiv := Apps2Div.AddLayout(0, yy, 1, 1)
 					BtDiv.SetColumn(0, 1, 100)
@@ -104,7 +104,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 					//Dev button
 					btDev := BtDiv.AddButton(0, 1, 1, 1, "Build")
-					btDev.Tooltip = "Edit app"
+					btDev.layout.Tooltip = "Edit app"
 					btDev.Shortcut = 'b'
 					btDev.Background = 0
 					if app.Dev.Enable {
@@ -130,7 +130,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				/*if i == source_root.Selected_app_i && !source_root.ShowSettings {
 					bt.Background = 1
 				}*/
-				bt.Tooltip = app.Name
+				bt.layout.Tooltip = app.Name
 				bt.IconPath = fmt.Sprintf("apps/%s/icon", app.Name)
 				bt.Icon_margin = 0.4
 
@@ -162,7 +162,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		{
 			newAppBt := AppsDiv.AddButton(0, y, 1, 1, "<h1>+")
 			y++
-			newAppBt.Tooltip = "Create new app"
+			newAppBt.layout.Tooltip = "Create new app"
 			newAppBt.Background = 0.25
 			newAppBt.clicked = func() error {
 
@@ -188,7 +188,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			setBt.IconPath = "resources/settings.png"
 			setBt.Icon_margin = 0.2
 			setBt.Icon_align = 1
-			setBt.Tooltip = "Show Settings"
+			setBt.layout.Tooltip = "Show Settings"
 			setBt.Background = 0.25
 			if source_root.ShowSettings {
 				setBt.Background = 1
@@ -208,7 +208,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			UsageBt := AppsDiv.AddButton(0, y, 1, 1, "$")
 			y++
 			UsageBt.Background = 0.25
-			UsageBt.Tooltip = "Spendings"
+			UsageBt.layout.Tooltip = "Spendings"
 			UsageBt.clicked = func() error {
 				UsageDia.OpenRelative(UsageBt.layout, caller)
 				return nil
@@ -254,7 +254,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		micInfo := callFuncGetMicInfo()
 		if micInfo.Active {
 			MicBt := AppsDiv.AddButton(0, y, 1, 1, "")
-			MicBt.Tooltip = "Stop all microphone recordings"
+			MicBt.layout.Tooltip = "Stop all microphone recordings"
 			MicBt.Icon_align = 1
 			MicBt.IconPath = "resources/mic.png"
 			MicBt.Icon_margin = 0.15
@@ -286,14 +286,14 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 			MediaDia := AppsDiv.AddDialog("media")
 			{
-				MediaDia.UI.SetColumnFromSub(0, 1, 20)
+				MediaDia.UI.SetColumnFromSub(0, 1, 20, true)
 				MediaDia.UI.SetColumn(1, 1, 2)
 				MediaDia.UI.SetColumn(2, 2, 5)
 				yy := 0
 				for playerID, it := range mediaInfo {
 					//path
 					tx := MediaDia.UI.AddText(0, yy, 1, 1, it.Path)
-					tx.Tooltip = fmt.Sprintf("%d", playerID)
+					tx.layout.Tooltip = fmt.Sprintf("%d", playerID)
 
 					//time
 					MediaDia.UI.AddText(1, yy, 1, 1, fmt.Sprintf("%d%%", int(float64(it.Seek)/float64(it.Duration)*100)))
@@ -319,7 +319,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 
 			MediaBt := AppsDiv.AddButton(0, y, 1, 1, "")
-			MediaBt.Tooltip = "Show media"
+			MediaBt.layout.Tooltip = "Show media"
 			MediaBt.Icon_align = 1
 			MediaBt.IconPath = "resources/speaker.png"
 			MediaBt.Icon_margin = 0.2
@@ -337,7 +337,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			if len(msgs) > 0 {
 				ProgressDia := AppsDiv.AddDialog("progress")
 				ProgressDia.UI.SetColumn(0, 5, 15)
-				ProgressDia.UI.SetRowFromSub(0, 1, 10)
+				ProgressDia.UI.SetRowFromSub(0, 1, 10, true)
 				st.buildThreads(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs)
 
 				ProgressBt := AppsDiv.AddButton(0, y, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
@@ -385,7 +385,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				{
 					bt := SideDiv.AddButton(0, 0, 1, 1, "New Chat")
 					bt.Background = 0.5
-					bt.Tooltip = "Create new chat"
+					bt.layout.Tooltip = "Create new chat"
 					bt.Shortcut = 't'
 					bt.layout.Enable = (app != nil)
 					bt.clicked = func() error {
@@ -545,7 +545,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller) error {
 
 	//device settings
 	{
-		ui.SetRowFromSub(y, 0, 100)
+		ui.SetRowFromSub(y, 0, 100, true)
 		ui.AddToolApp(1, y, 1, 1, "Device", "ShowDeviceSettings", nil, caller)
 		y++
 	}
@@ -555,7 +555,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller) error {
 
 	// LLMs
 	{
-		ui.SetRowFromSub(y, 0, 100)
+		ui.SetRowFromSub(y, 0, 100, true)
 		ui.AddToolApp(1, y, 1, 1, "Device", "ShowLLMsSettings", nil, caller)
 		y++
 	}
@@ -567,7 +567,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller) error {
 }
 
 func (st *ShowRoot) buildAbout(ui *UI) {
-	ui.SetColumnFromSub(0, 5, 30)
+	ui.SetColumnFromSub(0, 5, 30, true)
 
 	y := 0
 
@@ -598,16 +598,16 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
 		return
 	}
 
-	ui.SetColumnFromSub(0, 1, 30)
-	ui.SetRowFromSub(0, 1, 15)
+	ui.SetColumnFromSub(0, 1, 30, true)
+	ui.SetRowFromSub(0, 1, 15, true)
 
 	total_price := 0.0
 	{
 		ItemsDiv := ui.AddLayout(0, 0, 1, 1)
-		ItemsDiv.SetColumnFromSub(0, 1, 10)
-		ItemsDiv.SetColumnFromSub(1, 1, 10)
-		ItemsDiv.SetColumnFromSub(2, 1, 10)
-		ItemsDiv.SetColumnFromSub(3, 1, 10)
+		ItemsDiv.SetColumnFromSub(0, 1, 10, true)
+		ItemsDiv.SetColumnFromSub(1, 1, 10, true)
+		ItemsDiv.SetColumnFromSub(2, 1, 10, true)
+		ItemsDiv.SetColumnFromSub(3, 1, 10, true)
 
 		y := 0
 		for i := len(usages) - 1; i >= 0; i-- {
@@ -676,7 +676,7 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 		}
 	}
 
-	ui.SetRowFromSub(1, 1, 15)
+	ui.SetRowFromSub(1, 1, 15, true)
 	ListDiv := ui.AddLayout(0, 1, 1, 1)
 	ListDiv.SetColumn(0, 1, 4)
 	ListDiv.SetColumn(1, 1, 26)
@@ -686,12 +686,12 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 	for i := len(logs) - 1; i >= 0 && i >= len(logs)-MAX_N; i-- {
 		it := logs[i]
 
-		ListDiv.SetRowFromSub(y, 1, 5)
+		ListDiv.SetRowFromSub(y, 1, 5, true)
 
 		ListDiv.AddText(0, y, 1, 1, SdkGetDateTime(int64(it.Time)))
 
 		tx := ListDiv.AddText(1, y, 1, 1, it.Msg)
-		tx.Tooltip = it.Stack
+		tx.layout.Tooltip = it.Stack
 		tx.Cd = UI_GetPalette().E
 
 		y++
@@ -710,9 +710,9 @@ func (st *ShowRoot) buildThreads(ui *UI, msgs []SdkMsg) {
 	//Progress
 	for _, msg := range msgs {
 		label := msg.GetLabel()
-		ui.SetRowFromSub(y, 1, 5)
+		ui.SetRowFromSub(y, 1, 5, true)
 		tx := ui.AddText(0, y, 1, 1, label)
-		tx.Tooltip = fmt.Sprintf("%s() - %s", msg.FuncName, label)
+		tx.layout.Tooltip = fmt.Sprintf("%s() - %s", msg.FuncName, label)
 		bt := ui.AddButton(1, y, 1, 1, "Cancel")
 		bt.Background = 0.5
 		bt.clicked = func() error {

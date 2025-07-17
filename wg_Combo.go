@@ -1,9 +1,13 @@
 package main
 
-import "slices"
+import (
+	"fmt"
+	"slices"
+)
 
 type Combo struct {
-	Value *string
+	Tooltip string
+	Value   *string
 
 	Labels []string
 	Values []string
@@ -13,8 +17,13 @@ type Combo struct {
 
 func (layout *Layout) AddCombo(x, y, w, h int, value *string, labels []string, values []string) *Combo {
 	props := &Combo{Value: value, Labels: labels, Values: values}
-	layout._createDiv(x, y, w, h, "Combo", props.Build, nil, nil)
+	lay := layout._createDiv(x, y, w, h, "Combo", props.Build, nil, nil)
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
+}
+
+func (st *Combo) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: Combo. Value: %s. Tooltip: %s", *st.Value, st.Tooltip)
 }
 
 func (st *Combo) Build(layout *Layout) {
@@ -25,7 +34,7 @@ func (st *Combo) Build(layout *Layout) {
 
 	//button
 	bt := layout.AddButton(0, 0, 1, 1, Combo_getValueLabel(*st.Value, st.Values, st.Labels))
-	bt.Tooltip = *st.Value
+	bt.Tooltip = st.Tooltip
 	bt.IconPath = "resources/arrow_down.png"
 	bt.Icon_margin = 0.1
 	bt.Icon_align = 2

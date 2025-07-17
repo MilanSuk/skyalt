@@ -6,14 +6,20 @@ import (
 )
 
 type ColorPickerButton struct {
+	Tooltip string
 	Cd      *color.RGBA
 	changed func()
 }
 
 func (layout *Layout) AddColorPickerButton(x, y, w, h int, cd *color.RGBA) *ColorPickerButton {
 	props := &ColorPickerButton{Cd: cd}
-	layout._createDiv(x, y, w, h, "ColorPickerButton", props.Build, nil, nil)
+	lay := layout._createDiv(x, y, w, h, "ColorPickerButton", props.Build, nil, nil)
+	lay.fnGetLLMTip = props.getLLMTip
 	return props
+}
+
+func (st *ColorPickerButton) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: ColorPickerButton: Value: RGBA(%d,%d,%d,%d). Tooltip: %s", int(st.Cd.R), int(st.Cd.G), int(st.Cd.B), int(st.Cd.A), st.Tooltip)
 }
 
 func (st *ColorPickerButton) Build(layout *Layout) {
@@ -24,7 +30,6 @@ func (st *ColorPickerButton) Build(layout *Layout) {
 	bt.Border = true
 	bt.Background = 1
 	bt.Cd = *st.Cd //set Button
-	bt.Tooltip = fmt.Sprintf("RGBA(%d,%d,%d,%d)", int(st.Cd.R), int(st.Cd.G), int(st.Cd.B), int(st.Cd.A))
 
 	cdialog := layout.AddDialog("color_picker_dialog")
 	cdialog.Layout.SetColumn(0, 10, 17)

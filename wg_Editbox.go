@@ -1,18 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"strconv"
 )
 
 type Editbox struct {
+	Tooltip string
+
 	Cd color.RGBA
 
 	ValuePointer   interface{} //*string, *int, *float64
 	ValueFloatPrec int
 
-	Ghost   string
-	Tooltip string
+	Ghost string
 
 	Align_h int //0=left, 1=center, 2=right
 	Align_v int //0=top, 1=center, 2=bottom
@@ -41,7 +43,12 @@ func (layout *Layout) AddEditbox2(x, y, w, h int, valuePointer interface{}) (*Ed
 	lay := layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
 	lay.fnAutoResize = props.autoResize
 	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
+	lay.fnGetLLMTip = props.getLLMTip
 	return props, lay
+}
+
+func (st *Editbox) getLLMTip(layout *Layout) string {
+	return fmt.Sprintf("Type: Editbox. Value: %s. Tooltip: %s", st.getValue(), st.Tooltip)
 }
 
 func (st *Editbox) Build(layout *Layout) {

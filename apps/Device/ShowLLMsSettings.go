@@ -19,7 +19,7 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 	fnProvider := func(ChatDiv *UI, provider string) {
 		ChatDia := ChatDiv.AddDialog(provider + "_settings")
 		ChatDia.UI.SetColumn(0, 1, 20)
-		ChatDia.UI.SetRowFromSub(0, 1, 100)
+		ChatDia.UI.SetRowFromSub(0, 1, 100, true)
 		found := true
 		switch strings.ToLower(provider) {
 		case "xai":
@@ -54,7 +54,7 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 
 	//Chat
 	{
-		ui.SetRowFromSub(y, 1, 100)
+		ui.SetRowFromSub(y, 1, 100, true)
 		ChatDiv := ui.AddLayout(0, y, 1, 1)
 		ChatDiv.SetColumn(0, 1, 4)
 		ChatDiv.SetColumn(1, 1, 100)
@@ -74,7 +74,7 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 
 	//Image
 	{
-		ui.SetRowFromSub(y, 1, 100)
+		ui.SetRowFromSub(y, 1, 100, true)
 		ChatDiv := ui.AddLayout(0, y, 1, 1)
 		ChatDiv.SetColumn(0, 1, 4)
 		ChatDiv.SetColumn(1, 1, 100)
@@ -91,7 +91,7 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 
 	//STT
 	{
-		ui.SetRowFromSub(y, 1, 100)
+		ui.SetRowFromSub(y, 1, 100, true)
 		ChatDiv := ui.AddLayout(0, y, 1, 1)
 		ChatDiv.SetColumn(0, 1, 4)
 		ChatDiv.SetColumn(1, 1, 100)

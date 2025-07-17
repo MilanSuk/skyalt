@@ -6,10 +6,11 @@ import (
 )
 
 type Color struct {
+	Tooltip string
+
 	Type    string
 	Cd      *color.RGBA
 	Quality float64
-	Tooltip string
 
 	changed func()
 }
@@ -78,12 +79,11 @@ func (st *Color) _drawRainbow(paint *LayoutPaint, rect Rect) {
 	paint.Line(rect, p, 0, p, 1, color.RGBA{0, 0, 0, 255}, 0.06)
 
 	paint.Cursor("hand", rect)
-	paint.Tooltip(st.Tooltip, rect)
 
 	cq := rect
 	cq.X += cq.W*p - 0.25
 	cq.W = 0.5
-	paint.TooltipEx(cq, fmt.Sprintf("Hue: %d", int(H)), true)
+	paint.TooltipEx(cq, fmt.Sprintf("Hue: %d. %s", int(H), st.Tooltip), true)
 }
 
 func _Color_clampFloat(v, min, max float64) float64 {

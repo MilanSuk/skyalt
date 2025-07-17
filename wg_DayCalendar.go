@@ -27,7 +27,7 @@ func (st *DayCalendar) Build(layout *Layout) {
 
 	layout.AddText(0, 0, 1+len(st.Days), 1, "<b>Day(s) view</b>").Align_h = 1
 
-	layout.LLMTip = fmt.Sprintf("Days(format YYYY-MM-DD): %v", st.Days)
+	layout.Tooltip = fmt.Sprintf("Days(format YYYY-MM-DD): %v", st.Days)
 
 	//header
 	{
@@ -75,7 +75,7 @@ func (st *DayCalendar) Build(layout *Layout) {
 				dayStart := time.Date(tm.Year(), tm.Month(), tm.Day(), 0, 0, 0, 0, time.Local)
 
 				div := layout.AddLayout(1+x, 2, 1, 24*2)
-				div.LLMTip = fmt.Sprintf("Day(YYYY-MM-DD): %d-%d-%d", tm.Year(), tm.Month(), tm.Day())
+				div.Tooltip = fmt.Sprintf("Day(YYYY-MM-DD): %d-%d-%d", tm.Year(), tm.Month(), tm.Day())
 
 				_DayCalendar_showDaysView_DayEvent(st.Events, dayStart.Unix(), div, 24*2)
 
@@ -84,7 +84,7 @@ func (st *DayCalendar) Build(layout *Layout) {
 
 					h := float64(today.Unix()-dayStart.Unix()) / (24 * 3600)
 					div := layout.AddLayout(1, 2, len(st.Days), 24*2)
-					div.LLMTip = fmt.Sprintf("Timeline with time(YY-MM-DD HH:MM): %s", today.Format("01-02-2006 15:04"))
+					div.Tooltip = fmt.Sprintf("Timeline with time(YY-MM-DD HH:MM): %s", today.Format("01-02-2006 15:04"))
 					{
 						div.EnableTouch = false
 						div.fnDraw = func(rect Rect, l *Layout) (paint LayoutPaint) {
@@ -189,7 +189,7 @@ func _DayCalendar_showDaysView_DayEvent(Events []CalendarEvent, dayStart int64, 
 		for i, it := range cols[c] {
 			event := Events[it.event_i]
 			tx, txLay := Div.AddText2(0, i*2+1, 1, 1, event.Title)
-			txLay.LLMTip = fmt.Sprintf("Event ID: %d, Title: %s, Start: %s, End: %s, GroupID: %d", event.EventID, event.Title, layout.ConvertTextDateTime(event.Start), layout.ConvertTextDateTime(event.Start+event.Duration), event.GroupID)
+			tx.Tooltip = fmt.Sprintf("Event ID: %d, Title: %s, Start: %s, End: %s, GroupID: %d", event.EventID, event.Title, layout.ConvertTextDateTime(event.Start), layout.ConvertTextDateTime(event.Start+event.Duration), event.GroupID)
 			tx.Tooltip = layout.ConvertTextTime(event.Start) + " - " + layout.ConvertTextTime(event.Start+event.Duration) + "\n" + event.Title
 			txLay.Back_cd = event.Color
 			if txLay.Back_cd.A == 0 {

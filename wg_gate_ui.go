@@ -19,8 +19,6 @@ package main
 import (
 	"fmt"
 	"image/color"
-	"strconv"
-	"time"
 )
 
 type UIText struct {
@@ -28,7 +26,6 @@ type UIText struct {
 	Align_h int
 	Align_v int
 	Cd      color.RGBA
-	Tooltip string
 
 	Selection    bool
 	Formating    bool
@@ -46,7 +43,6 @@ type UIEditbox struct {
 	ValueInt   *int
 	Precision  int
 	Ghost      string
-	Tooltip    string
 	Password   bool
 
 	Align_h int //0=left, 1=center, 2=right
@@ -66,9 +62,8 @@ type UISlider struct {
 	Step  float64
 }
 type UIButton struct {
-	Label   string
-	Tooltip string
-	Align   int
+	Label string
+	Align int
 
 	Shortcut byte
 
@@ -93,11 +88,13 @@ type UIButton struct {
 }
 
 type UIFilePickerButton struct {
+	Tooltip     string
 	Path        *string
 	Preview     bool
 	OnlyFolders bool
 }
 type UIDatePickerButton struct {
+	Tooltip  string
 	Date     *int64
 	Page     *int64
 	ShowTime bool
@@ -112,15 +109,13 @@ type UICombo struct {
 	Values []string
 }
 type UISwitch struct {
-	Label   string
-	Tooltip string
-	Value   *bool
+	Label string
+	Value *bool
 }
 
 type UICheckbox struct {
-	Label   string
-	Tooltip string
-	Value   *float64
+	Label string
+	Value *float64
 }
 
 type UIMicrophone struct {
@@ -161,9 +156,8 @@ type UIChartColumns struct {
 }
 
 type UIMedia struct {
-	Blob    []byte
-	Path    string
-	Tooltip string
+	Blob []byte
+	Path string
 
 	Cd          color.RGBA
 	Draw_border bool
@@ -226,6 +220,7 @@ type UIGridSize struct {
 
 	SetFromChild_min float64 `json:",omitempty"`
 	SetFromChild_max float64 `json:",omitempty"`
+	SetFromChild_fix bool    `json:",omitempty"`
 }
 
 type UIYearCalendar struct {
@@ -252,7 +247,9 @@ type UI struct {
 
 	UID        uint64
 	X, Y, W, H int
-	LLMTip     string
+
+	Tooltip       string
+	TooltipGroups []LayoutTooltip
 
 	Cols  []UIGridSize
 	Rows  []UIGridSize
@@ -462,7 +459,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 
 	for _, col := range ui.Cols {
 		if col.SetFromChild_min > 0 || col.SetFromChild_max > 0 {
-			layout.SetColumnFromSub(col.Pos, col.SetFromChild_min, col.SetFromChild_max, true)
+			layout.SetColumnFromSub(col.Pos, col.SetFromChild_min, col.SetFromChild_max, col.SetFromChild_fix)
 		} else {
 			if col.Default_resize > 0 {
 				layout.SetColumnResizable(col.Pos, col.Min, col.Max, col.Default_resize)
@@ -474,7 +471,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 	}
 	for _, row := range ui.Rows {
 		if row.SetFromChild_min > 0 || row.SetFromChild_max > 0 {
-			layout.SetRowFromSub(row.Pos, row.SetFromChild_min, row.SetFromChild_max, true)
+			layout.SetRowFromSub(row.Pos, row.SetFromChild_min, row.SetFromChild_max, row.SetFromChild_fix)
 		} else {
 			if row.Default_resize > 0 {
 				layout.SetRowResizable(row.Pos, row.Min, row.Max, row.Default_resize)
@@ -532,7 +529,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 
 func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, parent_UID uint64, fnProgress func(cmds [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
 
-	var itemLLMTip string //it.Label
+	//var tooltip_value string
 
 	if it.List != nil {
 		list := layout.AddLayoutList(it.X, it.Y, it.W, it.H, it.List.AutoSpacing)
@@ -548,14 +545,13 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 		}
 
 		tx := layout.AddText(it.X, it.Y, it.W, it.H, label)
+		tx.Tooltip = it.Tooltip
 		tx.Align_h = it.Text.Align_h
 		tx.Align_v = it.Text.Align_v
-		tx.Tooltip = it.Text.Tooltip
 		tx.Multiline = it.Text.Multiline
 		tx.Linewrapping = it.Text.Linewrapping
 		tx.Formating = it.Text.Formating
 		tx.Selection = it.Text.Selection
-		itemLLMTip = it.Text.Label
 
 		if it.Text.EnableDropFile {
 			txLay := layout.FindGrid(it.X, it.Y, it.W, it.H)
@@ -577,21 +573,21 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 		var val interface{}
 		if it.Editbox.Value != nil {
 			val = it.Editbox.Value
-			itemLLMTip = *it.Editbox.Value
+			//tooltip_value = *it.Editbox.Value
 		} else if it.Editbox.ValueInt != nil {
 			val = it.Editbox.ValueInt
-			itemLLMTip = strconv.Itoa(*it.Editbox.ValueInt)
+			//tooltip_value = strconv.Itoa(*it.Editbox.ValueInt)
 		} else if it.Editbox.ValueFloat != nil {
 			val = it.Editbox.ValueFloat
-			itemLLMTip = strconv.FormatFloat(*it.Editbox.ValueFloat, 'f', -1, 64)
+			//tooltip_value = strconv.FormatFloat(*it.Editbox.ValueFloat, 'f', -1, 64)
 		}
 
 		ed, edLay := layout.AddEditbox2(it.X, it.Y, it.W, it.H, val)
+		ed.Tooltip = it.Tooltip
 		ed.Align_h = it.Editbox.Align_h
 		ed.Align_v = it.Editbox.Align_v
 		ed.ValueFloatPrec = it.Editbox.Precision
 		ed.Ghost = it.Editbox.Ghost
-		ed.Tooltip = it.Editbox.Tooltip
 		ed.Password = it.Editbox.Password
 		ed.Multiline = it.Editbox.Multiline
 		ed.Linewrapping = it.Editbox.Linewrapping
@@ -625,23 +621,26 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 
 	} else if it.Slider != nil {
 		sl := layout.AddSlider(it.X, it.Y, it.W, it.H, it.Slider.Value, it.Slider.Min, it.Slider.Max, it.Slider.Step)
-		itemLLMTip = strconv.FormatFloat(*it.Slider.Value, 'f', -1, 64)
+		sl.Tooltip = it.Tooltip
+		//tooltip_value = strconv.FormatFloat(*it.Slider.Value, 'f', -1, 64)
 		sl.changed = func() {
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueFloat: *it.Slider.Value}, fnProgress, fnDone)
 		}
 
 	} else if it.FilePickerButton != nil {
 		bt := layout.AddFilePickerButton(it.X, it.Y, it.W, it.H, it.FilePickerButton.Path, it.FilePickerButton.Preview, it.FilePickerButton.OnlyFolders)
+		bt.Tooltip = it.Tooltip
 		if it.FilePickerButton.Path != nil {
-			itemLLMTip = "File: " + *it.FilePickerButton.Path
+			//tooltip_value = "File: " + *it.FilePickerButton.Path
 		}
 		bt.changed = func() {
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: *it.FilePickerButton.Path}, fnProgress, fnDone)
 		}
 	} else if it.DatePickerButton != nil {
 		bt := layout.AddDatePickerButton(it.X, it.Y, it.W, it.H, it.DatePickerButton.Date, it.DatePickerButton.Page, it.DatePickerButton.ShowTime)
+		bt.Tooltip = it.Tooltip
 		if it.DatePickerButton.Date != nil {
-			itemLLMTip = "Date(YY-MM-DD HH:MM): " + time.Unix(*it.DatePickerButton.Date, 0).Format("01-02-2006 15:04")
+			//tooltip_value = "Date(YY-MM-DD HH:MM): " + time.Unix(*it.DatePickerButton.Date, 0).Format("01-02-2006 15:04")
 		}
 		bt.changed = func() {
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueInt: *it.DatePickerButton.Date}, fnProgress, fnDone)
@@ -649,39 +648,41 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 
 	} else if it.ColorPickerButton != nil {
 		bt := layout.AddColorPickerButton(it.X, it.Y, it.W, it.H, it.ColorPickerButton.Cd)
-		itemLLMTip = fmt.Sprintf("Color: R:%d, G:%d, B:%d, A:%d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)
+		bt.Tooltip = it.Tooltip
+		//tooltip_value = fmt.Sprintf("Color: R:%d, G:%d, B:%d, A:%d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)
 		bt.changed = func() {
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %d %d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)}, fnProgress, fnDone)
 		}
 
 	} else if it.Combo != nil {
 		cb := layout.AddCombo(it.X, it.Y, it.W, it.H, it.Combo.Value, it.Combo.Labels, it.Combo.Values)
+		cb.Tooltip = it.Tooltip
 		cb.changed = func() {
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: *it.Combo.Value}, fnProgress, fnDone)
 		}
 
 		if it.Combo.Value != nil {
-			itemLLMTip = fmt.Sprintf("Value: %s, Label: %s", *it.Combo.Value, Combo_getValueLabel(*it.Combo.Value, it.Combo.Labels, it.Combo.Values))
+			//tooltip_value = fmt.Sprintf("Value: %s, Label: %s", *it.Combo.Value, Combo_getValueLabel(*it.Combo.Value, it.Combo.Labels, it.Combo.Values))
 		}
 	} else if it.Switch != nil {
 		sw := layout.AddSwitch(it.X, it.Y, it.W, it.H, it.Switch.Label, it.Switch.Value)
-		sw.Tooltip = it.Switch.Tooltip
+		sw.Tooltip = it.Tooltip
 		sw.changed = func() {
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueBool: *it.Switch.Value}, fnProgress, fnDone)
 		}
 
 		if it.Switch.Value != nil {
-			itemLLMTip = fmt.Sprintf("Value: %v, Label: %s", *it.Switch.Value, it.Switch.Label)
+			//tooltip_value = fmt.Sprintf("Value: %v, Label: %s", *it.Switch.Value, it.Switch.Label)
 		}
 	} else if it.Checkbox != nil {
 		che := layout.AddCheckbox(it.X, it.Y, it.W, it.H, it.Checkbox.Label, it.Checkbox.Value)
-		che.Tooltip = it.Checkbox.Tooltip
+		che.Tooltip = it.Tooltip
 		che.changed = func() {
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueFloat: *it.Checkbox.Value}, fnProgress, fnDone)
 		}
 
 		if it.Checkbox.Value != nil {
-			itemLLMTip = fmt.Sprintf("Value: %f, Label: %s", *it.Checkbox.Value, it.Checkbox.Label)
+			//tooltip_value = fmt.Sprintf("Value: %f, Label: %s", *it.Checkbox.Value, it.Checkbox.Label)
 		}
 	} else if it.Microphone != nil {
 		mic := layout.AddMicrophone(it.X, it.Y, it.W, it.H)
@@ -702,6 +703,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 
 	} else if it.Map != nil {
 		mp := layout.AddMap(it.X, it.Y, it.W, it.H, &MapCam{Lon: *it.Map.Lon, Lat: *it.Map.Lat, Zoom: *it.Map.Zoom})
+		mp.Tooltip = it.Tooltip
 		mp.Locators = it.Map.Locators
 		mp.Routes = it.Map.Routes
 
@@ -712,7 +714,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 		//itemLLMTip ....
 	} else if it.ChartLines != nil {
 		ch := layout.AddChartLines(it.X, it.Y, it.W, it.H, it.ChartLines.Lines)
-
+		ch.Tooltip = it.Tooltip
 		ch.X_unit = it.ChartLines.X_unit
 		ch.Y_unit = it.ChartLines.Y_unit
 		ch.Bound_x0 = it.ChartLines.Bound_x0
@@ -725,6 +727,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 		//itemLLMTip ....
 	} else if it.ChartColumns != nil {
 		ch := layout.AddChartColumns(it.X, it.Y, it.W, it.H, it.ChartColumns.Columns, it.ChartColumns.X_Labels)
+		ch.Tooltip = it.Tooltip
 		ch.X_unit = it.ChartColumns.X_unit
 		ch.Y_unit = it.ChartColumns.Y_unit
 		ch.Bound_y0 = it.ChartColumns.Bound_y0
@@ -740,7 +743,6 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 		case 0:
 			img := layout.AddImage(it.X, it.Y, it.W, it.H, it.Media.Path, it.Media.Blob)
 			img.Cd = it.Media.Cd
-			img.Tooltip = it.Media.Tooltip
 			img.Draw_border = it.Media.Draw_border
 			img.Margin = it.Media.Margin
 			img.Align_h = it.Media.Align_h
@@ -753,14 +755,12 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 		case 1:
 			vid := layout.AddVideo(it.X, it.Y, it.W, it.H, it.Media.Path)
 			vid.Cd = it.Media.Cd
-			vid.Tooltip = it.Media.Tooltip
 			vid.Draw_border = it.Media.Draw_border
 			vid.Margin = it.Media.Margin
 			vid.Align_h = it.Media.Align_h
 			vid.Align_v = it.Media.Align_v
 		case 2:
-			vid := layout.AddAudio(it.X, it.Y, it.W, it.H, it.Media.Path)
-			vid.Tooltip = it.Media.Tooltip
+			layout.AddAudio(it.X, it.Y, it.W, it.H, it.Media.Path)
 		}
 
 		//itemLLMTip ....
@@ -771,7 +771,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 			bt.confirmed = func() {
 				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID}, fnProgress, fnDone)
 			}
-			bt.Tooltip = it.Button.Tooltip
+			bt.Tooltip = it.Tooltip
 			bt.Align = it.Button.Align
 			bt.Background = it.Button.Background
 			bt.Border = it.Button.Border
@@ -786,7 +786,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 			bt.clicked = func() {
 				layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID}, fnProgress, fnDone)
 			}
-			bt.Tooltip = it.Button.Tooltip
+			bt.Tooltip = it.Tooltip
 			bt.Align = it.Button.Align
 			bt.Background = it.Button.Background
 			bt.Border = it.Button.Border
@@ -812,7 +812,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %s %s", src_i, dst_i, src_source, dst_source)}, fnProgress, fnDone)
 		}
 
-		itemLLMTip = "Button with label: " + it.Button.Label
+		//tooltip_value = "Button with label: " + it.Button.Label
 
 	} else if it.YearCalendar != nil {
 		layout.AddYearCalendar(it.X, it.Y, it.W, it.H, it.YearCalendar.Year)
@@ -827,28 +827,28 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 	}
 
 	it2 := layout.FindGrid(it.X, it.Y, it.W, it.H)
-	if it2 != nil && it2.LLMTip == "" {
-		it2.LLMTip = _UiText_RemoveFormating(itemLLMTip)
+	if it2 != nil {
+		it.addLayout(it2, appName, funcName, parent_UID, fnProgress, fnDone)
 	}
-
-	it.addLayout(it2, appName, funcName, parent_UID, fnProgress, fnDone)
 }
 
-func (layout *Layout) setLayoutFromUI(item *UI) {
-	layout.Enable = item.Enable
-	layout.EnableTouch = item.EnableTouch
-	layout.Back_cd = item.Back_cd
-	layout.Back_margin = item.Back_margin
-	layout.Back_rounding = item.Back_rounding
-	layout.Border_cd = item.Border_cd
+func (layout *Layout) setLayoutFromUI(ui *UI) {
+	layout.Enable = ui.Enable
+	layout.EnableTouch = ui.EnableTouch
+	layout.Back_cd = ui.Back_cd
+	layout.Back_margin = ui.Back_margin
+	layout.Back_rounding = ui.Back_rounding
+	layout.Border_cd = ui.Border_cd
 
-	layout.scrollV.Show = !item.ScrollV.Hide
-	layout.scrollH.Show = !item.ScrollH.Hide
-	layout.scrollV.Narrow = item.ScrollV.Narrow
-	layout.scrollH.Narrow = item.ScrollH.Narrow
+	layout.scrollV.Show = !ui.ScrollV.Hide
+	layout.scrollH.Show = !ui.ScrollH.Hide
+	layout.scrollV.Narrow = ui.ScrollV.Narrow
+	layout.scrollH.Narrow = ui.ScrollH.Narrow
 
-	layout.LLMTip = item.LLMTip
+	if layout.Tooltip == "" {
+		layout.Tooltip = ui.Tooltip
+	}
+	layout.TooltipGroups = ui.TooltipGroups
 
-	layout.UID = item.UID
-
+	layout.UID = ui.UID
 }

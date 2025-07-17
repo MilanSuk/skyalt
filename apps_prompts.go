@@ -540,16 +540,11 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 	systemMessage += "Based on the user message, rewrite the tool.go file. Your job is to design a function(tool). Look into an example.go to understand how APIs and storage functions work.\n"
 
 	systemMessage += "Figure out <tool's arguments> based on the user prompt. There are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with an upper-case letter. Every argument must have a description as a comment. You can add extra marks(with brackets []) at the end of a comment. You may add multiple marks with your pair of brackets. Here are the marks:\n"
-	systemMessage += "[optional] - caller can ignore the attribute"
-	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]`
-
+	systemMessage += "[optional] - caller can ignore the attribute\n"
+	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]\n`
+	systemMessage += "\n"
 	systemMessage += "To access the storage, call the Load...() function in storage.go, which returns the data. Don't call save/write on that data, it's automatically called after the function ends.\n"
-
 	systemMessage += "Never define constants('const'), use variables('var') for everything.\n"
-
-	systemMessage += "UI has the attribute LLMTip. LLMTip describe content of layout. It must be detailed as possible. Usual form is <content description>=<UID>, for example: 'PersonID=123'\n"
-
-	//systemMessage += fmt.Sprintf("You may add help functions into tool.go. They should start with ```func (st *%s)NameOfHelpFunction```\n", prompt.Name)
 
 	userMessage := prompt.Prompt
 
