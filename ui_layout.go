@@ -1934,34 +1934,60 @@ func (layout *Layout) HScrollToTheRight() {
 	layout.GetSettings().SetScrollH(layout.UID, UiRootSettings_GetMaxScroll())
 }
 
+func Layout_buildLLMTip(tp string, label string, value_quotes bool, tip string) string {
+
+	str := ""
+	if tp != "" {
+		str += "Type: " + tp
+	}
+
+	if label != "" {
+		if value_quotes {
+			label = "\"" + label + "\""
+		}
+
+		if str != "" {
+			str += ", "
+		}
+		str += "Label: " + label
+	}
+
+	if tip != "" {
+		if str != "" {
+			str += ", "
+		}
+		str += "Tip: " + tip
+	}
+
+	return str
+}
 func Layout_addTip(str string, tooltip string) string {
 	if str != "" {
-		str += "Part of: "
+		str += " part of "
 	}
-	str += tooltip
-	if str != "" && !strings.HasSuffix(str, ".") {
-		str += "."
-	}
+	str += "(" + tooltip + ")"
 	return str
 }
 
 func (layout *Layout) GetLLMTip() string {
-	var str string
+	var final string
 
 	for layout != nil {
 		var tip string
-		if layout.fnGetLLMTip != nil { //only Button now, add to more components .........
+		if layout.fnGetLLMTip != nil {
 			tip = layout.fnGetLLMTip(layout)
 		}
 
 		if tip != "" {
-			str = Layout_addTip(str, tip)
+			final = Layout_addTip(final, tip)
 		}
 
 		if layout.parent != nil {
-			for _, gr := range layout.TooltipGroups {
+			for _, gr := range layout.parent.TooltipGroups {
 				if gr.InInside(layout) {
-					str = Layout_addTip(str, gr.Tooltip)
+					if gr.Tooltip != "" {
+						final = Layout_addTip(final, Layout_buildLLMTip("", "", false, gr.Tooltip))
+					}
 				}
 			}
 		}
@@ -1969,7 +1995,11 @@ func (layout *Layout) GetLLMTip() string {
 		layout = layout.parent
 	}
 
-	return str
+	if final != "" && !strings.HasSuffix(final, ".") {
+		final += "."
+	}
+
+	return final
 }
 
 func (layout *Layout) CallLayoutUpdates() {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -21,7 +20,7 @@ func (layout *Layout) AddDatePickerButton(x, y, w, h int, value *int64, page *in
 }
 
 func (st *DatePickerButton) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: DatePickerButton. Value: %s. Tooltip: %s", layout.ConvertTextDate(*st.Value), st.Tooltip)
+	return Layout_buildLLMTip("DatePickerButton", layout.ConvertTextDate(*st.Value), false, st.Tooltip)
 }
 
 func (st *DatePickerButton) Build(layout *Layout) {

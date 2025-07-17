@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"slices"
 )
 
@@ -23,7 +22,7 @@ func (layout *Layout) AddCombo(x, y, w, h int, value *string, labels []string, v
 }
 
 func (st *Combo) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: Combo. Value: %s. Tooltip: %s", *st.Value, st.Tooltip)
+	return Layout_buildLLMTip("Combo", *st.Value, true, st.Tooltip)
 }
 
 func (st *Combo) Build(layout *Layout) {

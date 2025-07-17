@@ -19,7 +19,7 @@ func (layout *Layout) AddColorPickerButton(x, y, w, h int, cd *color.RGBA) *Colo
 }
 
 func (st *ColorPickerButton) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: ColorPickerButton: Value: RGBA(%d,%d,%d,%d). Tooltip: %s", int(st.Cd.R), int(st.Cd.G), int(st.Cd.B), int(st.Cd.A), st.Tooltip)
+	return Layout_buildLLMTip("DatePickerButton", fmt.Sprintf("RGBA(%d,%d,%d,%d)", int(st.Cd.R), int(st.Cd.G), int(st.Cd.B), int(st.Cd.A)), false, st.Tooltip)
 }
 
 func (st *ColorPickerButton) Build(layout *Layout) {

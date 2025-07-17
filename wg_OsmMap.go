@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"math"
 	"strconv"
@@ -58,7 +57,7 @@ func (layout *Layout) AddMap(x, y, w, h int, cam *MapCam) *Map {
 }
 
 func (st *Map) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: Map. Tooltip: %s", st.Tooltip)
+	return Layout_buildLLMTip("Map", "", false, st.Tooltip)
 }
 
 func (mp *Map) AddLocators(loc MapLocators) {

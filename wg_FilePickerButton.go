@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 )
 
@@ -22,7 +21,7 @@ func (layout *Layout) AddFilePickerButton(x, y, w, h int, path *string, preview 
 }
 
 func (st *FilePickerButton) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: FilePickerButton. Value: %s. Tooltip: %s", *st.Path, st.Tooltip)
+	return Layout_buildLLMTip("FilePickerButton", *st.Path, true, st.Tooltip)
 }
 
 func (st *FilePickerButton) Build(layout *Layout) {

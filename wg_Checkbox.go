@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Checkbox struct {
 	Tooltip string
@@ -19,7 +21,7 @@ func (layout *Layout) AddCheckbox(x, y, w, h int, label string, value *float64) 
 }
 
 func (st *Checkbox) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: Checkbox. Value: %f. Tooltip: %s", *st.Value, st.Tooltip)
+	return Layout_buildLLMTip("Checkbox", fmt.Sprintf("%v", *st.Value), false, st.Tooltip)
 }
 
 func (st *Checkbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 )
 
@@ -37,7 +36,7 @@ func (layout *Layout) AddText(x, y, w, h int, value string) *Text {
 }
 
 func (st *Text) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: Text. Value: %s. Tooltip: %s", st.Value, st.Tooltip)
+	return Layout_buildLLMTip("Text", st.Value, true, st.Tooltip)
 }
 
 func (st *Text) Build(layout *Layout) {

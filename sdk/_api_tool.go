@@ -8,8 +8,7 @@ import (
 //When ui.addText(), ui.addButton() and other ui.add...() functions are called, every GUI components is added to new line.
 //To add more components on same line, use ui.addTable(). All components in table are aligned by columns which makes tables very usefull for creating forms.
 //Use setRowHeight() only when user prompt require that row has specific height.
-
-//Some functions have argument 'tooltip string' which describes what data an UI component represents. It should containt description and name, path, ID of the value. Don't use label/value of UI component as tooltip. Few tooltips example: 'PersonID=123', 'GalleryID="path/to/image"'
+//Some functions have argument 'tooltip string' which describes what data an UI component represents. It should containt description and name, path, ID of the value. Don't use label(value) of UI component as tooltip. Few tooltips example: PersonID=123, GalleryID="path/to/image"
 
 type ToolCaller struct {
 }

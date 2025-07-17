@@ -44,7 +44,7 @@ func (layout *Layout) AddChartLines(x, y, w, h int, lines []ChartLine) *ChartLin
 }
 
 func (st *ChartLines) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: ChartLines. Tooltip: %s", st.Tooltip)
+	return Layout_buildLLMTip("ChartLines", "", false, st.Tooltip)
 }
 
 func (st *ChartLines) Build(layout *Layout) {

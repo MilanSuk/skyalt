@@ -22,7 +22,7 @@ func (layout *Layout) AddSwitch(x, y, w, h int, label string, value *bool) *Swit
 }
 
 func (st *Switch) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: Switch. Value: %v. Tooltip: %s", *st.Value, st.Tooltip)
+	return Layout_buildLLMTip("Switch", fmt.Sprintf("%v", *st.Value), false, st.Tooltip)
 }
 
 func (st *Switch) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {

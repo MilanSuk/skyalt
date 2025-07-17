@@ -68,7 +68,7 @@ func (layout *Layout) AddChartColumns(x, y, w, h int, columns []ChartColumn, x_L
 }
 
 func (st *ChartColumns) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: ChartColumns. Tooltip: %s", st.Tooltip)
+	return Layout_buildLLMTip("ChartColumns", "", false, st.Tooltip)
 }
 
 func (st *ChartColumns) Build(layout *Layout) {

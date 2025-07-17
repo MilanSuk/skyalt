@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"strconv"
 )
@@ -48,7 +47,7 @@ func (layout *Layout) AddEditbox2(x, y, w, h int, valuePointer interface{}) (*Ed
 }
 
 func (st *Editbox) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: Editbox. Value: %s. Tooltip: %s", st.getValue(), st.Tooltip)
+	return Layout_buildLLMTip("Editbox", st.getValue(), true, st.Tooltip)
 }
 
 func (st *Editbox) Build(layout *Layout) {

@@ -36,7 +36,7 @@ func (layout *Layout) AddSliderInt(x, y, w, h int, value *int, min, max, step fl
 }
 
 func (st *Slider) getLLMTip(layout *Layout) string {
-	return fmt.Sprintf("Type: Slider. Value: %f. Tooltip: %s", st.getValue(), st.Tooltip)
+	return Layout_buildLLMTip("Slider", fmt.Sprintf("%v", st.getValue), false, st.Tooltip)
 }
 
 func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
