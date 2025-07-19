@@ -429,8 +429,8 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 								source_chat.Input.Text = sdk_app.StartPrompt
 
-								ch := ShowChat{AppName: app.Name, ChatFileName: fileName}
-								return ch._sendIt(caller, source_chat, source_root, false)
+								//ch := ShowChat{AppName: app.Name, ChatFileName: fileName}
+								return source_chat._sendIt(app.Name, caller, source_root, false)
 							}
 						}
 
@@ -501,7 +501,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 			//Chat(or settings)
 			{
-				ChatDiv, err := ChatDiv.AddTool(1, 0, 1, 1, (&ShowChat{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
+				ChatDiv, err := ChatDiv.AddTool(1, 0, 1, 1, (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
 				if err != nil {
 					return err
 				}

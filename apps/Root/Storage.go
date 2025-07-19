@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
+	"time"
 )
 
 type RootChat struct {
@@ -502,4 +504,257 @@ func (call *OpenAI_completion_msg_Content_ToolCall_Function) GetArgsAsStrings() 
 	}
 
 	return attrs, nil
+}
+
+func (st *ChatInput) SetVoice(js []byte) error {
+	//type VerboseJsonWord struct {
+	//	Start, End float64
+	//	Word       string
+	//}
+	type VerboseJsonSegment struct {
+		Start, End float64
+		Text       string
+		//Words      []*VerboseJsonWord
+	}
+	type VerboseJson struct {
+		Segments []*VerboseJsonSegment //later are projected to .Words
+	}
+
+	var verb VerboseJson
+	err := json.Unmarshal(js, &verb)
+	if err != nil {
+		return fmt.Errorf("verb failed: %v", err)
+	}
+
+	//build prompt
+	prompt := ""
+	for _, seg := range verb.Segments {
+		prompt += seg.Text
+	}
+	prompt = _ChatInput_replaceBackground(prompt)
+	prompt = strings.TrimSpace(prompt)
+
+	pick_i := 0
+	words := []string{"this", "these", "here"}
+	for pick_i < len(st.Picks) {
+		min_p := len(prompt)
+		word_n := 0
+		for _, wd := range words {
+			p := strings.Index(prompt, wd)
+			if p >= 0 && p < min_p {
+				min_p = p
+				word_n = len(wd)
+			}
+		}
+		if word_n > 0 {
+			prompt = prompt[:min_p] + st.Picks[pick_i].Cd.GetLabel() + prompt[min_p+word_n:] //replace
+			pick_i++
+
+		} else {
+			break
+		}
+	}
+
+	st.Text = st.Text_mic + prompt
+
+	return nil
+}
+
+func (st *ChatInput) GetFullPrompt() (string, []string) {
+	prompt := _ChatInput_RemoveFormatingRGBA(st.Text)
+
+	legend := ""
+	sign := 'A'
+	for _, br := range st.Picks {
+		label := fmt.Sprintf("{%s}", br.Cd.Label)
+
+		if strings.Contains(prompt, label) {
+			new_label := fmt.Sprintf("{%c}", sign)
+			prompt = strings.ReplaceAll(prompt, label, new_label)
+			sign++
+
+			legend += "\n" + new_label + ": " + br.LLMTip
+		}
+	}
+	if legend != "" {
+		prompt += "\n" + legend
+	}
+
+	return prompt, st.Files
+}
+
+func _ChatInput_replaceBackground(str string) string {
+	str = strings.ReplaceAll(str, "[BLANK_AUDIO]", "")
+	str = strings.ReplaceAll(str, "[NO_SPEECH]", "")
+	str = strings.ReplaceAll(str, "[MUSIC]", "")
+	str = strings.ReplaceAll(str, "[NOISE]", "")
+	str = strings.ReplaceAll(str, "[LAUGHTER]", "")
+	str = strings.ReplaceAll(str, "[APPLAUSE]", "")
+	str = strings.ReplaceAll(str, "[UNKNOWN]", "")
+	str = strings.ReplaceAll(str, "[INAUDIBLE]", "")
+	return str
+}
+
+func _ChatInput_RemoveFormatingRGBA(str string) string {
+	str = strings.ReplaceAll(str, "</rgba>", "")
+	for {
+		st := strings.Index(str, "<rgba")
+		if st < 0 {
+			break
+		}
+		en := strings.IndexByte(str[st:], '>')
+		if en >= 0 {
+			str = str[:st] + str[st+en+1:]
+		}
+	}
+	return str
+}
+
+func (chat *Chat) _sendIt(appName string, caller *ToolCaller, root *Root, continuee bool) error {
+	//MsgsDiv.VScrollToTheBottom(false, caller)
+	caller.SendFlushCmd()
+
+	if !continuee && chat.Input.Text == "" {
+		return nil //empty text
+	}
+
+	caller.SetMsgName(chat.GetChatID())
+
+	err := chat.complete(appName, caller, root, continuee)
+	if err != nil {
+		return fmt.Errorf("complete() failed: %v", err)
+	}
+	if !continuee {
+		chat.Input.Reset()
+	}
+
+	//MsgsDiv.VScrollToTheBottom(true, caller)
+	return nil
+}
+
+func (chat *Chat) complete(appName string, caller *ToolCaller, root *Root, continuee bool) error {
+
+	//needSummary := (len(chat.Messages.Messages) == 0 /*|| len(chat.Label) < 8*/)
+
+	prompt, files := chat.Input.GetFullPrompt()
+
+	var comp LLMCompletion
+	comp.Temperature = 0.2
+	comp.Max_tokens = 4096
+	comp.Top_p = 0.95 //1.0
+	comp.Frequency_penalty = 0
+	comp.Presence_penalty = 0
+	comp.Reasoning_effort = "" //low, high
+
+	comp.AppName = appName
+
+	//add default(without source) tools
+	/*{
+		defSource := sources["_default_"]
+		if defSource != nil {
+			comp.Tools = append(comp.Tools, defSource.Tools...)
+		}
+		comp.Tools = append(comp.Tools, "InstallDataSource")
+
+		//add 'installed' tools
+		for _, sourceName := range chat.Sources {
+			source := sources[sourceName]
+			if source != nil {
+				comp.Tools = append(comp.Tools, source.Tools...)
+			}
+		}
+	}*/
+
+	old_num_msgs := len(chat.Messages.Messages)
+	var err error
+	comp.PreviousMessages, err = json.Marshal(chat.Messages)
+	if err != nil {
+		return fmt.Errorf("comp.PreviousMessages failed: %v", err)
+	}
+
+	//system
+	{
+		system_prompt := `You are an AI assistant, who enjoys precision and carefully follows the user's requirements.
+If you need, you can use tool calling. Tools gives you precision and output data which you wouldn't know otherwise. Don't ask to call a tool, just do it! Call tools sequentially. Avoid tool call as parameter value.
+If user wants to show/render/visualize some data, search for tools which 'shows'."`
+
+		//sources
+		/*system_prompt += "Here is the list of data sources in form of '<name> //<description>':\n"
+		for sourceName, source := range sources {
+			system_prompt += fmt.Sprintf("%s //%s", sourceName, source.Description)
+			if slices.Index(chat.Sources, sourceName) >= 0 {
+				system_prompt += " [installed]"
+			}
+			system_prompt += "\n"
+		}
+		system_prompt += fmt.Sprintf("Based on what you need you can install new tools by calling InstallDataSource with ChatID=%d. This will give you access to new tools.\n", st.ChatID)
+		*/
+
+		//Date time
+		system_prompt += fmt.Sprintf("\nCurrent time is %s\n", time.Now().Format("Mon, 02 Jan 2006 15:04"))
+
+		//Memory
+		if root.Memory != "" {
+			system_prompt += "\n" + root.Memory
+		}
+
+		comp.SystemMessage = system_prompt
+	}
+
+	if !continuee {
+		comp.UserMessage = prompt
+		comp.UserFiles = files
+	}
+	comp.Max_iteration = 10
+	comp.delta = func(msgJs []byte) {
+		var msg ChatMsg
+		err := json.Unmarshal(msgJs, &msg)
+		if err != nil {
+			return //err ....
+		}
+
+		last_i := len(chat.TempMessages.Messages) - 1
+		if last_i >= 0 && chat.TempMessages.Messages[last_i].Stream {
+			if msg.Stream {
+				//copy
+				msg.ShowParameters = chat.TempMessages.Messages[last_i].ShowParameters
+				msg.ShowReasoning = chat.TempMessages.Messages[last_i].ShowReasoning
+			}
+
+			chat.TempMessages.Messages[last_i] = &msg //rewrite last
+		} else {
+			chat.TempMessages.Messages = append(chat.TempMessages.Messages, &msg)
+		}
+
+		//activate dash
+		if msg.HasUI() {
+			chat.Dash_call_id = msg.Content.Result.Tool_call_id
+		}
+	}
+	chat.TempMessages = ChatMsgs{} //reset
+
+	err = comp.Run(caller)
+	if err != nil {
+		return fmt.Errorf("LLMxAICompleteChat.run() failed: %v", err)
+	}
+
+	chat.TempMessages = ChatMsgs{} //reset
+	err = json.Unmarshal(comp.Out_messages, &chat.Messages)
+	if err != nil {
+		return fmt.Errorf("comp.Out_messages failed: %v", err)
+	}
+
+	//activate new dash
+	for i := old_num_msgs; i < len(chat.Messages.Messages); i++ {
+		msg := chat.Messages.Messages[i]
+		if msg.HasUI() {
+			chat.Dash_call_id = msg.Content.Result.Tool_call_id
+		}
+	}
+
+	/*if needSummary {
+		st.summarize(prompt, caller, chat)
+	}*/
+
+	return nil
 }
