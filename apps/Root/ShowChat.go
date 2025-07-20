@@ -473,15 +473,15 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 
 				CallDiv.SetRowFromSub(yy, 1, 100, true)
 
-				CallDiv.AddText(1, yy, 1, 1, "<i>"+key) //name
+				CallDiv.AddText(1, yy, 1, 1, "<i>"+_ShowChat_cutString(key)) //name
 				//tx.Tooltip = //description from agent tool ....
 
 				if strings.Count(valStr, "\n") > 0 {
-					tx := CallDiv.AddText(2, yy, 1, 1, valStr)
+					tx := CallDiv.AddText(2, yy, 1, 1, _ShowChat_cutString(valStr))
 					tx.Multiline = true
 					//tx.Align_v = 0
 				} else {
-					CallDiv.AddText(2, yy, 1, 1, valStr)
+					CallDiv.AddText(2, yy, 1, 1, _ShowChat_cutString(valStr))
 				}
 				yy++
 			}
@@ -491,11 +491,19 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 			CallDiv.AddText(0, yy, 3, 1, "Output:")
 			yy++
 			CallDiv.SetRowFromSub(yy, 1, 100, true)
-			tx := CallDiv.AddText(1, yy, 2, 1, msg_result.Content.Result.Content)
+
+			tx := CallDiv.AddText(1, yy, 2, 1, _ShowChat_cutString(msg_result.Content.Result.Content))
 			tx.Multiline = true
 			//tx.Align_v = 0
 			yy++
 		}
 	}
 
+}
+
+func _ShowChat_cutString(str string) string {
+	if len(str) > 250 {
+		str = str[:200] + fmt.Sprintf(" (+ %d more)", len(str)-200)
+	}
+	return str
 }
