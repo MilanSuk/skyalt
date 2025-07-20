@@ -375,66 +375,133 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			ChatDiv.SetColumn(1, 1, 100)
 			ChatDiv.SetRow(0, 1, 100)
 
+			//Chat(or settings)
+			//note: must be called before, because it will update chat label
+			{
+				ChatDiv, err := ChatDiv.AddTool(1, 0, 1, 1, (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
+				if err != nil {
+					return err
+				}
+
+				ChatDiv.Back_cd = UI_GetPalette().GetGrey(0.03)
+
+				if source_chat != nil {
+					for _, br := range source_chat.Input.Picks {
+						ui.Paint_Brush(br.Cd.Cd, br.Points)
+					}
+				}
+			}
+
 			//Side
 			{
 				SideDiv := ChatDiv.AddLayout(0, 0, 1, 1)
 				SideDiv.SetColumn(0, 1, 100)
 				SideDiv.SetRow(1, 1, 100)
 
-				//New Chat button
+				//Header
 				{
-					bt := SideDiv.AddButton(0, 0, 1, 1, "New Chat")
-					bt.Background = 0.5
-					bt.layout.Tooltip = "Create new chat"
-					bt.Shortcut = 't'
-					bt.layout.Enable = (app != nil)
-					bt.clicked = func() error {
-						if app == nil {
-							return fmt.Errorf("No app selected")
-						}
+					HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
+					HeaderDiv.ScrollH.Narrow = true
+					HeaderDiv.ScrollV.Hide = true
+					//New Chat
+					{
+						HeaderDiv.SetColumn(0, 2, 100)
+						bt := HeaderDiv.AddButton(0, 0, 1, 1, "New Chat")
+						bt.Background = 0.5
+						bt.layout.Tooltip = "Create new chat"
+						bt.Shortcut = 't'
+						bt.layout.Enable = (app != nil)
+						bt.clicked = func() error {
+							if app == nil {
+								return fmt.Errorf("No app selected")
+							}
 
-						fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
-						source_chat, err = NewChat(filepath.Join("..", app.Name, "Chats", fileName))
-						if err != nil {
+							fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
+							source_chat, err = NewChat(filepath.Join("..", app.Name, "Chats", fileName))
+							if err != nil {
+								return nil
+							}
+
+							app.Chats = slices.Insert(app.Chats, 0, RootChat{Label: "Empty", FileName: fileName})
+							app.Selected_chat_i = 0
+
+							ui.ActivateEditbox("chat_user_prompt", caller)
+
+							SideDiv.VScrollToTheTop(caller)
+
+							source_root.ShowSettings = false
+
+							//if exist, prepare StartPrompt to run
+							{
+								type SdkToolsPrompts struct {
+									StartPrompt string
+									//..
+								}
+								var sdk_app SdkToolsPrompts
+								appJs, err := callFuncGetToolData(app.Name)
+								if err != nil {
+									return err
+								}
+								err = json.Unmarshal(appJs, &sdk_app)
+								if err != nil {
+									return err
+								}
+
+								if sdk_app.StartPrompt != "" {
+									_saveInstances() //save previous chat(and root selection)
+
+									source_chat.Input.Text = sdk_app.StartPrompt
+
+									//ch := ShowChat{AppName: app.Name, ChatFileName: fileName}
+									return source_chat._sendIt(app.Name, caller, source_root, false)
+								}
+							}
+
+							return nil
+						}
+					}
+
+					//navigation
+					if source_chat != nil {
+						numUseMessages := source_chat.GetNumUserMessages()
+
+						HeaderDiv.SetColumn(1, 0.5, 0.5) //space
+
+						HeaderDiv.SetColumnFromSub(2, 1, 100, true)
+						NavDiv := HeaderDiv.AddLayout(2, 0, 1, 1)
+
+						homeBt := NavDiv.AddButton(0, 0, 1, 1, "")
+						homeBt.layout.Enable = (source_chat.User_msg_i > 0)
+						homeBt.layout.Tooltip = "First dashboard"
+						homeBt.Background = 0.5
+						homeBt.IconPath = "resources/home.png"
+						homeBt.Icon_margin = 0.25
+						homeBt.clicked = func() error {
+							source_chat.User_msg_i = 0
 							return nil
 						}
 
-						app.Chats = slices.Insert(app.Chats, 0, RootChat{Label: "Empty chat", FileName: fileName})
-						app.Selected_chat_i = 0
-
-						ui.ActivateEditbox("chat_user_prompt", caller)
-
-						SideDiv.VScrollToTheTop(caller)
-
-						source_root.ShowSettings = false
-
-						//if exist, prepare StartPrompt to run
-						{
-							type SdkToolsPrompts struct {
-								StartPrompt string
-								//..
-							}
-							var sdk_app SdkToolsPrompts
-							appJs, err := callFuncGetToolData(app.Name)
-							if err != nil {
-								return err
-							}
-							err = json.Unmarshal(appJs, &sdk_app)
-							if err != nil {
-								return err
-							}
-
-							if sdk_app.StartPrompt != "" {
-								_saveInstances() //save previous chat(and root selection)
-
-								source_chat.Input.Text = sdk_app.StartPrompt
-
-								//ch := ShowChat{AppName: app.Name, ChatFileName: fileName}
-								return source_chat._sendIt(app.Name, caller, source_root, false)
-							}
+						backBt := NavDiv.AddButton(1, 0, 1, 1, "<")
+						backBt.layout.Tooltip = "Previous dashboard"
+						backBt.Background = 0.5
+						backBt.layout.Enable = (source_chat.User_msg_i > 0)
+						backBt.clicked = func() error {
+							source_chat.User_msg_i--
+							return nil
 						}
 
-						return nil
+						inf := NavDiv.AddText(2, 0, 1, 1, fmt.Sprintf("%d/%d", source_chat.User_msg_i+1, numUseMessages)) //...
+						inf.Align_h = 2
+						//inf.layout.Tooltip = dashes.UI_func + "()"
+
+						forwardBt := NavDiv.AddButton(3, 0, 1, 1, ">")
+						forwardBt.layout.Tooltip = "Next dashboard"
+						forwardBt.Background = 0.5
+						forwardBt.layout.Enable = (source_chat.User_msg_i+1 < numUseMessages)
+						forwardBt.clicked = func() error {
+							source_chat.User_msg_i++
+							return nil
+						}
 					}
 				}
 
@@ -447,6 +514,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					for i, tab := range app.Chats {
 
 						btChat := TabsDiv.AddButton(0, y, 1, 1, tab.Label)
+						btChat.layout.Tooltip = tab.Label
 						btChat.Align = 0
 						btChat.Background = 0.2
 						if i == app.Selected_chat_i {
@@ -470,28 +538,30 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 							return nil
 						}
 
-						btClose := TabsDiv.AddButton(1, y, 1, 1, "X")
-						btClose.Background = 0.2
-						btClose.clicked = func() error {
+						if i == app.Selected_chat_i { //show only when open
+							btClose := TabsDiv.AddButton(1, y, 1, 1, "X")
+							btClose.Background = 0.2
+							btClose.clicked = func() error {
 
-							//create "trash" folder
-							os.MkdirAll(filepath.Join("..", app.Name, "Chats", "trash"), os.ModePerm)
+								//create "trash" folder
+								os.MkdirAll(filepath.Join("..", app.Name, "Chats", "trash"), os.ModePerm)
 
-							//copy file
-							err = OsCopyFile(filepath.Join("..", app.Name, "Chats", "trash", app.Chats[i].FileName),
-								filepath.Join("..", app.Name, "Chats", app.Chats[i].FileName))
-							if err != nil {
-								return err
+								//copy file
+								err = OsCopyFile(filepath.Join("..", app.Name, "Chats", "trash", app.Chats[i].FileName),
+									filepath.Join("..", app.Name, "Chats", app.Chats[i].FileName))
+								if err != nil {
+									return err
+								}
+
+								//remove file
+								os.Remove(filepath.Join("..", app.Name, "Chats", app.Chats[i].FileName))
+
+								app.Chats = slices.Delete(app.Chats, i, i+1)
+								if i < app.Selected_chat_i {
+									app.Selected_chat_i--
+								}
+								return nil
 							}
-
-							//remove file
-							os.Remove(filepath.Join("..", app.Name, "Chats", app.Chats[i].FileName))
-
-							app.Chats = slices.Delete(app.Chats, i, i+1)
-							if i < app.Selected_chat_i {
-								app.Selected_chat_i--
-							}
-							return nil
 						}
 
 						y++
@@ -499,21 +569,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				}
 			}
 
-			//Chat(or settings)
-			{
-				ChatDiv, err := ChatDiv.AddTool(1, 0, 1, 1, (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
-				if err != nil {
-					return err
-				}
-
-				ChatDiv.Back_cd = UI_GetPalette().GetGrey(0.03)
-
-				if source_chat != nil {
-					for _, br := range source_chat.Input.Picks {
-						ui.Paint_Brush(br.Cd.Cd, br.Points)
-					}
-				}
-			}
 		}
 	}
 

@@ -35,7 +35,9 @@ type RootApp struct {
 	Name            string
 	Chats           []RootChat
 	Selected_chat_i int
-	Dev             RootDev
+	ShowSide        bool
+
+	Dev RootDev
 }
 
 // Root
@@ -179,10 +181,10 @@ func (app *RootApp) refreshChats() (*Chat, string, error) {
 			return nil, "", err
 		}
 
-		if sourceChat != nil {
+		/*if sourceChat != nil {
 			//reload
 			app.Chats[app.Selected_chat_i].Label = sourceChat.Label
-		}
+		}*/
 
 		return sourceChat, fileName, nil
 	}
@@ -300,14 +302,15 @@ type ChatInput struct {
 type Chat struct {
 	file string
 
-	Label string //summary
+	//Label string //summary
 
 	Input ChatInput
 
 	PresetSystemPrompt string
 	Messages           ChatMsgs
 
-	Dash_call_id string
+	User_msg_i int
+	//Dash_call_id string
 
 	Error string
 
@@ -317,7 +320,7 @@ type Chat struct {
 }
 
 func NewChat(file string) (*Chat, error) {
-	st := &Chat{Label: "chat"}
+	st := &Chat{ /*Label: "chat"*/ }
 	return LoadFile(file, "Chat", "json", st, true)
 }
 
@@ -325,66 +328,97 @@ func (st *Chat) GetChatID() string {
 	return "chat_" + st.file
 }
 
-func (st *Chat) FindUI(tool_call_id string) *ChatMsg {
+func (st *Chat) GetNumUserMessages() int {
+	n := 0
 	for _, msg := range st.Messages.Messages {
-		if msg.HasUI() {
-			if msg.Content.Result.Tool_call_id == tool_call_id {
-				return msg
-			}
+		if msg.Content.Msg != nil {
+			n++
 		}
 	}
 	for _, msg := range st.TempMessages.Messages {
-		if msg.HasUI() {
-			if msg.Content.Result.Tool_call_id == tool_call_id {
-				return msg
-			}
+		if msg.Content.Msg != nil {
+			n++
 		}
 	}
-	return nil
+	return n
 }
-func (st *Chat) FindPreviousUI(tool_call_id string) *ChatMsg {
-	var preMsg *ChatMsg
+
+func (st *Chat) GetResponse(user_i int) (ret []*ChatMsg) {
+	n := 0
 	for _, msg := range st.Messages.Messages {
-		if msg.HasUI() {
-			if msg.Content.Result.Tool_call_id == tool_call_id {
-				return preMsg
+		if n > user_i {
+			ret = append(ret, msg)
+		}
+		if msg.Content.Msg != nil { //user message
+			if n > user_i {
+				return
 			}
-			preMsg = msg
+			n++
 		}
 	}
 	for _, msg := range st.TempMessages.Messages {
-		if msg.HasUI() {
-			if msg.Content.Result.Tool_call_id == tool_call_id {
-				return preMsg
+		if n > user_i {
+			ret = append(ret, msg)
+		}
+		if msg.Content.Msg != nil { //user message
+			if n > user_i {
+				return
 			}
-			preMsg = msg
+			n++
 		}
 	}
-	return nil
+	return
 }
-func (st *Chat) FindNextUI(tool_call_id string) *ChatMsg {
-	next := false
+
+func (st *Chat) FindUserMessage(pos int) string {
+	n := 0
 	for _, msg := range st.Messages.Messages {
-		if msg.HasUI() {
-			if next {
-				return msg
+		if msg.Content.Msg != nil {
+			if pos == n {
+				for _, it := range msg.Content.Msg.Content {
+					if it.Type == "text" && it.Text != "" {
+						return it.Text
+					}
+				}
 			}
-			if msg.Content.Result.Tool_call_id == tool_call_id {
-				next = true
-			}
+			n++
 		}
 	}
 	for _, msg := range st.TempMessages.Messages {
-		if msg.HasUI() {
-			if next {
-				return msg
+		if msg.Content.Msg != nil {
+			if pos == n {
+				for _, it := range msg.Content.Msg.Content {
+					if it.Type == "text" && it.Text != "" {
+						return it.Text
+					}
+				}
 			}
-			if msg.Content.Result.Tool_call_id == tool_call_id {
-				next = true
-			}
+			n++
+		}
+
+	}
+	return ""
+}
+
+func (st *Chat) FindToolCallUserMessage(tool_call_id string) int {
+	n := 0
+	for _, msg := range st.Messages.Messages {
+		if msg.Content.Msg != nil {
+			n++
+		}
+		if msg.Content.Result != nil && msg.Content.Result.Tool_call_id == tool_call_id {
+			return n - 1
 		}
 	}
-	return nil
+	for _, msg := range st.TempMessages.Messages {
+		if msg.Content.Msg != nil {
+			n++
+		}
+		if msg.Content.Result != nil && msg.Content.Result.Tool_call_id == tool_call_id {
+			return n - 1
+		}
+	}
+	return -1
 }
 
 func (st *ChatInput) FindPick(llmTip string) int {
@@ -728,7 +762,7 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 
 		//activate dash
 		if msg.HasUI() {
-			chat.Dash_call_id = msg.Content.Result.Tool_call_id
+			chat.User_msg_i = chat.GetNumUserMessages() - 1
 		}
 	}
 	chat.TempMessages = ChatMsgs{} //reset
@@ -748,13 +782,9 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 	for i := old_num_msgs; i < len(chat.Messages.Messages); i++ {
 		msg := chat.Messages.Messages[i]
 		if msg.HasUI() {
-			chat.Dash_call_id = msg.Content.Result.Tool_call_id
+			chat.User_msg_i = chat.GetNumUserMessages() - 1
 		}
 	}
-
-	/*if needSummary {
-		st.summarize(prompt, caller, chat)
-	}*/
 
 	return nil
 }

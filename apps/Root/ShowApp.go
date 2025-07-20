@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 )
 
 // [ignore]
@@ -14,19 +15,23 @@ type ShowApp struct {
 const g_ShowApp_prompt_height = 7
 
 func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
+	source_root, err := NewRoot("")
+	if err != nil {
+		return err
+	}
+	//refresh apps
+	app, err := source_root.refreshApps()
+	if err != nil {
+		return err
+	}
+
+	if app == nil {
+		return nil //err ....
+	}
 
 	source_chat, err := NewChat(filepath.Join("..", st.AppName, "Chats", st.ChatFileName))
 	if err != nil {
 		return err
-	}
-	/*source_root, err := NewRoot("")
-	if err != nil {
-		return err
-	}*/
-
-	var dash *ChatMsg
-	if source_chat.Dash_call_id != "" {
-		dash = source_chat.FindUI(source_chat.Dash_call_id)
 	}
 
 	ui.SetColumn(0, 1, 100)
@@ -35,98 +40,74 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 
 	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
 
-	var MsgsDiv *UI
-	if dash != nil {
+	dashes := source_chat.GetResponse(source_chat.User_msg_i)
 
-		DashDiv := ui.AddLayout(0, 0, 1, 1)
-		DashDiv.SetColumn(0, 1, 100)
-		DashDiv.SetColumnResizable(1, 1, 50, 10)
-		DashDiv.SetRow(0, 1, 100)
+	var dashUIs []*ChatMsg
+	for _, msg := range dashes {
+		if msg.HasUI() {
+			dashUIs = append(dashUIs, msg)
+		}
+	}
 
-		//Dash
-		{
-			appUi, err := DashDiv.AddToolApp(0, 0, 1, 1, st.AppName, dash.UI_func, []byte(dash.UI_paramsJs), caller)
+	app.Chats[app.Selected_chat_i].Label = "" //reset
+
+	if len(dashUIs) > 0 {
+		var last_appUi *UI
+		if len(dashUIs) == 1 {
+			//1x Dash
+
+			appUi, err := ui.AddToolApp(0, 0, 1, 1, st.AppName, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
 			if err != nil {
 				return fmt.Errorf("AddToolApp() failed: %v", err)
 			}
 			appUi.changed = func(newParamsJs []byte) error {
-				dash.UI_paramsJs = string(newParamsJs) //save back changes
+				dashUIs[0].UI_paramsJs = string(newParamsJs) //save back changes
 				return nil
 			}
+			last_appUi = appUi
 
-		}
+		} else {
+			//Multiple Dashes
 
-		ChatDiv := DashDiv.AddLayout(1, 0, 1, 1)
-		ChatDiv.SetColumn(0, 1, 100)
-		ChatDiv.SetRow(1, 1, 100)
+			DashDiv := ui.AddLayout(0, 0, 1, 1)
+			DashDiv.SetColumn(0, 1, 100)
 
-		DashHeaderDiv := ChatDiv.AddLayout(0, 0, 1, 1)
-		DashHeaderDiv.ScrollH.Narrow = true
-		//DashHeaderDiv.ScrollV.Hide = true
-		{
-			preUI := source_chat.FindPreviousUI(source_chat.Dash_call_id)
-			nxtUI := source_chat.FindNextUI(source_chat.Dash_call_id)
+			for i, dash := range dashUIs {
+				DashDiv.SetRowFromSub(i, 1, 100, true)
 
-			btClose := DashHeaderDiv.AddButton(0, 0, 1, 1, "<<")
-			btClose.layout.Tooltip = "Hide dashboard"
-			btClose.Background = 0.5
-			btClose.clicked = func() error {
-				source_chat.Dash_call_id = "" //reset
-				return nil
-			}
-			btBack := DashHeaderDiv.AddButton(2, 0, 1, 1, "<")
-			btBack.layout.Tooltip = "Previous dashboard"
-			btBack.Background = 0.5
-			btBack.layout.Enable = (preUI != nil)
-			btBack.clicked = func() error {
-				if preUI != nil {
-					source_chat.Dash_call_id = preUI.Content.Result.Tool_call_id
+				appUi, err := DashDiv.AddToolApp(0, i, 1, 1, st.AppName, dash.UI_func, []byte(dash.UI_paramsJs), caller)
+				if err != nil {
+					return fmt.Errorf("AddToolApp() failed: %v", err)
 				}
-				return nil
-			}
-			btForward := DashHeaderDiv.AddButton(3, 0, 1, 1, ">")
-			btForward.layout.Tooltip = "Next dashboard"
-			btForward.Background = 0.5
-			btForward.layout.Enable = (nxtUI != nil)
-			btForward.clicked = func() error {
-				if nxtUI != nil {
-					source_chat.Dash_call_id = nxtUI.Content.Result.Tool_call_id
+				appUi.changed = func(newParamsJs []byte) error {
+					dash.UI_paramsJs = string(newParamsJs) //save back changes
+					return nil
 				}
-				return nil
+				last_appUi = appUi
 			}
-
-			//FuncName
-			DashHeaderDiv.SetColumn(5, 3, 100)
-			DashHeaderDiv.AddText(5, 0, 1, 1, dash.UI_func+"()").Multiline = false
 		}
 
-		//Chat
-		MsgsDiv = ChatDiv.AddLayout(0, 1, 1, 1)
-		ch := ShowChat{AppName: st.AppName, ChatFileName: st.ChatFileName}
-		err = ch.run(caller, MsgsDiv)
-		//err = st.buildShowMessages(MsgsDiv, caller, source_chat, source_root, isRunning)
-		if err != nil {
-			return fmt.Errorf("buildShowMessages1() failed: %v", err)
+		//update chat label
+		if last_appUi != nil {
+			app.Chats[app.Selected_chat_i].Label = last_appUi.findH1()
 		}
-		if isRunning {
-			MsgsDiv.VScrollToTheBottom(true, caller)
-		}
-
 	} else {
-		//Chat
-		MsgsDiv = ui.AddLayout(0, 0, 1, 1)
-		ch := ShowChat{AppName: st.AppName, ChatFileName: st.ChatFileName}
-		err = ch.run(caller, MsgsDiv)
-		//err = st.buildShowMessages(MsgsDiv, caller, source_chat, source_root, isRunning)
-		if err != nil {
-			return fmt.Errorf("buildShowMessages2() failed: %v", err)
-		}
-		if isRunning {
-			MsgsDiv.VScrollToTheBottom(true, caller)
+		//No dash = only message
+		for i := len(dashes) - 1; i >= 0; i-- {
+			dash := dashes[i]
+			if dash.Content.Calls != nil && dash.Content.Calls.Content != "" {
+				tx := ui.AddText(0, 0, 1, 1, dash.Content.Calls.Content)
+				tx.Align_h = 1
+				break //done
+			}
 		}
 	}
 
-	//User prompt
+	if app.Chats[app.Selected_chat_i].Label == "" {
+		app.Chats[app.Selected_chat_i].Label = source_chat.FindUserMessage(source_chat.User_msg_i)
+	}
+
+	//Prompt
 	{
 		DivInput := ui.AddLayout(0, 1, 1, 1)
 		d := 0.25
@@ -152,12 +133,64 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 		Div.Border_cd = UI_GetPalette().GetGrey(0.2)
 
 		pr := ShowPrompt{AppName: st.AppName, ChatFileName: st.ChatFileName}
-		err = pr.run(caller, Div.AddLayout(1, 1, 1, 1))
-		//err = st.buildInput(Div.AddLayout(1, 1, 1, 1), caller, source_chat, source_root, MsgsDiv, isRunning)
+		_, err = Div.AddTool(1, 1, 1, 1, pr.run, caller)
 		if err != nil {
 			return fmt.Errorf("buildInput() failed: %v", err)
 		}
 	}
 
+	//Side panel
+	if app.ShowSide {
+
+		ui.SetColumnResizable(1, 5, 25, 7)
+		SideDiv := ui.AddLayout(1, 0, 1, 2)
+		SideDiv.SetColumn(0, 1, 100)
+		SideDiv.SetRow(1, 1, 100)
+
+		//close panel
+		CloseBt := SideDiv.AddButton(0, 0, 1, 1, ">>")
+		CloseBt.layout.Tooltip = "Close side panel"
+		CloseBt.Background = 0.25
+		CloseBt.clicked = func() error {
+			app.ShowSide = false //hide
+			return nil
+		}
+
+		//Chat
+		ChatDiv, err := SideDiv.AddTool(0, 1, 1, 1, (&ShowChat{AppName: st.AppName, ChatFileName: st.ChatFileName}).run, caller)
+		if err != nil {
+			return fmt.Errorf("ShowChat.run() failed: %v", err)
+		}
+		if isRunning {
+			ChatDiv.VScrollToTheBottom(true, caller)
+		}
+
+	} else {
+		ShowSideBt := ui.AddButton(1, 0, 1, 2, "<<")
+		ShowSideBt.layout.Tooltip = "Show chat panel"
+		ShowSideBt.Background = 0.25
+		ShowSideBt.clicked = func() error {
+			app.ShowSide = true
+			return nil
+		}
+	}
+
 	return nil
+}
+
+func (ui *UI) findH1() string {
+
+	for _, it := range ui.Items {
+		if it.Text != nil && strings.HasPrefix(strings.ToLower(it.Text.Label), "<h1>") {
+
+			str := it.Text.Label
+			str = strings.ReplaceAll(str, "<h1>", "")
+			str = strings.ReplaceAll(str, "</h1>", "")
+			str = strings.ReplaceAll(str, "<H1>", "")
+			str = strings.ReplaceAll(str, "</H1>", "")
+			return str
+		}
+	}
+
+	return ""
 }
