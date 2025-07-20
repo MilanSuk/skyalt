@@ -29,6 +29,10 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 		return nil //err ....
 	}
 
+	if app.Selected_chat_i < 0 {
+		return nil //err ...
+	}
+
 	source_chat, err := NewChat(filepath.Join("..", st.AppName, "Chats", st.ChatFileName))
 	if err != nil {
 		return err
@@ -52,7 +56,6 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 	app.Chats[app.Selected_chat_i].Label = "" //reset
 
 	if len(dashUIs) > 0 {
-		var last_appUi *UI
 		if len(dashUIs) == 1 {
 			//1x Dash
 
@@ -64,7 +67,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 				dashUIs[0].UI_paramsJs = string(newParamsJs) //save back changes
 				return nil
 			}
-			last_appUi = appUi
+			app.Chats[app.Selected_chat_i].Label = appUi.findH1()
 
 		} else {
 			//Multiple Dashes
@@ -83,13 +86,8 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 					dash.UI_paramsJs = string(newParamsJs) //save back changes
 					return nil
 				}
-				last_appUi = appUi
+				app.Chats[app.Selected_chat_i].Label = appUi.findH1()
 			}
-		}
-
-		//update chat label
-		if last_appUi != nil {
-			app.Chats[app.Selected_chat_i].Label = last_appUi.findH1()
 		}
 	} else {
 		//No dash = only message

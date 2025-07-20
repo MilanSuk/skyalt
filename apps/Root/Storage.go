@@ -120,6 +120,11 @@ func (root *Root) refreshApps() (*RootApp, error) {
 
 func (app *RootApp) refreshChats() (*Chat, string, error) {
 
+	//check range
+	if app.Selected_chat_i >= 0 && app.Selected_chat_i >= len(app.Chats) {
+		app.Selected_chat_i = len(app.Chats) - 1
+	}
+
 	chats_folder := filepath.Join("..", app.Name, "Chats")
 	if _, err := os.Stat(chats_folder); os.IsNotExist(err) {
 		//no chat folder
@@ -166,11 +171,9 @@ func (app *RootApp) refreshChats() (*Chat, string, error) {
 		}
 	}
 
-	//check selecte in range
-	if app.Selected_chat_i >= 0 {
-		if app.Selected_chat_i >= len(app.Chats) {
-			app.Selected_chat_i = len(app.Chats) - 1
-		}
+	//check range again
+	if app.Selected_chat_i >= 0 && app.Selected_chat_i >= len(app.Chats) {
+		app.Selected_chat_i = len(app.Chats) - 1
 	}
 
 	//update and return
