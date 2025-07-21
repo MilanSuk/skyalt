@@ -171,7 +171,7 @@ type UIMedia struct {
 	Scale_x, Scale_y         float64
 }
 
-type UIList struct {
+type UICards struct {
 	AutoSpacing bool
 }
 
@@ -267,7 +267,7 @@ type UI struct {
 	ScrollV       LayoutScroll
 	ScrollH       LayoutScroll
 
-	List              *UIList
+	Cards             *UICards
 	Text              *UIText
 	Editbox           *UIEditbox
 	Button            *UIButton
@@ -532,11 +532,11 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 
 	//var tooltip_value string
 
-	if it.List != nil {
-		list := layout.AddLayoutList(it.X, it.Y, it.W, it.H, it.List.AutoSpacing)
+	if it.Cards != nil {
+		cards := layout.AddLayoutCards(it.X, it.Y, it.W, it.H, it.Cards.AutoSpacing)
 		for _, itt := range it.Items {
-			listItem := list.AddListSubItem()
-			itt.addLayout(listItem, appName, funcName, parent_UID, fnProgress, fnDone)
+			cardsItem := cards.AddCardsSubItem()
+			itt.addLayout(cardsItem, appName, funcName, parent_UID, fnProgress, fnDone)
 		}
 	} else if it.Text != nil {
 

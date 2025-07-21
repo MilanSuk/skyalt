@@ -152,7 +152,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 
 		if hasImage {
 			layout.SetRow(y, 2, 2)
-			ImgsList := layout.AddLayoutList(0, y, 3, 1, true)
+			ImgsCards := layout.AddLayoutCards(0, y, 3, 1, true)
 			y++
 
 			for i, it := range msg.Content.Msg.Content {
@@ -175,7 +175,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 					ImgDia.UI.SetRow(0, 5, 15)
 					ImgDia.UI.AddMediaBlob(0, 0, 1, 1, imgBlob)
 
-					imgLay := ImgsList.AddItem()
+					imgLay := ImgsCards.AddItem()
 					imgLay.SetColumn(0, 2, 2)
 					imgLay.SetRow(0, 2, 2)
 					imgBt := imgLay.AddButton(0, 0, 1, 1, "")

@@ -184,7 +184,7 @@ func (st *ShowPrompt) run(caller *ToolCaller, ui *UI) error {
 	//show file previews
 	if len(input.Files) > 0 {
 		ui.SetRow(y, preview_height, preview_height)
-		ImgsList := ui.AddLayoutList(0, y, x, 1, true)
+		ImgsCards := ui.AddLayoutCards(0, y, x, 1, true)
 		y++
 
 		for fi, file := range input.Files {
@@ -201,7 +201,7 @@ func (st *ShowPrompt) run(caller *ToolCaller, ui *UI) error {
 				return nil
 			}
 
-			imgLay := ImgsList.AddItem()
+			imgLay := ImgsCards.AddItem()
 			imgLay.SetColumn(0, 2, 2)
 			imgLay.SetRow(0, 2, 2)
 			imgBt := imgLay.AddButton(0, 0, 1, 1, "")
@@ -220,7 +220,7 @@ func (st *ShowPrompt) run(caller *ToolCaller, ui *UI) error {
 
 		//remove all files
 		{
-			delLay := ImgsList.AddItem()
+			delLay := ImgsCards.AddItem()
 			delLay.SetColumn(0, 2, 2)
 			delLay.SetRow(0, 2, 2)
 			delBt := delLay.AddButton(0, 0, 1, 1, "Delete All")

@@ -23,13 +23,13 @@ func (st *YearCalendar) Build(layout *Layout) {
 
 	layout.AddText(0, 0, 1, 1, fmt.Sprintf("<b>Year: %d</b>", st.Year)).Align_h = 1
 
-	list := layout.AddLayoutList(0, 1, 1, 1, true)
+	cards := layout.AddLayoutCards(0, 1, 1, 1, true)
 
 	today := time.Now()
 
 	for i := 0; i < 12; i++ {
 		//this_i := i
-		Item := list.AddListSubItem()
+		Item := cards.AddCardsSubItem()
 		space := 0.5
 		Item.Tooltip = fmt.Sprintf("%s, %d", layout.GetMonthText(1+i), st.Year)
 		Item.SetColumn(0, 0.2, space)

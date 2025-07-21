@@ -274,7 +274,7 @@ type Layout struct {
 	fnGetAutoResizeMargin func() [4]float64
 	autoCoord             OsV4
 
-	List_autoSpacing bool
+	Cards_autoSpacing bool
 
 	fnUpdate func() //here
 
@@ -764,7 +764,7 @@ func (layout *Layout) rebuildList() {
 
 	total_extra_space_w := max_width - float64(nx)*it_width
 	var space_between_x float64
-	if layout.List_autoSpacing {
+	if layout.Cards_autoSpacing {
 		space_between_x = total_extra_space_w / float64(nx+1)
 	}
 	var space_between_y float64

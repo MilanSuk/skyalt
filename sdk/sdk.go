@@ -1837,7 +1837,7 @@ type UI struct {
 
 	//"omit empty" OR "Type string + Props interface{}" ....
 	//Layout            *UI
-	List              *UIList              `json:",omitempty"`
+	Cards             *UICards             `json:",omitempty"`
 	Text              *UIText              `json:",omitempty"`
 	Editbox           *UIEditbox           `json:",omitempty"`
 	Button            *UIButton            `json:",omitempty"`
@@ -2311,7 +2311,7 @@ type UIMedia struct {
 	Scale_x, Scale_y         float64
 }
 
-type UIList struct {
+type UICards struct {
 	layout *UI
 
 	AutoSpacing bool
@@ -2691,16 +2691,16 @@ func (ui *UI) AddMediaBlob(x, y, w, h int, blob []byte) *UIMedia {
 	return ui._addMedia(x, y, w, h, "", blob, color.RGBA{255, 255, 255, 255})
 }
 
-func (ui *UI) AddLayoutList(x, y, w, h int, autoSpacing bool) *UIList {
-	item := &UIList{AutoSpacing: autoSpacing, layout: _newUIItem(x, y, w, h, "")}
-	item.layout.List = item
+func (ui *UI) AddLayoutCards(x, y, w, h int, autoSpacing bool) *UICards {
+	item := &UICards{AutoSpacing: autoSpacing, layout: _newUIItem(x, y, w, h, "")}
+	item.layout.Cards = item
 
 	ui._addUISub(item.layout, "")
 	return item
 }
-func (list *UIList) AddItem() *UI {
-	item := _newUIItem(0, len(list.layout.Items), 1, 1, "")
-	list.layout._addUISub(item, "")
+func (cards *UICards) AddItem() *UI {
+	item := _newUIItem(0, len(cards.layout.Items), 1, 1, "")
+	cards.layout._addUISub(item, "")
 	return item
 }
 

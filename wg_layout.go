@@ -74,13 +74,13 @@ func (layout *Layout) AddLayout(x, y, w, h int) *Layout {
 	return layout._createDiv(x, y, w, h, "_layout", nil, nil, nil)
 }
 
-func (layout *Layout) AddLayoutList(x, y, w, h int, autoSpacing bool) *Layout {
-	lay := layout._createDiv(x, y, w, h, "_list", nil, nil, nil)
-	lay.List_autoSpacing = autoSpacing
+func (layout *Layout) AddLayoutCards(x, y, w, h int, autoSpacing bool) *Layout {
+	lay := layout._createDiv(x, y, w, h, "_cards", nil, nil, nil)
+	lay.Cards_autoSpacing = autoSpacing
 	return lay
 }
 
-func (layout *Layout) AddListSubItem() *Layout {
+func (layout *Layout) AddCardsSubItem() *Layout {
 	return layout.AddLayout(0, len(layout.childs), 1, 1)
 }
 
