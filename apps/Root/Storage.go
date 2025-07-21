@@ -14,6 +14,7 @@ import (
 type RootChat struct {
 	FileName string
 	Label    string
+	Pinned   bool
 }
 
 func (app *RootApp) GetFolderPath() string {
@@ -168,6 +169,20 @@ func (app *RootApp) refreshChats() (*Chat, string, error) {
 		}
 		if !found {
 			app.Chats = slices.Delete(app.Chats, i, i+1)
+		}
+	}
+
+	//all pinned chats must be at the beginning
+	{
+		num_pinned := app.NumPins()
+		for i := num_pinned; i < len(app.Chats); i++ {
+			chat := app.Chats[i]
+			if chat.Pinned {
+				//move
+				app.Chats = slices.Delete(app.Chats, i, i+1)
+				app.Chats = slices.Insert(app.Chats, num_pinned, chat)
+				num_pinned++
+			}
 		}
 	}
 
@@ -786,6 +801,47 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 		msg := chat.Messages.Messages[i]
 		if msg.HasUI() {
 			chat.User_msg_i = chat.GetNumUserMessages() - 1
+		}
+	}
+
+	return nil
+}
+
+func (app *RootApp) NumPins() int {
+	n := 0
+	for _, it := range app.Chats {
+		if it.Pinned {
+			n++
+		} else {
+			break
+		}
+	}
+	return n
+}
+
+func (app *RootApp) RemoveChat(chat RootChat) error {
+
+	//create "trash" folder
+	os.MkdirAll(filepath.Join("..", app.Name, "Chats", "trash"), os.ModePerm)
+
+	//copy file
+	err := OsCopyFile(filepath.Join("..", app.Name, "Chats", "trash", chat.FileName),
+		filepath.Join("..", app.Name, "Chats", chat.FileName))
+	if err != nil {
+		return err
+	}
+
+	//remove file
+	os.Remove(filepath.Join("..", app.Name, "Chats", chat.FileName))
+
+	for i, it := range app.Chats {
+		if it.FileName == chat.FileName {
+
+			app.Chats = slices.Delete(app.Chats, i, i+1)
+			if i < app.Selected_chat_i {
+				app.Selected_chat_i--
+			}
+			break
 		}
 	}
 

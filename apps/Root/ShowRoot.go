@@ -147,7 +147,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				bt.Drop_group = "app"
 				bt.Drag_index = i
 				bt.Drop_v = true
-				bt.dropMove = func(src_i, dst_i int, src_source, dst_source string) error {
+				bt.dropMove = func(src_i, dst_i int, aim_i int, src_source, dst_source string) error {
 					Layout_MoveElement(&source_root.Apps, &source_root.Apps, src_i, dst_i)
 					source_root.Selected_app_i = dst_i
 					ui.ActivateEditbox("chat_user_prompt", caller)
@@ -506,69 +506,116 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				}
 
 				//List of tabs
-				{
-					TabsDiv := SideDiv.AddLayout(0, 1, 1, 1)
-					TabsDiv.SetColumn(0, 1, 100)
+				ListsDiv := SideDiv.AddLayout(0, 1, 1, 1)
+				ListsDiv.SetColumn(0, 1, 100)
 
-					y := 0
-					for i, tab := range app.Chats {
+				var PinnedDiv *UI
+				var TabsDiv *UI
 
-						btChat := TabsDiv.AddButton(0, y, 1, 1, tab.Label)
-						btChat.layout.Tooltip = tab.Label
-						btChat.Align = 0
-						btChat.Background = 0.2
-						if i == app.Selected_chat_i {
-							btChat.Background = 1 //selected
-						}
-						btChat.clicked = func() error {
-							app.Selected_chat_i = i
-							source_root.ShowSettings = false
-							ui.ActivateEditbox("chat_user_prompt", caller)
-							return nil
-						}
+				num_pins := app.NumPins()
+				if num_pins > 0 {
+					ListsDiv.SetRow(0, 0.7, 0.7)
+					ListsDiv.AddDivider(0, 0, 1, 1, true).Label = "<small>Pins"
+					ListsDiv.SetRowFromSub(1, 1, 100, true)
+					PinnedDiv = ListsDiv.AddLayout(0, 1, 1, 1)
+					PinnedDiv.SetColumn(1, 1, 100)
 
-						btChat.Drag_group = "chat"
-						btChat.Drop_group = "chat"
-						btChat.Drag_index = i
-						btChat.Drop_v = true
-						btChat.dropMove = func(src_i, dst_i int, src_source, dst_source string) error {
-							Layout_MoveElement(&app.Chats, &app.Chats, src_i, dst_i)
-							app.Selected_chat_i = dst_i
-							ui.ActivateEditbox("chat_user_prompt", caller)
-							return nil
-						}
+					ListsDiv.SetRow(2, 0.7, 0.7)
+					ListsDiv.AddDivider(0, 2, 1, 1, true).Label = "<small>Tabs"
+					ListsDiv.SetRowFromSub(3, 1, 100, true)
+					TabsDiv = ListsDiv.AddLayout(0, 3, 1, 1)
+					TabsDiv.SetColumn(1, 1, 100)
 
-						if i == app.Selected_chat_i { //show only when open
-							btClose := TabsDiv.AddButton(1, y, 1, 1, "X")
-							btClose.Background = 0.2
-							btClose.clicked = func() error {
+				} else {
+					ListsDiv.SetRow(0, 1, 100)
+					TabsDiv = ListsDiv.AddLayout(0, 0, 1, 1)
+					TabsDiv.SetColumn(1, 1, 100)
+				}
 
-								//create "trash" folder
-								os.MkdirAll(filepath.Join("..", app.Name, "Chats", "trash"), os.ModePerm)
+				yPinned := 0
+				yTabs := 0
+				for i, tab := range app.Chats {
 
-								//copy file
-								err = OsCopyFile(filepath.Join("..", app.Name, "Chats", "trash", app.Chats[i].FileName),
-									filepath.Join("..", app.Name, "Chats", app.Chats[i].FileName))
-								if err != nil {
-									return err
-								}
+					isSelected := (i == app.Selected_chat_i)
 
-								//remove file
-								os.Remove(filepath.Join("..", app.Name, "Chats", app.Chats[i].FileName))
+					var btChat *UIButton
+					var btPin *UIButton
+					if tab.Pinned {
+						btPin = PinnedDiv.AddButton(0, yPinned, 1, 1, "")
+						btPin.IconPath = "resources/unpin.png"
+						btPin.layout.Tooltip = "Un-pin tab"
 
-								app.Chats = slices.Delete(app.Chats, i, i+1)
-								if i < app.Selected_chat_i {
-									app.Selected_chat_i--
-								}
-								return nil
-							}
-						}
+						btChat = PinnedDiv.AddButton(1, yPinned, 1, 1, tab.Label)
+					} else {
+						btPin = TabsDiv.AddButton(0, yTabs, 1, 1, "")
+						btPin.IconPath = "resources/pin.png"
+						btPin.layout.Tooltip = "Pin tab"
 
-						y++
+						btChat = TabsDiv.AddButton(1, yTabs, 1, 1, tab.Label)
 					}
+
+					btPin.Icon_margin = 0.2
+					btPin.Background = 0.2
+					btPin.clicked = func() error {
+						if tab.Pinned {
+							//move down
+							app.Chats = slices.Insert(app.Chats, num_pins-1, tab)
+							app.Chats = slices.Delete(app.Chats, i, i+1)
+						}
+						app.Chats[i].Pinned = !tab.Pinned
+						return nil
+					}
+
+					btChat.layout.Tooltip = tab.Label
+					btChat.Align = 0
+					btChat.Background = 0.2
+					if isSelected {
+						btChat.Background = 1 //selected
+					}
+					btChat.clicked = func() error {
+						app.Selected_chat_i = i
+						source_root.ShowSettings = false
+						ui.ActivateEditbox("chat_user_prompt", caller)
+						return nil
+					}
+
+					btChat.Drag_group = "chat"
+					btChat.Drop_group = "chat"
+					btChat.Drag_index = i
+					btChat.Drop_v = true
+					btChat.dropMove = func(src_i, dst_i int, aim_i int, src_source, dst_source string) error {
+
+						//param above .....
+
+						app.Chats[src_i].Pinned = (aim_i < num_pins)
+
+						Layout_MoveElement(&app.Chats, &app.Chats, src_i, dst_i)
+
+						if app.Selected_chat_i != dst_i {
+							ui.ActivateEditbox("chat_user_prompt", caller)
+						}
+						app.Selected_chat_i = dst_i
+
+						return nil
+					}
+
+					if isSelected { //show only when open
+						//close
+						btClose := TabsDiv.AddButton(2, btChat.layout.Y, 1, 1, "X")
+						btClose.Background = 0.2
+						btClose.clicked = func() error {
+							return app.RemoveChat(app.Chats[i])
+						}
+					}
+
+					if tab.Pinned {
+						yPinned++
+					} else {
+						yTabs++
+					}
+
 				}
 			}
-
 		}
 	}
 
