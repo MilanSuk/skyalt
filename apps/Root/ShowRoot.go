@@ -422,8 +422,9 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 								return nil
 							}
 
-							app.Chats = slices.Insert(app.Chats, 0, RootChat{Label: "Empty", FileName: fileName})
-							app.Selected_chat_i = 0
+							pos := app.NumPins() //skip pins
+							app.Chats = slices.Insert(app.Chats, pos, RootChat{Label: "Empty", FileName: fileName})
+							app.Selected_chat_i = pos
 
 							ui.ActivateEditbox("chat_user_prompt", caller)
 
@@ -585,8 +586,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					btChat.Drop_v = true
 					btChat.dropMove = func(src_i, dst_i int, aim_i int, src_source, dst_source string) error {
 
-						//param above .....
-
 						app.Chats[src_i].Pinned = (aim_i < num_pins)
 
 						Layout_MoveElement(&app.Chats, &app.Chats, src_i, dst_i)
@@ -601,7 +600,13 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 					if isSelected { //show only when open
 						//close
-						btClose := TabsDiv.AddButton(2, btChat.layout.Y, 1, 1, "X")
+						var btClose *UIButton
+						if tab.Pinned {
+							btClose = PinnedDiv.AddButton(2, yPinned, 1, 1, "X")
+						} else {
+							btClose = TabsDiv.AddButton(2, yTabs, 1, 1, "X")
+						}
+
 						btClose.Background = 0.2
 						btClose.clicked = func() error {
 							return app.RemoveChat(app.Chats[i])
@@ -613,7 +618,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					} else {
 						yTabs++
 					}
-
 				}
 			}
 		}
