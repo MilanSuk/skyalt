@@ -103,7 +103,7 @@ type UIColorPickerButton struct {
 	Cd *color.RGBA
 }
 
-type UICombo struct {
+type UIDropDown struct {
 	Value  *string
 	Labels []string
 	Values []string
@@ -275,7 +275,7 @@ type UI struct {
 	FilePickerButton  *UIFilePickerButton
 	DatePickerButton  *UIDatePickerButton
 	ColorPickerButton *UIColorPickerButton
-	Combo             *UICombo
+	DropDown          *UIDropDown
 	Switch            *UISwitch
 	Checkbox          *UICheckbox
 	Microphone        *UIMicrophone
@@ -655,15 +655,15 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %d %d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)}, fnProgress, fnDone)
 		}
 
-	} else if it.Combo != nil {
-		cb := layout.AddCombo(it.X, it.Y, it.W, it.H, it.Combo.Value, it.Combo.Labels, it.Combo.Values)
+	} else if it.DropDown != nil {
+		cb := layout.AddDropDown(it.X, it.Y, it.W, it.H, it.DropDown.Value, it.DropDown.Labels, it.DropDown.Values)
 		cb.Tooltip = it.Tooltip
 		cb.changed = func() {
-			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: *it.Combo.Value}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: *it.DropDown.Value}, fnProgress, fnDone)
 		}
 
-		if it.Combo.Value != nil {
-			//tooltip_value = fmt.Sprintf("Value: %s, Label: %s", *it.Combo.Value, Combo_getValueLabel(*it.Combo.Value, it.Combo.Labels, it.Combo.Values))
+		if it.DropDown.Value != nil {
+			//tooltip_value = fmt.Sprintf("Value: %s, Label: %s", *it.DropDown.Value, DropDown_getValueLabel(*it.DropDown.Value, it.DropDown.Labels, it.DropDown.Values))
 		}
 	} else if it.Switch != nil {
 		sw := layout.AddSwitch(it.X, it.Y, it.W, it.H, it.Switch.Label, it.Switch.Value)

@@ -4,7 +4,7 @@ import (
 	"slices"
 )
 
-type Combo struct {
+type DropDown struct {
 	Tooltip string
 	Value   *string
 
@@ -14,25 +14,25 @@ type Combo struct {
 	changed func()
 }
 
-func (layout *Layout) AddCombo(x, y, w, h int, value *string, labels []string, values []string) *Combo {
-	props := &Combo{Value: value, Labels: labels, Values: values}
-	lay := layout._createDiv(x, y, w, h, "Combo", props.Build, nil, nil)
+func (layout *Layout) AddDropDown(x, y, w, h int, value *string, labels []string, values []string) *DropDown {
+	props := &DropDown{Value: value, Labels: labels, Values: values}
+	lay := layout._createDiv(x, y, w, h, "drop_down", props.Build, nil, nil)
 	lay.fnGetLLMTip = props.getLLMTip
 	return props
 }
 
-func (st *Combo) getLLMTip(layout *Layout) string {
-	return Layout_buildLLMTip("Combo", *st.Value, true, st.Tooltip)
+func (st *DropDown) getLLMTip(layout *Layout) string {
+	return Layout_buildLLMTip("DropDown", *st.Value, true, st.Tooltip)
 }
 
-func (st *Combo) Build(layout *Layout) {
+func (st *DropDown) Build(layout *Layout) {
 
 	layout.SetColumnFromSub(0, 1, 100, false)
 
 	cdialog := layout.AddDialog("dialog")
 
 	//button
-	bt := layout.AddButton(0, 0, 1, 1, Combo_getValueLabel(*st.Value, st.Values, st.Labels))
+	bt := layout.AddButton(0, 0, 1, 1, DropDown_getValueLabel(*st.Value, st.Values, st.Labels))
 	bt.Tooltip = st.Tooltip
 	bt.IconPath = "resources/arrow_down.png"
 	bt.Icon_margin = 0.1
@@ -76,7 +76,7 @@ func (st *Combo) Build(layout *Layout) {
 	}
 }
 
-func Combo_getValueLabel(value string, Values, Labels []string) string {
+func DropDown_getValueLabel(value string, Values, Labels []string) string {
 	for i, it := range Values {
 		if it == value {
 			if i < len(Labels) {

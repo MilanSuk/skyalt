@@ -27,7 +27,7 @@ func (st *ShowActivity) run(caller *ToolCaller, ui *UI) error {
 
 	y := 1
 	ui.AddText(0, y, 1, 1, "Type")
-	cb := ui.AddCombo(1, y, 1, 1, &activity.Type, source_activities.GetTypeLabels(), source_activities.GetTypeValues())
+	cb := ui.AddDropDown(1, y, 1, 1, &activity.Type, source_activities.GetTypeLabels(), source_activities.GetTypeValues())
 	//cb.DialogWidth = 3
 	cb.changed = func() error {
 		return nil

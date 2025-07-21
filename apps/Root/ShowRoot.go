@@ -554,7 +554,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 						btChat = TabsDiv.AddButton(1, yTabs, 1, 1, tab.Label)
 					}
 
-					btPin.Icon_margin = 0.2
+					btPin.Icon_margin = 0.25
 					btPin.Background = 0.2
 					btPin.clicked = func() error {
 						if tab.Pinned {

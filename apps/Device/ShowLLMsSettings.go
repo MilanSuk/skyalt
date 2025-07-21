@@ -62,7 +62,7 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 		tx := ChatDiv.AddText(0, 0, 2, 1, "Chat")
 		tx.Align_h = 1
 
-		ChatDiv.AddCombo(0, 1, 1, 1, &source_dev.Chat_provider, chatProviders, chatProviders)
+		ChatDiv.AddDropDown(0, 1, 1, 1, &source_dev.Chat_provider, chatProviders, chatProviders)
 		fnProvider(ChatDiv, source_dev.Chat_provider)
 
 		smarterSw := ChatDiv.AddSwitch(0, 2, 2, 1, "Smarter", &source_dev.Chat_smarter)
@@ -82,7 +82,7 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 		tx := ChatDiv.AddText(0, 0, 2, 1, "Image generation")
 		tx.Align_h = 1
 
-		ChatDiv.AddCombo(0, 1, 1, 1, &source_dev.Image_provider, imageProviders, imageProviders)
+		ChatDiv.AddDropDown(0, 1, 1, 1, &source_dev.Image_provider, imageProviders, imageProviders)
 		fnProvider(ChatDiv, source_dev.Image_provider)
 	}
 	y++
@@ -99,7 +99,7 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 		tx := ChatDiv.AddText(0, 0, 2, 1, "Speech to text")
 		tx.Align_h = 1
 
-		ChatDiv.AddCombo(0, 1, 1, 1, &source_dev.STT_provider, sttProviders, sttProviders)
+		ChatDiv.AddDropDown(0, 1, 1, 1, &source_dev.STT_provider, sttProviders, sttProviders)
 		fnProvider(ChatDiv, source_dev.STT_provider)
 	}
 	y++

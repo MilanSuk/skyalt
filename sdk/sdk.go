@@ -1346,12 +1346,12 @@ func (ui *UI) runChange(change SdkChange) error {
 			return it.Slider.changed()
 		}
 	}
-	if it.Combo != nil {
-		if it.Combo.Value != nil {
-			*it.Combo.Value = change.ValueString
+	if it.DropDown != nil {
+		if it.DropDown.Value != nil {
+			*it.DropDown.Value = change.ValueString
 		}
-		if it.Combo.changed != nil {
-			return it.Combo.changed()
+		if it.DropDown.changed != nil {
+			return it.DropDown.changed()
 		}
 	}
 	if it.Switch != nil {
@@ -1845,7 +1845,7 @@ type UI struct {
 	FilePickerButton  *UIFilePickerButton  `json:",omitempty"`
 	DatePickerButton  *UIDatePickerButton  `json:",omitempty"`
 	ColorPickerButton *UIColorPickerButton `json:",omitempty"`
-	Combo             *UICombo             `json:",omitempty"`
+	DropDown          *UIDropDown          `json:",omitempty"`
 	Switch            *UISwitch            `json:",omitempty"`
 	Checkbox          *UICheckbox          `json:",omitempty"`
 	Microphone        *UIMicrophone        `json:",omitempty"`
@@ -1947,9 +1947,9 @@ func (ui *UI) addButton(label string, tooltip string) *UIButton {
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addCombo(value *string, labels []string, values []string, tooltip string) *UICombo {
-	item := &UICombo{Value: value, Labels: labels, Values: values, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
-	item.layout.Combo = item
+func (ui *UI) addDropDown(value *string, labels []string, values []string, tooltip string) *UIDropDown {
+	item := &UIDropDown{Value: value, Labels: labels, Values: values, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+	item.layout.DropDown = item
 	ui._addUILine(item.layout)
 	return item
 }
@@ -2168,7 +2168,7 @@ type UIColorPickerButton struct {
 	changed func() error
 }
 
-type UICombo struct {
+type UIDropDown struct {
 	layout *UI
 
 	Value  *string
@@ -2617,9 +2617,9 @@ func (ui *UI) AddColorPickerButton(x, y, w, h int, cd *color.RGBA) *UIColorPicke
 	return item
 }
 
-func (ui *UI) AddCombo(x, y, w, h int, value *string, labels []string, values []string) *UICombo {
-	item := &UICombo{Value: value, Labels: labels, Values: values, layout: _newUIItem(x, y, w, h, "")}
-	item.layout.Combo = item
+func (ui *UI) AddDropDown(x, y, w, h int, value *string, labels []string, values []string) *UIDropDown {
+	item := &UIDropDown{Value: value, Labels: labels, Values: values, layout: _newUIItem(x, y, w, h, "")}
+	item.layout.DropDown = item
 	ui._addUISub(item.layout, "")
 	return item
 }

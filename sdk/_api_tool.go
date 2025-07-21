@@ -119,7 +119,7 @@ type UIButton struct {
 
 func (ui *UI) addButton(label string, tooltip string) *UIButton
 
-type UICombo struct {
+type UIDropDown struct {
 	layout *UI
 	Value  *string
 	Labels []string
@@ -128,7 +128,7 @@ type UICombo struct {
 	changed func() error
 }
 
-func (ui *UI) addCombo(value *string, labels []string, values []string, tooltip string) *UICombo
+func (ui *UI) addDropDown(value *string, labels []string, values []string, tooltip string) *UIDropDown
 
 type UISwitch struct {
 	layout *UI

@@ -89,7 +89,7 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 		ui.AddText(0, y, 1, 1, "Date format")
 		df_labels := []string{"EU(31/5/2019)", "US(5/31/2019)", "ISO(2019-5-31)", "Text(May 31 2019)"}
 		df_values := []string{"eu", "us", "iso", "text"} //"2base"
-		ui.AddCombo(1, y, 1, 1, &source_dev.DateFormat, df_labels, df_values)
+		ui.AddDropDown(1, y, 1, 1, &source_dev.DateFormat, df_labels, df_values)
 		y++
 	}
 
@@ -104,7 +104,7 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 		{
 			ThemeDiv.SetColumn(0, 1, 100)
 
-			ThemeDiv.AddCombo(0, 0, 1, 1, &source_dev.Theme, []string{"Light", "Dark", "Custom"}, []string{"light", "dark", "custom"})
+			ThemeDiv.AddDropDown(0, 0, 1, 1, &source_dev.Theme, []string{"Light", "Dark", "Custom"}, []string{"light", "dark", "custom"})
 
 			if source_dev.Theme == "custom" {
 

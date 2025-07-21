@@ -369,7 +369,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					return nil
 				}
 
-				HeaderDiv.AddCombo(1, 0, 1, 1, &app.Dev.SideFile, labels, values)
+				HeaderDiv.AddDropDown(1, 0, 1, 1, &app.Dev.SideFile, labels, values)
 
 				{
 					TabsDiv := HeaderDiv.AddLayout(3, 0, 1, 1)

@@ -66,7 +66,7 @@ func (st *AddEvent) run(caller *ToolCaller, ui *UI) error {
 
 	ui.AddText(0, 7, 1, 1, "Group")
 	groupID := strconv.FormatInt(st.GroupID, 10)
-	cb := ui.AddCombo(1, 7, 1, 1, &groupID, source_events.getGroupsLabels(), source_events.getGroupsValues())
+	cb := ui.AddDropDown(1, 7, 1, 1, &groupID, source_events.getGroupsLabels(), source_events.getGroupsValues())
 	cb.changed = func() error {
 		st.GroupID, _ = strconv.ParseInt(groupID, 10, 64)
 		return nil

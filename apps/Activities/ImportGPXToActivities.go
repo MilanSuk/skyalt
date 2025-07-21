@@ -24,7 +24,7 @@ func (st *ImportGPXToActivities) run(caller *ToolCaller, ui *UI) error {
 	ui.AddFilePickerButton(1, 0, 1, 1, &st.FilePath, true, false)
 
 	ui.AddText(0, 2, 1, 1, "Type")
-	ui.AddCombo(1, 2, 1, 1, &st.Type, source_activities.GetTypeLabels(), source_activities.GetTypeValues())
+	ui.AddDropDown(1, 2, 1, 1, &st.Type, source_activities.GetTypeLabels(), source_activities.GetTypeValues())
 
 	ui.AddText(0, 3, 1, 1, "Description")
 	ui.AddEditboxString(1, 3, 1, 1, &st.Description)

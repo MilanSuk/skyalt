@@ -23,7 +23,7 @@ func (st *ShowUserBodyMeasurements) run(caller *ToolCaller, ui *UI) error {
 		gender = "male"
 	}
 
-	gen := ui.AddCombo(1, 1, 1, 1, &gender, []string{"Male", "Female"}, []string{"male", "female"})
+	gen := ui.AddDropDown(1, 1, 1, 1, &gender, []string{"Male", "Female"}, []string{"male", "female"})
 	//gen.DialogWidth = 4
 	gen.changed = func() error {
 		source_body.Female = (gender == "female")
