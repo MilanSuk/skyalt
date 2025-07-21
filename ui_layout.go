@@ -238,7 +238,7 @@ type Layout struct {
 	fnSetEditbox  func(string, bool)
 	fnGetEditbox  func() string
 
-	dropMove func(src_i, dst_i int, src_source, dst_source string)
+	dropMove func(src_i, dst_i int, aim_i int, src_source, dst_source string)
 	dropFile func(path string)
 
 	X, Y, W, H int
@@ -1564,12 +1564,12 @@ func (layout *Layout) Touch() {
 				dstDom := layout
 
 				src_i := srcDom.Drag_index
-				dst_i := dstDom.Drag_index
-				dst_i = UiDrag_MoveElementIndex(src_i, dst_i, drag.pos, srcDom.Drag_source != dstDom.Drag_source)
+				aim_i := dstDom.Drag_index
+				dst_i := UiDrag_MoveElementIndex(src_i, aim_i, drag.pos, srcDom.Drag_source != dstDom.Drag_source)
 
-				if srcDom.Drag_source != dstDom.Drag_source || src_i != dst_i {
+				if srcDom.Drag_source != dstDom.Drag_source || src_i != dst_i || src_i != aim_i {
 					if layout.dropMove != nil {
-						layout.dropMove(src_i, dst_i, srcDom.Drag_source, dstDom.Drag_source)
+						layout.dropMove(src_i, dst_i, aim_i, srcDom.Drag_source, dstDom.Drag_source)
 					}
 				}
 			}

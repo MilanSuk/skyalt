@@ -114,7 +114,7 @@ type UIButton struct {
 
 	clicked func() error
 
-	dropMove func(src_i, dst_i int, src_source, dst_source string) error
+	dropMove func(src_i, dst_i int, aim_i int, src_source, dst_source string) error
 }
 
 func (ui *UI) addButton(label string, tooltip string) *UIButton

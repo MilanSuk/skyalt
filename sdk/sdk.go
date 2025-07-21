@@ -1416,11 +1416,12 @@ func (ui *UI) runChange(change SdkChange) error {
 			if it.Button.dropMove != nil {
 				var src_i int
 				var dst_i int
+				var aim_i int
 				var src_source string
 				var dst_source string
-				fmt.Sscanf(change.ValueString, "%d %d %s %s", &src_i, &dst_i, &src_source, &dst_source)
+				fmt.Sscanf(change.ValueString, "%d %d %d %s %s", &src_i, &dst_i, &aim_i, &src_source, &dst_source)
 
-				return it.Button.dropMove(src_i, dst_i, src_source, dst_source)
+				return it.Button.dropMove(src_i, dst_i, aim_i, src_source, dst_source)
 			}
 		} else {
 			if it.Button.clicked != nil {
@@ -2140,7 +2141,7 @@ type UIButton struct {
 
 	clicked func() error
 
-	dropMove func(src_i, dst_i int, src_source, dst_source string) error
+	dropMove func(src_i, dst_i int, aim_pos int, src_source, dst_source string) error
 }
 
 type UIFilePickerButton struct {
@@ -2198,6 +2199,7 @@ type UICheckbox struct {
 type UIDivider struct {
 	layout     *UI
 	Horizontal bool
+	Label      string
 }
 
 type UIMicrophone struct {

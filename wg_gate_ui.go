@@ -128,6 +128,7 @@ type UIMicrophone struct {
 
 type UIDivider struct {
 	Horizontal bool
+	Label      string
 }
 
 type UIMap struct {
@@ -699,7 +700,8 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueBool: false, ValueBytes: audio, ValueString: transcript}, fnProgress, fnDone)
 		}
 	} else if it.Divider != nil {
-		layout.AddDivider(it.X, it.Y, it.W, it.H, it.Divider.Horizontal)
+		d := layout.AddDivider(it.X, it.Y, it.W, it.H, it.Divider.Horizontal)
+		d.Label = it.Divider.Label
 
 	} else if it.Map != nil {
 		mp := layout.AddMap(it.X, it.Y, it.W, it.H, &MapCam{Lon: *it.Map.Lon, Lat: *it.Map.Lat, Zoom: *it.Map.Zoom})
@@ -808,8 +810,8 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 		btLay.Drop_h = it.Button.Drop_h
 		btLay.Drop_v = it.Button.Drop_v
 		btLay.Drop_in = it.Button.Drop_in
-		btLay.dropMove = func(src_i, dst_i int, src_source, dst_source string) {
-			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %s %s", src_i, dst_i, src_source, dst_source)}, fnProgress, fnDone)
+		btLay.dropMove = func(src_i, dst_i int, aim_i int, src_source, dst_source string) {
+			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %d %s %s", src_i, dst_i, aim_i, src_source, dst_source)}, fnProgress, fnDone)
 		}
 
 		//tooltip_value = "Button with label: " + it.Button.Label
