@@ -145,7 +145,7 @@ func (app *ToolsApp) CheckRun() error {
 	defer app.lock.Unlock()
 
 	if app.Process.Compile.Error != "" {
-		return LogsErrorf("'%s' app has compilation error: %s", app.Process.Compile.GetFolderPath(), app.Process.cmd_error)
+		return LogsErrorf("'%s' app has compilation error: %s", app.Process.Compile.GetFolderPath(), app.Process.Compile.Error)
 	}
 
 	if app.Process.Compile.AppFileTime == 0 {
@@ -240,11 +240,6 @@ func (app *ToolsApp) Tick(generate bool) error {
 		app.Prompts.SetCodeErrors(codeErrors)
 		restart = true
 	} else {
-
-		/*app.Prompts.Changed = (app.Process.Compile.SdkFileTime != sdkFileTime || binFileMissing)
-		if !app.Prompts.Changed {
-			return nil //ok
-		}*/
 
 		if !generate {
 			//only recompile(for example: sdk.go changed)
