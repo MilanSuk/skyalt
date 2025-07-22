@@ -86,6 +86,8 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 
 	//Statistics - total
 	if y >= 2 { //1st message is user
+		ui.SetRowFromSub(y, 1, 2, true)
+
 		in, inCached, out := source_chat.Messages.GetTotalPrice(0, -1)
 		info := ui.AddText(1, y, 1, 1, fmt.Sprintf("<i>$%s, %d tokens, %s sec, %d tokens/sec",
 			strconv.FormatFloat(in+inCached+out, 'f', 3, 64),
