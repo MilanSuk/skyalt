@@ -72,6 +72,26 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 	ui.AddDivider(0, y, 1, 1, true)
 	y++ //space
 
+	//Coding
+	{
+		ui.SetRowFromSub(y, 1, 100, true)
+		CodeDiv := ui.AddLayout(0, y, 1, 1)
+		CodeDiv.SetColumn(0, 1, 4)
+		CodeDiv.SetColumn(1, 1, 100)
+
+		tx := CodeDiv.AddText(0, 0, 2, 1, "Coding")
+		tx.Align_h = 1
+
+		CodeDiv.AddDropDown(0, 1, 1, 1, &source_dev.Coding_provider, chatProviders, chatProviders)
+		fnProvider(CodeDiv, source_dev.Coding_provider)
+
+		smarterSw := CodeDiv.AddSwitch(0, 2, 2, 1, "Smarter", &source_dev.Coding_smarter)
+		smarterSw.layout.Enable = (source_dev.Coding_provider != "")
+	}
+	y++
+	ui.AddDivider(0, y, 1, 1, true)
+	y++ //space
+
 	//Image
 	{
 		ui.SetRowFromSub(y, 1, 100, true)

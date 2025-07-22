@@ -242,11 +242,20 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 
 	dev := &llms.services.sync.Device
 	model := ""
-	switch strings.ToLower(dev.Chat_provider) {
+
+	provider := dev.Chat_provider
+	smarter := dev.Chat_smarter
+	switch strings.ToLower(usecase) {
+	case "code":
+		provider = dev.Coding_provider
+		smarter = dev.Coding_smarter
+	}
+
+	switch strings.ToLower(provider) {
 
 	case "xai":
 		model = "grok-3-mini"
-		if dev.Chat_smarter {
+		if smarter {
 			model = "grok-4"
 		}
 
@@ -254,12 +263,12 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 		switch usecase {
 		case "tools", "code":
 			model = "devstral-small-latest"
-			if dev.Chat_smarter {
+			if smarter {
 				model = "codestral-latest"
 			}
 		case "chat":
 			model = "mistral-small-latest"
-			if dev.Chat_smarter {
+			if smarter {
 				model = "mistral-large-latest"
 			}
 		}
@@ -268,12 +277,12 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 		switch usecase {
 		case "tools", "code":
 			model = "gpt-4.1-mini"
-			if dev.Chat_smarter {
+			if smarter {
 				model = "o4-mini"
 			}
 		case "chat":
 			model = "gpt-4.1-mini"
-			if dev.Chat_smarter {
+			if smarter {
 				model = "o4-mini"
 			}
 		}
@@ -317,7 +326,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 	defer llms.lock.Unlock()
 
 	//call
-	switch strings.ToLower(dev.Chat_provider) {
+	switch strings.ToLower(provider) {
 	case "xai":
 		err := llms.services.sync.LLM_xai.Complete(st, app_port, tools, msg)
 		if err != nil {
@@ -340,7 +349,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 			return err
 		}
 	default:
-		return LogsErrorf("provider not found")
+		return LogsErrorf("provider '%s' not found", provider)
 	}
 
 	//add & save cache

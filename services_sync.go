@@ -42,10 +42,15 @@ type ServicesSyncDeviceSettings struct {
 	DarkPalette   DevPalette
 	CustomPalette DevPalette
 
-	Chat_provider  string
-	Chat_smarter   bool
+	Chat_provider string
+	Chat_smarter  bool
+
+	Coding_provider string
+	Coding_smarter  bool
+
 	Image_provider string
-	STT_provider   string
+
+	STT_provider string
 }
 
 type ServicesSyncMapSettings struct {
