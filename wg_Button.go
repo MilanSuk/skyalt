@@ -279,7 +279,12 @@ func (st *Button) autoResize(layout *Layout) bool {
 	return layout.resizeFromPaintText(st.Value, true, false, st.getAutoResizeMargin())
 }
 func (st *Button) getAutoResizeMargin() [4]float64 {
+
 	m := (1 - WinFontProps_GetDefaultLineH()) / 2
+	if st.Value == "" {
+		m = 0
+	}
+
 	margin := [4]float64{m, m, m, m}
 
 	if st.IconPath != "" || len(st.IconBlob) > 0 {
