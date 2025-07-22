@@ -371,7 +371,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 		} else {
 			ChatDiv := ui.AddLayout(1, 0, 1, 1)
-			ChatDiv.SetColumnResizable(0, 6, 15, 6)
+			ChatDiv.SetColumnResizable(0, 7, 20, 7)
 			ChatDiv.SetColumn(1, 1, 100)
 			ChatDiv.SetRow(0, 1, 100)
 
@@ -492,7 +492,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 						}
 
 						inf := NavDiv.AddText(2, 0, 1, 1, fmt.Sprintf("%d/%d", source_chat.User_msg_i+1, numUseMessages)) //...
-						inf.Align_h = 2
+						inf.Align_h = 1
 						//inf.layout.Tooltip = dashes.UI_func + "()"
 
 						forwardBt := NavDiv.AddButton(3, 0, 1, 1, ">")
