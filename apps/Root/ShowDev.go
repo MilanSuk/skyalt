@@ -223,7 +223,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			tx.Align_v = 0
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		} else {
-			tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#function //Describe function which can be called from tools.\n#<NameOfTool> //Describe app's feature.\n#start //Write prompt, which will be executed when new chat is created.")
+			tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#function <name> //Describe background function.\n#tool <name> //Describe app's feature.\n#start //Enter prompt, which will be executed when new chat is created.")
 			tx.Align_v = 0
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		}
@@ -370,8 +370,9 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					labels = append(labels, it.Name+".go"+errStr)
 					values = append(values, it.Name+".go")
 
-					if it.Name == app.Dev.SideFile {
+					if it.Name+".go" == app.Dev.SideFile {
 						hasOpenedSchema = (it.Type == ToolsPrompt_TOOL)
+
 					}
 
 					var ic UIDropDownIcon
