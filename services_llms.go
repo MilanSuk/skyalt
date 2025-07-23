@@ -219,9 +219,8 @@ type LLMSpeech struct {
 type LLMs struct {
 	services *Services
 
-	lock sync.Mutex
-
-	Cache []LLMComplete
+	Cache      []LLMComplete
+	cache_lock sync.Mutex
 }
 
 func NewLLMs(services *Services) (*LLMs, error) {
@@ -235,6 +234,27 @@ func NewLLMs(services *Services) (*LLMs, error) {
 		}
 	}
 	return llms, nil
+}
+
+func (llms *LLMs) findCache(st *LLMComplete) bool {
+	llms.cache_lock.Lock()
+	defer llms.cache_lock.Unlock()
+
+	for i := range llms.Cache {
+		if llms.Cache[i].Cmp(st) {
+			*st = llms.Cache[i]
+			return true
+		}
+	}
+	return false
+}
+
+func (llms *LLMs) addCache(st *LLMComplete) {
+	llms.cache_lock.Lock()
+	defer llms.cache_lock.Unlock()
+
+	llms.Cache = append(llms.Cache, *st)
+	Tools_WriteJSONFile("temp/llms_cache.json", llms.Cache)
 }
 
 // usecase: "tools", "code", "chat"
@@ -311,19 +331,16 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 	}
 
 	//find in cache
-	for i := range llms.Cache {
-		if llms.Cache[i].Cmp(st) {
-			*st = llms.Cache[i]
-			return nil
-		}
+	if llms.findCache(st) {
+		return nil
 	}
 
 	if st.Max_iteration <= 0 {
 		st.Max_iteration = 1
 	}
 
-	llms.lock.Lock()
-	defer llms.lock.Unlock()
+	//llms.lock.Lock()
+	//defer llms.lock.Unlock()
 
 	//call
 	switch strings.ToLower(provider) {
@@ -353,10 +370,7 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 	}
 
 	//add & save cache
-	{
-		llms.Cache = append(llms.Cache, *st)
-		Tools_WriteJSONFile("temp/llms_cache.json", llms.Cache)
-	}
+	llms.addCache(st)
 
 	return nil
 }
@@ -370,8 +384,8 @@ func (llms *LLMs) GetUsage() []LLMMsgUsage {
 }
 
 func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *AppsRouterMsg) error {
-	llms.lock.Lock()
-	defer llms.lock.Unlock()
+	//llms.lock.Lock()
+	//defer llms.lock.Unlock()
 
 	dev := &llms.services.sync.Device
 
@@ -389,8 +403,8 @@ func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *AppsRouterMsg) error 
 }
 
 func (llms *LLMs) Transcribe(st *LLMTranscribe) error {
-	llms.lock.Lock()
-	defer llms.lock.Unlock()
+	//llms.lock.Lock()
+	//defer llms.lock.Unlock()
 
 	dev := &llms.services.sync.Device
 

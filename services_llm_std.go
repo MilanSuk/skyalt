@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -105,11 +104,14 @@ type OpenAI_completion_props struct {
 	Reasoning_effort string `json:"reasoning_effort,omitempty"` //"low", "high"
 }
 
-var g_global_OpenAI_completion_lock sync.Mutex
+//var g_global_OpenAI_completion_lock sync.Mutex
 
 func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string, fnStreaming func(msg *ChatMsg) bool, msg *AppsRouterMsg) (OpenAIOut, int, float64, float64, error) {
-	g_global_OpenAI_completion_lock.Lock()
-	defer g_global_OpenAI_completion_lock.Unlock()
+
+	//maybe save start_time and sleep() here until some delay ....
+
+	//g_global_OpenAI_completion_lock.Lock()
+	//defer g_global_OpenAI_completion_lock.Unlock()
 
 	st := time.Now().UnixMicro()
 
@@ -291,7 +293,7 @@ type OpenAI_getImage_props struct {
 	//User    string `json:"user"`    //A unique identifier representing your end-user, which can help xAI to monitor and detect abuse.
 }
 
-var g_global_OpenAI_genImage_lock sync.Mutex
+//var g_global_OpenAI_genImage_lock sync.Mutex
 
 type OpenAIGenImageOutData struct {
 	B64_json       string //"data:image/png;base64,..."
@@ -321,8 +323,8 @@ type OpenAIGenImageOut struct {
 }
 
 func OpenAI_genImage_Run(jsProps []byte, Completion_url string, api_key string) (OpenAIGenImageOut, int, float64, error) {
-	g_global_OpenAI_genImage_lock.Lock()
-	defer g_global_OpenAI_genImage_lock.Unlock()
+	//g_global_OpenAI_genImage_lock.Lock()
+	//defer g_global_OpenAI_genImage_lock.Unlock()
 
 	st := time.Now().UnixMicro()
 
