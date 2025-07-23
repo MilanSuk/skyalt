@@ -23,13 +23,27 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 )
 
 type ToolsPromptMessages struct {
 	Message   string
 	Reasoning string
 }
+
+type ToolsPromptTYPE int
+
+const (
+	ToolsPrompt_STORAGE ToolsPromptTYPE = iota
+	ToolsPrompt_FUNCTION
+	ToolsPrompt_TOOL
+	ToolsPrompt_START
+)
+
 type ToolsPrompt struct {
+	Type ToolsPromptTYPE
+	Name string
+
 	Prompt string //LLM input
 
 	//LLM output
@@ -38,7 +52,6 @@ type ToolsPrompt struct {
 	Code string
 
 	//from code
-	Name   string
 	Schema *ToolsOpenAI_completion_tool
 	Errors []ToolsCodeError
 
@@ -47,8 +60,12 @@ type ToolsPrompt struct {
 	previousMessages []byte
 }
 
+func NewToolsPrompt(Type ToolsPromptTYPE, Name string) *ToolsPrompt {
+	return &ToolsPrompt{Type: Type, Name: Name}
+}
+
 func (prompt *ToolsPrompt) updateSchema() error {
-	if prompt.Name == "Storage" || prompt.Code == "" {
+	if prompt.Type != ToolsPrompt_TOOL || prompt.Code == "" {
 		return nil
 	}
 
@@ -89,6 +106,11 @@ func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, us
 	}*/
 }
 
+type ToolsPromptGen struct {
+	Name    string
+	Message string
+}
+
 type ToolsPrompts struct {
 	Changed bool
 
@@ -99,14 +121,48 @@ type ToolsPrompts struct {
 	StartPrompt string
 
 	Generating_msg_id string
-	Generating_prompt string
-	Generating_msg    string
+	Generating_items  []*ToolsPromptGen
 
 	refresh bool
+
+	lock sync.Mutex
 }
 
 func (app *ToolsPrompts) Destroy() error {
 	return nil
+}
+
+func (app *ToolsPrompts) ResetGenMsgs(msg_id string) {
+	app.lock.Lock()
+	defer app.lock.Unlock()
+
+	app.Generating_msg_id = msg_id
+	app.Generating_items = nil
+}
+func (app *ToolsPrompts) AddGenMsg(name string, msg string) {
+	app.lock.Lock()
+	defer app.lock.Unlock()
+
+	for _, it := range app.Generating_items {
+		if it.Name == name {
+			//update
+			it.Message = msg
+			return
+		}
+	}
+	//add
+	app.Generating_items = append(app.Generating_items, &ToolsPromptGen{Name: name, Message: msg})
+}
+func (app *ToolsPrompts) RemoveGenMsg(name string) {
+	app.lock.Lock()
+	defer app.lock.Unlock()
+
+	for i, it := range app.Generating_items {
+		if it.Name == name {
+			app.Generating_items = slices.Delete(app.Generating_items, i, i+1)
+			return
+		}
+	}
 }
 
 func (app *ToolsPrompts) SetCodeErrors(errs []ToolsCodeError) {
@@ -120,18 +176,17 @@ func (app *ToolsPrompts) SetCodeErrors(errs []ToolsCodeError) {
 	for _, er := range errs {
 		file_name := strings.TrimRight(filepath.Base(er.File), filepath.Ext(er.File))
 
-		found := false
-		for _, prompt := range app.Prompts {
-			if prompt.Name == file_name {
-				prompt.Errors = append(prompt.Errors, er)
-				found = true
-				break
-			}
-		}
-		if !found {
+		prompt := app.FindPromptName(file_name)
+		if prompt != nil {
+			prompt.Errors = append(prompt.Errors, er)
+		} else {
 			fmt.Printf("Code file '%s' not found\n", er.File)
 		}
 	}
+}
+
+func (app *ToolsPrompts) FindStorage() *ToolsPrompt {
+	return app.FindPromptName("Storage")
 }
 
 func (app *ToolsPrompts) FindPromptName(name string) *ToolsPrompt {
@@ -167,7 +222,13 @@ func (app *ToolsPrompts) _reloadFromCodeFiles(folderPath string) error {
 			return err
 		}
 
-		item := &ToolsPrompt{Name: toolName, Code: string(code)}
+		tp := ToolsPrompt_TOOL
+		if info.Name() == "Storage.go" {
+			tp = ToolsPrompt_STORAGE
+		}
+
+		item := NewToolsPrompt(tp, toolName)
+		item.Code = string(code)
 		err = item.updateSchema()
 		if err != nil {
 			return err
@@ -196,6 +257,7 @@ func (app *ToolsPrompts) _reloadFromCodeFiles(folderPath string) error {
 
 func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) {
 
+	//reset
 	app.Prompts = nil
 	app.Err = ""
 	app.Err_line = 0
@@ -216,6 +278,8 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 
 		isHash := strings.HasPrefix(strings.ToLower(ln), "#")
 		isStorage := strings.HasPrefix(strings.ToLower(ln), "#storage")
+		isFunction := strings.HasPrefix(strings.ToLower(ln), "#function")
+		isTool := strings.HasPrefix(strings.ToLower(ln), "#tool")
 		isStart := strings.HasPrefix(strings.ToLower(ln), "#start")
 
 		if isStorage && structFound {
@@ -232,35 +296,59 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 
 		if isHash {
 			//extract or edit name
+			var Type ToolsPromptTYPE
 			var toolName string
 			if isStorage {
+				Type = ToolsPrompt_STORAGE
 				toolName = "Storage"
+			} else if isFunction {
+				Type = ToolsPrompt_FUNCTION
 			} else if isStart {
+				Type = ToolsPrompt_START
 				toolName = "Start"
+			} else if isTool {
+				Type = ToolsPrompt_TOOL
 			} else {
-				toolName = ln[1:] //skip '#'
+				app.Err = "'#' must follow with 'storage', 'function', 'tool' or 'start'"
+				app.Err_line = i + 1
+				return false, LogsErrorf(app.Err)
+			}
+
+			if isFunction || isTool {
+
+				if isFunction {
+					toolName = ln[len("#function"):] //skip
+				} else {
+					toolName = ln[len("#tool"):] //skip
+				}
+
 				newToolName := _ToolsPrompt_getValidFileName(toolName)
+
+				if newToolName == "" {
+					app.Err = "missing name"
+					app.Err_line = i + 1
+					return false, LogsErrorf(app.Err)
+				}
 
 				if toolName != newToolName {
 					toolName = newToolName
-					ln = "#" + newToolName
+
+					if isFunction {
+						ln = "#function " + newToolName
+					} else {
+						ln = "#tool " + newToolName
+					}
 					lines[i] = ln
 
 					saveFile = true
 				}
 			}
 
-			if toolName == "" {
-				app.Err = "nothing after '#'"
-				app.Err_line = i + 1
-				return false, LogsErrorf(app.Err)
-			}
-
 			//save
 			if last_prompt != nil {
 				app.Prompts = append(app.Prompts, last_prompt)
 			}
-			last_prompt = &ToolsPrompt{Name: toolName}
+			last_prompt = NewToolsPrompt(Type, toolName)
 
 			if isStorage {
 				structFound = true
@@ -293,7 +381,7 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 
 	//extract start prompt
 	for i, prompt := range app.Prompts {
-		if prompt.Name == "Start" {
+		if prompt.Type == ToolsPrompt_START {
 			app.StartPrompt = prompt.Prompt
 
 			app.Prompts = slices.Delete(app.Prompts, i, i+1) //remove
@@ -312,20 +400,29 @@ func (app *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, error) 
 	return saveFile, nil
 }
 
-func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *ToolsPrompt, msg *AppsRouterMsg, llms *LLMs) error {
+func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, msg *AppsRouterMsg, llms *LLMs) error {
 	comp := NewLLMCompletion()
 
 	var err error
-	if prompt == storagePrompt {
-		comp.SystemMessage, comp.UserMessage, err = app._getStorageMsg(storagePrompt)
+	switch prompt.Type {
+	case ToolsPrompt_STORAGE:
+		comp.SystemMessage, comp.UserMessage, err = app._getStorageMsg(prompt)
 		if err != nil {
 			return err
 		}
-	} else {
-		comp.SystemMessage, comp.UserMessage, err = app._getToolMsg(prompt, storagePrompt)
+	case ToolsPrompt_FUNCTION:
+		comp.SystemMessage, comp.UserMessage, err = app._getFunctionMsg(prompt)
 		if err != nil {
 			return err
 		}
+	case ToolsPrompt_TOOL:
+		comp.SystemMessage, comp.UserMessage, err = app._getToolMsg(prompt)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("prompt '%s:%s' is unknown type", prompt.Type, prompt.Name)
+
 	}
 
 	if len(prompt.Errors) > 0 {
@@ -344,11 +441,13 @@ func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *
 		comp.UserMessage += "Above code has compiler error(s), marked in line comments(//Error). Please fix them by rewriting above code. Also remove comments with errors."
 	}
 
+	defer app.RemoveGenMsg(prompt.Name)
 	comp.delta = func(msg *ChatMsg) {
-		app.Generating_prompt = prompt.Name
+		msgStr := ""
 		if msg.Content.Calls != nil {
-			app.Generating_msg = msg.Content.Calls.Content
+			msgStr = msg.Content.Calls.Content
 		}
+		app.AddGenMsg(prompt.Name, msgStr)
 	}
 
 	err = llms.Complete(comp, msg, "code")
@@ -357,59 +456,6 @@ func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, storagePrompt *
 	}
 
 	prompt.setMessage(comp.Out_answer, comp.Out_reasoning, &comp.Out_usage, comp.Out_messages)
-
-	return nil
-}
-
-func (app *ToolsPrompts) GenerateStructureCode(msg *AppsRouterMsg, llms *LLMs) (*ToolsPrompt, error) {
-	//find Storage
-	storagePrompt := app.FindPromptName("Storage")
-	if storagePrompt == nil {
-		return nil, LogsErrorf("'Storage' prompt not found")
-	}
-
-	defer func() {
-		//reset
-		app.Generating_msg_id = ""
-		app.Generating_prompt = ""
-		app.Generating_msg = ""
-	}()
-	app.Generating_msg_id = msg.user_uid
-
-	return storagePrompt, app.generatePromptCode(storagePrompt, storagePrompt, msg, llms)
-}
-
-func (app *ToolsPrompts) GenerateToolsCode(msg *AppsRouterMsg, llms *LLMs) error {
-
-	//find Storage
-	storagePrompt := app.FindPromptName("Storage")
-	if storagePrompt == nil {
-		return LogsErrorf("'Storage' prompt not found")
-	}
-
-	defer func() {
-		//reset
-		app.Generating_msg_id = ""
-		app.Generating_prompt = ""
-		app.Generating_msg = ""
-	}()
-	app.Generating_msg_id = msg.user_uid
-
-	//then generate tools code
-	for _, prompt := range app.Prompts {
-		if prompt == storagePrompt || prompt.Prompt == "" {
-			continue
-		}
-
-		if prompt.Code != "" && len(prompt.Errors) == 0 {
-			continue
-		}
-
-		err := app.generatePromptCode(prompt, storagePrompt, msg, llms)
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
@@ -467,7 +513,7 @@ func (app *ToolsPrompts) UpdateSchemas() error {
 	return nil
 }
 
-func (app *ToolsPrompts) _getStorageMsg(structPrompt *ToolsPrompt) (string, string, error) {
+func (app *ToolsPrompts) _getStorageMsg(storagePrompt *ToolsPrompt) (string, string, error) {
 
 	apisFile, err := os.ReadFile("sdk/_api_storage.go")
 	if err != nil {
@@ -496,12 +542,50 @@ func (app *ToolsPrompts) _getStorageMsg(structPrompt *ToolsPrompt) (string, stri
 
 	//maybe add old file structures, because it's needed that struct and attributes names are same ....
 
-	userMessage := structPrompt.Prompt
+	userMessage := storagePrompt.Prompt
 
 	return systemMessage, userMessage, nil
 }
 
-func (app *ToolsPrompts) _getToolMsg(prompt *ToolsPrompt, structPrompt *ToolsPrompt) (string, string, error) {
+func (app *ToolsPrompts) _getFunctionMsg(functionPrompt *ToolsPrompt) (string, string, error) {
+	storagePrompt := app.FindStorage()
+	if storagePrompt == nil {
+		return "", "", LogsErrorf("'Storage' prompt not found")
+	}
+
+	funcFile := fmt.Sprintf(`
+package main
+
+func %s(/*arguments*/) /*return types*/ {
+	//<code based on prompt>
+}
+`, functionPrompt.Name)
+
+	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
+
+	systemMessage += "file - storage.go:\n```go" + storagePrompt.Code + "```\n"
+	systemMessage += "file - " + functionPrompt.Name + ".go:\n```go" + string(funcFile) + "```\n"
+
+	systemMessage += "Based on the user message, rewrite the " + functionPrompt.Name + "() function inside " + functionPrompt.Name + ".go file.\n"
+
+	systemMessage += "Figure it out function argument(s), return types(s) and function body based on user message.\n"
+
+	systemMessage += "Load<name_of_struct>() functions always returns pointer, not array."
+
+	systemMessage += "Do not call os.ReadFile() + json.Unmarshal(), instead call ReadJSONFile(). Do not call os.WriteFile(), saving data in structures into disk is automatic."
+
+	systemMessage += "Never define constants('const'), use variables('var') for everything.\n"
+
+	userMessage := functionPrompt.Prompt
+
+	return systemMessage, userMessage, nil
+}
+
+func (app *ToolsPrompts) _getToolMsg(prompt *ToolsPrompt) (string, string, error) {
+	storagePrompt := app.FindStorage()
+	if storagePrompt == nil {
+		return "", "", LogsErrorf("'Storage' prompt not found")
+	}
 
 	apisFile, err := os.ReadFile("sdk/_api_tool.go")
 	if err != nil {
@@ -512,8 +596,6 @@ func (app *ToolsPrompts) _getToolMsg(prompt *ToolsPrompt, structPrompt *ToolsPro
 	if err != nil {
 		return "", "", err
 	}
-
-	storageFile := structPrompt.Code
 
 	toolFile := fmt.Sprintf(`
 package main
@@ -533,7 +615,7 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
-	systemMessage += "file - storage.go:\n```go" + storageFile + "```\n"
+	systemMessage += "file - storage.go:\n```go" + storagePrompt.Code + "```\n"
 	systemMessage += "file - example.go:\n```go" + string(exampleFile) + "```\n"
 	systemMessage += "file - tool.go:\n```go" + toolFile + "```\n"
 

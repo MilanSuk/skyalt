@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -206,6 +207,8 @@ func (app *ToolsApp) Tick(generate bool) error {
 	app.lock.Lock()
 	defer app.lock.Unlock()
 
+	defer app.Prompts.ResetGenMsgs("")
+
 	sdkFileTime, appFilesTime, hasPrompts, err := app.getPromptFileTime()
 	if err != nil {
 		return err
@@ -233,6 +236,11 @@ func (app *ToolsApp) Tick(generate bool) error {
 			return err
 		}
 
+		err = app.Process.Compile.BuildMainFile(app.Prompts.Prompts) //sdk.go -> main.go
+		if err != nil {
+			return err
+		}
+
 		codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
 		if err != nil {
 			return err
@@ -247,6 +255,11 @@ func (app *ToolsApp) Tick(generate bool) error {
 			if app.Process.Compile.SdkFileTime != sdkFileTime || binFileMissing {
 				msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
 				defer msg.Done()
+
+				err = app.Process.Compile.BuildMainFile(app.Prompts.Prompts) //sdk.go -> main.go
+				if err != nil {
+					return err
+				}
 
 				codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
 				if err != nil {
@@ -280,11 +293,22 @@ func (app *ToolsApp) Tick(generate bool) error {
 			msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
 			defer msg.Done()
 
-			//Storage
 			MAX_Errors_tries := 10
-			var storagePrompt *ToolsPrompt
-			for range MAX_Errors_tries {
-				storagePrompt, err = app.Prompts.GenerateStructureCode(msg, app.router.services.llms)
+
+			app.Prompts.ResetGenMsgs(msg.user_uid)
+
+			err = app.Process.Compile.BuildMainFile(nil) //sdk.go -> main.go
+			if err != nil {
+				return err
+			}
+
+			//Storage
+			storagePrompt := app.Prompts.FindStorage()
+			if storagePrompt == nil {
+				return LogsErrorf("'Storage' prompt not found")
+			}
+			for i := range MAX_Errors_tries {
+				err = app.Prompts.generatePromptCode(storagePrompt, msg, app.router.services.llms)
 				if err != nil {
 					return err
 				}
@@ -302,31 +326,102 @@ func (app *ToolsApp) Tick(generate bool) error {
 				if len(codeErrors) == 0 {
 					break
 				}
+				if i+1 == MAX_Errors_tries {
+					return fmt.Errorf("failed to generage Storage.go")
+				}
+			}
+
+			//Functions
+			for i := range MAX_Errors_tries {
+
+				//generate code
+				var wg sync.WaitGroup
+				var genErr error
+				for _, prompt := range app.Prompts.Prompts {
+					if prompt.Type != ToolsPrompt_FUNCTION || (prompt.Code != "" && len(prompt.Errors) == 0) {
+						continue
+					}
+
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						err = app.Prompts.generatePromptCode(prompt, msg, app.router.services.llms)
+						if err != nil {
+							genErr = err
+						}
+					}()
+				}
+				wg.Wait()
+				if genErr != nil {
+					return genErr
+				}
+
+				err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets) //rewrite(remove old) files
+				if err != nil {
+					return err
+				}
+
+				codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, true, msg)
+				if err != nil {
+					return err
+				}
+				app.Prompts.SetCodeErrors(codeErrors)
+				if len(codeErrors) == 0 {
+					break
+				}
+				if i+1 == MAX_Errors_tries {
+					return fmt.Errorf("failed to generage Storage.go")
+				}
 			}
 
 			//Tools
-			if storagePrompt != nil && len(storagePrompt.Errors) == 0 {
-				for range MAX_Errors_tries {
-					err := app.Prompts.GenerateToolsCode(msg, app.router.services.llms)
-					if err != nil {
-						return err
+			for i := range MAX_Errors_tries {
+
+				//generate code
+				var wg sync.WaitGroup
+				var genErr error
+				for _, prompt := range app.Prompts.Prompts {
+					if prompt.Type != ToolsPrompt_TOOL || (prompt.Code != "" && len(prompt.Errors) == 0) {
+						continue
 					}
 
-					err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
-					if err != nil {
-						return err
-					}
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						err = app.Prompts.generatePromptCode(prompt, msg, app.router.services.llms)
+						if err != nil {
+							genErr = err
+						}
+					}()
+				}
+				wg.Wait()
+				if genErr != nil {
+					return genErr
+				}
 
-					codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
-					if err != nil {
-						return err
-					}
-					app.Prompts.SetCodeErrors(codeErrors)
-					if len(codeErrors) == 0 {
-						break
-					}
+				err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
+				if err != nil {
+					return err
+				}
+
+				err = app.Process.Compile.BuildMainFile(app.Prompts.Prompts) //sdk.go -> main.go
+				if err != nil {
+					return err
+				}
+
+				codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
+				if err != nil {
+					return err
+				}
+				app.Prompts.SetCodeErrors(codeErrors)
+				if len(codeErrors) == 0 {
+					break
+				}
+				if i+1 == MAX_Errors_tries {
+					return fmt.Errorf("failed to generage Storage.go")
 				}
 			}
+
 			restart = true
 		}
 	}

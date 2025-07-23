@@ -719,7 +719,7 @@ func (router *AppsRouter) RunNet() {
 
 						app := router.FindApp(string(appName))
 						if app != nil {
-							promptsJs, _ = LogsJsonMarshalIndent(app.Prompts)
+							promptsJs, _ = LogsJsonMarshalIndent(&app.Prompts)
 						}
 						cl.WriteArray(promptsJs)
 					}

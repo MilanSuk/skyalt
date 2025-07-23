@@ -76,110 +76,96 @@ func (cmpl *ToolsAppCompile) RemoveOldBins() error {
 	return nil
 }
 
-func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary bool, msg *AppsRouterMsg) ([]ToolsCodeError, error) {
+func (cmpl *ToolsAppCompile) BuildMainFile(prompts []*ToolsPrompt) error {
+	var strInits strings.Builder
+	var strFrees strings.Builder
+	var strCalls strings.Builder
 
-	cmpl.Error = ""
+	//start
+	strInits.WriteString("func _callGlobalInits() {\n\n")
+	strFrees.WriteString("func _callGlobalDestroys() {\n\n")
+	strCalls.WriteString("func FindToolRunFunc(funcName string, jsParams []byte) (func(caller *ToolCaller, ui *UI) error, interface{}, error) {\n\tswitch funcName {\n")
 
-	cmpl.SdkFileTime = sdkFileTime
-	cmpl.AppFileTime = appFileTime
+	for _, prompt := range prompts {
+		if prompt.Type != ToolsPrompt_TOOL {
+			continue
+		}
 
-	msg.progress_label = "Generating tools code " + cmpl.GetFolderPath()
-	{
-		var strInits strings.Builder
-		var strFrees strings.Builder
-		var strCalls strings.Builder
-
-		//start
-		strInits.WriteString("func _callGlobalInits() {\n\n")
-		strFrees.WriteString("func _callGlobalDestroys() {\n\n")
-		strCalls.WriteString("func FindToolRunFunc(funcName string, jsParams []byte) (func(caller *ToolCaller, ui *UI) error, interface{}, error) {\n\tswitch funcName {\n")
-
-		files, err := os.ReadDir(cmpl.GetFolderPath())
+		fl, err := os.ReadFile(filepath.Join(cmpl.GetFolderPath(), prompt.Name+".go"))
 		if err != nil {
 			cmpl.Error = err.Error()
-			return nil, err
+			return err
 		}
-		for _, info := range files {
-			if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" || info.Name() == "Storage.go" {
-				continue
-			}
+		flstr := string(fl)
 
-			stName := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
-
-			fl, err := os.ReadFile(filepath.Join(cmpl.GetFolderPath(), info.Name()))
-			if err != nil {
-				cmpl.Error = err.Error()
-				return nil, err
-			}
-			flstr := string(fl)
-
-			//add init
-			if strings.Index(flstr, stName+"_global_init") > 0 {
-				strInits.WriteString(fmt.Sprintf(`
+		//add init
+		if strings.Index(flstr, prompt.Name+"_global_init") > 0 {
+			strInits.WriteString(fmt.Sprintf(`
 	{
 		err := %s_global_init()
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-`, stName))
-			}
+`, prompt.Name))
+		}
 
-			//add destroy
-			if strings.Index(flstr, stName+"_global_destroy") > 0 {
-				strFrees.WriteString(fmt.Sprintf(`
+		//add destroy
+		if strings.Index(flstr, prompt.Name+"_global_destroy") > 0 {
+			strFrees.WriteString(fmt.Sprintf(`
 	{
 		err := %s_global_destroy()
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-`, stName))
-			}
+`, prompt.Name))
+		}
 
-			//add call
-			strCalls.WriteString(fmt.Sprintf(`	case "%s":
+		//add call
+		strCalls.WriteString(fmt.Sprintf(`	case "%s":
 				st := %s{}
 				err := json.Unmarshal(jsParams, &st)
 				if err != nil {
 					return nil, nil, err
 				}
 				return st.run, &st, nil
-		`, stName, stName))
+		`, prompt.Name, prompt.Name))
 
-		}
-
-		//finish
-		strInits.WriteString("}\n")
-		strFrees.WriteString("}\n")
-		strCalls.WriteString("\n\t}\n\treturn nil, nil, fmt.Errorf(\"Function '%s' not found\", funcName)\n}\n")
-
-		var strFinal strings.Builder
-		/*strFinal.WriteString(`package main
-		import (
-			"encoding/json"
-			"log"
-		)
-		`)*/
-
-		mainGo, err := os.ReadFile("sdk/sdk.go")
-		if err != nil {
-			cmpl.Error = err.Error()
-			return nil, err
-		}
-		strFinal.WriteString(string(mainGo))
-		strFinal.WriteString("\n")
-		strFinal.WriteString(strInits.String())
-		strFinal.WriteString(strFrees.String())
-		strFinal.WriteString(strCalls.String())
-
-		err = os.WriteFile(filepath.Join(cmpl.GetFolderPath(), "main.go"), []byte(strFinal.String()), 0644)
-		if err != nil {
-			cmpl.Error = err.Error()
-			return nil, err
-		}
 	}
-	msg.progress_done = 0.2
+
+	//finish
+	strInits.WriteString("}\n")
+	strFrees.WriteString("}\n")
+	strCalls.WriteString("\n\t}\n\treturn nil, nil, fmt.Errorf(\"Function '%s' not found\", funcName)\n}\n")
+
+	var strFinal strings.Builder
+
+	mainGo, err := os.ReadFile("sdk/sdk.go")
+	if err != nil {
+		cmpl.Error = err.Error()
+		return err
+	}
+	strFinal.WriteString(string(mainGo))
+	strFinal.WriteString("\n")
+	strFinal.WriteString(strInits.String())
+	strFinal.WriteString(strFrees.String())
+	strFinal.WriteString(strCalls.String())
+
+	err = os.WriteFile(filepath.Join(cmpl.GetFolderPath(), "main.go"), []byte(strFinal.String()), 0644)
+	if err != nil {
+		cmpl.Error = err.Error()
+		return err
+	}
+	return nil
+}
+
+func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary bool, msg *AppsRouterMsg) ([]ToolsCodeError, error) {
+
+	cmpl.Error = ""
+
+	cmpl.SdkFileTime = sdkFileTime
+	cmpl.AppFileTime = appFileTime
 
 	//fix files
 	msg.progress_label = "Fixing tools code " + cmpl.GetFolderPath()
@@ -209,7 +195,7 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
 	}
 
-	msg.progress_done = 0.4
+	msg.progress_done = 0.25
 
 	//update packages
 	msg.progress_label = "Updating tools packages " + cmpl.GetFolderPath()
@@ -247,7 +233,7 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 
 		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
 	}
-	msg.progress_done = 0.6
+	msg.progress_done = 0.5
 
 	//compile
 	msg.progress_label = "Compiling tools code " + cmpl.GetFolderPath()
