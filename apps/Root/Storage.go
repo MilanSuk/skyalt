@@ -30,6 +30,8 @@ type RootDev struct {
 	SideFile string //Name.go
 	MainMode string //"prompts", "secrets"
 	SideMode string //"schema", "code", "msg"
+
+	SideFile_version int
 }
 
 type RootApp struct {

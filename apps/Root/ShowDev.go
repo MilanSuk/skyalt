@@ -49,6 +49,12 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		Message   string
 		Reasoning string
 	}
+	type SdkToolsPromptCode struct {
+		Code   string
+		Errors []SdkToolsCodeError
+		Usage  LLMMsgUsage
+	}
+
 	type ToolsPromptTYPE int
 	const (
 		ToolsPrompt_STORAGE ToolsPromptTYPE = iota
@@ -63,14 +69,15 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		//LLM output
 		Messages []SdkToolsMessages
 
-		Code string
+		//Code string
+		CodeVersions []SdkToolsPromptCode
 
 		//from code
 		Name   string
 		Schema json.RawMessage
-		Errors []SdkToolsCodeError
+		//Errors []SdkToolsCodeError
 
-		Usage LLMMsgUsage
+		//Usage LLMMsgUsage
 	}
 	type SdkToolsPromptGen struct {
 		Name    string
@@ -217,7 +224,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		FooterDiv.SetRowFromSub(0, 2, 5, true)
 
 		//Note
-
 		if app.Dev.MainMode == "secrets" {
 			tx := FooterDiv.AddText(0, 0, 1, 1, "<alias> <value>\nExample: myemail@mail.com myActualEmail@gmail.com\nExample: password_1234 Ek7_sdf6m-o45-erc-er5_-df")
 			tx.Align_v = 0
@@ -280,21 +286,26 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			//Total price
 			{
 				sum := 0.0
-				for _, it := range sdk_app.Prompts {
-					sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price
+				for _, prompt := range sdk_app.Prompts {
+					for _, it := range prompt.CodeVersions {
+						sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price
+					}
 				}
 				tx := FooterRightDiv.AddText(0, 1, 1, 1, fmt.Sprintf("<i>Total: $%f", sum))
 				tx.Align_v = 0
 				tx.Align_h = 2
+				tx.layout.Tooltip = "Total cost of generating code(including bugs fixes)"
 			}
 		}
 
 		//Errors
 		{
 			n_errors := 0
-			for _, it := range sdk_app.Prompts {
-				if len(it.Errors) > 0 {
-					n_errors++
+			for _, prompt := range sdk_app.Prompts {
+				if len(prompt.CodeVersions) > 0 {
+					if len(prompt.CodeVersions[len(prompt.CodeVersions)-1].Errors) > 0 {
+						n_errors++
+					}
 				}
 			}
 			if n_errors > 0 {
@@ -353,30 +364,40 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			}
 
 		} else {
-
 			SideDiv.SetColumn(0, 1, 100)
 			SideDiv.SetRow(1, 1, 100)
 
 			{
+				num_opened_versions := 0
 				hasOpenedSchema := false
 				var labels []string
 				var values []string
 				var icons []UIDropDownIcon
-				for _, it := range sdk_app.Prompts {
+				for _, prompt := range sdk_app.Prompts {
 					errStr := ""
-					if len(it.Errors) > 0 {
-						errStr = fmt.Sprintf(" (%d errors)", len(it.Errors))
+					ncodes := len(prompt.CodeVersions)
+					if ncodes > 0 {
+						if len(prompt.CodeVersions[ncodes-1].Errors) > 0 { //last has error
+							errStr = fmt.Sprintf(" [%d errors]", len(prompt.CodeVersions[ncodes-1].Errors))
+						} else if ncodes > 1 {
+							errStr = " [fixed]"
+						}
 					}
-					labels = append(labels, it.Name+".go"+errStr)
-					values = append(values, it.Name+".go")
 
-					if it.Name+".go" == app.Dev.SideFile {
-						hasOpenedSchema = (it.Type == ToolsPrompt_TOOL)
+					labels = append(labels, prompt.Name+".go"+errStr)
+					values = append(values, prompt.Name+".go")
 
+					if prompt.Name+".go" == app.Dev.SideFile {
+						hasOpenedSchema = (prompt.Type == ToolsPrompt_TOOL)
+						num_opened_versions = len(prompt.CodeVersions)
+
+						if app.Dev.SideFile_version < 0 || app.Dev.SideFile_version >= num_opened_versions {
+							app.Dev.SideFile_version = num_opened_versions - 1
+						}
 					}
 
 					var ic UIDropDownIcon
-					switch it.Type {
+					switch prompt.Type {
 					case ToolsPrompt_STORAGE:
 						ic.Path = "resources/db.png"
 						ic.Margin = 0.2
@@ -391,12 +412,13 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				}
 
 				HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
-				HeaderDiv.SetColumn(1, 3, 100)
-				HeaderDiv.SetColumnFromSub(3, 5, 100, true)
+
 				//HeaderDiv.ScrollV.Hide = true
 				HeaderDiv.ScrollH.Narrow = true
 
-				CloseBt := HeaderDiv.AddButton(0, 0, 1, 1, ">>")
+				hx := 0
+				CloseBt := HeaderDiv.AddButton(hx, 0, 1, 1, ">>")
+				hx++
 				CloseBt.layout.Tooltip = "Close side panel"
 				CloseBt.Background = 0.25
 				CloseBt.clicked = func() error {
@@ -404,11 +426,42 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					return nil
 				}
 
-				cb := HeaderDiv.AddDropDown(1, 0, 1, 1, &app.Dev.SideFile, labels, values)
+				HeaderDiv.SetColumn(hx, 3, 100)
+				cb := HeaderDiv.AddDropDown(hx, 0, 1, 1, &app.Dev.SideFile, labels, values)
+				hx++
 				cb.Icons = icons
+				cb.changed = func() error {
+					app.Dev.SideFile_version = -1 //reset
+					return nil
+				}
+
+				//code version
+				if app.Dev.SideMode == "code" && num_opened_versions > 1 {
+					var labels []string
+					var values []string
+					for i := range num_opened_versions {
+						labels = append(labels, strconv.Itoa(1+i))
+						values = append(labels, strconv.Itoa(1+i))
+					}
+
+					version := strconv.Itoa(1 + app.Dev.SideFile_version)
+					HeaderDiv.SetColumnFromSub(hx, 1, 5, true)
+					vr := HeaderDiv.AddDropDown(hx, 0, 1, 1, &version, labels, values)
+					hx++
+					vr.changed = func() error {
+						v, _ := strconv.Atoi(version)
+						app.Dev.SideFile_version = v - 1
+						return nil
+					}
+
+				}
+
+				hx++ //space
 
 				{
-					TabsDiv := HeaderDiv.AddLayout(3, 0, 1, 1)
+					HeaderDiv.SetColumnFromSub(hx, 5, 100, true)
+					TabsDiv := HeaderDiv.AddLayout(hx, 0, 1, 1)
+					hx++
 					TabsDiv.SetColumn(0, 2, 3)
 					TabsDiv.SetColumn(1, 2, 3)
 					TabsDiv.SetColumn(2, 2, 3)
@@ -452,24 +505,32 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						CodeBt.Background = 1
 					}
 				}
-
 			}
 
 			if app.Dev.SideFile != "" {
 
-				var prompt *SdkToolsPrompt
+				var side_prompt *SdkToolsPrompt
+				var side_promptCode SdkToolsPromptCode
+
 				app_toolName := strings.TrimSuffix(app.Dev.SideFile, filepath.Ext(app.Dev.SideFile))
-				for _, it := range sdk_app.Prompts {
-					if it.Name == app_toolName {
-						prompt = it
+				for _, prompt := range sdk_app.Prompts {
+					if prompt.Name == app_toolName {
+						side_prompt = prompt
+
+						if app.Dev.SideFile_version >= 0 {
+
+							callFuncPrint(fmt.Sprintf("-------------%d", app.Dev.SideFile_version))
+
+							side_promptCode = prompt.CodeVersions[app.Dev.SideFile_version]
+						}
 						break
 					}
 				}
 
-				if prompt != nil {
+				if side_prompt != nil {
 					switch app.Dev.SideMode {
 					case "schema":
-						tx := SideDiv.AddText(0, 1, 1, 1, string(prompt.Schema))
+						tx := SideDiv.AddText(0, 1, 1, 1, string(side_prompt.Schema))
 						//tx.Linewrapping = false
 						tx.Align_v = 0
 						tx.layout.Back_cd = codeBackCd
@@ -479,13 +540,13 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 					case "msg":
 						var msgStr string
-						for i := range prompt.Messages {
-							m := prompt.Messages[i]
+						for i := range side_prompt.Messages {
+							m := side_prompt.Messages[i]
 							msgStr += m.Reasoning
 							if m.Reasoning == "" {
 								msgStr += m.Message
 							}
-							if i+1 < len(prompt.Messages) {
+							if i+1 < len(side_prompt.Messages) {
 								msgStr += "\n--- --- --- --- --- --- --- ---\n"
 							}
 						}
@@ -494,64 +555,60 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						tx.layout.Back_cd = codeBackCd
 
 					default:
-						fl, err := os.ReadFile(filepath.Join("..", app.Name, app.Dev.SideFile))
-						if err == nil {
-
-							code := string(fl)
-							if len(prompt.Errors) > 0 {
-								errCd := UI_GetPalette().E
-								lines := strings.Split(string(fl), "\n")
-								for _, er := range prompt.Errors {
-									if er.Line >= 1 && er.Line <= len(lines) {
-										lines[er.Line-1] = fmt.Sprintf("<rgba%d,%d,%d,255>%s</rgba>", errCd.R, errCd.G, errCd.B, lines[er.Line-1])
-									}
+						code := side_promptCode.Code
+						if len(side_promptCode.Errors) > 0 {
+							errCd := UI_GetPalette().E
+							lines := strings.Split(code, "\n")
+							for _, er := range side_promptCode.Errors {
+								if er.Line >= 1 && er.Line <= len(lines) {
+									lines[er.Line-1] = fmt.Sprintf("<rgba%d,%d,%d,255>%s</rgba>", errCd.R, errCd.G, errCd.B, lines[er.Line-1])
 								}
-
-								code = strings.Join(lines, "\n")
 							}
 
-							tx := SideDiv.AddText(0, 1, 1, 1, code)
-							tx.Linewrapping = false
-							tx.Align_v = 0
-							tx.layout.Back_cd = codeBackCd
-							tx.EnableCodeFormating = true
+							code = strings.Join(lines, "\n")
 						}
+
+						tx := SideDiv.AddText(0, 1, 1, 1, code)
+						tx.Linewrapping = false
+						tx.Align_v = 0
+						tx.layout.Back_cd = codeBackCd
+						tx.EnableCodeFormating = true
 					}
 
 					//Price
 					{
-						tx := SideDiv.AddText(0, 2, 1, 1, fmt.Sprintf("<i>%s, $%f", prompt.Usage.Model, prompt.Usage.Prompt_price+prompt.Usage.Input_cached_price+prompt.Usage.Completion_price+prompt.Usage.Reasoning_price))
+						tx := SideDiv.AddText(0, 2, 1, 1, fmt.Sprintf("<i>%s, $%f", side_promptCode.Usage.Model, side_promptCode.Usage.Prompt_price+side_promptCode.Usage.Input_cached_price+side_promptCode.Usage.Completion_price+side_promptCode.Usage.Reasoning_price))
 						tx.Align_h = 2
 
-						in := prompt.Usage.Prompt_price
-						inCached := prompt.Usage.Input_cached_price
-						out := prompt.Usage.Completion_price + prompt.Usage.Reasoning_price
+						in := side_promptCode.Usage.Prompt_price
+						inCached := side_promptCode.Usage.Input_cached_price
+						out := side_promptCode.Usage.Completion_price + side_promptCode.Usage.Reasoning_price
 						tx.layout.Tooltip = fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s sec\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
-							prompt.Usage.Provider+":"+prompt.Usage.Model,
-							SdkGetDateTime(int64(prompt.Usage.CreatedTimeSec)),
-							strconv.FormatFloat(prompt.Usage.TimeToFirstToken, 'f', 3, 64),
-							strconv.FormatFloat(prompt.Usage.DTime, 'f', 3, 64),
-							strconv.FormatFloat(prompt.Usage.GetSpeed(), 'f', 3, 64),
+							side_promptCode.Usage.Provider+":"+side_promptCode.Usage.Model,
+							SdkGetDateTime(int64(side_promptCode.Usage.CreatedTimeSec)),
+							strconv.FormatFloat(side_promptCode.Usage.TimeToFirstToken, 'f', 3, 64),
+							strconv.FormatFloat(side_promptCode.Usage.DTime, 'f', 3, 64),
+							strconv.FormatFloat(side_promptCode.Usage.GetSpeed(), 'f', 3, 64),
 							strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
 							strconv.FormatFloat(in, 'f', -1, 64),
-							prompt.Usage.Prompt_tokens,
+							side_promptCode.Usage.Prompt_tokens,
 							strconv.FormatFloat(inCached, 'f', -1, 64),
-							prompt.Usage.Input_cached_tokens,
+							side_promptCode.Usage.Input_cached_tokens,
 							strconv.FormatFloat(out, 'f', -1, 64),
-							prompt.Usage.Reasoning_tokens,
-							prompt.Usage.Completion_tokens)
+							side_promptCode.Usage.Reasoning_tokens,
+							side_promptCode.Usage.Completion_tokens)
 
 					}
 
 					//Errors
 					{
-						if len(prompt.Errors) > 0 {
+						if len(side_promptCode.Errors) > 0 {
 							SideDiv.AddText(0, 3, 1, 1, "Code errors:")
 							SideDiv.SetRowFromSub(4, 1, 5, true)
 							ErrsDiv := SideDiv.AddLayout(0, 4, 1, 1)
 							ErrsDiv.ScrollH.Narrow = true
 							ErrsDiv.SetColumnFromSub(0, 1, 100, true)
-							for i, er := range prompt.Errors {
+							for i, er := range side_promptCode.Errors {
 								tx := ErrsDiv.AddText(0, i, 1, 1, fmt.Sprintf("%d:%d: %s", er.Line, er.Col, er.Msg))
 								tx.Linewrapping = false
 								tx.Cd = UI_GetPalette().E

@@ -40,6 +40,12 @@ const (
 	ToolsPrompt_START
 )
 
+type ToolsPromptCode struct {
+	Code   string
+	Errors []ToolsCodeError
+	Usage  LLMMsgUsage
+}
+
 type ToolsPrompt struct {
 	Type ToolsPromptTYPE
 	Name string
@@ -49,13 +55,14 @@ type ToolsPrompt struct {
 	//LLM output
 	Messages []ToolsPromptMessages
 
-	Code string
+	CodeVersions []ToolsPromptCode
+	//Code string
 
 	//from code
 	Schema *ToolsOpenAI_completion_tool
-	Errors []ToolsCodeError
+	//Errors []ToolsCodeError
 
-	Usage LLMMsgUsage
+	//Usage LLMMsgUsage
 
 	previousMessages []byte
 }
@@ -64,12 +71,23 @@ func NewToolsPrompt(Type ToolsPromptTYPE, Name string) *ToolsPrompt {
 	return &ToolsPrompt{Type: Type, Name: Name}
 }
 
+func (prompt *ToolsPrompt) IsCodeWithoutErrors() bool {
+	return (len(prompt.CodeVersions) > 0 && len(prompt.CodeVersions[len(prompt.CodeVersions)-1].Errors) == 0)
+}
+
+func (prompt *ToolsPrompt) GetLastCode() string {
+	if len(prompt.CodeVersions) == 0 {
+		return ""
+	}
+	return prompt.CodeVersions[len(prompt.CodeVersions)-1].Code
+}
+
 func (prompt *ToolsPrompt) updateSchema() error {
-	if prompt.Type != ToolsPrompt_TOOL || prompt.Code == "" {
+	if prompt.Type != ToolsPrompt_TOOL || len(prompt.CodeVersions) == 0 {
 		return nil
 	}
 
-	schema, err := BuildToolsOpenAI_completion_tool(prompt.Name, prompt.Name+".go", prompt.Code)
+	schema, err := BuildToolsOpenAI_completion_tool(prompt.Name, prompt.Name+".go", prompt.GetLastCode())
 	if err != nil {
 		return err
 	}
@@ -91,13 +109,16 @@ func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, us
 		}
 	}
 
-	if goCode.Len() > 0 {
-		prompt.Code = strings.TrimSpace(goCode.String())
-	} else {
-		prompt.Code = final_msg
+	//add new code version
+	{
+		code := final_msg
+		if goCode.Len() > 0 {
+			code = strings.TrimSpace(goCode.String())
+		}
+		prompt.CodeVersions = append(prompt.CodeVersions, ToolsPromptCode{Code: code, Usage: *usage})
 	}
+
 	prompt.Messages = append(prompt.Messages, ToolsPromptMessages{Message: final_msg, Reasoning: reasoning_msg})
-	prompt.Usage = *usage
 
 	prompt.previousMessages = previousMessages
 
@@ -168,9 +189,9 @@ func (app *ToolsPrompts) RemoveGenMsg(name string) {
 func (app *ToolsPrompts) SetCodeErrors(errs []ToolsCodeError) {
 
 	//reset
-	for _, prompt := range app.Prompts {
+	/*for _, prompt := range app.Prompts {
 		prompt.Errors = nil
-	}
+	}*/
 
 	//add
 	for _, er := range errs {
@@ -178,7 +199,9 @@ func (app *ToolsPrompts) SetCodeErrors(errs []ToolsCodeError) {
 
 		prompt := app.FindPromptName(file_name)
 		if prompt != nil {
-			prompt.Errors = append(prompt.Errors, er)
+			if len(prompt.CodeVersions) > 0 {
+				prompt.CodeVersions[len(prompt.CodeVersions)-1].Errors = append(prompt.CodeVersions[len(prompt.CodeVersions)-1].Errors, er)
+			}
 		} else {
 			fmt.Printf("Code file '%s' not found\n", er.File)
 		}
@@ -228,7 +251,7 @@ func (app *ToolsPrompts) _reloadFromCodeFiles(folderPath string) error {
 		}
 
 		item := NewToolsPrompt(tp, toolName)
-		item.Code = string(code)
+		item.CodeVersions = append(item.CodeVersions, ToolsPromptCode{Code: string(code)})
 		err = item.updateSchema()
 		if err != nil {
 			return err
@@ -425,20 +448,25 @@ func (app *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, msg *AppsRouter
 
 	}
 
-	if len(prompt.Errors) > 0 {
-		comp.PreviousMessages = prompt.previousMessages
+	//error(s)
+	if len(prompt.CodeVersions) > 0 {
+		last_code := prompt.CodeVersions[len(prompt.CodeVersions)-1]
+		if len(last_code.Errors) > 0 {
 
-		//add list of errors
-		lines := strings.Split(prompt.Code, "\n")
-		for _, er := range prompt.Errors {
-			ln := er.Line - 1
-			if ln >= 0 && ln < len(lines) {
-				lines[ln] = fmt.Sprintf("%s\t//Error(Col %d): %s", lines[ln], er.Col, er.Msg)
+			comp.PreviousMessages = prompt.previousMessages
+
+			//add list of errors
+			lines := strings.Split(last_code.Code, "\n")
+			for _, er := range last_code.Errors {
+				ln := er.Line - 1
+				if ln >= 0 && ln < len(lines) {
+					lines[ln] = fmt.Sprintf("%s\t//Error(Col %d): %s", lines[ln], er.Col, er.Msg)
+				}
 			}
+			code := strings.Join(lines, "\n")
+			comp.UserMessage = "```go" + code + "```\n"
+			comp.UserMessage += "Above code has compiler error(s), marked in line comments(//Error). Please fix them by rewriting above code. Also remove comments with errors."
 		}
-		code := strings.Join(lines, "\n")
-		comp.UserMessage = "```go" + code + "```\n"
-		comp.UserMessage += "Above code has compiler error(s), marked in line comments(//Error). Please fix them by rewriting above code. Also remove comments with errors."
 	}
 
 	defer app.RemoveGenMsg(prompt.Name)
@@ -483,11 +511,10 @@ func (app *ToolsPrompts) WriteFiles(folderPath string, secrets *ToolsSecrets) er
 
 	//write code into files
 	for _, prompt := range app.Prompts {
-		if prompt.Name == "" || prompt.Code == "" {
+		if prompt.Name == "" || len(prompt.CodeVersions) == 0 {
 			continue
 		}
-
-		new_code := secrets.ReplaceAliases(prompt.Code)
+		new_code := secrets.ReplaceAliases(prompt.GetLastCode())
 
 		path := filepath.Join(folderPath, prompt.Name+".go")
 		old_code, _ := os.ReadFile(path)
@@ -563,7 +590,7 @@ func %s(/*arguments*/) /*return types*/ {
 
 	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
 
-	systemMessage += "file - storage.go:\n```go" + storagePrompt.Code + "```\n"
+	systemMessage += "file - storage.go:\n```go" + storagePrompt.GetLastCode() + "```\n"
 	systemMessage += "file - " + functionPrompt.Name + ".go:\n```go" + string(funcFile) + "```\n"
 
 	systemMessage += "Based on the user message, rewrite the " + functionPrompt.Name + "() function inside " + functionPrompt.Name + ".go file.\n"
@@ -615,7 +642,7 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
-	systemMessage += "file - storage.go:\n```go" + storagePrompt.Code + "```\n"
+	systemMessage += "file - storage.go:\n```go" + storagePrompt.GetLastCode() + "```\n"
 	systemMessage += "file - example.go:\n```go" + string(exampleFile) + "```\n"
 	systemMessage += "file - tool.go:\n```go" + toolFile + "```\n"
 

@@ -338,7 +338,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 				var wg sync.WaitGroup
 				var genErr error
 				for _, prompt := range app.Prompts.Prompts {
-					if prompt.Type != ToolsPrompt_FUNCTION || (prompt.Code != "" && len(prompt.Errors) == 0) {
+					if prompt.Type != ToolsPrompt_FUNCTION || prompt.IsCodeWithoutErrors() {
 						continue
 					}
 
@@ -381,7 +381,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 				var wg sync.WaitGroup
 				var genErr error
 				for _, prompt := range app.Prompts.Prompts {
-					if prompt.Type != ToolsPrompt_TOOL || (prompt.Code != "" && len(prompt.Errors) == 0) {
+					if prompt.Type != ToolsPrompt_TOOL || prompt.IsCodeWithoutErrors() {
 						continue
 					}
 
