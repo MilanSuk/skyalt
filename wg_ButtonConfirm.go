@@ -16,7 +16,6 @@ type ButtonConfirm struct {
 
 	IconPath    string
 	IconBlob    []byte
-	Icon_align  int
 	Icon_margin float64
 
 	Shortcut_key byte
@@ -78,7 +77,6 @@ func (st *ButtonConfirm) Build(layout *Layout) {
 	bt.Border = st.Border
 	bt.IconPath = st.IconPath
 	bt.IconBlob = st.IconBlob
-	bt.Icon_align = st.Icon_align
 	bt.Icon_margin = st.Icon_margin
 	bt.Cd = st.Color
 	bt.ErrorColor = true

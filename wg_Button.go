@@ -18,8 +18,11 @@ type Button struct {
 
 	IconPath    string
 	IconBlob    []byte
-	Icon_align  int
 	Icon_margin float64
+
+	Icon2Path    string
+	Icon2Blob    []byte
+	Icon2_margin float64
 
 	BrowserUrl string
 
@@ -63,7 +66,7 @@ func (layout *Layout) AddButtonMenu(x, y, w, h int, label string, icon_path stri
 }
 
 func (layout *Layout) AddButtonIcon(x, y, w, h int, icon_path string, icon_margin float64, tooltip string) *Button {
-	props := &Button{IconPath: icon_path, Icon_align: 1, Icon_margin: icon_margin, Background: 1, Tooltip: tooltip}
+	props := &Button{IconPath: icon_path, Icon_margin: icon_margin, Background: 1, Tooltip: tooltip}
 	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
 	lay.fnAutoResize = props.autoResize
@@ -72,7 +75,7 @@ func (layout *Layout) AddButtonIcon(x, y, w, h int, icon_path string, icon_margi
 	return props
 }
 func (layout *Layout) AddButtonIcon2(x, y, w, h int, icon_path string, icon_margin float64, tooltip string) (*Button, *Layout) {
-	props := &Button{IconPath: icon_path, Icon_align: 1, Icon_margin: icon_margin, Background: 1, Tooltip: tooltip}
+	props := &Button{IconPath: icon_path, Icon_margin: icon_margin, Background: 1, Tooltip: tooltip}
 	lay := layout._createDiv(x, y, w, h, "Button", props.Build, props.Draw, props.Input)
 	lay.fnHasShortcut = props.HasShortcut
 	lay.fnAutoResize = props.autoResize
@@ -205,26 +208,19 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	}
 
 	//draw icon
-	if st.IconPath != "" || len(st.IconBlob) > 0 {
+	hasIconL := st.IconPath != "" || len(st.IconBlob) > 0
+	hasIconR := st.Icon2Path != "" || len(st.Icon2Blob) > 0
+
+	if hasIconL {
 		rectIcon := rectLabel
 
 		icon_w := OsMinFloat(1, rectIcon.W)
 
-		switch st.Icon_align {
-		case 0:
+		if st.Value != "" || hasIconR {
+			//on left side
 			rectIcon.W = icon_w
-
 			rectLabel = rectLabel.CutLeft(icon_w)
-		case 1:
-			//full rect
-		case 2:
-			rectIcon.X += rectIcon.W - icon_w
-			rectIcon.W = icon_w
-
-			rectLabel = rectLabel.CutRight(icon_w)
 		}
-
-		rectIcon = rectIcon.Cut(st.Icon_margin)
 
 		var pt WinImagePath
 		if st.IconPath != "" {
@@ -232,6 +228,30 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 		} else {
 			pt = InitWinImagePath_blob(st.IconBlob, layout.UID)
 		}
+		rectIcon = rectIcon.Cut(st.Icon_margin)
+		paint.File(rectIcon, pt, cdText, cdText_over, cdText_down, 1, 1)
+	}
+
+	//draw icon2
+	if hasIconR {
+		rectIcon := rectLabel
+
+		icon_w := OsMinFloat(1, rectIcon.W)
+
+		if st.Value != "" || hasIconL {
+			//on right side
+			rectIcon.X += rectIcon.W - icon_w
+			rectIcon.W = icon_w
+			rectLabel = rectLabel.CutRight(icon_w)
+		}
+
+		var pt WinImagePath
+		if st.Icon2Path != "" {
+			pt = InitWinImagePath_file(st.Icon2Path, layout.UID)
+		} else {
+			pt = InitWinImagePath_blob(st.Icon2Blob, layout.UID)
+		}
+		rectIcon = rectIcon.Cut(st.Icon2_margin)
 		paint.File(rectIcon, pt, cdText, cdText_over, cdText_down, 1, 1)
 	}
 
@@ -288,12 +308,10 @@ func (st *Button) getAutoResizeMargin() [4]float64 {
 	margin := [4]float64{m, m, m, m}
 
 	if st.IconPath != "" || len(st.IconBlob) > 0 {
-		switch st.Icon_align {
-		case 0:
-			margin[2] += 1 //left
-		case 2:
-			margin[3] += 1 //right
-		}
+		margin[2] += 1 //left
+	}
+	if st.Icon2Path != "" || len(st.Icon2Blob) > 0 {
+		margin[3] += 1 //right
 	}
 
 	return margin

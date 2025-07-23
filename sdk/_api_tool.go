@@ -99,7 +99,6 @@ type UIButton struct {
 	Border      bool
 	IconBlob    []byte
 	IconPath    string
-	Icon_align  int
 	Icon_margin float64
 	BrowserUrl  string
 	Cd          color.RGBA
@@ -119,11 +118,17 @@ type UIButton struct {
 
 func (ui *UI) addButton(label string, tooltip string) *UIButton
 
+type UIDropDownIcon struct {
+	Path   string
+	Blob   []byte
+	Margin float64
+}
 type UIDropDown struct {
 	layout *UI
 	Value  *string
 	Labels []string
 	Values []string
+	Icons  []UIDropDownIcon
 
 	changed func() error
 }

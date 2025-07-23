@@ -4,12 +4,19 @@ import (
 	"slices"
 )
 
+type DropDownIcon struct {
+	Path   string
+	Blob   []byte
+	Margin float64
+}
+
 type DropDown struct {
 	Tooltip string
 	Value   *string
 
 	Labels []string
 	Values []string
+	Icons  []DropDownIcon
 
 	changed func()
 }
@@ -22,24 +29,49 @@ func (layout *Layout) AddDropDown(x, y, w, h int, value *string, labels []string
 }
 
 func (st *DropDown) getLLMTip(layout *Layout) string {
-	return Layout_buildLLMTip("DropDown", *st.Value, true, st.Tooltip)
+	if st.Value != nil {
+		return Layout_buildLLMTip("DropDown", *st.Value, true, st.Tooltip)
+	}
+	return "Error: Value == nil"
 }
 
 func (st *DropDown) Build(layout *Layout) {
 
 	layout.SetColumnFromSub(0, 1, 100, false)
 
+	if st.Value == nil {
+		layout.AddText(0, 0, 1, 1, "Error: Value == nil")
+		return
+	}
+
 	cdialog := layout.AddDialog("dialog")
 
 	//button
-	bt := layout.AddButton(0, 0, 1, 1, DropDown_getValueLabel(*st.Value, st.Values, st.Labels))
+	bt := layout.AddButton(0, 0, 1, 1, "")
 	bt.Tooltip = st.Tooltip
-	bt.IconPath = "resources/arrow_down.png"
-	bt.Icon_margin = 0.1
-	bt.Icon_align = 2
+	bt.Icon2Path = "resources/arrow_down.png"
+	bt.Icon2_margin = 0.1
 	bt.Align = 0
 	bt.Background = 0
 	bt.Border = true
+
+	//ikony na about stranách .....................
+
+	//set Label and Icon
+	for i, it := range st.Values {
+		if it == *st.Value {
+			if i < len(st.Labels) {
+				bt.Value = st.Labels[i]
+			}
+			if i < len(st.Icons) {
+				bt.IconBlob = st.Icons[i].Blob
+				bt.IconPath = st.Icons[i].Path
+				bt.Icon_margin = st.Icons[i].Margin
+			}
+			break
+		}
+	}
+
 	bt.clicked = func() {
 		cdialog.OpenRelative(layout.UID)
 	}
@@ -65,6 +97,12 @@ func (st *DropDown) Build(layout *Layout) {
 			}
 			bt.Align = 0
 
+			if i < len(st.Icons) {
+				bt.IconBlob = st.Icons[i].Blob
+				bt.IconPath = st.Icons[i].Path
+				bt.Icon_margin = st.Icons[i].Margin
+			}
+
 			bt.clicked = func() {
 				*st.Value = bt.Tooltip
 				if st.changed != nil {
@@ -74,16 +112,4 @@ func (st *DropDown) Build(layout *Layout) {
 			}
 		}
 	}
-}
-
-func DropDown_getValueLabel(value string, Values, Labels []string) string {
-	for i, it := range Values {
-		if it == value {
-			if i < len(Labels) {
-				return Labels[i]
-			}
-			break
-		}
-	}
-	return value //not found
 }

@@ -71,7 +71,6 @@ type UIButton struct {
 	Border      bool
 	IconBlob    []byte
 	IconPath    string
-	Icon_align  int
 	Icon_margin float64
 	BrowserUrl  string
 	Cd          color.RGBA
@@ -107,6 +106,7 @@ type UIDropDown struct {
 	Value  *string
 	Labels []string
 	Values []string
+	Icons  []DropDownIcon
 }
 type UISwitch struct {
 	Label string
@@ -658,6 +658,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 	} else if it.DropDown != nil {
 		cb := layout.AddDropDown(it.X, it.Y, it.W, it.H, it.DropDown.Value, it.DropDown.Labels, it.DropDown.Values)
 		cb.Tooltip = it.Tooltip
+		cb.Icons = it.DropDown.Icons
 		cb.changed = func() {
 			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID, ValueString: *it.DropDown.Value}, fnProgress, fnDone)
 		}
@@ -779,7 +780,6 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 			bt.Border = it.Button.Border
 			bt.IconPath = it.Button.IconPath
 			bt.IconBlob = it.Button.IconBlob
-			bt.Icon_align = it.Button.Icon_align
 			bt.Icon_margin = it.Button.Icon_margin
 			bt.Color = it.Button.Cd
 			bt.Shortcut_key = it.Button.Shortcut
@@ -794,7 +794,6 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 			bt.Border = it.Button.Border
 			bt.IconPath = it.Button.IconPath
 			bt.IconBlob = it.Button.IconBlob
-			bt.Icon_align = it.Button.Icon_align
 			bt.Icon_margin = it.Button.Icon_margin
 			bt.BrowserUrl = it.Button.BrowserUrl
 			bt.Cd = it.Button.Cd
