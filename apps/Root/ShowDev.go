@@ -49,7 +49,15 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		Message   string
 		Reasoning string
 	}
+	type ToolsPromptTYPE int
+	const (
+		ToolsPrompt_STORAGE ToolsPromptTYPE = iota
+		ToolsPrompt_FUNCTION
+		ToolsPrompt_TOOL
+	)
+
 	type SdkToolsPrompt struct {
+		Type   ToolsPromptTYPE
 		Prompt string //LLM input
 
 		//LLM output
@@ -64,6 +72,10 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 		Usage LLMMsgUsage
 	}
+	type SdkToolsPromptGen struct {
+		Name    string
+		Message string
+	}
 	type SdkToolsPrompts struct {
 		Changed bool
 
@@ -74,8 +86,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		StartPrompt string
 
 		Generating_msg_id string
-		Generating_prompt string
-		Generating_msg    string
+		Generating_items  []*SdkToolsPromptGen
 	}
 	var sdk_app SdkToolsPrompts
 	appJs, err := callFuncGetToolData(app.Name)
@@ -115,7 +126,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		SettingsBt.Background = 0.5
 		SettingsBt.IconPath = "resources/settings.png"
 		SettingsBt.Icon_margin = 0.2
-		SettingsBt.Icon_align = 1
 		SettingsBt.layout.Tooltip = "Show app Settings"
 		SettingsBt.clicked = func() error {
 			SettingsDia.OpenRelative(SettingsBt.layout, caller)
@@ -213,7 +223,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			tx.Align_v = 0
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		} else {
-			tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#<NameOfTool> //Describe app's feature.\n#start //Write prompt, which will be executed when new chat is created.")
+			tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#function //Describe function which can be called from tools.\n#<NameOfTool> //Describe app's feature.\n#start //Write prompt, which will be executed when new chat is created.")
 			tx.Align_v = 0
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		}
@@ -310,7 +320,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 		if isGenerating {
 			SideDiv.SetColumn(0, 1, 100)
-			SideDiv.SetRow(1, 1, 100)
 
 			{
 				HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
@@ -326,16 +335,22 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					return nil
 				}
 
-				HeaderDiv.AddText(1, 0, 1, 1, "Generating code for <i>"+sdk_app.Generating_prompt)
-
+				HeaderDiv.AddText(1, 0, 1, 1, fmt.Sprintf("Generating %d files", len(sdk_app.Generating_items)))
 			}
 
-			tx := SideDiv.AddText(0, 1, 1, 1, string(sdk_app.Generating_msg))
-			//tx.Linewrapping = false
-			tx.Align_v = 0
-			tx.layout.Back_cd = codeBackCd
+			y := 1
+			for _, it := range sdk_app.Generating_items {
 
-			tx.layout.VScrollToTheBottom(true, caller)
+				SideDiv.AddText(0, y, 1, 1, it.Name)
+				y++
+
+				SideDiv.SetRow(y, 2, 100)
+				tx := SideDiv.AddText(0, y, 1, 1, it.Message)
+				y++
+				tx.Align_v = 0
+				tx.layout.Back_cd = codeBackCd
+				tx.layout.VScrollToTheBottom(true, caller)
+			}
 
 		} else {
 
@@ -343,8 +358,10 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			SideDiv.SetRow(1, 1, 100)
 
 			{
+				hasOpenedSchema := false
 				var labels []string
 				var values []string
+				var icons []UIDropDownIcon
 				for _, it := range sdk_app.Prompts {
 					errStr := ""
 					if len(it.Errors) > 0 {
@@ -353,6 +370,23 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					labels = append(labels, it.Name+".go"+errStr)
 					values = append(values, it.Name+".go")
 
+					if it.Name == app.Dev.SideFile {
+						hasOpenedSchema = (it.Type == ToolsPrompt_TOOL)
+					}
+
+					var ic UIDropDownIcon
+					switch it.Type {
+					case ToolsPrompt_STORAGE:
+						ic.Path = "resources/db.png"
+						ic.Margin = 0.2
+					case ToolsPrompt_FUNCTION:
+						ic.Path = "resources/fx.png"
+						ic.Margin = 0.2
+					case ToolsPrompt_TOOL:
+						ic.Path = "resources/tools.png"
+						ic.Margin = 0.2
+					}
+					icons = append(icons, ic)
 				}
 
 				HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
@@ -369,7 +403,8 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					return nil
 				}
 
-				HeaderDiv.AddDropDown(1, 0, 1, 1, &app.Dev.SideFile, labels, values)
+				cb := HeaderDiv.AddDropDown(1, 0, 1, 1, &app.Dev.SideFile, labels, values)
+				cb.Icons = icons
 
 				{
 					TabsDiv := HeaderDiv.AddLayout(3, 0, 1, 1)
@@ -380,8 +415,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					//TabsDiv.Border_cd = UI_GetPalette().P
 					TabsDiv.Back_rounding = true
 
-					isStruct := app.Dev.SideFile == "Storage.go"
-					if isStruct {
+					if !hasOpenedSchema {
 						if app.Dev.SideMode == "schema" {
 							app.Dev.SideMode = "code"
 						}
@@ -395,7 +429,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					}
 					SchemaBt := TabsDiv.AddButton(1, 0, 1, 1, "Schema")
 					SchemaBt.Background = 0.0
-					SchemaBt.layout.Enable = !isStruct
+					SchemaBt.layout.Enable = hasOpenedSchema
 					SchemaBt.clicked = func() error {
 						app.Dev.SideMode = "schema"
 						return nil

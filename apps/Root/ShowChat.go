@@ -256,7 +256,6 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 					ShowRspBt.layout.Tooltip = "Hide reasoning"
 				}
 				ShowRspBt.Align = 0
-				ShowRspBt.Icon_align = 0
 				ShowRspBt.Icon_margin = 0.25
 				ShowRspBt.IconPath = "resources/think.png"
 				ShowRspBt.clicked = func() error {
@@ -430,7 +429,6 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 	x++
 	ShowParamsBt.Background = 0.5
 	ShowParamsBt.Align = 0
-	ShowParamsBt.Icon_align = 0
 	ShowParamsBt.Icon_margin = 0.1
 
 	if msg.ShowParameters {

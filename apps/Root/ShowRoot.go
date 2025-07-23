@@ -65,7 +65,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 			logoBt := AppsDiv.AddButton(0, y, 1, 1, "")
 			y++
-			logoBt.Icon_align = 1
 			logoBt.Background = 0.2
 			logoBt.IconPath = "resources/logo_small.png"
 			logoBt.Icon_margin = 0.1
@@ -125,7 +124,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					bt = Apps2Div.AddButton(0, yy, 1, 1, "")
 				}
 
-				bt.Icon_align = 1
 				bt.Background = 0
 				/*if i == source_root.Selected_app_i && !source_root.ShowSettings {
 					bt.Background = 1
@@ -187,7 +185,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			y++
 			setBt.IconPath = "resources/settings.png"
 			setBt.Icon_margin = 0.2
-			setBt.Icon_align = 1
 			setBt.layout.Tooltip = "Show Settings"
 			setBt.Background = 0.25
 			if source_root.ShowSettings {
@@ -255,7 +252,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		if micInfo.Active {
 			MicBt := AppsDiv.AddButton(0, y, 1, 1, "")
 			MicBt.layout.Tooltip = "Stop all microphone recordings"
-			MicBt.Icon_align = 1
 			MicBt.IconPath = "resources/mic.png"
 			MicBt.Icon_margin = 0.15
 			MicBt.Border = true
@@ -320,7 +316,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 			MediaBt := AppsDiv.AddButton(0, y, 1, 1, "")
 			MediaBt.layout.Tooltip = "Show media"
-			MediaBt.Icon_align = 1
 			MediaBt.IconPath = "resources/speaker.png"
 			MediaBt.Icon_margin = 0.2
 			MediaBt.Background = 0.25

@@ -148,7 +148,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 		//close panel
 		CloseBt := SideDiv.AddButton(0, 0, 1, 1, ">>")
 		CloseBt.layout.Tooltip = "Close side panel"
-		CloseBt.Background = 0.25
+		CloseBt.Background = 0.5
 		CloseBt.clicked = func() error {
 			app.ShowSide = false //hide
 			return nil
