@@ -366,7 +366,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 		} else {
 			ChatDiv := ui.AddLayout(1, 0, 1, 1)
-			ChatDiv.SetColumnResizable(0, 7, 20, 7)
+			ChatDiv.SetColumnResizable(0, 8, 20, 8)
 			ChatDiv.SetColumn(1, 1, 100)
 			ChatDiv.SetRow(0, 1, 100)
 
@@ -395,7 +395,9 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 				//Header
 				{
+					SideDiv.SetRow(0, 1, 1.5)
 					HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
+					HeaderDiv.SetRow(0, 1, 100)
 					HeaderDiv.ScrollH.Narrow = true
 					HeaderDiv.ScrollV.Hide = true
 					//New Chat
@@ -461,23 +463,36 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					if source_chat != nil {
 						numUseMessages := source_chat.GetNumUserMessages()
 
-						HeaderDiv.SetColumn(1, 0.5, 0.5) //space
+						//HeaderDiv.SetColumn(1, 0.5, 0.5) //space
 
-						HeaderDiv.SetColumnFromSub(2, 1, 100, true)
-						NavDiv := HeaderDiv.AddLayout(2, 0, 1, 1)
+						HeaderDiv.SetColumnFromSub(1, 1, 100, true)
+						NavDiv := HeaderDiv.AddLayout(1, 0, 1, 1)
+						NavDiv.SetRow(0, 1, 100)
 
-						homeBt := NavDiv.AddButton(0, 0, 1, 1, "")
+						nx := 0
+						NavDiv.SetColumn(nx, 0.5, 0.5) //space
+						nx++
+
+						/*NavDiv.SetColumn(nx, 1.5, 1.5)
+						homeBt := NavDiv.AddButton(nx, 0, 1, 1, "")
+						nx++
 						homeBt.layout.Enable = (source_chat.User_msg_i > 0)
 						homeBt.layout.Tooltip = "First dashboard"
 						homeBt.Background = 0.5
 						homeBt.IconPath = "resources/home.png"
-						homeBt.Icon_margin = 0.25
+						homeBt.Icon_margin = 0.5
 						homeBt.clicked = func() error {
 							source_chat.User_msg_i = 0
 							return nil
 						}
 
-						backBt := NavDiv.AddButton(1, 0, 1, 1, "<")
+						NavDiv.SetColumn(nx, 0.5, 0.5) //space
+						nx++                           //space
+						*/
+
+						NavDiv.SetColumn(nx, 1.5, 1.5)
+						backBt := NavDiv.AddButton(nx, 0, 1, 1, "<")
+						nx++
 						backBt.layout.Tooltip = "Previous dashboard"
 						backBt.Background = 0.5
 						backBt.layout.Enable = (source_chat.User_msg_i > 0)
@@ -486,11 +501,15 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 							return nil
 						}
 
-						inf := NavDiv.AddText(2, 0, 1, 1, fmt.Sprintf("%d/%d", source_chat.User_msg_i+1, numUseMessages)) //...
+						NavDiv.SetColumnFromSub(nx, 1.5, 100, true)
+						inf := NavDiv.AddText(nx, 0, 1, 1, fmt.Sprintf("%d/%d", source_chat.User_msg_i+1, numUseMessages)) //...
+						nx++
 						inf.Align_h = 1
 						//inf.layout.Tooltip = dashes.UI_func + "()"
 
-						forwardBt := NavDiv.AddButton(3, 0, 1, 1, ">")
+						NavDiv.SetColumn(nx, 1.5, 1.5)
+						forwardBt := NavDiv.AddButton(nx, 0, 1, 1, ">")
+						nx++
 						forwardBt.layout.Tooltip = "Next dashboard"
 						forwardBt.Background = 0.5
 						forwardBt.layout.Enable = (source_chat.User_msg_i+1 < numUseMessages)
