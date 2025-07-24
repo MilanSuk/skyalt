@@ -11,7 +11,7 @@ Function to filter activities based on DateStart(iso string), DateEnd(iso string
 #function ImportGpx
 Function to import .gpx file. It accepts path to .gpx file.
 a) It reads the file, parses it, extracts date, duration and distance and adds everything into Activities.
-b) Copy input .gpx file into <ID>.gpx file in "Activities" folder(if it doesn't exist, it creates it). 
+b) Copy input .gpx file into <ID>.gpx file in "Activities" folder(if it doesn't exist, it creates the folder). 
 
 
 #tool ShowUserBodyMeasurements
