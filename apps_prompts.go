@@ -540,6 +540,38 @@ func (app *ToolsPrompts) UpdateSchemas() error {
 	return nil
 }
 
+func (app *ToolsPrompts) getFunctionsHeadersCode() string {
+	code := ""
+	for _, prompt := range app.Prompts {
+		if prompt.Type != ToolsPrompt_FUNCTION {
+			continue
+		}
+
+		last_code := prompt.GetLastCode()
+		d := strings.Index(last_code, "func "+prompt.Name)
+		if d >= 0 {
+			header := last_code[d:]
+			dd := strings.IndexByte(header, '{')
+			if dd >= 0 {
+				header = header[:dd]
+
+				if strings.IndexByte(prompt.Prompt, '\n') >= 0 {
+					code += "/*" + prompt.Prompt + "*/" //multi-lined
+				} else {
+					code += "//" + prompt.Prompt //single line
+				}
+
+				code += "\n"
+				code += strings.TrimSpace(header)
+				code += "\n\n"
+			}
+
+		}
+	}
+
+	return code
+}
+
 func (app *ToolsPrompts) _getStorageMsg(storagePrompt *ToolsPrompt) (string, string, error) {
 
 	apisFile, err := os.ReadFile("sdk/_api_storage.go")
@@ -642,7 +674,7 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
-	systemMessage += "file - storage.go:\n```go" + storagePrompt.GetLastCode() + "```\n"
+	systemMessage += "file - storage.go:\n```go" + storagePrompt.GetLastCode() + "\n" + app.getFunctionsHeadersCode() + "```\n"
 	systemMessage += "file - example.go:\n```go" + string(exampleFile) + "```\n"
 	systemMessage += "file - tool.go:\n```go" + toolFile + "```\n"
 
@@ -652,6 +684,7 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 	systemMessage += "[optional] - caller can ignore the attribute\n"
 	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]\n`
 	systemMessage += "\n"
+	systemMessage += "Storage.go has list of functions, use them.\n"
 	systemMessage += "To access the storage, call the Load...() function in storage.go, which returns the data. Don't call save/write on that data, it's automatically called after the function ends.\n"
 	systemMessage += "Never define constants('const'), use variables('var') for everything.\n"
 
