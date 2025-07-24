@@ -527,7 +527,7 @@ func (oai *LLMOpenai) ReloadModels() error {
 	})
 
 	oai.LanguageModels = append(oai.LanguageModels, &LLMOpenaiLanguageModel{
-		Id:                             "o4-mini-latest",
+		Id:                             "o4-mini",
 		Input_modalities:               []string{"text", "image"},
 		Prompt_text_token_price:        11000,
 		Cached_prompt_text_token_price: 2750,

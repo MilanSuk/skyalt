@@ -55,8 +55,6 @@ func (st *DropDown) Build(layout *Layout) {
 	bt.Background = 0
 	bt.Border = true
 
-	//ikony na about stranách .....................
-
 	//set Label and Icon
 	for i, it := range st.Values {
 		if it == *st.Value {

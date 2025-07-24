@@ -518,9 +518,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						side_prompt = prompt
 
 						if app.Dev.SideFile_version >= 0 {
-
-							callFuncPrint(fmt.Sprintf("-------------%d", app.Dev.SideFile_version))
-
 							side_promptCode = prompt.CodeVersions[app.Dev.SideFile_version]
 						}
 						break
