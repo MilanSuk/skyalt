@@ -295,12 +295,12 @@ func (app *ToolsApp) Tick(generate bool) error {
 
 			MAX_Errors_tries := 10
 
-			app.Prompts.ResetGenMsgs(msg.user_uid)
-
 			err = app.Process.Compile.BuildMainFile(nil) //sdk.go -> main.go
 			if err != nil {
 				return err
 			}
+
+			app.Prompts.ResetGenMsgs(msg.user_uid)
 
 			//Storage
 			storagePrompt := app.Prompts.FindStorage()
@@ -308,6 +308,12 @@ func (app *ToolsApp) Tick(generate bool) error {
 				return LogsErrorf("'Storage' prompt not found")
 			}
 			for i := range MAX_Errors_tries {
+				if i == 0 {
+					msg.progress_label = "Generating Storage code"
+				} else {
+					msg.progress_label = "Fixing Storage code"
+				}
+
 				err = app.Prompts.generatePromptCode(storagePrompt, msg, app.router.services.llms)
 				if err != nil {
 					return err
@@ -333,6 +339,11 @@ func (app *ToolsApp) Tick(generate bool) error {
 
 			//Functions
 			for i := range MAX_Errors_tries {
+				if i == 0 {
+					msg.progress_label = "Generating Functions code"
+				} else {
+					msg.progress_label = "Fixing Functions code"
+				}
 
 				//generate code
 				var wg sync.WaitGroup
@@ -376,6 +387,12 @@ func (app *ToolsApp) Tick(generate bool) error {
 
 			//Tools
 			for i := range MAX_Errors_tries {
+
+				if i == 0 {
+					msg.progress_label = "Generating Tools code"
+				} else {
+					msg.progress_label = "Fixing Tools code"
+				}
 
 				//generate code
 				var wg sync.WaitGroup

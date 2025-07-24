@@ -346,7 +346,13 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					return nil
 				}
 
-				HeaderDiv.AddText(1, 0, 1, 1, fmt.Sprintf("Generating %d files", len(sdk_app.Generating_items)))
+				msgs := callFuncGetMsgs()
+				for _, msg := range msgs {
+					if msg.Id == sdk_app.Generating_msg_id {
+						HeaderDiv.AddText(1, 0, 1, 1, msg.Progress_label)
+						break
+					}
+				}
 			}
 
 			y := 1
@@ -440,17 +446,21 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					var labels []string
 					var values []string
 					for i := range num_opened_versions {
-						labels = append(labels, strconv.Itoa(1+i))
-						values = append(labels, strconv.Itoa(1+i))
+						if i+1 < num_opened_versions {
+							labels = append(labels, "Fix "+strconv.Itoa(1+i))
+						} else {
+							labels = append(labels, "Final")
+						}
+						values = append(values, strconv.Itoa(i))
 					}
 
-					version := strconv.Itoa(1 + app.Dev.SideFile_version)
 					HeaderDiv.SetColumnFromSub(hx, 1, 5, true)
+					version := strconv.Itoa(app.Dev.SideFile_version)
 					vr := HeaderDiv.AddDropDown(hx, 0, 1, 1, &version, labels, values)
 					hx++
 					vr.changed = func() error {
 						v, _ := strconv.Atoi(version)
-						app.Dev.SideFile_version = v - 1
+						app.Dev.SideFile_version = v
 						return nil
 					}
 
