@@ -672,7 +672,16 @@ func (gph *WinGph) GetPoly(points []OsV2f, width float64) *WinGphItemPoly {
 
 }
 
+func (gph *WinGph) getFixedWidth(prop *WinFontProps) (fixedAdvance fixed.Int26_6) {
+	//prop.fixed_width = true
+	if prop.fixed_width {
+		fixedAdvance, _ = gph.GetFont(prop).GetFace(prop).face.GlyphAdvance('M')
+	}
+	return
+}
+
 func (gph *WinGph) GetStringSize(prop WinFontProps, str string) (OsV2, fixed.Int26_6) {
+	fixedAdvance := gph.getFixedWidth(&prop)
 
 	var w fixed.Int26_6 //round to int after!
 	prevCh := rune(-1)
@@ -696,10 +705,16 @@ func (gph *WinGph) GetStringSize(prop WinFontProps, str string) (OsV2, fixed.Int
 
 		face := gph.GetFont(&act_prop).GetFace(&act_prop).face
 
-		if prevCh >= 0 {
-			w += face.Kern(prevCh, ch)
+		var advance fixed.Int26_6
+		if prop.fixed_width {
+			advance = fixedAdvance
+		} else {
+			if prevCh >= 0 {
+				w += face.Kern(prevCh, ch)
+			}
+			advance, _ = face.GlyphAdvance(ch)
 		}
-		advance, _ := face.GlyphAdvance(ch)
+
 		if isTab {
 			advance *= 8
 		}
@@ -719,6 +734,8 @@ func (gph *WinGph) GetStringSize(prop WinFontProps, str string) (OsV2, fixed.Int
 }
 
 func (gph *WinGph) drawString(prop WinFontProps, str string) *WinGphItemText {
+	fixedAdvance := gph.getFixedWidth(&prop)
+
 	size, maxAscent := gph.GetStringSize(prop, str)
 
 	w := OsNextPowOf2(size.X)
@@ -764,15 +781,29 @@ func (gph *WinGph) drawString(prop WinFontProps, str string) *WinGphItemText {
 			ch = ' '
 		}
 
-		d.Face = gph.GetFont(&act_prop).GetFace(&act_prop).face
-
-		if prevCh >= 0 {
-			d.Dot.X += d.Face.Kern(prevCh, ch)
+		if !prop.fixed_width {
+			if prevCh >= 0 {
+				d.Dot.X += d.Face.Kern(prevCh, ch)
+			}
 		}
+
+		d.Face = gph.GetFont(&act_prop).GetFace(&act_prop).face
 		dr, mask, maskp, advance, _ := d.Face.Glyph(d.Dot, ch)
+
+		if prop.fixed_width {
+
+			centeredDot := fixed.Point26_6{
+				X: d.Dot.X + (fixedAdvance-advance)/2,
+				Y: d.Dot.Y,
+			}
+			advance = fixedAdvance
+
+			dr, mask, maskp, _, _ = d.Face.Glyph(centeredDot, ch)
+		}
 		if !dr.Empty() {
 			draw.DrawMask(d.Dst, dr, d.Src, image.Point{}, mask, maskp, draw.Over)
 		}
+
 		if isTab {
 			advance *= 8
 		}

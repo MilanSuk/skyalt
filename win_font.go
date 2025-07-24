@@ -158,6 +158,8 @@ type WinFontProps struct {
 
 	switch_formating_when_edit bool
 	formating                  bool
+
+	fixed_width bool
 }
 
 func WinFontProps_GetDefaultTextH() float64 {
