@@ -834,10 +834,14 @@ func (win *Win) GetTextNumLines(text string, max_line_px int, prop WinFontProps)
 	return len(tx.lines)
 }
 
-func (win *Win) GetTextPos(touchPx int, ln string, prop WinFontProps, coord OsV4, align OsV2) int {
+func (win *Win) GetTextPos(px int, ln string, prop WinFontProps, roundToClosest bool) int {
+	return win.gph.GetTextPos(prop, px, ln, roundToClosest)
+}
+
+func (win *Win) GetTextPosCoord(touchPx int, ln string, prop WinFontProps, coord OsV4, align OsV2) int {
 	start := win.GetTextStart(ln, prop, coord, align.X, align.Y, 1)
 
-	return win.gph.GetTextPos(prop, (touchPx - start.X), ln)
+	return win.gph.GetTextPos(prop, (touchPx - start.X), ln, false)
 }
 
 func (win *Win) GetTextStartLine(ln string, prop WinFontProps, coord OsV4, align OsV2, numLines int) OsV2 {

@@ -187,9 +187,9 @@ func (ui *Ui) _Text_update(layout *Layout,
 				y = OsClamp(y, 0, len(lines)-1)
 
 				st, en := WinGph_PosLineRange(lines, y)
-				touchCursor = st + ui.win.GetTextPos(ui.GetWin().io.Touch.Pos.X, value[st:en], prop, coord, align)
+				touchCursor = st + ui.win.GetTextPosCoord(ui.GetWin().io.Touch.Pos.X, value[st:en], prop, coord, align)
 			} else {
-				touchCursor = ui.win.GetTextPos(ui.GetWin().io.Touch.Pos.X, value, prop, coord, align)
+				touchCursor = ui.win.GetTextPosCoord(ui.GetWin().io.Touch.Pos.X, value, prop, coord, align)
 			}
 
 			ui._UiText_Touch(layout, editable, orig_value, value, margin, lines, touchCursor, prop)
@@ -495,12 +495,12 @@ func (ui *Ui) _UiText_Keys(layout *Layout, text string, lines []WinGphLine, tabI
 		if *s != *e {
 			if multi_line {
 				if keys.ArrowU {
-					firstCur = _UiText_CursorMoveU(text, lines, *e)
+					firstCur = _UiText_CursorMoveU(text, lines, *e, ui.win, prop)
 					*s = firstCur
 					*e = firstCur
 				}
 				if keys.ArrowD {
-					firstCur = _UiText_CursorMoveD(text, lines, *e)
+					firstCur = _UiText_CursorMoveD(text, lines, *e, ui.win, prop)
 					*s = firstCur
 					*e = firstCur
 				}
@@ -538,12 +538,12 @@ func (ui *Ui) _UiText_Keys(layout *Layout, text string, lines []WinGphLine, tabI
 			} else {
 				if multi_line {
 					if keys.ArrowU {
-						p := _UiText_CursorMoveU(text, lines, *e)
+						p := _UiText_CursorMoveU(text, lines, *e, ui.win, prop)
 						*s = p
 						*e = p
 					}
 					if keys.ArrowD {
-						p := _UiText_CursorMoveD(text, lines, *e)
+						p := _UiText_CursorMoveD(text, lines, *e, ui.win, prop)
 						*s = p
 						*e = p
 					}
@@ -688,10 +688,10 @@ func (ui *Ui) _UiText_TextSelectKeys(layout *Layout, text string, tx_margin [4]f
 		} else {
 			if multi_line {
 				if keys.ArrowU {
-					*e = _UiText_CursorMoveU(text, lines, *e)
+					*e = _UiText_CursorMoveU(text, lines, *e, ui.win, prop)
 				}
 				if keys.ArrowD {
-					*e = _UiText_CursorMoveD(text, lines, *e)
+					*e = _UiText_CursorMoveD(text, lines, *e, ui.win, prop)
 				}
 			}
 
@@ -978,23 +978,29 @@ func _UiText_CursorMoveLR(text string, cursor int, move int, prop WinFontProps) 
 	return cursor
 }
 
-func _UiText_CursorMoveU(text string, lines []WinGphLine, cursor int) int {
+func _UiText_CursorMoveU(text string, lines []WinGphLine, cursor int, win *Win, prop WinFontProps) int {
 	y := WinGph_CursorLineY(lines, cursor)
 	if y > 0 {
-		_, pos := WinGph_CursorLine(text, lines, cursor)
+		curr_ln_text, old_pos := WinGph_CursorLine(text, lines, cursor)
+		curr_px := win.GetTextSize(old_pos, curr_ln_text, prop).X
 
 		st, en := WinGph_PosLineRange(lines, y-1) //up line
-		cursor = st + OsMin(pos, en-st)
+		new_pos := win.GetTextPos(curr_px, text[st:en], prop, true)
+
+		cursor = st + OsMin(new_pos, en-st)
 	}
 	return cursor
 }
-func _UiText_CursorMoveD(text string, lines []WinGphLine, cursor int) int {
+func _UiText_CursorMoveD(text string, lines []WinGphLine, cursor int, win *Win, prop WinFontProps) int {
 	y := WinGph_CursorLineY(lines, cursor)
 	if y+1 < len(lines) {
-		_, pos := WinGph_CursorLine(text, lines, cursor)
+		curr_ln_text, old_pos := WinGph_CursorLine(text, lines, cursor)
+		curr_px := win.GetTextSize(old_pos, curr_ln_text, prop).X
 
 		st, en := WinGph_PosLineRange(lines, y+1) //down line
-		cursor = st + OsMin(pos, en-st)
+		new_pos := win.GetTextPos(curr_px, text[st:en], prop, true)
+
+		cursor = st + OsMin(new_pos, en-st)
 	}
 	return cursor
 }

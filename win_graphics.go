@@ -373,7 +373,7 @@ func (gph *WinGph) GetTextSize(prop WinFontProps, cur int, text string) OsV2 {
 	return OsV2{it.letters[last_i], it.size.Y}
 }
 
-func (gph *WinGph) GetTextPos(prop WinFontProps, px int, text string) int {
+func (gph *WinGph) GetTextPos(prop WinFontProps, curr_px int, text string, roundToClosest bool) int {
 	if text == "" {
 		return 0
 	}
@@ -384,10 +384,17 @@ func (gph *WinGph) GetTextPos(prop WinFontProps, px int, text string) int {
 	}
 	it.item.UpdateTick()
 
+	last_ad := 0
 	for i, ad := range it.letters {
-		if px < ad {
+		if ad > curr_px {
+			if roundToClosest {
+				if (ad - curr_px) < (curr_px - last_ad) {
+					return OsMin(len(it.letters), i+1) //next
+				}
+			}
 			return i
 		}
+		last_ad = ad
 	}
 	return len(it.letters)
 }
