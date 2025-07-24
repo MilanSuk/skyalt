@@ -238,12 +238,12 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 		icon_w := OsMinFloat(1, rectIcon.W)
 
-		if st.Value != "" || hasIconL {
-			//on right side
-			rectIcon.X += rectIcon.W - icon_w
-			rectIcon.W = icon_w
-			rectLabel = rectLabel.CutRight(icon_w)
-		}
+		//if st.Value != "" || hasIconL {
+		//on right side
+		rectIcon.X += rectIcon.W - icon_w
+		rectIcon.W = icon_w
+		rectLabel = rectLabel.CutRight(icon_w)
+		//}
 
 		var pt WinImagePath
 		if st.Icon2Path != "" {
