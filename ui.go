@@ -55,6 +55,8 @@ type Ui struct {
 	temp_cmds []ToolCmd
 
 	last_layout_updates_ticks int64
+
+	runPrompt string
 }
 
 func NewUi(win *Win, router *AppsRouter) (*Ui, error) {
@@ -298,9 +300,15 @@ func (ui *Ui) Tick() {
 		}
 	}
 
-	brush := ui.selection.UpdateComp(ui)
-	if brush != nil {
+	root_brush := ui.selection.UpdateComp(ui)
+	if root_brush != nil {
 		ui.SetRefresh()
+	}
+
+	root_runPrompt := ui.runPrompt
+	if root_runPrompt != "" {
+		ui.SetRefresh()
+		ui.runPrompt = ""
 	}
 
 	if ui.router.Tick() {
@@ -343,9 +351,10 @@ func (ui *Ui) Tick() {
 		}
 
 		type ShowRoot struct {
-			AddBrush *LayoutPick
+			AddBrush  *LayoutPick
+			RunPrompt string
 		}
-		ui.router.CallBuildAsync(1, "Root", "ShowRoot", ShowRoot{AddBrush: brush}, ui._addLayout_FnProgress, fnDone)
+		ui.router.CallBuildAsync(1, "Root", "ShowRoot", ShowRoot{AddBrush: root_brush, RunPrompt: root_runPrompt}, ui._addLayout_FnProgress, fnDone)
 	}
 
 	if !ui.touch.IsActive() {

@@ -14,7 +14,7 @@ type ToolCaller struct {
 }
 
 type UI struct {
-	LLMTip string
+	Tooltip string
 
 	Enable        bool
 	EnableTouch   bool
@@ -134,6 +134,20 @@ type UIDropDown struct {
 }
 
 func (ui *UI) addDropDown(value *string, labels []string, values []string, tooltip string) *UIDropDown
+
+type UIPromptMenuIcon struct {
+	Path   string
+	Blob   []byte
+	Margin float64
+}
+
+type UIPromptMenu struct {
+	layout  *UI
+	Prompts []string
+	Icons   []UIPromptMenuIcon
+}
+
+func (ui *UI) addPromptMenu(prompts []string, tooltip string) *UIPromptMenu
 
 type UISwitch struct {
 	layout *UI

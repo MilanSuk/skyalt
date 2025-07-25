@@ -12,7 +12,8 @@ import (
 
 // [ignore]
 type ShowRoot struct {
-	AddBrush *LayoutPick
+	AddBrush  *LayoutPick
+	RunPrompt string
 }
 
 func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
@@ -39,10 +40,26 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 	//save brush
 	if source_chat != nil {
+
+		//add brush
 		if st.AddBrush != nil {
 			source_chat.Input.MergePick(*st.AddBrush)
 			ui.ActivateEditbox("chat_user_prompt", caller)
+			st.AddBrush = nil
 		}
+
+		//run prompt(from PromptMenu)
+		if st.RunPrompt != "" {
+			_saveInstances() //save previous chat(and root selection)
+			source_chat.Input.Text = st.RunPrompt
+			st.RunPrompt = ""
+
+			err := source_chat._sendIt(app.Name, caller, source_root, false)
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 
 	d := 1.5

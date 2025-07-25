@@ -108,6 +108,13 @@ type UIDropDown struct {
 	Values []string
 	Icons  []DropDownIcon
 }
+
+type UIPromptMenu struct {
+	layout  *UI
+	Prompts []string
+	Icons   []PromptMenuIcon
+}
+
 type UISwitch struct {
 	Label string
 	Value *bool
@@ -276,6 +283,7 @@ type UI struct {
 	DatePickerButton  *UIDatePickerButton
 	ColorPickerButton *UIColorPickerButton
 	DropDown          *UIDropDown
+	PromptMenu        *UIPromptMenu
 	Switch            *UISwitch
 	Checkbox          *UICheckbox
 	Microphone        *UIMicrophone
@@ -666,6 +674,15 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, funcName string, par
 		if it.DropDown.Value != nil {
 			//tooltip_value = fmt.Sprintf("Value: %s, Label: %s", *it.DropDown.Value, DropDown_getValueLabel(*it.DropDown.Value, it.DropDown.Labels, it.DropDown.Values))
 		}
+
+	} else if it.PromptMenu != nil {
+		cb := layout.AddPromptMenu(it.X, it.Y, it.W, it.H, it.PromptMenu.Prompts)
+		cb.Tooltip = it.Tooltip
+		cb.Icons = it.PromptMenu.Icons
+		cb.changed = func() {
+			layout.ui.router.CallChangeAsync(parent_UID, appName, funcName, ToolsSdkChange{UID: it.UID}, fnProgress, fnDone)
+		}
+
 	} else if it.Switch != nil {
 		sw := layout.AddSwitch(it.X, it.Y, it.W, it.H, it.Switch.Label, it.Switch.Value)
 		sw.Tooltip = it.Tooltip

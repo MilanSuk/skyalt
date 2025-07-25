@@ -1354,6 +1354,11 @@ func (ui *UI) runChange(change SdkChange) error {
 			return it.DropDown.changed()
 		}
 	}
+	if it.PromptMenu != nil {
+		if it.PromptMenu.changed != nil {
+			return it.PromptMenu.changed()
+		}
+	}
 	if it.Switch != nil {
 		if it.Switch.Value != nil {
 			*it.Switch.Value = change.ValueBool
@@ -1846,6 +1851,7 @@ type UI struct {
 	DatePickerButton  *UIDatePickerButton  `json:",omitempty"`
 	ColorPickerButton *UIColorPickerButton `json:",omitempty"`
 	DropDown          *UIDropDown          `json:",omitempty"`
+	PromptMenu        *UIPromptMenu        `json:",omitempty"`
 	Switch            *UISwitch            `json:",omitempty"`
 	Checkbox          *UICheckbox          `json:",omitempty"`
 	Microphone        *UIMicrophone        `json:",omitempty"`
@@ -1950,6 +1956,13 @@ func (ui *UI) addButton(label string, tooltip string) *UIButton {
 func (ui *UI) addDropDown(value *string, labels []string, values []string, tooltip string) *UIDropDown {
 	item := &UIDropDown{Value: value, Labels: labels, Values: values, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.DropDown = item
+	ui._addUILine(item.layout)
+	return item
+}
+
+func (ui *UI) addPromptMenu(prompts []string, tooltip string) *UIPromptMenu {
+	item := &UIPromptMenu{Prompts: prompts, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+	item.layout.PromptMenu = item
 	ui._addUILine(item.layout)
 	return item
 }
@@ -2179,6 +2192,20 @@ type UIDropDown struct {
 	Labels []string
 	Values []string
 	Icons  []UIDropDownIcon
+
+	changed func() error
+}
+
+type UIPromptMenuIcon struct {
+	Path   string
+	Blob   []byte
+	Margin float64
+}
+
+type UIPromptMenu struct {
+	layout  *UI
+	Prompts []string
+	Icons   []UIPromptMenuIcon
 
 	changed func() error
 }
