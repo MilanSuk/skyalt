@@ -9,6 +9,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"os"
+	"sync"
 	"time"
 
 	"golang.org/x/image/bmp"
@@ -18,6 +19,8 @@ import (
 
 type Images struct {
 	media map[string]*ImagesItem
+
+	lock sync.Mutex
 }
 
 func NewImages() *Images {
@@ -37,13 +40,24 @@ func NewImages() *Images {
 }
 
 func (imgs *Images) Destroy() {
+	imgs.lock.Lock()
+	defer imgs.lock.Unlock()
+
 	for _, it := range imgs.media {
 		it.Destroy()
 	}
 }
 
 func (imgs *Images) UpdateFileTimes() {
+	imgs.lock.Lock()
+	var ims []*ImagesItem
 	for _, it := range imgs.media {
+		ims = append(ims, it)
+	}
+	imgs.lock.Unlock()
+
+	//slow
+	for _, it := range ims {
 		inf, err := os.Stat(it.path)
 		if err == nil && inf != nil {
 			it.check_file_time = inf.ModTime().UnixNano()
@@ -51,30 +65,40 @@ func (imgs *Images) UpdateFileTimes() {
 	}
 }
 
-func (imgs *Images) Maintenance(min_time int64) {
-	for id, it := range imgs.media {
-		if (it.last_use_time > 0 && it.last_use_time < min_time) || it.check_file_time != it.open_file_time {
+func (imgs *Images) Maintenance(min_time int64, fnImgChanged func(path string)) {
+	imgs.lock.Lock()
+	defer imgs.lock.Unlock()
+
+	for path, it := range imgs.media {
+
+		diff := (it.check_file_time != it.open_file_time)
+		if diff {
+			fnImgChanged(path)
+		}
+
+		if (it.last_use_time > 0 && it.last_use_time < min_time) || diff {
 			//fmt.Println("Maintenance() removing " + it.path)
 			it.Destroy()
-			delete(imgs.media, id)
+			delete(imgs.media, path)
 		}
 	}
 }
 
-func (imgs *Images) Check(path string) bool {
+func (imgs *Images) Find(path string) *ImagesItem {
+	imgs.lock.Lock()
+	defer imgs.lock.Unlock()
+
 	item, found := imgs.media[path]
-
 	if found {
-		item.last_use_time = time.Now().UnixNano()
+		return item
 	}
-
-	return !found
+	return nil
 }
 
 func (imgs *Images) Add(path string, blob []byte) (*ImagesItem, error) {
 	//find
-	item, found := imgs.media[path]
-	if found {
+	item := imgs.Find(path)
+	if item != nil {
 		return item, nil
 	}
 
@@ -83,6 +107,9 @@ func (imgs *Images) Add(path string, blob []byte) (*ImagesItem, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	imgs.lock.Lock()
+	defer imgs.lock.Unlock()
 
 	//add
 	imgs.media[path] = item
@@ -105,6 +132,8 @@ type ImagesItem struct {
 
 func NewImagesItem(path string, blob []byte) (*ImagesItem, error) {
 	sp := &ImagesItem{path: path}
+
+	sp.last_use_time = time.Now().UnixNano()
 
 	//create new media
 	var img image.Image

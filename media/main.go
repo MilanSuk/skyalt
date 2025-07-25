@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"unsafe"
 )
@@ -43,42 +42,45 @@ func main() {
 	imgs := NewImages()
 	defer imgs.Destroy()
 
-	/*
-		{
-			//Tests
+	/*{
+		//Tests
+		av, _ := vlc.Add("../vid.mkv", 0)
+		//vlc.Add("../aud.mp3", 1)
+		//imgs.Add("../resources/logo_small.png", nil)
 
-			av, _ := vlc.Add("../vid.mkv", 0)
-			//vlc.Add("../aud.mp3", 1)
-			//imgs.Add("../resources/logo_small.png", nil)
+		av.Play()
+		//av.SetSeek(100000)
 
-			//av.Play()
-			av.SetSeek(10000)
+		time.Sleep(3 * time.Second)
+		av.Pause()
 
-			for {
-				imgs.UpdateFileTimes()
-				vlc.UpdateFileTimes()
+		for {
+			imgs.UpdateFileTimes()
+			vlc.UpdateFileTimes()
 
-				min_time := time.Now().Add(-60 * time.Second).UnixNano()
+			min_time := time.Now().Add(-60 * time.Second).UnixNano()
 
-				imgs.Maintenance(min_time)
-				vlc.Maintenance(min_time)
+			fnImgChanged := func(path string) {
 
-				//fmt.Println(av.GetSeek(), av.GetDuration(), av.IsPlaying())
-
-				p, a := vlc.Check("../vid.mkv", 0)
-				//p2, a2 := vlc.Check("../aud.mp3", 1)
-				if p == false {
-					//av.Play() //repeat
-				}
-
-				//b := imgs.Check("../resources/logo_small.png")
-				fmt.Println(p, a)
-				//fmt.Println(p2, a2)
-				//fmt.Println(b)
-
-				time.Sleep(1 * time.Second)
 			}
-		}*/
+
+			fnVlcChanged := func(path string, playerID uint64) {
+
+			}
+
+			imgs.Maintenance(min_time, fnImgChanged)
+			vlc.Maintenance(min_time, fnVlcChanged)
+
+			//fmt.Println(av.GetSeek(), av.GetDuration(), av.IsPlaying())
+
+			//b := imgs.Check("../resources/logo_small.png")
+			//fmt.Println(p, a)
+			//fmt.Println(p2, a2)
+			//fmt.Println(b)
+
+			time.Sleep(1 * time.Second)
+		}
+	}*/
 
 	if len(os.Args) < 2 {
 		log.Fatal("missing 'server port' argument(s): ", os.Args)
@@ -89,59 +91,57 @@ func main() {
 		log.Fatal(err)
 	}
 
-	cl := NewNetClient("localhost", server_port)
-	defer cl.Destroy()
+	cl_tasks := NewNetClient("localhost", server_port)
+	defer cl_tasks.Destroy()
 
-	var lock sync.Mutex
+	client_updates := NewNetClient("localhost", server_port)
+	defer client_updates.Destroy()
 
+	//check if files changed
 	go func() {
 		for {
-			//update file_times outside lock
 			imgs.UpdateFileTimes()
 			vlc.UpdateFileTimes()
 
-			lock.Lock()
-			{
-				min_time := time.Now().Add(-60 * time.Second).UnixNano()
+			time.Sleep(10 * time.Second) //10s
+		}
+	}()
 
-				imgs.Maintenance(min_time)
-				vlc.Maintenance(min_time)
+	//send updates(file changed or new frame)
+	go func() {
+		for {
+			min_time := time.Now().Add(-60 * time.Second).UnixNano()
+
+			fnImgChanged := func(path string) {
+				client_updates.WriteInt(0) //type=image
+				client_updates.WriteArray([]byte(path))
+
 			}
-			lock.Unlock()
+			fnVlcChanged := func(path string, playerID uint64) {
+				client_updates.WriteInt(1) //type=image
+				client_updates.WriteArray([]byte(path))
+				client_updates.WriteInt(playerID)
+			}
 
-			time.Sleep(10 * time.Second)
+			imgs.Maintenance(min_time, fnImgChanged)
+			vlc.Maintenance(min_time, fnVlcChanged)
+
+			time.Sleep(10 * time.Millisecond) //10ms
 		}
 	}()
 
 	for {
-		command := cl.ReadArray()
-		lock.Lock()
+		command := cl_tasks.ReadArray()
 
 		switch string(command) {
 		case "exit":
 			return
 
-		case "check":
-			path := cl.ReadArray()
-			playerID := cl.ReadInt() //for audio/video only
-
-			var playing bool
-			diff := false
-			tp := getType(string(path))
-			if tp > 0 { //audio/video
-				playing, diff = vlc.Check(string(path), playerID)
-			} else {
-				diff = imgs.Check(string(path))
-			}
-
-			cl.WriteBool(playing)
-			cl.WriteBool(diff)
-
 		case "type":
-			path := cl.ReadArray() //must be set!
+			path := cl_tasks.ReadArray() //must be set!
 
 			tp := getType(string(path))
-			cl.WriteInt(uint64(tp))
+			cl_tasks.WriteInt(uint64(tp))
 
 		case "info":
 			type MediaItem struct {
@@ -162,12 +162,12 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			cl.WriteArray(infoJs)
+			cl_tasks.WriteArray(infoJs)
 
 		case "frame":
-			path := cl.ReadArray()   //must be set!
-			blob := cl.ReadArray()   //for images only
-			playerID := cl.ReadInt() //for audio/video only
+			path := cl_tasks.ReadArray()   //must be set!
+			blob := cl_tasks.ReadArray()   //for images only
+			playerID := cl_tasks.ReadInt() //for audio/video only
 
 			var errBytes []byte
 			var width uint64
@@ -180,8 +180,6 @@ func main() {
 			if tp > 0 { //audio/video
 				item, err := vlc.Add(string(path), playerID)
 				if err == nil {
-					item.GetSeek()
-
 					width = uint64(item.width)
 					height = uint64(item.height)
 					seek_ms = uint64(item.GetSeek())
@@ -201,18 +199,18 @@ func main() {
 				}
 			}
 
-			cl.WriteArray(errBytes)
-			cl.WriteInt(width)
-			cl.WriteInt(height)
-			cl.WriteArray(data)
-			cl.WriteInt(seek_ms)
-			cl.WriteInt(play_duration)
-			cl.WriteInt(uint64(tp))
+			cl_tasks.WriteArray(errBytes)
+			cl_tasks.WriteInt(width)
+			cl_tasks.WriteInt(height)
+			cl_tasks.WriteArray(data)
+			cl_tasks.WriteInt(seek_ms)
+			cl_tasks.WriteInt(play_duration)
+			cl_tasks.WriteInt(uint64(tp))
 
 		case "play": //or pause
-			path := cl.ReadArray()
-			playerID := cl.ReadInt()
-			playIt := cl.ReadInt()
+			path := cl_tasks.ReadArray()
+			playerID := cl_tasks.ReadInt()
+			playIt := cl_tasks.ReadInt()
 
 			tp := getType(string(path))
 			if tp > 0 { //audio/video
@@ -223,51 +221,50 @@ func main() {
 					} else {
 						item.Pause()
 					}
-					cl.WriteArray(nil)
+					cl_tasks.WriteArray(nil)
 				} else {
-					cl.WriteArray([]byte(err.Error()))
+					cl_tasks.WriteArray([]byte(err.Error()))
 				}
 			} else {
-				cl.WriteArray(fmt.Appendf(nil, "'%s' audio/video format is not supported", string(path)))
+				cl_tasks.WriteArray(fmt.Appendf(nil, "'%s' audio/video format is not supported", string(path)))
 			}
 
 		case "seek":
-			path := cl.ReadArray()
-			playerID := cl.ReadInt()
-			pos_ms := cl.ReadInt()
+			path := cl_tasks.ReadArray()
+			playerID := cl_tasks.ReadInt()
+			pos_ms := cl_tasks.ReadInt()
 
 			tp := getType(string(path))
 			if tp > 0 { //audio/video
 				item, err := vlc.Add(string(path), playerID)
 				if err == nil {
 					item.SetSeek(int64(pos_ms))
-					cl.WriteArray(nil)
+					cl_tasks.WriteArray(nil)
 				} else {
-					cl.WriteArray([]byte(err.Error()))
+					cl_tasks.WriteArray([]byte(err.Error()))
 				}
 			} else {
-				cl.WriteArray(fmt.Appendf(nil, "'%s' audio/video format is not supported", string(path)))
+				cl_tasks.WriteArray(fmt.Appendf(nil, "'%s' audio/video format is not supported", string(path)))
 			}
 
 		case "volume":
-			path := cl.ReadArray()
-			playerID := cl.ReadInt()
-			volume := cl.ReadInt() //0-100
+			path := cl_tasks.ReadArray()
+			playerID := cl_tasks.ReadInt()
+			volume := cl_tasks.ReadInt() //0-100
 
 			tp := getType(string(path))
 			if tp > 0 { //audio/video
 				item, err := vlc.Add(string(path), playerID)
 				if err == nil {
 					item.SetVolume(float64(volume) / 100)
-					cl.WriteArray(nil)
+					cl_tasks.WriteArray(nil)
 				} else {
-					cl.WriteArray([]byte(err.Error()))
+					cl_tasks.WriteArray([]byte(err.Error()))
 				}
 			} else {
-				cl.WriteArray(fmt.Appendf(nil, "'%s' audio/video format is not supported", string(path)))
+				cl_tasks.WriteArray(fmt.Appendf(nil, "'%s' audio/video format is not supported", string(path)))
 			}
 
 		}
-		lock.Unlock()
 	}
 }

@@ -25,7 +25,6 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"golang.org/x/image/bmp"
 	"golang.org/x/image/tiff"
@@ -181,21 +180,10 @@ type WinImages struct {
 	win    *Win
 	images []*WinImage
 	lock   sync.Mutex
-
-	last_tick int64
 }
 
 func NewWinImages(win *Win) *WinImages {
 	img := &WinImages{win: win}
-
-	//hot reload
-	go func() {
-		for {
-			img._hotReload(win)
-			time.Sleep(1000 * time.Millisecond)
-		}
-	}()
-
 	return img
 }
 
@@ -265,46 +253,22 @@ func (imgs *WinImages) Tick(win *Win) {
 	imgs.lock.Lock()
 	defer imgs.lock.Unlock()
 
-	//find
-	isPlaying := false
-	for _, img := range imgs.images {
-		if img.path.is_playing {
-			isPlaying = true
-		}
-	}
-
 	redraw := false
-	if isPlaying || (OsTicks()-imgs.last_tick) > 100 { //every 100ms
+
+	//video changed || audio is playing(get seek pos)
+	changed := imgs.win.services.media.GetChanged()
+	for _, it := range changed {
 		for _, img := range imgs.images {
-			playing, changed := imgs.win.services.media.Check(img.path.path, img.path.playerID)
-			img.path.is_playing = playing
-			if changed || (img.path.tp == 2 && playing) { //video changed || audio is playing(get seek pos)
+			if (it.Type == 0 && img.path.path == it.path) || (it.Type == 1 && img.path.playerID == it.playerID) {
 				img._loadFromMedia(win, nil)
+				//fmt.Println("------------", it, time.Now().UnixMilli())
 				redraw = true
+				break //found
 			}
 		}
-
-		imgs.last_tick = OsTicks()
 	}
 
 	if redraw {
 		win.SetRedrawNewImage()
 	}
-}
-
-func (imgs *WinImages) _hotReload(win *Win) {
-	imgs.lock.Lock()
-	images := append([]*WinImage(nil), imgs.images...)
-	imgs.lock.Unlock()
-
-	for _, img := range images {
-		if img.num_loads.Load() > 0 {
-			playing, changed := imgs.win.services.media.Check(img.path.path, img.path.playerID)
-			img.path.is_playing = playing
-			if changed || (img.path.tp == 2 && playing) { //video changed || audio is playing(get seek pos)
-				img._loadFromMedia(win, nil)
-			}
-		}
-	}
-
 }

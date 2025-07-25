@@ -25,13 +25,22 @@ import (
 	"sync"
 )
 
+type MediaChanged struct {
+	Type     int
+	path     string
+	playerID uint64
+}
+
 type Media struct {
 	lock   sync.Mutex
 	server *AppsServer
 
 	cmd_running bool
 
-	client *AppsServerClient
+	client_tasks   *AppsServerClient
+	client_updates *AppsServerClient
+
+	changed []MediaChanged
 }
 
 func NewMedia(port int) (*Media, error) {
@@ -47,10 +56,15 @@ func (media *Media) Destroy() {
 	media.lock.Lock()
 	defer media.lock.Unlock()
 
-	if media.client != nil {
-		media.client.WriteArray([]byte("exit"))
-		media.client.Destroy()
-		media.client = nil
+	if media.client_tasks != nil {
+		media.client_tasks.WriteArray([]byte("exit"))
+		media.client_tasks.Destroy()
+		media.client_tasks = nil
+	}
+
+	if media.client_updates != nil {
+		media.client_updates.Destroy()
+		media.client_updates = nil
 	}
 
 	media.server.Destroy()
@@ -61,7 +75,8 @@ func (media *Media) Destroy() {
 func (media *Media) runProgram() error {
 	//reset
 	media.cmd_running = false
-	media.client = nil
+	media.client_tasks = nil
+	media.client_updates = nil
 
 	//start
 	cmd := exec.Command("./media/media", strconv.Itoa(media.server.port))
@@ -103,17 +118,92 @@ func (media *Media) check() error {
 		}
 
 		//wait for media to connect
-		media.client, err = media.server.Accept()
+		media.client_tasks, err = media.server.Accept()
 		if err != nil {
-			return LogsErrorf("media Accept() failed: %w", err)
+			return LogsErrorf("media client_tasks Accept() failed: %w", err)
 		}
+		media.client_updates, err = media.server.Accept()
+		if err != nil {
+			return LogsErrorf("media client_updates Accept() failed: %w", err)
+		}
+
+		go func() {
+			defer func() {
+				media.client_updates = nil
+			}()
+
+			for {
+				tp, err := media.client_updates.ReadInt()
+				if err != nil {
+					return
+				}
+
+				switch tp {
+				case 0: //image
+					img_path, err := media.client_updates.ReadArray()
+					if err != nil {
+						return
+					}
+					media.lock.Lock()
+					{
+						//must be unique
+						found := false
+						for _, it := range media.changed {
+							if it.Type == 0 && it.path == string(img_path) {
+								found = true
+								break
+							}
+						}
+						if !found {
+							media.changed = append(media.changed, MediaChanged{Type: 0, path: string(img_path)})
+						}
+					}
+					media.lock.Unlock()
+
+				case 1: //vlc
+					img_path, err := media.client_updates.ReadArray()
+					if err != nil {
+						return
+					}
+					playerID, err := media.client_updates.ReadInt()
+					if err != nil {
+						return
+					}
+					media.lock.Lock()
+					{
+						//must be unique
+						found := false
+						for _, it := range media.changed {
+							if it.Type == 1 && it.playerID == playerID {
+								found = true
+								break
+							}
+						}
+						if !found {
+							media.changed = append(media.changed, MediaChanged{Type: 1, path: string(img_path), playerID: playerID})
+						}
+					}
+					media.lock.Unlock()
+				}
+			}
+		}()
+
 	}
 
-	if media.client == nil {
+	if media.client_tasks == nil || media.client_updates == nil {
 		return LogsErrorf("media.client == nil")
 	}
 
 	return nil
+}
+
+func (media *Media) GetChanged() []MediaChanged {
+	media.lock.Lock()
+	defer media.lock.Unlock()
+
+	ret := media.changed
+	media.changed = nil
+	return ret
 }
 
 func (media *Media) GetInfo() ([]byte, error) {
@@ -127,7 +217,7 @@ func (media *Media) GetInfo() ([]byte, error) {
 
 	//write
 	{
-		err := media.client.WriteArray([]byte("info"))
+		err := media.client_tasks.WriteArray([]byte("info"))
 		if err != nil {
 			return nil, err
 		}
@@ -135,7 +225,7 @@ func (media *Media) GetInfo() ([]byte, error) {
 
 	//read
 	{
-		js, err := media.client.ReadArray()
+		js, err := media.client_tasks.ReadArray()
 		if err != nil {
 			return nil, err
 		}
@@ -155,11 +245,11 @@ func (media *Media) Type(path string) (int, error) {
 
 	//write
 	{
-		err := media.client.WriteArray([]byte("type"))
+		err := media.client_tasks.WriteArray([]byte("type"))
 		if err != nil {
 			return -1, err
 		}
-		err = media.client.WriteArray([]byte(path))
+		err = media.client_tasks.WriteArray([]byte(path))
 		if err != nil {
 			return -1, err
 		}
@@ -167,7 +257,7 @@ func (media *Media) Type(path string) (int, error) {
 
 	//read
 	{
-		tp, err := media.client.ReadInt()
+		tp, err := media.client_tasks.ReadInt()
 		if err != nil {
 			return -1, err
 		}
@@ -187,26 +277,26 @@ func (media *Media) Play(path string, playerID uint64, playIt bool) error {
 
 	//write
 	{
-		err = media.client.WriteArray([]byte("play"))
+		err = media.client_tasks.WriteArray([]byte("play"))
 		if err != nil {
 			return err
 		}
-		err = media.client.WriteArray([]byte(path))
+		err = media.client_tasks.WriteArray([]byte(path))
 		if err != nil {
 			return err
 		}
-		err = media.client.WriteInt(playerID)
+		err = media.client_tasks.WriteInt(playerID)
 		if err != nil {
 			return err
 		}
 
 		if playIt {
-			err = media.client.WriteInt(1)
+			err = media.client_tasks.WriteInt(1)
 			if err != nil {
 				return err
 			}
 		} else {
-			err = media.client.WriteInt(0)
+			err = media.client_tasks.WriteInt(0)
 			if err != nil {
 				return err
 			}
@@ -216,7 +306,7 @@ func (media *Media) Play(path string, playerID uint64, playIt bool) error {
 
 	//read
 	{
-		errBytes, err := media.client.ReadArray()
+		errBytes, err := media.client_tasks.ReadArray()
 		if err != nil {
 			return err
 		}
@@ -239,19 +329,19 @@ func (media *Media) Seek(path string, playerID uint64, play_pos uint64) error {
 
 	//write
 	{
-		err = media.client.WriteArray([]byte("seek"))
+		err = media.client_tasks.WriteArray([]byte("seek"))
 		if err != nil {
 			return err
 		}
-		err = media.client.WriteArray([]byte(path))
+		err = media.client_tasks.WriteArray([]byte(path))
 		if err != nil {
 			return err
 		}
-		err = media.client.WriteInt(playerID)
+		err = media.client_tasks.WriteInt(playerID)
 		if err != nil {
 			return err
 		}
-		err = media.client.WriteInt(play_pos)
+		err = media.client_tasks.WriteInt(play_pos)
 		if err != nil {
 			return err
 		}
@@ -259,7 +349,7 @@ func (media *Media) Seek(path string, playerID uint64, play_pos uint64) error {
 
 	//read
 	{
-		errBytes, err := media.client.ReadArray()
+		errBytes, err := media.client_tasks.ReadArray()
 		if err != nil {
 			return err
 		}
@@ -269,45 +359,6 @@ func (media *Media) Seek(path string, playerID uint64, play_pos uint64) error {
 	}
 
 	return nil
-}
-
-func (media *Media) Check(path string, playerID uint64) (bool, bool) {
-	media.lock.Lock()
-	defer media.lock.Unlock()
-
-	err := media.check()
-	if err != nil {
-		return false, false
-	}
-
-	//write
-	{
-		err = media.client.WriteArray([]byte("check"))
-		if err != nil {
-			return false, false
-		}
-		err = media.client.WriteArray([]byte(path))
-		if err != nil {
-			return false, false
-		}
-		err = media.client.WriteInt(playerID)
-		if err != nil {
-			return false, false
-		}
-	}
-
-	//read
-	{
-		playing, err := media.client.ReadInt()
-		if err != nil {
-			return false, false
-		}
-		changed, err := media.client.ReadInt()
-		if err != nil {
-			return false, false
-		}
-		return playing > 0, changed > 0
-	}
 }
 
 func (media *Media) Frame(path string, blob []byte, playerID uint64, addError bool) (int, int, []byte, uint64, uint64, int, error) {
@@ -321,19 +372,19 @@ func (media *Media) Frame(path string, blob []byte, playerID uint64, addError bo
 
 	//write
 	{
-		err = media.client.WriteArray([]byte("frame"))
+		err = media.client_tasks.WriteArray([]byte("frame"))
 		if err != nil {
 			return 0, 0, nil, 0, 0, -1, err
 		}
-		err = media.client.WriteArray([]byte(path))
+		err = media.client_tasks.WriteArray([]byte(path))
 		if err != nil {
 			return 0, 0, nil, 0, 0, -1, err
 		}
-		err = media.client.WriteArray(blob)
+		err = media.client_tasks.WriteArray(blob)
 		if err != nil {
 			return 0, 0, nil, 0, 0, -1, err
 		}
-		err = media.client.WriteInt(playerID)
+		err = media.client_tasks.WriteInt(playerID)
 		if err != nil {
 			return 0, 0, nil, 0, 0, -1, err
 		}
@@ -341,32 +392,32 @@ func (media *Media) Frame(path string, blob []byte, playerID uint64, addError bo
 
 	//read
 	{
-		errBytes, err := media.client.ReadArray()
+		errBytes, err := media.client_tasks.ReadArray()
 		if err != nil {
 			return 0, 0, nil, 0, 0, -1, err
 		}
-		width, err := media.client.ReadInt()
+		width, err := media.client_tasks.ReadInt()
 		if err != nil {
 			return 0, 0, nil, 0, 0, -1, err
 		}
-		height, err := media.client.ReadInt()
+		height, err := media.client_tasks.ReadInt()
 		if err != nil {
 			return 0, 0, nil, 0, 0, -1, err
 		}
-		data, err := media.client.ReadArray()
+		data, err := media.client_tasks.ReadArray()
 		if err != nil {
 			return 0, 0, nil, 0, 0, -1, err
 		}
-		play_pos, err := media.client.ReadInt()
+		play_pos, err := media.client_tasks.ReadInt()
 		if err != nil {
 			return 0, 0, nil, 0, 0, -1, err
 		}
-		play_duration, err := media.client.ReadInt()
+		play_duration, err := media.client_tasks.ReadInt()
 		if err != nil {
 			return 0, 0, nil, 0, 0, -1, err
 		}
 
-		tp, err := media.client.ReadInt()
+		tp, err := media.client_tasks.ReadInt()
 		if err != nil {
 			return 0, 0, nil, 0, 0, -1, err
 		}

@@ -7,7 +7,7 @@ package main
 
 typedef struct {
     void* pixels;
-	int updated;
+	int frame;
 } video_ctx;
 
 static void* video_lock_cb(void* data, void** p_pixels) {
@@ -18,7 +18,7 @@ static void* video_lock_cb(void* data, void** p_pixels) {
 
 static void video_unlock_cb(void* data, void* id, void* const* p_pixels) {
 	video_ctx* ctx = (video_ctx*)data;
-	ctx->updated++;
+	ctx->frame++;
     // Nothing to do
 }
 
@@ -35,6 +35,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 	"unsafe"
 )
@@ -43,6 +44,8 @@ type VLC struct {
 	instance *C.libvlc_instance_t
 
 	media map[uint64]*VLCItem
+
+	lock sync.Mutex
 }
 
 func NewVLC() *VLC {
@@ -59,6 +62,9 @@ func NewVLC() *VLC {
 }
 
 func (vlc *VLC) Destroy() {
+	vlc.lock.Lock()
+	defer vlc.lock.Unlock()
+
 	for _, it := range vlc.media {
 		it.Destroy()
 	}
@@ -67,7 +73,16 @@ func (vlc *VLC) Destroy() {
 }
 
 func (vlc *VLC) UpdateFileTimes() {
+
+	vlc.lock.Lock()
+	var ims []*VLCItem
 	for _, it := range vlc.media {
+		ims = append(ims, it)
+	}
+	vlc.lock.Unlock()
+
+	//slow
+	for _, it := range ims {
 		inf, err := os.Stat(it.path)
 		if err == nil && inf != nil {
 			it.check_file_time = inf.ModTime().UnixNano()
@@ -75,36 +90,61 @@ func (vlc *VLC) UpdateFileTimes() {
 	}
 }
 
-func (vlc *VLC) Maintenance(min_time int64) {
-	for id, it := range vlc.media {
-		if (it.last_use_time > 0 && it.last_use_time < min_time) || it.check_file_time != it.open_file_time {
-			//fmt.Println("Maintenance() removing " + it.path)
-			it.Destroy()
-			delete(vlc.media, id)
+func (vlc *VLC) Maintenance(min_time int64, fnVlcChanged func(path string, playerID uint64)) {
+	vlc.lock.Lock()
+	defer vlc.lock.Unlock()
+
+	for playerID, it := range vlc.media {
+
+		diff := (it.check_file_time != it.open_file_time)
+		if diff {
+			fnVlcChanged(it.path, playerID) //file changed
+		} else if it.IsPlaying() {
+
+			if C.int(it.last_frame) != it.videoCtx.frame {
+				fnVlcChanged(it.path, playerID) //new frame
+				it.last_frame = int(it.videoCtx.frame)
+			} else if it.pixels_size == 0 {
+				//also need to update time and seek for audio
+
+				pos_ms := it.GetSeek()
+				d_ms := (pos_ms - it.last_time_ms)
+				if d_ms < 0 {
+					d_ms *= -1
+				}
+				if d_ms > 800 { //every 800ms
+					fnVlcChanged(it.path, playerID) //new second
+					it.last_time_ms = pos_ms
+				}
+			}
+		}
+
+		if !it.IsPlaying() {
+			if (it.last_use_time > 0 && it.last_use_time < min_time) || diff {
+				//fmt.Println("Maintenance() removing " + it.path)
+				it.Destroy()
+				delete(vlc.media, playerID)
+			}
 		}
 	}
 }
 
-func (vlc *VLC) Check(path string, playerID uint64) (bool, bool) {
+func (vlc *VLC) Find(playerID uint64) *VLCItem {
+	vlc.lock.Lock()
+	defer vlc.lock.Unlock()
+
 	item, found := vlc.media[playerID]
-
 	if found {
-		item.last_use_time = time.Now().UnixNano()
+		return item
 	}
-
-	playing := item.IsPlaying()
-
-	diff := C.int(item.last_updated) != item.videoCtx.updated
-	item.last_updated = int(item.videoCtx.updated)
-
-	return playing, (!found || item.path != path || diff)
+	return nil
 }
 
 func (vlc *VLC) Add(path string, playerID uint64) (*VLCItem, error) {
 
 	//find
-	item, found := vlc.media[playerID]
-	if found {
+	item := vlc.Find(playerID)
+	if item != nil {
 		if item.path == path {
 			return item, nil
 		}
@@ -118,6 +158,9 @@ func (vlc *VLC) Add(path string, playerID uint64) (*VLCItem, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	vlc.lock.Lock()
+	defer vlc.lock.Unlock()
 
 	//add
 	vlc.media[playerID] = item
@@ -135,7 +178,8 @@ type VLCItem struct {
 	pixels_size int
 	videoCtx    C.video_ctx
 
-	last_updated int
+	last_frame   int
+	last_time_ms int64
 
 	last_use_time int64
 
@@ -271,15 +315,15 @@ func (sp *VLCItem) GetVolume() float64 { //<0, 1>
 }
 
 func (sp *VLCItem) GetDuration() int64 {
-	return int64(C.libvlc_media_get_duration(sp.media))
+	return int64(C.libvlc_media_get_duration(sp.media)) //return milliseconds
 }
 
 func (sp *VLCItem) GetSeek() int64 {
-	pos := int64(C.libvlc_media_player_get_time(sp.player))
-	if pos < 0 {
-		pos = 0
+	pos_ms := int64(C.libvlc_media_player_get_time(sp.player))
+	if pos_ms < 0 {
+		pos_ms = 0
 	}
-	return pos
+	return pos_ms
 }
 
 func (sp *VLCItem) SetSeek(pos_ms int64) {
@@ -303,7 +347,7 @@ func (sp *VLCItem) SetSeek(pos_ms int64) {
 	if !sp.IsPlaying() {
 		if sp.pixels_size > 0 {
 			//video
-			for C.int(sp.last_updated) == sp.videoCtx.updated {
+			for C.int(sp.last_frame) == sp.videoCtx.frame {
 				time.Sleep(1 * time.Millisecond)
 			}
 		} else {
