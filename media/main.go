@@ -89,7 +89,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	cl := NewToolClient("localhost", server_port)
+	cl := NewNetClient("localhost", server_port)
 	defer cl.Destroy()
 
 	var lock sync.Mutex
