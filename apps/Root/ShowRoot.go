@@ -244,7 +244,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 						n++
 					}
 				}
-				label = fmt.Sprintf("LOG(%d)", n)
+				label = fmt.Sprintf("(%d)", n)
 			}
 
 			LogBt := AppsDiv.AddButton(0, y, 1, 1, label)
