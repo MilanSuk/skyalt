@@ -8,7 +8,7 @@ import (
 //When ui.addText(), ui.addButton() and other ui.add...() functions are called, every GUI components is added to new line.
 //To add more components on same line, use ui.addTable(). All components in table are aligned by columns which makes tables very usefull for creating forms.
 //Use setRowHeight() only when user prompt require that row has specific height.
-//Some functions have argument 'tooltip string' which describes what data an UI component represents. It should containt description and name, path, ID of the value. Don't use label(value) of UI component as tooltip. Few tooltips example: PersonID=123, GalleryID="path/to/image"
+//Some functions may have 'llmtip' argument whitch describes what UI component represents. In most situation it should be in a form <storage id> = <value>. Few examples: PersonID=123, GalleryID="path/to/image".
 
 type ToolCaller struct {
 }
@@ -34,8 +34,8 @@ type UITable struct {
 	layout *UI
 }
 
-func (ui *UI) addTable(tooltip string) *UITable
-func (table *UITable) addLine(tooltip string) *UI
+func (ui *UI) addTable(llmtip string) *UITable
+func (table *UITable) addLine(llmtip string) *UI
 func (table *UITable) addDivider() //whole line is horizontal line. Use to separate header from data.
 
 type UIText struct {
@@ -59,7 +59,7 @@ type UIText struct {
 
 func (ui *UI) addTextH1(label string) *UIText //add main heading
 func (ui *UI) addTextH2(label string) *UIText //add secondary heading
-func (ui *UI) addText(label string) *UIText
+func (ui *UI) addText(label string, llmtip string) *UIText
 
 type UIEditbox struct {
 	layout     *UI
@@ -84,9 +84,9 @@ type UIEditbox struct {
 	enter   func() error
 }
 
-func (ui *UI) addEditboxString(value *string, tooltip string) *UIEditbox
-func (ui *UI) addEditboxInt(value *int, tooltip string) *UIEditbox
-func (ui *UI) addEditboxFloat(value *float64, precision int, tooltip string) *UIEditbox
+func (ui *UI) addEditboxString(value *string, llmtip string) *UIEditbox
+func (ui *UI) addEditboxInt(value *int, llmtip string) *UIEditbox
+func (ui *UI) addEditboxFloat(value *float64, precision int, llmtip string) *UIEditbox
 
 type UIButton struct {
 	layout *UI
@@ -116,7 +116,7 @@ type UIButton struct {
 	dropMove func(src_i, dst_i int, aim_i int, src_source, dst_source string) error
 }
 
-func (ui *UI) addButton(label string, tooltip string) *UIButton
+func (ui *UI) addButton(label string, llmtip string) *UIButton
 
 type UIDropDownIcon struct {
 	Path   string
@@ -133,7 +133,7 @@ type UIDropDown struct {
 	changed func() error
 }
 
-func (ui *UI) addDropDown(value *string, labels []string, values []string, tooltip string) *UIDropDown
+func (ui *UI) addDropDown(value *string, labels []string, values []string, llmtip string) *UIDropDown
 
 type UIPromptMenuIcon struct {
 	Path   string
@@ -147,7 +147,7 @@ type UIPromptMenu struct {
 	Icons   []UIPromptMenuIcon
 }
 
-func (ui *UI) addPromptMenu(prompts []string, tooltip string) *UIPromptMenu
+func (ui *UI) addPromptMenu(prompts []string, llmtip string) *UIPromptMenu
 
 type UISwitch struct {
 	layout *UI
@@ -157,7 +157,7 @@ type UISwitch struct {
 	changed func() error
 }
 
-func (ui *UI) addSwitch(label string, value *bool, tooltip string) *UISwitch
+func (ui *UI) addSwitch(label string, value *bool, llmtip string) *UISwitch
 
 type UICheckbox struct {
 	layout *UI
@@ -167,7 +167,7 @@ type UICheckbox struct {
 	changed func() error
 }
 
-func (ui *UI) addCheckbox(label string, value *float64, tooltip string) *UICheckbox
+func (ui *UI) addCheckbox(label string, value *float64, llmtip string) *UICheckbox
 
 type UISlider struct {
 	layout *UI
@@ -179,7 +179,7 @@ type UISlider struct {
 	changed func() error
 }
 
-func (ui *UI) addSlider(value *float64, min, max, step float64, tooltip string) *UISlider
+func (ui *UI) addSlider(value *float64, min, max, step float64, llmtip string) *UISlider
 
 type UIDivider struct {
 	layout     *UI
@@ -219,7 +219,7 @@ type UIMap struct {
 	Routes         []UIMapRoute
 }
 
-func (ui *UI) addMap(lon, lat, zoom *float64, tooltip string) *UIMap
+func (ui *UI) addMap(lon, lat, zoom *float64, llmtip string) *UIMap
 func (mp *UIMap) addLocators(loc UIMapLocators)
 func (mp *UIMap) addRoute(route UIMapRoute)
 
@@ -240,7 +240,7 @@ type UIYearCalendar struct {
 	Year   int
 }
 
-func (ui *UI) addYearCalendar(Year int, tooltip string) *UIYearCalendar
+func (ui *UI) addYearCalendar(Year int, llmtip string) *UIYearCalendar
 
 type UIMonthCalendar struct {
 	layout *UI
@@ -250,7 +250,7 @@ type UIMonthCalendar struct {
 	Events []UICalendarEvent
 }
 
-func (ui *UI) addMonthCalendar(Year int, Month int, Events []UICalendarEvent, tooltip string) *UIMonthCalendar
+func (ui *UI) addMonthCalendar(Year int, Month int, Events []UICalendarEvent, llmtip string) *UIMonthCalendar
 
 type UIDayCalendar struct {
 	layout *UI
@@ -258,7 +258,7 @@ type UIDayCalendar struct {
 	Events []UICalendarEvent
 }
 
-func (ui *UI) addDayCalendar(Days []int64, Events []UICalendarEvent, tooltip string) *UIDayCalendar
+func (ui *UI) addDayCalendar(Days []int64, Events []UICalendarEvent, llmtip string) *UIDayCalendar
 
 type UIFilePickerButton struct {
 	layout      *UI
@@ -269,7 +269,7 @@ type UIFilePickerButton struct {
 	changed func() error
 }
 
-func (ui *UI) addFilePickerButton(path *string, preview bool, onlyFolders bool, tooltip string) *UIFilePickerButton
+func (ui *UI) addFilePickerButton(path *string, preview bool, onlyFolders bool, llmtip string) *UIFilePickerButton
 
 type UIDatePickerButton struct {
 	layout   *UI
@@ -279,7 +279,7 @@ type UIDatePickerButton struct {
 	changed  func() error
 }
 
-func (ui *UI) addDatePickerButton(date *int64, page *int64, showTime bool, tooltip string) *UIDatePickerButton
+func (ui *UI) addDatePickerButton(date *int64, page *int64, showTime bool, llmtip string) *UIDatePickerButton
 
 type UIColorPickerButton struct {
 	layout  *UI
@@ -287,7 +287,7 @@ type UIColorPickerButton struct {
 	changed func() error
 }
 
-func (ui *UI) addColorPickerButton(cd *color.RGBA, tooltip string) *UIColorPickerButton
+func (ui *UI) addColorPickerButton(cd *color.RGBA, llmtip string) *UIColorPickerButton
 
 type UIChartPoint struct {
 	X  float64
@@ -313,7 +313,7 @@ type UIChartLines struct {
 	Draw_YHelpLines       bool
 }
 
-func (ui *UI) addChartLines(Lines []UIChartLine, tooltip string) *UIChartLines
+func (ui *UI) addChartLines(Lines []UIChartLine, llmtip string) *UIChartLines
 
 type UIChartColumnValue struct {
 	Value float64
@@ -336,7 +336,7 @@ type UIChartColumns struct {
 	ColumnMargin   float64
 }
 
-func (ui *UI) addChartColumns(columns []UIChartColumn, x_labels []string, tooltip string) *UIChartColumns
+func (ui *UI) addChartColumns(columns []UIChartColumn, x_labels []string, llmtip string) *UIChartColumns
 
 // accepts unix time and returns date(formated by user)
 func SdkGetDate(unix_sec int64) string
