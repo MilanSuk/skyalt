@@ -220,7 +220,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		MainDiv.SetRowFromSub(2, 1, 10, true)
 		FooterDiv := MainDiv.AddLayout(1, 2, 1, 1)
 		FooterDiv.SetColumn(0, 1, 100)
-		FooterDiv.SetColumn(1, 1, 5)
+		FooterDiv.SetColumn(1, 1, 6)
 		FooterDiv.SetRowFromSub(0, 2, 5, true)
 
 		//Note
@@ -285,13 +285,15 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 			//Total price
 			{
-				sum := 0.0
+				price_sum := 0.0
+				time_sum := 0.0
 				for _, prompt := range sdk_app.Prompts {
 					for _, it := range prompt.CodeVersions {
-						sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price
+						time_sum += it.Usage.DTime
+						price_sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price
 					}
 				}
-				tx := FooterRightDiv.AddText(0, 1, 1, 1, fmt.Sprintf("<i>Total: $%f", sum))
+				tx := FooterRightDiv.AddText(0, 1, 1, 1, fmt.Sprintf("<i>Total: $%.4f, %.1fsec", price_sum, time_sum))
 				tx.Align_v = 0
 				tx.Align_h = 2
 				tx.layout.Tooltip = "Total cost of generating code(including bugs fixes)"
