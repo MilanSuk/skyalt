@@ -70,6 +70,7 @@ type ServicesSync struct {
 	LLM_xai     LLMxAI
 	LLM_mistral LLMMistral
 	LLM_openai  LLMOpenai
+	LLM_groq    LLMGroq
 	LLM_wsp     LLMWhispercpp
 	LLM_llama   LLMLlamacpp
 
@@ -113,9 +114,14 @@ func (snc *ServicesSync) _loadFiles() error {
 		LogsJsonUnmarshal(mistralJs, &snc.LLM_mistral)
 	}
 
-	openailJs, err := os.ReadFile("apps/Device/LLMOpenai-LLMOpenai.json")
+	openaiJs, err := os.ReadFile("apps/Device/LLMOpenai-LLMOpenai.json")
 	if err == nil {
-		LogsJsonUnmarshal(openailJs, &snc.LLM_openai)
+		LogsJsonUnmarshal(openaiJs, &snc.LLM_openai)
+	}
+
+	groqJs, err := os.ReadFile("apps/Device/LLMGroq-LLMGroq.json")
+	if err == nil {
+		LogsJsonUnmarshal(groqJs, &snc.LLM_groq)
 	}
 
 	wspJs, err := os.ReadFile("apps/Device/LLMWhispercpp-LLMWhispercpp.json")

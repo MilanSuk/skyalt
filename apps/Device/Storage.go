@@ -403,6 +403,147 @@ func (model *LLMMistralLanguageModel) GetTextPrice(in, reason, cached, out int) 
 	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price
 }
 
+type LLMGroqLanguageModel struct {
+	Id               string
+	Created          int64
+	Version          string
+	Input_modalities []string //"text", "image"
+
+	Prompt_text_token_price        int //USD cents per million token
+	Prompt_image_token_price       int
+	Cached_prompt_text_token_price int
+	Completion_text_token_price    int
+
+	Aliases []string
+}
+
+type LLMGroqImageModel struct {
+	Id                string
+	Created           int64
+	Version           string
+	Max_prompt_length int
+
+	Image_price int //USD cents per image
+
+	Aliases []string
+}
+
+type LLMGroqMsgStats struct {
+	Function string
+	Usage    LLMMsgUsage
+}
+
+// Groq LLM settings.
+type LLMGroq struct {
+	Provider   string
+	OpenAI_url string
+	DevUrl     string
+	API_key    string
+
+	LanguageModels []*LLMGroqLanguageModel
+	ImageModels    []*LLMGroqImageModel
+
+	Stats []LLMGroqMsgStats
+}
+
+func NewLLMGroq(file string) (*LLMGroq, error) {
+	mst := &LLMGroq{}
+
+	mst.Provider = "Groq"
+	mst.OpenAI_url = "https://api.groq.com/openai/v1"
+	mst.DevUrl = "https://console.groq.com/keys"
+
+	var err error
+	mst, err = LoadFile(file, "LLMGroq", "json", mst, true)
+	if err == nil {
+		mst.ReloadModels()
+	}
+	return mst, err
+}
+
+func (mst *LLMGroq) Check(caller *ToolCaller) error {
+
+	if mst.API_key == "" {
+		return fmt.Errorf("%s API key is empty", mst.Provider)
+	}
+
+	return nil
+}
+
+func (mst *LLMGroq) FindModel(name string) (*LLMGroqLanguageModel, *LLMGroqImageModel) {
+	name = strings.ToLower(name)
+
+	for _, model := range mst.LanguageModels {
+		if strings.ToLower(model.Id) == name {
+			return model, nil
+		}
+		for _, alias := range model.Aliases {
+			if strings.ToLower(alias) == name {
+				return model, nil
+			}
+		}
+	}
+	for _, model := range mst.ImageModels {
+		if strings.ToLower(model.Id) == name {
+			return nil, model
+		}
+		for _, alias := range model.Aliases {
+			if strings.ToLower(alias) == name {
+				return nil, model
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func (mst *LLMGroq) ReloadModels() error {
+
+	//reset
+	mst.LanguageModels = nil
+	mst.ImageModels = nil
+
+	mst.LanguageModels = append(mst.LanguageModels, &LLMGroqLanguageModel{
+		Id:                             "qwen/qwen3-32b",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        0,
+		Cached_prompt_text_token_price: 0,
+		Completion_text_token_price:    0,
+	})
+
+	return nil
+}
+
+func (mst *LLMGroq) GetPricingString(model string) string {
+	model = strings.ToLower(model)
+
+	convert_to_dolars := float64(10000)
+
+	lang, img := mst.FindModel(model)
+	if lang != nil {
+		//in, cached, out, image
+		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
+	}
+
+	if img != nil {
+		return fmt.Sprintf("$%.2f", float64(img.Image_price)/convert_to_dolars)
+	}
+
+	return fmt.Sprintf("model %s not found", model)
+}
+
+func (model *LLMGroqLanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
+
+	convert_to_dolars := float64(10000)
+
+	Input_price := float64(model.Prompt_text_token_price) / convert_to_dolars / 1000000
+	Reason_price := float64(model.Prompt_text_token_price) / convert_to_dolars / 1000000
+	Cached_price := float64(model.Cached_prompt_text_token_price) / convert_to_dolars / 1000000
+	Output_price := float64(model.Completion_text_token_price) / convert_to_dolars / 1000000
+
+	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price
+}
+
 type LLMOpenaiLanguageModel struct {
 	Id               string
 	Created          int64

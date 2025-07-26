@@ -59,7 +59,7 @@ func (st *PromptMenu) Build(layout *Layout) {
 			}
 
 			bt.clicked = func() {
-				layout.ui.runPrompt = prompt + "\nUser prompt above is about: " + st.Tooltip
+				layout.ui.runPrompt = prompt + "\nUser prompt above is part of: " + st.Tooltip
 
 				if st.changed != nil {
 					st.changed()

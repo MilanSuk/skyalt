@@ -307,6 +307,20 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 			}
 		}
 
+	case "groq":
+		switch usecase {
+		case "tools", "code":
+			model = "qwen/qwen3-32b"
+			if smarter {
+				model = "qwen/qwen3-32b"
+			}
+		case "chat":
+			model = "qwen/qwen3-32b"
+			if smarter {
+				model = "qwen/qwen3-32b"
+			}
+		}
+
 	case "llama.cpp":
 		model = ""
 	}
@@ -356,6 +370,11 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 		}
 	case "openai":
 		err := llms.services.sync.LLM_openai.Complete(st, app_port, tools, msg)
+		if err != nil {
+			return err
+		}
+	case "groq":
+		err := llms.services.sync.LLM_groq.Complete(st, app_port, tools, msg)
 		if err != nil {
 			return err
 		}
@@ -412,6 +431,11 @@ func (llms *LLMs) Transcribe(st *LLMTranscribe) error {
 	switch strings.ToLower(dev.STT_provider) {
 	case "openai":
 		err := llms.services.sync.LLM_openai.Transcribe(st)
+		if err != nil {
+			return err
+		}
+	case "groq":
+		err := llms.services.sync.LLM_groq.Transcribe(st)
 		if err != nil {
 			return err
 		}

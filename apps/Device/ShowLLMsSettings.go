@@ -12,7 +12,7 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 		return err
 	}
 
-	chatProviders := []string{"", "xAI", "Mistral", "OpenAI", "Llama.cpp"}
+	chatProviders := []string{"", "xAI", "Mistral", "OpenAI", "Groq", "Llama.cpp"}
 	imageProviders := []string{"", "xAI", "OpenAI"}
 	sttProviders := []string{"", "Whisper.cpp", "OpenAI"}
 
@@ -26,6 +26,8 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 			ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMxAISettings{}).run, caller)
 		case "mistral":
 			ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMMistralSettings{}).run, caller)
+		case "groq":
+			ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMGroqSettings{}).run, caller)
 		case "openai":
 			ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMOpenAISettings{}).run, caller)
 		case "llama.cpp":
