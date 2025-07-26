@@ -223,12 +223,21 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpen
 			Messages: messages,
 
 			Temperature:       st.Temperature,
-			Max_tokens:        st.Max_tokens,
 			Top_p:             st.Top_p,
 			Frequency_penalty: st.Frequency_penalty,
 			Presence_penalty:  st.Presence_penalty,
 			Reasoning_effort:  st.Reasoning_effort,
 		}
+
+		if props.Model == "o4-mini" {
+			props.Temperature = 1.0
+			props.Top_p = 0
+			props.Max_completion_tokens = st.Max_tokens
+		} else {
+			props.Max_tokens = st.Max_tokens
+
+		}
+
 		if st.Response_format != "" {
 			props.Response_format = &OpenAI_completion_format{Type: st.Response_format}
 		}
@@ -243,7 +252,7 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpen
 				st.delta(chatMsg)
 			}
 
-			return msg.Progress(0, "completing")
+			return msg.GetContinue()
 		}
 
 		//print
@@ -264,7 +273,7 @@ func (oai *LLMOpenai) Complete(st *LLMComplete, app_port int, tools []*ToolsOpen
 			return err
 		}
 
-		if !msg.Progress(0, "completing") {
+		if !msg.GetContinue() {
 			return nil
 		}
 

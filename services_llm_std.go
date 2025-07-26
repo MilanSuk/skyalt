@@ -93,11 +93,12 @@ type OpenAI_completion_props struct {
 	Stream         bool                             `json:"stream"`
 	Stream_options OpenAI_completion_Stream_options `json:"stream_options,omitempty"`
 
-	Temperature       float64 `json:"temperature"`                 //1.0
-	Max_tokens        int     `json:"max_tokens"`                  //
-	Top_p             float64 `json:"top_p"`                       //1.0
-	Frequency_penalty float64 `json:"frequency_penalty,omitempty"` //0
-	Presence_penalty  float64 `json:"presence_penalty,omitempty"`  //0
+	Temperature           float64 `json:"temperature"`                     //1.0
+	Max_tokens            int     `json:"max_tokens,omitempty"`            //
+	Max_completion_tokens int     `json:"max_completion_tokens,omitempty"` //for o1+ models
+	Top_p                 float64 `json:"top_p,omitempty"`                 //1.0
+	Frequency_penalty     float64 `json:"frequency_penalty,omitempty"`     //0
+	Presence_penalty      float64 `json:"presence_penalty,omitempty"`      //0
 
 	Response_format *OpenAI_completion_format `json:"response_format,omitempty"`
 
@@ -247,7 +248,7 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 				}
 			}
 
-			if !msg.Progress(0, "completing") {
+			if !msg.GetContinue() {
 				return OpenAIOut{}, res.StatusCode, 0, -1, LogsErrorf("interrupted")
 			}
 		}
