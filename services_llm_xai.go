@@ -278,7 +278,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, app_port int, tools []*ToolsOpenAI_
 				st.delta(chatMsg)
 			}
 
-			return msg.Progress(0, "completing")
+			return msg.GetContinue()
 		}
 
 		//print
@@ -299,7 +299,7 @@ func (xai *LLMxAI) Complete(st *LLMComplete, app_port int, tools []*ToolsOpenAI_
 			return err
 		}
 
-		if !msg.Progress(0, "completing") {
+		if !msg.GetContinue() {
 			return nil
 		}
 

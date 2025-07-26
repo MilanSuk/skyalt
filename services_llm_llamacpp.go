@@ -114,7 +114,7 @@ func (llama *LLMLlamacpp) Complete(st *LLMComplete, app_port int, tools []*Tools
 				st.delta(chatMsg)
 			}
 
-			return msg.Progress(0, "completing")
+			return msg.GetContinue()
 		}
 
 		//print
@@ -135,7 +135,7 @@ func (llama *LLMLlamacpp) Complete(st *LLMComplete, app_port int, tools []*Tools
 			return err
 		}
 
-		if !msg.Progress(0, "completing") {
+		if !msg.GetContinue() {
 			return nil
 		}
 

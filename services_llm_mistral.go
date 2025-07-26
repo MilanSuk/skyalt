@@ -262,7 +262,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 				st.delta(chatMsg)
 			}
 
-			return msg.Progress(0, "completing")
+			return msg.GetContinue()
 		}
 
 		//print
@@ -283,7 +283,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 			return err
 		}
 
-		if !msg.Progress(0, "completing") {
+		if !msg.GetContinue() {
 			return nil
 		}
 

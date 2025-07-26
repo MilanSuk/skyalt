@@ -203,7 +203,7 @@ func (oai *LLMGroq) Complete(st *LLMComplete, app_port int, tools []*ToolsOpenAI
 				st.delta(chatMsg)
 			}
 
-			return msg.Progress(0, "completing")
+			return msg.GetContinue()
 		}
 
 		//print
@@ -224,7 +224,7 @@ func (oai *LLMGroq) Complete(st *LLMComplete, app_port int, tools []*ToolsOpenAI
 			return err
 		}
 
-		if !msg.Progress(0, "completing") {
+		if !msg.GetContinue() {
 			return nil
 		}
 
