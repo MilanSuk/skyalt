@@ -65,6 +65,9 @@ func (msg *AppsRouterMsg) Progress(done float64, label string) bool {
 	msg.progress_done = done
 	msg.progress_label = label
 
+	return msg.GetContinue()
+}
+func (msg *AppsRouterMsg) GetContinue() bool {
 	return !msg.stop.Load()
 }
 
