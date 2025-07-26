@@ -245,7 +245,7 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 		if noBinary {
 			outName = "/dev/null"
 		}
-		cmd := exec.Command("go", "build", "-gcflags=\"-e\"", "-o", outName) //(-gcflags="-e") = show all errors
+		cmd := exec.Command("go", "build", "-gcflags=-e", "-o", outName) //(-gcflags="-e") = show all errors
 		cmd.Dir = cmpl.GetFolderPath()
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
