@@ -1904,7 +1904,8 @@ func (table *UITable) addLine(tooltip string) *UI {
 }
 func (table *UITable) addDivider() {
 	ln := table.addLine("")
-	ln.AddDivider(ln.temp_col, ln.temp_row, 1, ln.temp_col+len(ln.Cols), true)
+	table.layout.SetRow(ln.temp_row, 0.1, 0.1)
+	ln.AddDivider(ln.temp_col, ln.temp_row, ln.temp_col+len(ln.Cols), 1, true)
 }
 
 func (ui *UI) addTextH1(label string) *UIText {
