@@ -5,12 +5,12 @@ Store original long text as "LongText" and summarized text as "ShortText".
 
 #Tool ShowSummarizer
 First row has label "Original text".
-Next row is editbox(enable multi-line and line-wrapping) with LongText from storage.
+Next row is editbox(enable multi-line and line-wrapping) with LongText from storage. Set row height between 3 and 100.
 Next row has button "Summarize".
 Next row has text with ShortText from storage.
 Next row show text which prints procentage reduction between long and short text. Align it to right side.
 
-"Summarize" button send original text into LLM completion with system prompt:
+The "Summarize" button send original text into LLM completion with system prompt:
 "You are Summarizer assistant. You take a text from user, which is too long so user did'nt read it and your job is to simplify it.
 
 This tool has only visual output.
@@ -18,5 +18,3 @@ This tool has only visual output.
 
 #Start
 Show Summarizer
-
-

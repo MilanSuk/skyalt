@@ -10,7 +10,7 @@ Next row has button "Check".
 Next row has text with 'Fixed' from storage.
 
 The "Check" button send original text into LLM completion with system prompt:
-"You are grammar checker. You take a text from user and rewrite it with goal to fix all grammar issues.
+"You are grammar checker. You take a text from user and rewrite it with goal to fix all grammar issues. Output only fixed text, no explanation.
 
 This tool has only visual output.
 

@@ -10,7 +10,7 @@ First row is editbox(enable multi-line and line-wrapping) with 'Original' from s
 Next row has button "Translate", then text "into"(centered) and then drop down to pick a language('Language' from storage) with options GetLanguageOptions()
 Next row has text with 'Translation' from storage.
 
-"Translate" button send original text into LLM completion with system prompt(replace <language> with 'Language' from storage) :
+The "Translate" button send original text into LLM completion with system prompt(replace <language> with 'Language' from storage) :
 "You are Translator. You take a text from user and translate it into <language>.
 
 This tool has only visual output.
