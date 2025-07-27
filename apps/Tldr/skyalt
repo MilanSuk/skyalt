@@ -3,11 +3,11 @@ App accepts long text and make summary(TL;DR).
 Store original long text as "LongText" and summarized text as "ShortText".
 
 
-#tool ShowSummarizer
+#Tool ShowSummarizer
 First row has label "Original text".
 Next row is editbox(enable multi-line and line-wrapping) with LongText from storage.
 Next row has button "Summarize".
-Next row has text with ShortText from storage
+Next row has text with ShortText from storage.
 Next row show text which prints procentage reduction between long and short text. Align it to right side.
 
 "Summarize" button send original text into LLM completion with system prompt:
