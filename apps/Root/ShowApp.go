@@ -55,11 +55,15 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 
 	app.Chats[app.Selected_chat_i].Label = "" //reset
 
+	dashW := 1
+	if !app.ShowSide {
+		dashW = 2
+	}
+
 	if len(dashUIs) > 0 {
 		if len(dashUIs) == 1 {
 			//1x Dash
-
-			appUi, err := ui.AddToolApp(0, 0, 1, 1, st.AppName, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
+			appUi, err := ui.AddToolApp(0, 0, dashW, 1, st.AppName, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
 			if err != nil {
 				return fmt.Errorf("AddToolApp() failed: %v", err)
 			}
@@ -72,7 +76,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 		} else {
 			//Multiple Dashes
 
-			DashDiv := ui.AddLayout(0, 0, 1, 1)
+			DashDiv := ui.AddLayout(0, 0, dashW, 1)
 			DashDiv.SetColumn(0, 1, 100)
 
 			for i, dash := range dashUIs {
@@ -94,7 +98,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 		for i := len(dashes) - 1; i >= 0; i-- {
 			dash := dashes[i]
 			if dash.Content.Calls != nil && dash.Content.Calls.Content != "" {
-				tx := ui.AddText(0, 0, 1, 1, dash.Content.Calls.Content)
+				tx := ui.AddText(0, 0, dashW, 1, dash.Content.Calls.Content)
 				tx.Align_h = 1
 				break //done
 			}
@@ -139,23 +143,13 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 
 	//Side panel
 	if app.ShowSide {
-
 		ui.SetColumnResizable(1, 5, 25, 7)
 		SideDiv := ui.AddLayout(1, 0, 1, 2)
 		SideDiv.SetColumn(0, 1, 100)
-		SideDiv.SetRow(1, 1, 100)
-
-		//close panel
-		CloseBt := SideDiv.AddButton(0, 0, 1, 1, ">>")
-		CloseBt.layout.Tooltip = "Close side panel"
-		CloseBt.Background = 0.5
-		CloseBt.clicked = func() error {
-			app.ShowSide = false //hide
-			return nil
-		}
+		SideDiv.SetRow(0, 1, 100)
 
 		//Chat
-		ChatDiv, err := SideDiv.AddTool(0, 1, 1, 1, (&ShowChat{AppName: st.AppName, ChatFileName: st.ChatFileName}).run, caller)
+		ChatDiv, err := SideDiv.AddTool(0, 0, 1, 1, (&ShowChat{AppName: st.AppName, ChatFileName: st.ChatFileName}).run, caller)
 		if err != nil {
 			return fmt.Errorf("ShowChat.run() failed: %v", err)
 		}
@@ -163,10 +157,19 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 			ChatDiv.VScrollToTheBottom(true, caller)
 		}
 
+		//close panel
+		CloseBt := SideDiv.AddButton(0, 1, 1, 1, ">>")
+		CloseBt.layout.Tooltip = "Close chat panel"
+		CloseBt.Background = 0.5
+		CloseBt.clicked = func() error {
+			app.ShowSide = false //hide
+			return nil
+		}
+
 	} else {
-		ShowSideBt := ui.AddButton(1, 0, 1, 2, "<<")
+		ShowSideBt := ui.AddButton(1, 1, 1, 1, "<<")
 		ShowSideBt.layout.Tooltip = "Show chat panel"
-		ShowSideBt.Background = 0.25
+		ShowSideBt.Background = 0.5
 		ShowSideBt.clicked = func() error {
 			app.ShowSide = true
 			return nil
