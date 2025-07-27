@@ -226,9 +226,8 @@ type UIGridSize struct {
 
 	Default_resize float64
 
-	SetFromChild_min float64 `json:",omitempty"`
-	SetFromChild_max float64 `json:",omitempty"`
-	SetFromChild_fix bool    `json:",omitempty"`
+	SetFromChild     bool `json:",omitempty"`
+	SetFromChild_fix bool `json:",omitempty"`
 }
 
 type UIYearCalendar struct {
@@ -467,8 +466,8 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 	}
 
 	for _, col := range ui.Cols {
-		if col.SetFromChild_min > 0 || col.SetFromChild_max > 0 {
-			layout.SetColumnFromSub(col.Pos, col.SetFromChild_min, col.SetFromChild_max, col.SetFromChild_fix)
+		if col.SetFromChild {
+			layout.SetColumnFromSub(col.Pos, col.Min, col.Max, col.SetFromChild_fix)
 		} else {
 			if col.Default_resize > 0 {
 				layout.SetColumnResizable(col.Pos, col.Min, col.Max, col.Default_resize)
@@ -479,8 +478,8 @@ func (ui *UI) addLayout(layout *Layout, appName string, funcName string, parent_
 
 	}
 	for _, row := range ui.Rows {
-		if row.SetFromChild_min > 0 || row.SetFromChild_max > 0 {
-			layout.SetRowFromSub(row.Pos, row.SetFromChild_min, row.SetFromChild_max, row.SetFromChild_fix)
+		if row.SetFromChild {
+			layout.SetRowFromSub(row.Pos, row.Min, row.Max, row.SetFromChild_fix)
 		} else {
 			if row.Default_resize > 0 {
 				layout.SetRowResizable(row.Pos, row.Min, row.Max, row.Default_resize)

@@ -39,11 +39,13 @@ func (table *UITable) addLine(llmtip string) *UI
 func (table *UITable) addDivider() //whole line is horizontal line. Use to separate header from data.
 
 type UIText struct {
-	layout  *UI
-	Label   string
-	Align_h int
-	Align_v int
-	Cd      color.RGBA
+	layout *UI
+	Label  string
+
+	Align_h int //0=left, 1=center, 2=right
+	Align_v int //0=top, 1=center, 2=bottom
+
+	Cd color.RGBA
 
 	Selection    bool
 	Formating    bool
@@ -83,6 +85,8 @@ type UIEditbox struct {
 	changed func() error
 	enter   func() error
 }
+
+func (ed *UIEditbox) setMultilined() //Enable multi-line
 
 func (ui *UI) addEditboxString(value *string, llmtip string) *UIEditbox
 func (ui *UI) addEditboxInt(value *int, llmtip string) *UIEditbox

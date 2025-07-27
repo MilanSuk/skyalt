@@ -1886,14 +1886,14 @@ func (ui *UI) addTooltipGroup(x, y, w, h int, tooltip string) {
 func (ui *UI) addTable(tooltip string) *UITable {
 	item := &UITable{layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.temp_row = -1
+	item.layout.table = true
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
+	ui._autoRowBasic()
 	ui._addUILine(item.layout)
 	return item
 }
 
 func (table *UITable) addLine(tooltip string) *UI {
-	table.layout.table = true
 
 	table.layout.temp_col = 0
 	table.layout.temp_row++
@@ -1914,11 +1914,25 @@ func (ui *UI) addTextH1(label string) *UIText {
 func (ui *UI) addTextH2(label string) *UIText {
 	return ui.addText("<h2>"+label+"</h2>", "")
 }
+
+func (ui *UI) _autoRowBasic() {
+	//find old min/max
+	min := 1.0
+	max := 100.0
+	for _, r := range ui.Rows {
+		if r.Pos == ui.temp_row {
+			min = r.Min
+			max = r.Max
+		}
+	}
+	ui.SetRowFromSub(ui.temp_row, min, max, true)
+}
+
 func (ui *UI) addText(label string, tooltip string) *UIText {
 	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, "")}
 	item.layout.Text = item
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
+	ui._autoRowBasic()
 	ui._addUILine(item.layout)
 	return item
 }
@@ -1926,7 +1940,7 @@ func (ui *UI) addEditboxString(value *string, tooltip string) *UIEditbox {
 	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
+	ui._autoRowBasic()
 	ui._addUILine(item.layout)
 	return item
 }
@@ -1934,7 +1948,7 @@ func (ui *UI) addEditboxInt(value *int, tooltip string) *UIEditbox {
 	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
+	ui._autoRowBasic()
 	ui._addUILine(item.layout)
 	return item
 }
@@ -1942,15 +1956,22 @@ func (ui *UI) addEditboxFloat(value *float64, precision int, tooltip string) *UI
 	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
+	ui._autoRowBasic()
 	ui._addUILine(item.layout)
 	return item
 }
+func (ed *UIEditbox) setMultilined() {
+	ed.Multiline = true
+	ed.Align_h = 0
+	ed.Align_v = 0
+	ed.Linewrapping = true
+}
+
 func (ui *UI) addButton(label string, tooltip string) *UIButton {
 	item := &UIButton{Label: label, Background: 1, Align: 1, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Button = item
 
-	ui.SetRowFromSub(ui.temp_row, 1, 100, true)
+	ui._autoRowBasic()
 	ui._addUILine(item.layout)
 	return item
 }
@@ -1999,6 +2020,8 @@ func (ui *UI) addDivider(horizontal bool) *UIDivider {
 func (ui *UI) addMap(lon, lat, zoom *float64, tooltip string) *UIMap {
 	item := &UIMap{Lon: lon, Lat: lat, Zoom: zoom, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Map = item
+
+	ui._autoRowBasic()
 	ui._addUILine(item.layout)
 	return item
 }
@@ -2012,26 +2035,26 @@ func (mp *UIMap) addRoute(route UIMapRoute) {
 func (ui *UI) addYearCalendar(Year int) *UIYearCalendar {
 	item := &UIYearCalendar{Year: Year, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, "")}
 	item.layout.YearCalendar = item
-	ui._addUILine(item.layout)
 
-	ui.SetRowFromSub(ui.temp_row-1, 1, 100, true)
+	ui._autoRowBasic()
+	ui._addUILine(item.layout)
 	return item
 }
 
 func (ui *UI) addMonthCalendar(Year int, Month int, Events []UICalendarEvent) *UIMonthCalendar {
 	item := &UIMonthCalendar{Year: Year, Month: Month, Events: Events, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, "")}
 	item.layout.MonthCalendar = item
-	ui._addUILine(item.layout)
 
-	ui.SetRowFromSub(ui.temp_row-1, 1, 100, true)
+	ui._autoRowBasic()
+	ui._addUILine(item.layout)
 	return item
 }
 func (ui *UI) addDayCalendar(Days []int64, Events []UICalendarEvent) *UIDayCalendar {
 	item := &UIDayCalendar{Days: Days, Events: Events, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, "")}
 	item.layout.DayCalendar = item
-	ui._addUILine(item.layout)
 
-	ui.SetRowFromSub(ui.temp_row-1, 1, 100, true)
+	ui._autoRowBasic()
+	ui._addUILine(item.layout)
 	return item
 }
 
@@ -2357,9 +2380,8 @@ type UIGridSize struct {
 
 	Default_resize float64 `json:",omitempty"`
 
-	SetFromChild_min float64 `json:",omitempty"`
-	SetFromChild_max float64 `json:",omitempty"`
-	SetFromChild_fix bool    `json:",omitempty"`
+	SetFromChild     bool `json:",omitempty"`
+	SetFromChild_fix bool `json:",omitempty"`
 }
 type UIScroll struct {
 	Hide   bool
@@ -2543,7 +2565,7 @@ func (ui *UI) SetRowResizable(pos int, min, max, default_size float64) {
 }
 
 func (ui *UI) SetColumnFromSub(grid_y int, min_size, max_size float64, fix bool) {
-	newItem := UIGridSize{Pos: grid_y, SetFromChild_min: min_size, SetFromChild_max: max_size, SetFromChild_fix: fix}
+	newItem := UIGridSize{Pos: grid_y, Min: min_size, Max: max_size, SetFromChild: true, SetFromChild_fix: fix}
 
 	for i := range ui.Cols {
 		if ui.Cols[i].Pos == grid_y {
@@ -2555,7 +2577,7 @@ func (ui *UI) SetColumnFromSub(grid_y int, min_size, max_size float64, fix bool)
 }
 
 func (ui *UI) SetRowFromSub(grid_y int, min_size, max_size float64, fix bool) {
-	newItem := UIGridSize{Pos: grid_y, SetFromChild_min: min_size, SetFromChild_max: max_size, SetFromChild_fix: fix}
+	newItem := UIGridSize{Pos: grid_y, Min: min_size, Max: max_size, SetFromChild: true, SetFromChild_fix: fix}
 
 	for i := range ui.Rows {
 		if ui.Rows[i].Pos == grid_y {
