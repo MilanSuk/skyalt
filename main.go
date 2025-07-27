@@ -69,7 +69,6 @@ func main() {
 	defer ui.Destroy()
 
 	//Loop
-	num_sleeps := 0
 	run := true
 	for run {
 		var win_redraw bool
@@ -119,16 +118,8 @@ func main() {
 				win.StartRender(color.RGBA{220, 220, 220, 255})
 				ui.Draw()
 				win.EndRender(true, ui.router.services.sync.GetStats())
-
-				num_sleeps = 0 //reset
 			} else {
-				if num_sleeps > 10 {
-					time.Sleep((1000 / 5) * time.Millisecond) //deep sleep
-				} else {
-					time.Sleep((1000 / 60) * time.Millisecond) //light sleep
-				}
-
-				num_sleeps++
+				time.Sleep(10 * time.Millisecond) //keep CPU down
 			}
 		}
 		win.Finish()

@@ -135,7 +135,7 @@ func NewWin(services *Services) (*Win, error) {
 	win.gph = NewWinGph()
 
 	sdl.EventState(sdl.DROPFILE, sdl.ENABLE)
-	sdl.StartTextInput()
+	//sdl.StartTextInput()
 
 	// cursors
 	win.cursors = append(win.cursors, WinCursor{"default", sdl.SYSTEM_CURSOR_ARROW, sdl.CreateSystemCursor(sdl.SYSTEM_CURSOR_ARROW)})
