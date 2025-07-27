@@ -1,0 +1,21 @@
+#Storage
+App accepts text, check grammar and output fixed text.
+Store original long text as "Original" and summarized text as "Fixed".
+
+
+#tool ShowGrammarChecker
+First row has label "Original text".
+Next row is editbox(enable multi-line and line-wrapping) with 'Original' from storage. Set row height between 3 and 100.
+Next row has button "Check".
+Next row has text with 'Fixed' from storage.
+
+The "Check" button send original text into LLM completion with system prompt:
+"You are grammar checker. You take a text from user and rewrite it with goal to fix all grammar issues.
+
+This tool has only visual output.
+
+
+#Start
+Show Grammar checker
+
+
