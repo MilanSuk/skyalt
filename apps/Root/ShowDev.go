@@ -240,7 +240,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 			//generate
 			{
-				diff := sdk_app.Changed //(promptsFileTime != sdk_app.PromptsFileTime || secretsFileTime != sdk_app.SecretsFileTime)
+				//diff := sdk_app.Changed //(promptsFileTime != sdk_app.PromptsFileTime || secretsFileTime != sdk_app.SecretsFileTime)
 
 				SaveDiv := FooterRightDiv.AddLayout(0, 0, 1, 1)
 
@@ -277,7 +277,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						callFuncGenerateApp(app.Name)
 						return nil
 					}
-					GenerateBt.layout.Enable = diff
+					//GenerateBt.layout.Enable = diff
 				}
 
 				//history back/forward buttons ....
