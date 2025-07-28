@@ -82,7 +82,7 @@ type UIEditbox struct {
 
 	AutoSave bool
 
-	changed func() error
+	changed func() error //called after .Value or .ValueFloat or .ValueInt has been changed
 	enter   func() error
 }
 
@@ -115,7 +115,7 @@ type UIButton struct {
 	Drag_index              int
 	Drop_h, Drop_v, Drop_in bool
 
-	clicked func() error
+	clicked func() error //called after button is triggered
 
 	dropMove func(src_i, dst_i int, aim_i int, src_source, dst_source string) error
 }
@@ -134,7 +134,7 @@ type UIDropDown struct {
 	Values []string
 	Icons  []UIDropDownIcon
 
-	changed func() error
+	changed func() error //called after .Value has been changed
 }
 
 func (ui *UI) addDropDown(value *string, labels []string, values []string, llmtip string) *UIDropDown
@@ -158,7 +158,7 @@ type UISwitch struct {
 	Label  string
 	Value  *bool
 
-	changed func() error
+	changed func() error //called after .Value has been changed
 }
 
 func (ui *UI) addSwitch(label string, value *bool, llmtip string) *UISwitch
@@ -168,7 +168,7 @@ type UICheckbox struct {
 	Label  string
 	Value  *float64
 
-	changed func() error
+	changed func() error //called after .Value has been changed
 }
 
 func (ui *UI) addCheckbox(label string, value *float64, llmtip string) *UICheckbox
@@ -180,7 +180,7 @@ type UISlider struct {
 	Max    float64
 	Step   float64
 
-	changed func() error
+	changed func() error //called after .Value has been changed
 }
 
 func (ui *UI) addSlider(value *float64, min, max, step float64, llmtip string) *UISlider
@@ -280,7 +280,7 @@ type UIDatePickerButton struct {
 	Date     *int64
 	Page     *int64
 	ShowTime bool
-	changed  func() error
+	changed  func() error //called after .Date has been changed
 }
 
 func (ui *UI) addDatePickerButton(date *int64, page *int64, showTime bool, llmtip string) *UIDatePickerButton
@@ -288,7 +288,7 @@ func (ui *UI) addDatePickerButton(date *int64, page *int64, showTime bool, llmti
 type UIColorPickerButton struct {
 	layout  *UI
 	Cd      *color.RGBA
-	changed func() error
+	changed func() error //called after .Cd has been changed
 }
 
 func (ui *UI) addColorPickerButton(cd *color.RGBA, llmtip string) *UIColorPickerButton
