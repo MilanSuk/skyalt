@@ -73,18 +73,19 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 			}
 			app.Chats[app.Selected_chat_i].Label = appUi.findH1()
 
+			appUi.App = true
 		} else {
 			//Multiple Dashes
-
 			DashDiv := ui.AddLayout(0, 0, dashW, 1)
 			DashDiv.SetColumn(0, 1, 100)
+			DashDiv.App = true
 
 			for i, dash := range dashUIs {
 				DashDiv.SetRowFromSub(i, 1, 100, true)
 
 				appUi, err := DashDiv.AddToolApp(0, i, 1, 1, st.AppName, dash.UI_func, []byte(dash.UI_paramsJs), caller)
 				if err != nil {
-					return fmt.Errorf("AddToolApp() failed: %v", err)
+					return fmt.Errorf("AddToolApp2() failed: %v", err)
 				}
 				appUi.changed = func(newParamsJs []byte) error {
 					dash.UI_paramsJs = string(newParamsJs) //save back changes

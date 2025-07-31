@@ -77,8 +77,8 @@ func (st *Text) Input(in LayoutInput, layout *Layout) {
 	}
 }
 
-func (st *Text) autoResize(layout *Layout) bool {
-	return layout.resizeFromPaintText(st.Value, st.Multiline, st.Linewrapping, st.getAutoResizeMargin())
+func (st *Text) autoResize(layout *Layout) {
+	layout.resizeFromPaintText(st.Value, st.Multiline, st.Linewrapping, st.getAutoResizeMargin())
 }
 func (st *Text) getAutoResizeMargin() [4]float64 {
 	m := (1 - WinFontProps_GetDefaultLineH()) / 2

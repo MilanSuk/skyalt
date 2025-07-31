@@ -92,6 +92,13 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
+		//divider
+		{
+			AppsDiv.SetRow(y, 0.1, 0.1)
+			AppsDiv.AddDivider(0, y, 1, 1, true)
+			y++
+		}
+
 		//Apps
 		{
 			AppsDiv.SetRow(y, 1, 100)
@@ -171,6 +178,13 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 				yy++
 			}
+		}
+
+		//divider
+		{
+			AppsDiv.SetRow(y, 0.1, 0.1)
+			AppsDiv.AddDivider(0, y, 1, 1, true)
+			y++
 		}
 
 		//create an app
@@ -476,19 +490,19 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 						}
 					}
 
+					HeaderDiv.SetColumn(1, 0.5, 0.5) //space
+
 					//navigation
 					if source_chat != nil {
 						numUseMessages := source_chat.GetNumUserMessages()
 
 						//HeaderDiv.SetColumn(1, 0.5, 0.5) //space
 
-						HeaderDiv.SetColumnFromSub(1, 1, 100, true)
-						NavDiv := HeaderDiv.AddLayout(1, 0, 1, 1)
+						HeaderDiv.SetColumnFromSub(2, 1, 100, true)
+						NavDiv := HeaderDiv.AddLayout(2, 0, 1, 1)
 						NavDiv.SetRow(0, 1, 100)
 
 						nx := 0
-						NavDiv.SetColumn(nx, 0.5, 0.5) //space
-						nx++
 
 						/*NavDiv.SetColumn(nx, 1.5, 1.5)
 						homeBt := NavDiv.AddButton(nx, 0, 1, 1, "")
@@ -502,9 +516,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 							source_chat.User_msg_i = 0
 							return nil
 						}
-
-						NavDiv.SetColumn(nx, 0.5, 0.5) //space
-						nx++                           //space
 						*/
 
 						NavDiv.SetColumn(nx, 1.5, 1.5)

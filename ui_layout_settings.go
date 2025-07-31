@@ -16,19 +16,20 @@ limitations under the License.
 
 package main
 
-import "slices"
+import (
+	"slices"
+)
 
 type UiSettings struct {
 	Dialogs []*UiDialog
 	Layouts UiRootSettings
 
-	changed bool
+	changed_dialogs bool //open, close
 }
 
 func (s *UiSettings) IsChanged() bool {
-	changed := (s.changed || s.Layouts.changed)
-	s.changed = false
-	s.Layouts.changed = false
+	changed := s.changed_dialogs
+	s.changed_dialogs = false
 	return changed
 }
 
@@ -39,7 +40,7 @@ func (s *UiSettings) CloseAllDialogs() {
 func (s *UiSettings) OpenDialog(uid uint64, relative_uid uint64, parentTouch OsV2) *UiDialog {
 	dia := &UiDialog{UID: uid, Relative_uid: relative_uid, TouchPos: parentTouch}
 	s.Dialogs = append(s.Dialogs, dia)
-	s.changed = true
+	s.changed_dialogs = true
 	return dia
 }
 
@@ -56,7 +57,7 @@ func (s *UiSettings) CloseDialog(dia *UiDialog) {
 	for i := len(s.Dialogs) - 1; i >= 0; i-- {
 		if s.Dialogs[i] == dia {
 			s.Dialogs = slices.Delete(s.Dialogs, i, i+1)
-			s.changed = true
+			s.changed_dialogs = true
 		}
 	}
 }
@@ -145,8 +146,6 @@ type UiRootSettings struct {
 
 	Cols map[uint64][]UiRootResize `json:",omitempty"`
 	Rows map[uint64][]UiRootResize `json:",omitempty"`
-
-	changed bool
 }
 
 func (se *UiRootSettings) Init() {
@@ -192,7 +191,6 @@ func (se *UiRootSettings) SetScrollV(uid uint64, pos int) {
 	} else {
 		se.V_scrolls[uid] = &UiRootScroll{Pos: pos, use: true}
 	}
-	se.changed = true
 }
 func (se *UiRootSettings) SetScrollH(uid uint64, pos int) {
 	val, found := se.H_scrolls[uid]
@@ -201,7 +199,6 @@ func (se *UiRootSettings) SetScrollH(uid uint64, pos int) {
 	} else {
 		se.H_scrolls[uid] = &UiRootScroll{Pos: pos, use: true}
 	}
-	se.changed = true
 }
 
 func _UiRootResize_GetSet(items map[uint64][]UiRootResize, uid uint64, pos int, size float64, write bool) float64 {
@@ -223,7 +220,6 @@ func (se *UiRootSettings) GetCol(uid uint64, pos int, def_size float64) float64 
 }
 func (se *UiRootSettings) SetCol(uid uint64, pos int, size float64) {
 	_UiRootResize_GetSet(se.Cols, uid, pos, size, true)
-	se.changed = true
 }
 
 func (se *UiRootSettings) GetRow(uid uint64, pos int, def_size float64) float64 {
@@ -231,5 +227,4 @@ func (se *UiRootSettings) GetRow(uid uint64, pos int, def_size float64) float64 
 }
 func (se *UiRootSettings) SetRow(uid uint64, pos int, size float64) {
 	_UiRootResize_GetSet(se.Rows, uid, pos, size, true)
-	se.changed = true
 }

@@ -10,6 +10,8 @@ import (
 //Use setRowHeight() only when user prompt require that row has specific height.
 //Some functions may have 'llmtip' argument whitch describes what UI component represents. In most situation it should be in a form <storage id> = <value>. Few examples: PersonID=123, GalleryID="path/to/image".
 
+//Code inside callbacks(UIButton.clicked, UIEditbox.changed, LLMCompletion.update, etc.), should not write into UIs structures, it should write only into storage or tool's arguments.
+
 type ToolCaller struct {
 }
 
@@ -59,6 +61,8 @@ type UIText struct {
 	dropFile func(pathes []string) error
 }
 
+func (ed *UIText) setMultilined() //Enable multi-line & Line-wrapping
+
 func (ui *UI) addTextH1(label string) *UIText //add main heading
 func (ui *UI) addTextH2(label string) *UIText //add secondary heading
 func (ui *UI) addText(label string, llmtip string) *UIText
@@ -86,7 +90,7 @@ type UIEditbox struct {
 	enter   func() error
 }
 
-func (ed *UIEditbox) setMultilined() //Enable multi-line
+func (ed *UIEditbox) setMultilined() //Enable multi-line & Line-wrapping
 
 func (ui *UI) addEditboxString(value *string, llmtip string) *UIEditbox
 func (ui *UI) addEditboxInt(value *int, llmtip string) *UIEditbox
@@ -364,6 +368,10 @@ type LLMCompletion struct {
 
 	Out_answer    string
 	Out_reasoning string
+
+	//always use this to give user update that it's working in background
+	//'answer' is full answer, not delta.
+	update func(answer string)
 }
 
 func NewLLMCompletion(systemMessage string, userMessage string) *LLMCompletion {

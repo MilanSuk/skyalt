@@ -117,12 +117,12 @@ func (st *Editbox) Input(in LayoutInput, layout *Layout) {
 	}
 }
 
-func (st *Editbox) autoResize(layout *Layout) bool {
+func (st *Editbox) autoResize(layout *Layout) {
 	value := st.getValue()
 	if layout.ui.edit.Is(layout) {
 		value = layout.ui.edit.temp
 	}
-	return layout.resizeFromPaintText(value, st.Multiline, st.Linewrapping, st.getAutoResizeMargin())
+	layout.resizeFromPaintText(value, st.Multiline, st.Linewrapping, st.getAutoResizeMargin())
 }
 func (st *Editbox) getAutoResizeMargin() [4]float64 {
 	m := (1 - WinFontProps_GetDefaultLineH()) / 2

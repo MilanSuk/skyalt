@@ -760,7 +760,7 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 		comp.UserFiles = files
 	}
 	comp.Max_iteration = 10
-	comp.delta = func(msgJs []byte) {
+	comp.deltaMsg = func(msgJs []byte) {
 		var msg ChatMsg
 		err := json.Unmarshal(msgJs, &msg)
 		if err != nil {

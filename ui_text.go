@@ -236,7 +236,7 @@ func (ui *Ui) _Text_update(layout *Layout,
 				lines = ui.win.GetTextLines(value, max_line_px, prop) //refresh
 
 				if num_old_lines != len(lines) {
-					layout.ui.SetRelayout()
+					layout.ui.SetRelayoutHard()
 				}
 
 				if tryMoveScroll {
@@ -747,7 +747,7 @@ func (ui *Ui) _UiText_Text_VScrollInto(layout *Layout, lines []WinGphLine, tx_ma
 	if backup_wheel != layout.scrollV.wheel {
 		//dom.RebuildSoft()
 		layout.GetSettings().SetScrollV(layout.UID, layout.scrollV.wheel)
-		layout.ui.SetRelayout()
+		layout.ui.SetRelayoutSoft()
 	}
 
 }
@@ -776,7 +776,7 @@ func (ui *Ui) _UiText_Text_HScrollInto(layout *Layout, text string, tx_margin [4
 
 	if backup_wheel != layout.scrollH.wheel {
 		layout.GetSettings().SetScrollH(layout.UID, layout.scrollH.wheel)
-		layout.ui.SetRelayout()
+		layout.ui.SetRelayoutSoft()
 	}
 }
 

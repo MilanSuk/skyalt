@@ -298,6 +298,8 @@ type UI struct {
 	Paint []UIPaint
 
 	HasUpdate bool
+
+	App bool
 }
 
 func (ui *UI) Is() bool {
@@ -866,6 +868,8 @@ func (layout *Layout) setLayoutFromUI(ui *UI) {
 		layout.Tooltip = ui.Tooltip
 	}
 	layout.TooltipGroups = ui.TooltipGroups
+
+	layout.App = ui.App
 
 	layout.UID = ui.UID
 }

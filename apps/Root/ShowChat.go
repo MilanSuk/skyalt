@@ -140,7 +140,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 					y++
 
 					tx := UserDiv.AddText(1, 0, 1, 1, txt)
-					tx.Multiline = true
+					tx.setMultilined()
 					//tx.Align_v = 0
 					tx.layout.Border_cd = UI_GetPalette().GetGrey(0.2)
 					tx.layout.Back_cd = UI_GetPalette().B
@@ -212,7 +212,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 			if txt != "" {
 				layout.SetRowFromSub(y, 1, 100, true)
 				tx := layout.AddText(0, y, 3, 1, txt)
-				tx.Multiline = true
+				tx.setMultilined()
 				//tx.Align_v = 0
 				y++
 			}
@@ -228,7 +228,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				//text
 				layout.SetRowFromSub(y, 1, 100, true)
 				tx := layout.AddText(0, y, 3, 1, rsp_txt)
-				tx.Multiline = true
+				tx.setMultilined()
 				//tx.Align_v = 0
 				y++
 			}
@@ -475,7 +475,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 
 				if strings.Count(valStr, "\n") > 0 {
 					tx := CallDiv.AddText(2, yy, 1, 1, _ShowChat_cutString(valStr))
-					tx.Multiline = true
+					tx.setMultilined()
 					//tx.Align_v = 0
 				} else {
 					CallDiv.AddText(2, yy, 1, 1, _ShowChat_cutString(valStr))
@@ -490,7 +490,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 			CallDiv.SetRowFromSub(yy, 1, 100, true)
 
 			tx := CallDiv.AddText(1, yy, 2, 1, _ShowChat_cutString(msg_result.Content.Result.Content))
-			tx.Multiline = true
+			tx.setMultilined()
 			//tx.Align_v = 0
 			yy++
 		}

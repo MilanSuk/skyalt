@@ -35,8 +35,9 @@ type Ui struct {
 
 	refresh bool
 
-	relayout     bool
-	redrawBuffer bool
+	relayout_hard bool
+	relayout_soft bool
+	redrawBuffer  bool
 
 	maintenance_tick int64
 
@@ -171,9 +172,13 @@ func (ui *Ui) SetRefresh() {
 	ui.refresh = true
 }
 
-func (ui *Ui) SetRelayout() {
-	ui.relayout = true
+func (ui *Ui) SetRelayoutHard() {
+	ui.relayout_hard = true
 }
+func (ui *Ui) SetRelayoutSoft() {
+	ui.relayout_soft = true
+}
+
 func (ui *Ui) SetRedrawBuffer() {
 	ui.redrawBuffer = true
 }
@@ -201,7 +206,7 @@ func (ui *Ui) Cell() int {
 	return int(float64(ui.router.services.sync.Device.Dpi) / 2.5)
 }
 func (ui *Ui) CellWidth(width float64) int {
-	t := int(width * float64(ui.Cell())) // cell is ~34
+	t := OsRoundHalf(width * float64(ui.Cell())) // cell is ~34
 	if width > 0 && t <= 0 {
 		t = 1 //at least 1px
 	}
@@ -229,8 +234,19 @@ func (ui *Ui) _relayout(layout *Layout) {
 
 	layout.projectScroll()
 
-	//relayout
-	layout.clearAutoColsRows()
+	layout.updateFromChildCols(false)
+	layout._relayout()
+	layout.updateFromChildRows()
+	layout._relayout()
+
+	layout.updateFromChildCols(false)
+	layout._relayout()
+	layout.updateFromChildRows()
+	layout._relayout()
+
+	layout.updateFromChildCols(true)
+	layout._relayout()
+	layout.updateFromChildRows()
 	layout._relayout()
 
 	layout._draw()
@@ -322,7 +338,8 @@ func (ui *Ui) Tick() {
 
 	if ui.refresh {
 		ui.refresh = false
-		ui.relayout = false //is in _refresh()
+		ui.relayout_hard = false //is in _refresh()
+		ui.relayout_soft = false
 
 		//save activated editbox
 		if ui.edit.IsActive() {
@@ -365,7 +382,7 @@ func (ui *Ui) Tick() {
 
 			new_dom._build()
 			ui.mainLayout = new_dom
-			ui.SetRelayout()
+			ui.SetRelayoutHard()
 
 			ui.temp_ui = nil
 		}
@@ -379,18 +396,19 @@ func (ui *Ui) Tick() {
 				ui.temp_cmds = slices.Delete(ui.temp_cmds, i, i+1)
 				i--
 
-				ui.SetRelayout()
+				ui.SetRelayoutHard()
 			}
 		}
 		ui.temp_cmds = nil
 	}
 
 	if ui.settings.IsChanged() {
-		ui.SetRelayout()
+		ui.SetRelayoutHard()
 	}
 
-	if ui.relayout {
-		ui.relayout = false
+	if ui.relayout_hard {
+		ui.relayout_hard = false
+		ui.relayout_soft = false
 
 		st := OsTime()
 
@@ -416,11 +434,29 @@ func (ui *Ui) Tick() {
 			}
 		}
 
-		fmt.Printf("_relayout(): %.4fsec\n", OsTime()-st)
+		fmt.Printf("_relayout(hard): %.4fsec\n", OsTime()-st)
 
 		ui.mainLayout.SetTouchAll()
 
 		ui.SetRedrawBuffer()
+	}
+
+	if ui.relayout_soft {
+		ui.relayout_soft = false
+
+		st := OsTime()
+
+		ui.mainLayout.updateCoordSoft()
+
+		//dialogs
+		for _, dia := range ui.settings.Dialogs {
+			diaLay := ui.mainLayout.FindUID(dia.UID)
+			if diaLay != nil {
+				diaLay.updateCoordSoft()
+			}
+		}
+
+		fmt.Printf("_relayout(soft): %.4fsec\n", OsTime()-st)
 	}
 
 	ui.mainLayout.UpdateTouch()

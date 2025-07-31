@@ -1873,6 +1873,8 @@ type UI struct {
 
 	table              bool
 	temp_col, temp_row int
+
+	App bool
 }
 
 func (ui *UI) setRowHeight(min, max float64) {
@@ -2589,7 +2591,7 @@ func (ui *UI) SetRowFromSub(grid_y int, min_size, max_size float64, fix bool) {
 }
 
 func (ui *UI) AddText(x, y, w, h int, label string) *UIText {
-	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: true, Linewrapping: true, layout: _newUIItem(x, y, w, h, "")}
+	item := &UIText{Label: label, Align_h: 0, Align_v: 1, Selection: true, Formating: true, Multiline: false, Linewrapping: false, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Text = item
 	ui._addUISub(item.layout, "")
 	return item
@@ -2598,6 +2600,12 @@ func (ui *UI) AddTextLabel(x, y, w, h int, value string) *UIText {
 	txt := ui.AddText(x, y, w, h, "<b>"+value+"</b>")
 	txt.Align_h = 1
 	return txt
+}
+func (ed *UIText) setMultilined() {
+	ed.Multiline = true
+	ed.Align_h = 0
+	ed.Align_v = 0
+	ed.Linewrapping = true
 }
 
 func (ui *UI) AddEditboxString(x, y, w, h int, value *string) *UIEditbox {
@@ -2959,12 +2967,13 @@ type LLMCompletion struct {
 	Out_messages   []byte //[]*ChatMsg
 	Out_tools      []byte
 
-	Out_answer    string
+	Out_answer    string //mělo by vrátit .Run() ...........................
 	Out_reasoning string
 
 	Out_usage LLMMsgUsage
 
-	delta func(msgJs []byte) //msg *ChatMsg
+	deltaMsg func(msgJs []byte)
+	update   func(answer string)
 }
 
 func NewLLMCompletion(systemMessage string, userMessage string) *LLMCompletion {
@@ -2992,10 +3001,16 @@ func (comp *LLMCompletion) Run(caller *ToolCaller) error {
 
 					//delta(s)
 					for {
-						msgJs, err := cl.ReadArray()
-						if Tool_Error(err) == nil && len(msgJs) > 0 {
-							if comp.delta != nil {
-								comp.delta(msgJs)
+						delta_answer, err := cl.ReadArray()
+						delta_raw, err := cl.ReadArray()
+						if Tool_Error(err) == nil && len(delta_answer) > 0 {
+							if comp.update != nil {
+								comp.update(string(delta_answer))
+							}
+						}
+						if Tool_Error(err) == nil && len(delta_raw) > 0 {
+							if comp.deltaMsg != nil {
+								comp.deltaMsg(delta_raw)
 							}
 						} else {
 							break

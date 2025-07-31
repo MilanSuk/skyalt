@@ -56,16 +56,21 @@ type LayoutInput struct {
 	Pick LayoutPick
 }
 type LayoutCR struct {
-	Pos int     `json:",omitempty"`
-	Min float64 `json:",omitempty"`
-	Max float64 `json:",omitempty"`
+	Pos int
+	Min float64
+	Max float64
 
-	Resize_value float64 `json:",omitempty"`
+	Resize_value float64
 
-	SetFromChild_min float64 `json:",omitempty"`
-	SetFromChild_max float64 `json:",omitempty"`
-	SetFromChild_fix bool    `json:",omitempty"`
+	SetFromChild_min float64
+	SetFromChild_max float64
+	SetFromChild_fix bool
 }
+
+func (cr *LayoutCR) IsFromChild() bool {
+	return cr.SetFromChild_min > 0 || cr.SetFromChild_max > 0
+}
+
 type LayoutDialog struct {
 	Layout *Layout
 }
@@ -270,9 +275,8 @@ type Layout struct {
 	UserCols []LayoutCR
 	UserRows []LayoutCR
 
-	fnAutoResize          func(layout *Layout) bool
+	fnAutoResize          func(layout *Layout)
 	fnGetAutoResizeMargin func() [4]float64
-	autoCoord             OsV4
 
 	Cards_autoSpacing bool
 
@@ -598,61 +602,268 @@ func (layout *Layout) IsLevel() bool {
 	return layout.IsBase() || layout.IsDialog()
 }
 
-func (layout *Layout) clearAutoColsRows() {
-	if layout.fnAutoResize != nil {
-		layout.UserCols = nil
-		layout.UserRows = nil
-	}
-
+func (layout *Layout) updateFromChildCols(enableFix bool) (float64, float64) {
+	//reset
 	for i, c := range layout.UserCols {
-		if c.SetFromChild_min > 0 || c.SetFromChild_max > 0 {
+		if c.IsFromChild() {
 			layout.UserCols[i].Min = 0
 			layout.UserCols[i].Max = 0
 		}
 	}
+
+	//childs
+	for _, it := range layout.childs {
+		if it.IsShown() {
+			min, max := it.updateFromChildCols(enableFix)
+
+			if it.W == 1 {
+				for i, c := range layout.UserCols {
+					if c.IsFromChild() && it.X == c.Pos {
+
+						layout.UserCols[i].Min = OsClampFloat(OsMaxFloat(c.Min, min), c.SetFromChild_min, c.SetFromChild_max)
+						if !enableFix {
+							layout.UserCols[i].Max = OsClampFloat(OsMaxFloat(c.Max, max), c.SetFromChild_min, c.SetFromChild_max)
+						} else {
+
+							if c.SetFromChild_fix {
+								layout.UserCols[i].Max = layout.UserCols[i].Min
+							} else {
+								layout.UserCols[i].Max = c.SetFromChild_max
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	//repair
+	for i, c := range layout.UserCols {
+		if c.IsFromChild() && c.Min == 0 && c.Max == 0 { //un-changed
+			layout.UserCols[i].Min = c.SetFromChild_min
+			layout.UserCols[i].Max = c.SetFromChild_max
+		}
+	}
+
+	if layout.dialog != nil {
+		layout.dialog.updateFromChildCols(enableFix)
+	}
+
+	//update min/max size of components
+	if layout.fnAutoResize != nil {
+		layout.UserCols = nil
+		layout.UserRows = nil
+
+		if !enableFix {
+			layout.canvas = OsV4{} //only when update cols, rows must know width!
+		}
+
+		layout.fnAutoResize(layout)
+	}
+
+	var min_px, max_px int
+	{
+		max_grid := 0
+		for _, tx := range layout.childs {
+			if tx.IsShown() {
+				max_grid = OsMax(max_grid, tx.X+tx.W)
+			}
+		}
+		min_px = layout.ui.CellWidth(float64(max_grid))
+		max_px = min_px
+
+		for _, c := range layout.UserCols {
+			min_px += layout.ui.CellWidth(c.Min)
+			max_px += layout.ui.CellWidth(c.Max)
+			if c.Pos < max_grid {
+				min_px -= layout.Cell()
+				max_px -= layout.Cell()
+			}
+		}
+	}
+
+	if layout.scrollV.Is() {
+		min_px += layout.scrollV._GetWidth(layout.ui)
+		max_px += layout.scrollV._GetWidth(layout.ui)
+	}
+	if min_px > max_px {
+		max_px = min_px
+	}
+
+	return float64(min_px) / float64(layout.Cell()), float64(max_px) / float64(layout.Cell())
+}
+
+func (layout *Layout) updateFromChildRows() (float64, float64) {
+	//reset
 	for i, r := range layout.UserRows {
-		if r.SetFromChild_min > 0 || r.SetFromChild_max > 0 {
+		if r.IsFromChild() {
 			layout.UserRows[i].Min = 0
 			layout.UserRows[i].Max = 0
 		}
 	}
 
+	//childs
 	for _, it := range layout.childs {
-		it.clearAutoColsRows()
+		if it.IsShown() {
+			min, _ := it.updateFromChildRows()
+
+			if it.H == 1 {
+				for i, r := range layout.UserRows {
+					if r.IsFromChild() && it.Y == r.Pos {
+						layout.UserRows[i].Min = OsClampFloat(OsMaxFloat(r.Min, min), r.SetFromChild_min, r.SetFromChild_max)
+						if r.SetFromChild_fix {
+							layout.UserRows[i].Max = layout.UserRows[i].Min
+						} else {
+							layout.UserRows[i].Max = r.SetFromChild_max
+							//layout.UserRows[i].Max = OsClampFloat(OsMaxFloat(r.Max, max), r.SetFromChild_min, r.SetFromChild_max)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	//repair
+	for i, r := range layout.UserRows {
+		if r.IsFromChild() && r.Min == 0 && r.Max == 0 { //un-changed
+			layout.UserRows[i].Min = r.SetFromChild_min
+			layout.UserRows[i].Max = r.SetFromChild_max
+		}
 	}
 
 	if layout.dialog != nil {
-		layout.dialog.clearAutoColsRows()
+		layout.dialog.updateFromChildRows()
+	}
+
+	//update min/max size of components
+	if layout.fnAutoResize != nil {
+		layout.UserCols = nil
+		layout.UserRows = nil
+
+		layout.fnAutoResize(layout)
+	}
+
+	var min_px, max_px int
+	{
+		max_grid := 0
+		for _, tx := range layout.childs {
+			if tx.IsShown() {
+				max_grid = OsMax(max_grid, tx.Y+tx.H)
+			}
+		}
+		min_px = layout.ui.CellWidth(float64(max_grid))
+		max_px = min_px
+
+		for _, c := range layout.UserRows {
+			min_px += layout.ui.CellWidth(c.Min)
+			max_px += layout.ui.CellWidth(c.Max)
+			if c.Pos < max_grid {
+				min_px -= layout.Cell()
+				max_px -= layout.Cell()
+			}
+		}
+	}
+
+	if layout.scrollH.Is() {
+		min_px += layout.scrollH._GetWidth(layout.ui)
+		max_px += layout.scrollH._GetWidth(layout.ui)
+	}
+	if min_px > max_px {
+		max_px = min_px
+	}
+
+	return float64(min_px) / float64(layout.Cell()), float64(max_px) / float64(layout.Cell())
+}
+
+func (layout *Layout) resizeFromPaintText(value string, multiline bool, linewrapping bool, margin [4]float64) {
+
+	prop := InitWinFontPropsDef(layout.Cell())
+
+	var min, max OsV2
+	if multiline {
+
+		if layout.canvas.Size.X > 0 {
+			canvas_width := layout.canvas.Inner(layout.ui.CellWidth(margin[0]), layout.ui.CellWidth(margin[1]), layout.ui.CellWidth(margin[2]), layout.ui.CellWidth(margin[3])).Size.X
+
+			max_line_px := layout.ui._UiText_getMaxLinePx(canvas_width, multiline, linewrapping)
+			min.X, min.Y = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
+
+			//when vertical scroll will be show, the max_line_px must be smaller
+			/*if (min.Y * prop.lineH) > layout.scrollV.screen {
+				max_line_px = canvas_width - layout.scrollV._GetWidth(layout.ui) //minus scroller width
+
+				max_line_px = layout.ui._UiText_getMaxLinePx(max_line_px, multiline, linewrapping)
+				min.X, min.Y = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
+			}*/
+
+			max = min
+		} else {
+
+			lines := strings.Split(value, "\n")
+			for _, ln := range lines {
+				x := layout.ui.win.GetTextSize(-1, ln, prop).X
+				min.X = OsMax(min.X, x)
+			}
+			min.Y = len(lines)
+
+			max = min
+
+			//if len(lines) > 1 && linewrapping {
+			if linewrapping {
+				min.X = OsMin(layout.ui.CellWidth(1.5), min.X) //should be sortest single word ....
+			}
+		}
+	} else {
+		min.X = layout.ui.win.GetTextSize(-1, value, prop).X
+		min.Y = 1
+
+		max = min
+	}
+	min.Y = OsMax(1, min.Y)
+
+	min_sizePx := OsV2{min.X, min.Y * prop.lineH}
+	min_sizePx.X += layout.ui.CellWidth(margin[2]) + layout.ui.CellWidth(margin[3])
+	min_sizePx.Y += layout.ui.CellWidth(margin[0]) + layout.ui.CellWidth(margin[1])
+	min_size_x := float64(min_sizePx.X) / float64(layout.Cell())
+	min_size_y := float64(min_sizePx.Y) / float64(layout.Cell())
+
+	max_sizePx := OsV2{max.X, max.Y * prop.lineH}
+	max_sizePx.X += layout.ui.CellWidth(margin[2]) + layout.ui.CellWidth(margin[3])
+	max_sizePx.Y += layout.ui.CellWidth(margin[0]) + layout.ui.CellWidth(margin[1])
+	max_size_x := float64(max_sizePx.X) / float64(layout.Cell())
+	max_size_y := float64(max_sizePx.Y) / float64(layout.Cell())
+
+	//column
+	{
+		if len(layout.UserCols) == 0 {
+			layout.UserCols = make([]LayoutCR, 1)
+		}
+		layout.UserCols[0].Min = min_size_x
+		layout.UserCols[0].Max = max_size_x
+	}
+
+	//row
+	if multiline {
+		if len(layout.UserRows) == 0 {
+			layout.UserRows = make([]LayoutCR, 1)
+		}
+		layout.UserRows[0].Min = min_size_y
+		layout.UserRows[0].Max = max_size_y
 	}
 }
 
-func (layout *Layout) _relayoutInner() {
+func (layout *Layout) _relayout() {
 
 	if layout.IsLevel() {
 		layout.rebuildLevel()
 	}
 
-	layout.updateCoord(0, 0, 1, 1)
-
-	if layout.fnAutoResize != nil {
-		if layout.fnAutoResize(layout) {
-			layout.updateCoord(0, 0, 1, 1)
-		}
-	}
+	layout.updateCoord()
 
 	if layout.IsDialog() {
 		if layout.rebuildLevel() { //for dialogs, it needs to know dialog size
-
-			layout.updateCoord(0, 0, 1, 1)
-			/*if layout._relayoutFromChild() {
-				layout.updateCoord(0, 0, 1, 1)
-			}
-
-			layout._relayoutFromChild()
-			layout.updateCoord(0, 0, 1, 1)
-			layout._relayout()*/
+			layout.updateCoord()
 		}
-		//layout.updateCoord(0, 0, 1, 1)
 	}
 
 	//order List
@@ -663,77 +874,6 @@ func (layout *Layout) _relayoutInner() {
 			it._relayout() //not Inner(), because parent could changed, which may influence the childs setRowFromSub()
 		}
 	}
-}
-
-func (layout *Layout) _relayoutFromChild() bool {
-
-	changed := false
-
-	for i, c := range layout.UserCols {
-		if c.SetFromChild_min > 0 || c.SetFromChild_max > 0 {
-			v := c.SetFromChild_min
-			for _, it := range layout.childs {
-				if it.IsShown() {
-					if it.X == c.Pos && it.W == 1 {
-						vv := it._getWidth()
-						if it.scrollV.Is() {
-							vv += float64(it.scrollV._GetWidth(it.ui)) / float64(it.Cell()) //add scroll width
-						}
-						v = OsMaxFloat(v, vv)
-					}
-				}
-			}
-
-			v = OsClampFloat(v, c.SetFromChild_min, c.SetFromChild_max)
-			layout.UserCols[i].Min = v
-			if c.SetFromChild_fix {
-				layout.UserCols[i].Max = v
-			} else {
-				layout.UserCols[i].Max = c.SetFromChild_max
-			}
-
-			changed = true
-		}
-	}
-
-	for i, r := range layout.UserRows {
-		if r.SetFromChild_min > 0 || r.SetFromChild_max > 0 {
-			v := r.SetFromChild_min
-			for _, it := range layout.childs {
-				if it.IsShown() {
-					if it.Y == r.Pos && it.H == 1 {
-						vv := it._getHeight()
-						if it.scrollH.Is() {
-							//vv += float64(it.scrollH._GetWidth(it.ui)) / float64(it.Cell()) //add scroll width
-						}
-						v = OsMaxFloat(v, vv)
-					}
-				}
-			}
-
-			v = OsClampFloat(v, r.SetFromChild_min, r.SetFromChild_max)
-			layout.UserRows[i].Min = v
-			if r.SetFromChild_fix {
-				layout.UserRows[i].Max = v
-			} else {
-				layout.UserRows[i].Max = r.SetFromChild_max
-			}
-
-			changed = true
-		}
-	}
-
-	return changed
-}
-
-func (layout *Layout) _relayout() {
-
-	layout._relayoutInner()
-
-	if layout._relayoutFromChild() {
-		layout._relayoutInner() //it's same 'dom', so avoid recursion - setFromSubs
-	}
-
 }
 
 func (layout *Layout) rebuildList() {
@@ -827,7 +967,7 @@ func (layout *Layout) rebuildList() {
 	}
 
 	//update!
-	layout.updateCoord(0, 0, 1, 1)
+	layout.updateCoord()
 }
 
 func (layout *Layout) GetCd(cd, cd_over, cd_down color.RGBA) color.RGBA {
@@ -921,10 +1061,9 @@ func (layout *Layout) renderBuffer(buffer []LayoutDrawPrim) (hasBrush bool) {
 
 			var coordText OsV4
 			if layout.fnAutoResize != nil {
-				coordText = layout.autoCoord
+				coordText = layout.canvas.Inner(layout.ui.CellWidth(tx.Margin[0]), layout.ui.CellWidth(tx.Margin[1]), layout.ui.CellWidth(tx.Margin[2]), layout.ui.CellWidth(tx.Margin[3]))
 			} else {
 				coordText = layout.getCanvasPx(it.Rect).Inner(layout.ui.CellWidth(tx.Margin[0]), layout.ui.CellWidth(tx.Margin[1]), layout.ui.CellWidth(tx.Margin[2]), layout.ui.CellWidth(tx.Margin[3]))
-				//coordText = layout.getCanvasPx(it.Rect.Cut(st.Margin))
 			}
 
 			align := OsV2{int(tx.Align_h), int(tx.Align_v)}
@@ -1115,61 +1254,6 @@ func (layout *Layout) UpdateTouch() {
 	}
 }
 
-func (layout *Layout) resizeFromPaintText(value string, multiline bool, linewrapping bool, margin [4]float64) (changed bool) {
-
-	prop := InitWinFontPropsDef(layout.Cell())
-
-	var mx, my int
-	if multiline {
-		max_line_px := layout.ui._UiText_getMaxLinePx(layout.autoCoord.Size.X, multiline, linewrapping)
-		mx, my = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
-
-		//when vertical scroll will be show, the max_line_px must be smaller
-		if (my * prop.lineH) > layout.scrollV.screen_height {
-			max_line_px = layout.autoCoord.Size.X - layout.scrollV._GetWidth(layout.ui) //minus scroller width
-
-			max_line_px = layout.ui._UiText_getMaxLinePx(max_line_px, multiline, linewrapping)
-			mx, my = layout.ui.win.GetTextSizeMax(value, max_line_px, prop)
-		}
-
-	} else {
-		mx = layout.ui.win.GetTextSize(-1, value, prop).X
-		my = 1
-	}
-
-	sizePx := OsV2{mx, my * prop.lineH}
-	sizePx.X += layout.ui.CellWidth(margin[2]) + layout.ui.CellWidth(margin[3])
-	sizePx.Y += layout.ui.CellWidth(margin[0]) + layout.ui.CellWidth(margin[1])
-	size_x := float64(sizePx.X) / float64(layout.Cell())
-	size_y := float64(sizePx.Y) / float64(layout.Cell())
-	//	size_x := float64(sizePx.X)/float64(layout.Cell()) + 2*margin
-	//	size_y := float64(sizePx.Y)/float64(layout.Cell()) + 2*margin
-
-	//column
-	{
-		changed = (len(layout.UserCols) == 0 || layout.UserCols[0].Min != size_x || layout.UserCols[0].Max != size_x)
-
-		if len(layout.UserCols) == 0 {
-			layout.UserCols = make([]LayoutCR, 1)
-		}
-		layout.UserCols[0].Min = size_x
-		layout.UserCols[0].Max = size_x
-	}
-
-	//row
-	if multiline {
-		changed = (len(layout.UserRows) == 0 || layout.UserRows[0].Min != size_y || layout.UserRows[0].Max != size_y)
-
-		if len(layout.UserRows) == 0 {
-			layout.UserRows = make([]LayoutCR, 1)
-		}
-		layout.UserRows[0].Min = size_y
-		layout.UserRows[0].Max = size_y
-	}
-
-	return changed
-}
-
 func (layout *Layout) findBufferText() (Rect, *LayoutDrawText) {
 	for _, tx := range layout.buffer {
 		if tx.Text != nil {
@@ -1190,7 +1274,7 @@ func (layout *Layout) textComp() {
 
 			var coordText OsV4
 			if layout.fnAutoResize != nil {
-				coordText = layout.autoCoord
+				coordText = layout.canvas.Inner(layout.ui.CellWidth(tx.Margin[0]), layout.ui.CellWidth(tx.Margin[1]), layout.ui.CellWidth(tx.Margin[2]), layout.ui.CellWidth(tx.Margin[3]))
 			} else {
 				coordText = layout.getCanvasPx(rect).Inner(layout.ui.CellWidth(tx.Margin[0]), layout.ui.CellWidth(tx.Margin[1]), layout.ui.CellWidth(tx.Margin[2]), layout.ui.CellWidth(tx.Margin[3]))
 			}
@@ -1712,6 +1796,7 @@ func (layout *Layout) touchScroll() {
 					wheel = UiRootSettings_GetMaxScroll()
 				}
 				layout.GetSettings().SetScrollV(layout.UID, wheel)
+				layout.ui.SetRelayoutSoft()
 			}
 		}
 	}
@@ -1724,6 +1809,7 @@ func (layout *Layout) touchScroll() {
 					wheel = UiRootSettings_GetMaxScroll()
 				}
 				layout.GetSettings().SetScrollH(layout.UID, wheel)
+				layout.ui.SetRelayoutSoft()
 			}
 		}
 	}
@@ -1771,9 +1857,12 @@ func (layout *Layout) updateColsRows() {
 	}
 }
 
-func (layout *Layout) updateCoord(rx, ry, rw, rh float64) {
-
-	layout.updateColsRows()
+func (layout *Layout) _updateCoordInner() {
+	//maybe use these later for layout margin? ....
+	rx := 0.0
+	ry := 0.0
+	rw := 1.0
+	rh := 1.0
 
 	isLevel := layout.IsLevel()
 	if !isLevel {
@@ -1822,17 +1911,18 @@ func (layout *Layout) updateCoord(rx, ry, rw, rh float64) {
 	layout.canvas.Size.X = layout.cols.OutputAll()
 	layout.canvas.Size.Y = layout.rows.OutputAll()
 	layout.canvas = layout.canvas.Extend(layout.view)
+}
 
-	//update text
-	if layout.fnGetAutoResizeMargin != nil {
-		margin := layout.fnGetAutoResizeMargin()
-
-		layout.autoCoord = layout.canvas.Inner(layout.ui.CellWidth(margin[0]), layout.ui.CellWidth(margin[1]), layout.ui.CellWidth(margin[2]), layout.ui.CellWidth(margin[3]))
-		if layout.autoCoord.Size.X == 0 {
-			//from parent
-			layout.autoCoord = layout.parent.canvas.Inner(layout.ui.CellWidth(margin[0]), layout.ui.CellWidth(margin[1]), layout.ui.CellWidth(margin[2]), layout.ui.CellWidth(margin[3]))
-		}
+func (layout *Layout) updateCoordSoft() {
+	layout._updateCoordInner()
+	for _, it := range layout.childs {
+		it.updateCoordSoft()
 	}
+}
+
+func (layout *Layout) updateCoord() {
+	layout.updateColsRows()
+	layout._updateCoordInner()
 }
 
 func (layout *Layout) GetGridMax(minSize OsV2) OsV2 {
@@ -1889,11 +1979,11 @@ func (layout *Layout) updateGridAndScroll(screen *OsV2, gridMax OsV2, makeSmalle
 	}
 
 	// save to scroll
-	layout.scrollV.data_height = data.Y
-	layout.scrollV.screen_height = screen.Y
+	layout.scrollV.data = data.Y
+	layout.scrollV.screen = screen.Y
 
-	layout.scrollH.data_height = data.X
-	layout.scrollH.screen_height = screen.X
+	layout.scrollH.data = data.X
+	layout.scrollH.screen = screen.X
 
 	return hasScrollV || hasScrollH
 }
@@ -1914,24 +2004,29 @@ func (layout *Layout) GetLevelSize() OsV4 {
 func (layout *Layout) VScrollToTheTop() {
 	layout.scrollV.SetWheel(0)
 	layout.GetSettings().SetScrollV(layout.UID, 0)
+	layout.ui.SetRelayoutSoft()
 
 }
 func (layout *Layout) HScrollToTheLeft() {
 	layout.scrollH.SetWheel(0)
 	layout.GetSettings().SetScrollH(layout.UID, 0)
+	layout.ui.SetRelayoutSoft()
 }
 func (layout *Layout) VScrollToTheBottom() {
 	layout.GetSettings().SetScrollV(layout.UID, UiRootSettings_GetMaxScroll())
+	layout.ui.SetRelayoutSoft()
 }
 func (layout *Layout) VScrollToTheBottomIf() {
 	//only when scroll is at the bottom
 	if layout.GetSettings().GetScrollV(layout.UID) == UiRootSettings_GetMaxScroll() {
 		layout.GetSettings().SetScrollV(layout.UID, UiRootSettings_GetMaxScroll())
+		layout.ui.SetRelayoutSoft()
 	}
 }
 
 func (layout *Layout) HScrollToTheRight() {
 	layout.GetSettings().SetScrollH(layout.UID, UiRootSettings_GetMaxScroll())
+	layout.ui.SetRelayoutSoft()
 }
 
 func Layout_buildLLMTip(tp string, label string, value_quotes bool, tip string) string {

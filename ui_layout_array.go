@@ -28,7 +28,7 @@ type UiLayoutArrayItem struct {
 
 type UiLayoutArray struct {
 	inputs  []UiLayoutArrayItem
-	outputs []int
+	outputs []int //pixels
 
 	fills []bool
 }

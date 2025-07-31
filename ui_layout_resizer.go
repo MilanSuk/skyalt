@@ -77,7 +77,7 @@ func (layout *Layout) _setResizer(i int, value float64, isCol bool) bool {
 				}
 			}
 
-			layout.ui.SetRelayout()
+			layout.ui.SetRelayoutHard()
 		}
 	}
 

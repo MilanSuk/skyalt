@@ -18,7 +18,6 @@ b) Copy input .gpx file into <ID>.gpx file in "Activities" folder(if it doesn't 
 Show user body measurements line by line. Every line starts with label then it shows User body measurements attributes: Gender(drop down), Year or birth(editbox), Height(editbox), Weight(editbox).
 This tool has only visual output.
 
-
 #tool ShowListOfActivities
 Filter activities by:
 - DateStart: optional, format: YYYY-MM-DD HH:M
@@ -32,7 +31,9 @@ If SortBy is empty, order it by "date".
 First row has h1 text: "List of activities".
 Second has table with activities. Show header columns "Date", "Type", "Description", "Distance(km)", "Duration(h:m:s)" as text.
 For table content use drop down for "Type"  and editbox for "Description".
-Every activity row has activity ID as LLMTip.
+Add one more column with PromptMenu. Use "Show elevation" and "Delete activity" as prompts. Use activity ID as tooltip.
+
+Every activity line has activity ID as tooltip.
 This tool has only visual output.
 
 
@@ -45,7 +46,7 @@ This tool has only visual output.
 
 #tool ImportGpxFiles
 Accepts file pathes and import all .gpx files into Activities. If path is pointing to folder, import all files from the folder.
-This tool has only visual output.
+This tool has no visual output.
 
 
 #Start

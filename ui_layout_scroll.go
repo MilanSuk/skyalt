@@ -21,8 +21,8 @@ import "image/color"
 type UiLayoutScroll struct {
 	wheel int // pixel move
 
-	data_height   int
-	screen_height int
+	data   int
+	screen int
 
 	clickRel int
 
@@ -38,8 +38,8 @@ func (scroll *UiLayoutScroll) Init() {
 
 	scroll.clickRel = 0
 	scroll.wheel = 0
-	scroll.data_height = 1
-	scroll.screen_height = 1
+	scroll.data = 1
+	scroll.screen = 1
 	scroll.timeWheel = 0
 	scroll.Show = true
 	scroll.Narrow = false
@@ -47,14 +47,14 @@ func (scroll *UiLayoutScroll) Init() {
 
 func (scroll *UiLayoutScroll) _getWheel(wheel int) int {
 
-	if scroll.data_height > scroll.screen_height {
-		return OsClamp(wheel, 0, (scroll.data_height - scroll.screen_height))
+	if scroll.data > scroll.screen {
+		return OsClamp(wheel, 0, (scroll.data - scroll.screen))
 	}
 	return 0
 }
 
 func (scroll *UiLayoutScroll) IsDown() bool {
-	return (scroll.wheel + scroll.screen_height) == scroll.data_height
+	return (scroll.wheel + scroll.screen) == scroll.data
 }
 
 func (scroll *UiLayoutScroll) GetWheel() int {
@@ -79,18 +79,18 @@ func (scroll *UiLayoutScroll) SetWheel(wheelPixel int) bool {
 }
 
 func (scroll *UiLayoutScroll) Is() bool {
-	return scroll.Show && scroll.data_height > scroll.screen_height
+	return scroll.Show && scroll.data > scroll.screen
 }
 
 func (scroll *UiLayoutScroll) GetScrollBackCoordV(view OsV4, ui *Ui) OsV4 {
 	WIDTH := scroll._GetWidth(ui)
 	H := 0 // OsTrn(shorter, WIDTH, 0)
-	return OsV4{OsV2{view.Start.X + view.Size.X, view.Start.Y}, OsV2{WIDTH, scroll.screen_height - H}}
+	return OsV4{OsV2{view.Start.X + view.Size.X, view.Start.Y}, OsV2{WIDTH, scroll.screen - H}}
 }
 func (scroll *UiLayoutScroll) GetScrollBackCoordH(view OsV4, ui *Ui) OsV4 {
 	WIDTH := scroll._GetWidth(ui)
 	H := 0 //OsTrn(shorter, WIDTH, 0)
-	return OsV4{OsV2{view.Start.X, view.Start.Y + view.Size.Y}, OsV2{scroll.screen_height - H, WIDTH}}
+	return OsV4{OsV2{view.Start.X, view.Start.Y + view.Size.Y}, OsV2{scroll.screen - H, WIDTH}}
 }
 
 func (scroll *UiLayoutScroll) _GetWidth(ui *Ui) int {
@@ -109,17 +109,17 @@ func (scroll *UiLayoutScroll) _UpdateV(view OsV4, ui *Ui) OsV4 {
 	}
 
 	var outSlider OsV4
-	if scroll.data_height <= scroll.screen_height {
+	if scroll.data <= scroll.screen {
 		outSlider.Start = view.Start
 
 		outSlider.Size.X = scroll._GetWidth(ui)
 		outSlider.Size.Y = view.Size.Y // self.screen_height
 	} else {
 		outSlider.Start.X = view.Start.X
-		outSlider.Start.Y = view.Start.Y + int(float64(view.Size.Y)*(float64(scroll.GetWheel())/float64(scroll.data_height)))
+		outSlider.Start.Y = view.Start.Y + int(float64(view.Size.Y)*(float64(scroll.GetWheel())/float64(scroll.data)))
 
 		outSlider.Size.X = scroll._GetWidth(ui)
-		outSlider.Size.Y = int(float64(view.Size.Y) * (float64(scroll.screen_height) / float64(scroll.data_height)))
+		outSlider.Size.Y = int(float64(view.Size.Y) * (float64(scroll.screen) / float64(scroll.data)))
 	}
 	return outSlider
 }
@@ -130,16 +130,16 @@ func (scroll *UiLayoutScroll) _UpdateH(start OsV2, ui *Ui) OsV4 {
 	}
 
 	var outSlider OsV4
-	if scroll.data_height <= scroll.screen_height {
+	if scroll.data <= scroll.screen {
 		outSlider.Start = start
 
-		outSlider.Size.X = scroll.screen_height
+		outSlider.Size.X = scroll.screen
 		outSlider.Size.Y = scroll._GetWidth(ui)
 	} else {
-		outSlider.Start.X = start.X + int(float64(scroll.screen_height)*(float64(scroll.GetWheel())/float64(scroll.data_height)))
+		outSlider.Start.X = start.X + int(float64(scroll.screen)*(float64(scroll.GetWheel())/float64(scroll.data)))
 		outSlider.Start.Y = start.Y
 
-		outSlider.Size.X = int(float64(scroll.screen_height) * (float64(scroll.screen_height) / float64(scroll.data_height)))
+		outSlider.Size.X = int(float64(scroll.screen) * (float64(scroll.screen) / float64(scroll.data)))
 		outSlider.Size.Y = scroll._GetWidth(ui)
 	}
 	return outSlider
@@ -148,7 +148,7 @@ func (scroll *UiLayoutScroll) _UpdateH(start OsV2, ui *Ui) OsV4 {
 func (scroll *UiLayoutScroll) _GetSlideCd(ui *Ui) color.RGBA {
 
 	cd_slide := ui.router.services.sync.GetPalette().GetGrey(0.5)
-	if scroll.data_height <= scroll.screen_height {
+	if scroll.data <= scroll.screen {
 		cd_slide = Color_Aprox(ui.router.services.sync.GetPalette().OnB, cd_slide, 0.5) // disable
 	}
 
@@ -262,18 +262,18 @@ func (scroll *UiLayoutScroll) TouchV(layout *Layout) bool {
 			}
 		}
 		if ui.GetWin().io.Keys.End && canDown {
-			if scroll.SetWheel(scroll.data_height) {
+			if scroll.SetWheel(scroll.data) {
 				ui.GetWin().io.Keys.End = false
 			}
 		}
 
 		if ui.GetWin().io.Keys.PageU && canUp {
-			if scroll.SetWheel(scroll.GetWheel() - scroll.screen_height) {
+			if scroll.SetWheel(scroll.GetWheel() - scroll.screen) {
 				ui.GetWin().io.Keys.PageU = false
 			}
 		}
 		if ui.GetWin().io.Keys.PageD && canDown {
-			if scroll.SetWheel(scroll.GetWheel() + scroll.screen_height) {
+			if scroll.SetWheel(scroll.GetWheel() + scroll.screen) {
 				ui.GetWin().io.Keys.PageD = false
 			}
 		}
@@ -296,11 +296,11 @@ func (scroll *UiLayoutScroll) TouchV(layout *Layout) bool {
 
 	if isTouched { // click on slider
 		mid := float64((ui.GetWin().io.Touch.Pos.Y - scrollCoord.Start.Y) - midSlider - scroll.clickRel)
-		scroll.SetWheel(int((mid / float64(scrollCoord.Size.Y)) * float64(scroll.data_height)))
+		scroll.SetWheel(int((mid / float64(scrollCoord.Size.Y)) * float64(scroll.data)))
 
 	} else if ui.GetWin().io.Touch.Start && scrollCoord.Inside(ui.GetWin().io.Touch.Pos) && !sliderFront.Inside(ui.GetWin().io.Touch.Pos) { // click(once) on background
 		mid := float64((ui.GetWin().io.Touch.Pos.Y - scrollCoord.Start.Y) - midSlider)
-		scroll.SetWheel(int((mid / float64(scrollCoord.Size.Y)) * float64(scroll.data_height)))
+		scroll.SetWheel(int((mid / float64(scrollCoord.Size.Y)) * float64(scroll.data)))
 
 		// switch to 'click on slider'
 		isTouched = true
@@ -348,18 +348,18 @@ func (scroll *UiLayoutScroll) TouchH(needShiftWheel bool, layout *Layout) bool {
 			}
 		}
 		if ui.GetWin().io.Keys.End && canRight {
-			if scroll.SetWheel(scroll.data_height) {
+			if scroll.SetWheel(scroll.data) {
 				ui.GetWin().io.Keys.End = false
 			}
 		}
 
 		if ui.GetWin().io.Keys.PageU && canLeft {
-			if scroll.SetWheel(scroll.GetWheel() - scroll.screen_height) {
+			if scroll.SetWheel(scroll.GetWheel() - scroll.screen) {
 				ui.GetWin().io.Keys.PageU = false
 			}
 		}
 		if ui.GetWin().io.Keys.PageD && canRight {
-			if scroll.SetWheel(scroll.GetWheel() + scroll.screen_height) {
+			if scroll.SetWheel(scroll.GetWheel() + scroll.screen) {
 				ui.GetWin().io.Keys.PageD = false
 			}
 		}
@@ -382,11 +382,11 @@ func (scroll *UiLayoutScroll) TouchH(needShiftWheel bool, layout *Layout) bool {
 
 	if isTouched { // click on slider
 		mid := float64((ui.GetWin().io.Touch.Pos.X - scrollCoord.Start.X) - midSlider - scroll.clickRel)
-		scroll.SetWheel(int((mid / float64(scroll.screen_height)) * float64(scroll.data_height)))
+		scroll.SetWheel(int((mid / float64(scroll.screen)) * float64(scroll.data)))
 
 	} else if ui.GetWin().io.Touch.Start && scrollCoord.Inside(ui.GetWin().io.Touch.Pos) && !sliderFront.Inside(ui.GetWin().io.Touch.Pos) { // click(once) on background
 		mid := float64((ui.GetWin().io.Touch.Pos.X - scrollCoord.Start.X) - midSlider)
-		scroll.SetWheel(int((mid / float64(scroll.screen_height)) * float64(scroll.data_height)))
+		scroll.SetWheel(int((mid / float64(scroll.screen)) * float64(scroll.data)))
 
 		// switch to 'click on slider'
 		isTouched = true

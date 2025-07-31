@@ -756,8 +756,15 @@ func (router *AppsRouter) RunNet() {
 								if err == nil {
 
 									comp.delta = func(msg *ChatMsg) {
+
+										var answer []byte
+										if msg.Content.Calls != nil && msg.Content.Calls.Content != "" {
+											answer = []byte(msg.Content.Calls.Content)
+										}
 										msgJs, _ := LogsJsonMarshal(msg)
-										cl.WriteArray(msgJs) //send delta
+
+										cl.WriteArray(answer) //send delta answer
+										cl.WriteArray(msgJs)  //send delta raw
 									}
 
 									usecase := "chat"
@@ -773,6 +780,7 @@ func (router *AppsRouter) RunNet() {
 							}
 
 							//send back
+							cl.WriteArray(nil) //empty delta
 							cl.WriteArray(nil) //empty delta
 							cl.WriteArray(compJs)
 						}

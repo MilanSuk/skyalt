@@ -1,20 +1,19 @@
-#Storage
-App accepts long text and make summary(TL;DR).
-Store original long text as "LongText" and summarized text as "ShortText".
+#tool ShowSummarizer
+Tool accepts long text and make summary.
+Input parameter is "LongText" and output is "ShortText". Input is optional and can be empty.
 
-
-#Tool ShowSummarizer
 First row has label "Original text".
-Next row is editbox(enable multi-line and line-wrapping) with LongText from storage. Set row height between 3 and 100.
+Next row is editbox(enable multi-line and line-wrapping) with LongText. Set row height between 3 and 100.
 Next row has button "Summarize".
-Next row has text with ShortText from storage.
+Next row has text with ShortText.
 Next row show text which prints procentage reduction between long and short text. Align it to right side.
 
 The "Summarize" button send original text into LLM completion with system prompt:
-"You are Summarizer assistant. You take a text from user, which is too long so user did'nt read it and your job is to simplify it.
+"You are Summarizer assistant. You take a text from user, which is too long so user did'nt read it and your job is to simplify it."
+
+Store streaming data into ShortText parameter.
 
 This tool has only visual output.
 
-
 #Start
-Show Summarizer
+Show Summarizer, no input.

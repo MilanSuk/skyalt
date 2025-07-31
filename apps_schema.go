@@ -73,7 +73,7 @@ func (prm *ToolsOpenAI_completion_tool_schema) AddParam(name, typee, description
 
 	isOptional := strings.Contains(description, "[optional]")
 	if isOptional {
-		description = strings.ReplaceAll(description, "[optional]", "")
+		//description = strings.ReplaceAll(description, "[optional]", "")
 	} else {
 		prm.Required = append(prm.Required, name)
 	}

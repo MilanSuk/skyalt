@@ -211,6 +211,14 @@ func (app *ToolsPrompts) SetCodeErrors(errs []ToolsCodeError) {
 func (app *ToolsPrompts) FindStorage() *ToolsPrompt {
 	return app.FindPromptName("Storage")
 }
+func (app *ToolsPrompts) HasFunction() bool {
+	for _, prompt := range app.Prompts {
+		if prompt.Type == ToolsPrompt_FUNCTION {
+			return true
+		}
+	}
+	return false
+}
 
 func (app *ToolsPrompts) FindPromptName(name string) *ToolsPrompt {
 	for _, prompt := range app.Prompts {
@@ -608,9 +616,9 @@ func (app *ToolsPrompts) _getStorageMsg(storagePrompt *ToolsPrompt) (string, str
 
 func (app *ToolsPrompts) _getFunctionMsg(functionPrompt *ToolsPrompt) (string, string, error) {
 	storagePrompt := app.FindStorage()
-	if storagePrompt == nil {
+	/*if storagePrompt == nil {
 		return "", "", LogsErrorf("'Storage' prompt not found")
-	}
+	}*/
 
 	funcFile := fmt.Sprintf(`
 package main
@@ -622,7 +630,9 @@ func %s(/*arguments*/) /*return types*/ {
 
 	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
 
-	systemMessage += "file - storage.go:\n```go" + storagePrompt.GetLastCode() + "```\n"
+	if storagePrompt != nil {
+		systemMessage += "file - storage.go:\n```go" + storagePrompt.GetLastCode() + "```\n"
+	}
 	systemMessage += "file - " + functionPrompt.Name + ".go:\n```go" + string(funcFile) + "```\n"
 
 	systemMessage += "Based on the user message, rewrite the " + functionPrompt.Name + "() function inside " + functionPrompt.Name + ".go file.\n"
@@ -642,9 +652,9 @@ func %s(/*arguments*/) /*return types*/ {
 
 func (app *ToolsPrompts) _getToolMsg(prompt *ToolsPrompt) (string, string, error) {
 	storagePrompt := app.FindStorage()
-	if storagePrompt == nil {
+	/*if storagePrompt == nil {
 		return "", "", LogsErrorf("'Storage' prompt not found")
-	}
+	}*/
 
 	apisFile, err := os.ReadFile("sdk/_api_tool.go")
 	if err != nil {
@@ -674,7 +684,9 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
-	systemMessage += "file - storage.go:\n```go" + storagePrompt.GetLastCode() + "\n" + app.getFunctionsHeadersCode() + "```\n"
+	if storagePrompt != nil {
+		systemMessage += "file - storage.go:\n```go" + storagePrompt.GetLastCode() + "\n" + app.getFunctionsHeadersCode() + "```\n"
+	}
 	systemMessage += "file - example.go:\n```go" + string(exampleFile) + "```\n"
 	systemMessage += "file - tool.go:\n```go" + toolFile + "```\n"
 
@@ -684,8 +696,10 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 	systemMessage += "[optional] - caller can ignore the attribute\n"
 	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]\n`
 	systemMessage += "\n"
-	systemMessage += "Storage.go has list of functions, use them.\n"
-	systemMessage += "To access the storage, call the Load...() function in storage.go, which returns the data. Don't call save/write on that data, it's automatically called after the function ends.\n"
+	if storagePrompt != nil {
+		systemMessage += "Storage.go has list of functions, use them.\n"
+		systemMessage += "To access the storage, call the Load...() function in storage.go, which returns the data. Don't call save/write on that data, it's automatically called after the function ends.\n"
+	}
 	systemMessage += "Never define constants('const'), use variables('var') for everything.\n"
 
 	userMessage := prompt.Prompt
