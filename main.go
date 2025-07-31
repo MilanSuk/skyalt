@@ -19,7 +19,6 @@ package main
 import (
 	"image/color"
 	"log"
-	"time"
 )
 
 func main() {
@@ -70,11 +69,11 @@ func main() {
 
 	//Loop
 	run := true
+	redraw := true
 	for run {
-		var win_redraw bool
+
 		var err error
-		//run, _, err = win.UpdateIO()
-		run, win_redraw, err = win.UpdateIO()
+		run, redraw, err = win.UpdateIO(redraw)
 		if err != nil {
 			log.Fatalf("UpdateIO() failed: %v\n", err)
 		}
@@ -110,16 +109,14 @@ func main() {
 			ui.Tick()
 
 			//tooltip delay
-			if !win_redraw && ui.NeedRedraw() {
-				win_redraw = true
+			if !redraw && ui.NeedRedraw() {
+				redraw = true
 			}
 
-			if win_redraw {
+			if redraw {
 				win.StartRender(color.RGBA{220, 220, 220, 255})
 				ui.Draw()
 				win.EndRender(true, ui.router.services.sync.GetStats())
-			} else {
-				time.Sleep(10 * time.Millisecond) //keep CPU down
 			}
 		}
 		win.Finish()

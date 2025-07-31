@@ -495,9 +495,22 @@ func (win *Win) SetRedrawNewImage() {
 	win.redraw_new_image.Add(1)
 }
 
-func (win *Win) UpdateIO() (bool, bool, error) {
-	run, redraw := win.Event()
+func (win *Win) UpdateIO(last_redraw bool) (bool, bool, error) {
+	var run, redraw bool
 
+	if !last_redraw {
+		ms := 0
+		for ms < 50 {
+			run, redraw = win.Event()
+			if !run || redraw {
+				break
+			}
+			time.Sleep(5 * time.Millisecond)
+			ms += 5
+		}
+	} else {
+		run, redraw = win.Event()
+	}
 	win.images.Tick(win)
 
 	if !run {
