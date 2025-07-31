@@ -90,8 +90,8 @@ func (st *Switch) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 		//0
 		rc = rc.Cut(0.1)
-		paint.Line(rc, 0, 0, 1, 1, layout.GetPalette().GetGrey(0.6), 0.05)
-		paint.Line(rc, 0, 1, 1, 0, layout.GetPalette().GetGrey(0.6), 0.05)
+		paint.Line(rc, 0, 0, 1, 1, layout.GetPalette().GetGrey(0.6), 0.03)
+		paint.Line(rc, 0, 1, 1, 0, layout.GetPalette().GetGrey(0.6), 0.03)
 
 	} else {
 		rc.X += rc.W
@@ -99,8 +99,8 @@ func (st *Switch) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 
 		//I
 		rc = rc.Cut(0.1)
-		paint.Line(rc, 1.0/3, 0.9, 0.05, 2.0/3, cd, 0.05)
-		paint.Line(rc, 1.0/3, 0.9, 0.95, 1.0/4, cd, 0.05)
+		paint.Line(rc, 1.0/3, 0.9, 0.05, 2.0/3, cd, 0.03)
+		paint.Line(rc, 1.0/3, 0.9, 0.95, 1.0/4, cd, 0.03)
 	}
 
 	//draw label
