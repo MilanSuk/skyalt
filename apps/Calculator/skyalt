@@ -4,6 +4,7 @@ Inputs are "Previous" calculations as text and "Expression" text. Both are optio
 No outputs.
 
 UI:
+Whole UI is centered.
 First row is text(enable multi-line, disable line-wraping) with 'Previous' value. Set row height between 3 and 20. The row is shown only if 'Previous' is not empty, else skipped.
 Next row is editbox with 'Expression' value. Ghots is "Expression".
 Next row is button "Calculate".
