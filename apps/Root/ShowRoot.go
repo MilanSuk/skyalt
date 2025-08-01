@@ -431,12 +431,12 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					HeaderDiv.SetRow(0, 1, 100)
 					HeaderDiv.ScrollH.Narrow = true
 					HeaderDiv.ScrollV.Hide = true
-					//New Chat
+					//New Tab
 					{
 						HeaderDiv.SetColumn(0, 2, 100)
-						bt := HeaderDiv.AddButton(0, 0, 1, 1, "New Chat")
+						bt := HeaderDiv.AddButton(0, 0, 1, 1, "New Tab")
 						bt.Background = 0.5
-						bt.layout.Tooltip = "Create new chat"
+						bt.layout.Tooltip = "Create new tab"
 						bt.Shortcut = 't'
 						bt.layout.Enable = (app != nil)
 						bt.clicked = func() error {
