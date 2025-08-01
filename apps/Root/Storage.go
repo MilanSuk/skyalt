@@ -264,12 +264,6 @@ type OpenAI_content struct {
 	Result *OpenAI_completion_msgResult  `json:",omitempty"`
 }
 
-type ChatMsgUI struct {
-	FuncName string
-	Params   map[string]interface{}
-	Pos      int
-}
-
 type ChatMsg struct {
 	Seed int
 

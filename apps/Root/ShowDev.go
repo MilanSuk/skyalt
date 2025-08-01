@@ -226,11 +226,11 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		//Note
 		if app.Dev.MainMode == "secrets" {
 			tx := FooterDiv.AddText(0, 0, 1, 1, "<alias> <value>\nExample: myemail@mail.com myActualEmail@gmail.com\nExample: password_1234 Ek7_sdf6m-o45-erc-er5_-df")
-			tx.Align_v = 0
+			tx.setMultilined()
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		} else {
 			tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#function <name> //Describe background function.\n#tool <name> //Describe app's feature.\n#start //Enter prompt, which will be executed when new chat is created.")
-			tx.Align_v = 0
+			tx.setMultilined()
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		}
 
@@ -275,6 +275,8 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						app.Dev.PromptsHistory = append(app.Dev.PromptsHistory, string(filePrompts))
 
 						callFuncGenerateApp(app.Name)
+
+						app.Dev.SideFile_version = -1 //reset
 						return nil
 					}
 					//GenerateBt.layout.Enable = diff
@@ -366,6 +368,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				SideDiv.SetRow(y, 2, 100)
 				tx := SideDiv.AddText(0, y, 1, 1, it.Message)
 				y++
+				tx.setMultilined()
 				tx.Align_v = 0
 				tx.layout.Back_cd = codeBackCd
 				tx.layout.VScrollToTheBottom(true, caller)
@@ -540,7 +543,8 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					switch app.Dev.SideMode {
 					case "schema":
 						tx := SideDiv.AddText(0, 1, 1, 1, string(side_prompt.Schema))
-						//tx.Linewrapping = false
+						tx.setMultilined()
+						tx.Linewrapping = false
 						tx.Align_v = 0
 						tx.layout.Back_cd = codeBackCd
 
@@ -560,6 +564,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 							}
 						}
 						tx := SideDiv.AddText(0, 1, 1, 1, msgStr)
+						tx.setMultilined()
 						tx.Align_v = 0
 						tx.layout.Back_cd = codeBackCd
 
@@ -578,6 +583,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						}
 
 						tx := SideDiv.AddText(0, 1, 1, 1, code)
+						tx.setMultilined()
 						tx.Linewrapping = false
 						tx.Align_v = 0
 						tx.layout.Back_cd = codeBackCd

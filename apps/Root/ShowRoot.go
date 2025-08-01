@@ -860,7 +860,7 @@ func (st *ShowRoot) buildThreads(ui *UI, msgs []SdkMsg) {
 		label := msg.GetLabel()
 		ui.SetRowFromSub(y, 1, 5, true)
 		tx := ui.AddText(0, y, 1, 1, label)
-		tx.layout.Tooltip = fmt.Sprintf("%s() - %s", msg.FuncName, label)
+		tx.layout.Tooltip = fmt.Sprintf("%s() - %s", msg.ToolName, label)
 		bt := ui.AddButton(1, y, 1, 1, "Cancel")
 		bt.Background = 0.5
 		bt.clicked = func() error {
