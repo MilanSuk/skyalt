@@ -20,17 +20,15 @@ func (st *ShowPersonInfo) run(caller *ToolCaller, ui *UI) error {
 	ui.addTextH1("Person infomation")
 
 	{
-		form := ui.addTable()
-		ln := form.addLine()
-		ln.addText("Born")             //description
-		ln.addEditboxInt(&person.Born) //value
+		form := ui.addTable("Person infomation")
+		ln := form.addLine(fmt.Sprintf("PersonID = %s", st.PersonID))
+		ln.addText("Born", "")                 //description
+		ln.addEditboxInt(&person.Born, "Born") //value
 
-		ln = form.addLine()
-		ln.addText("Height")
-		ln.addEditboxInt(&person.Height)
+		ln = form.addLine(fmt.Sprintf("PersonID = %s", st.PersonID))
+		ln.addText("Height", "")
+		ln.addEditboxInt(&person.Height, "Height")
 	}
-
-	ui.addText(fmt.Sprintf("note: PersonID = %s", st.PersonID)).Align_h = 2 //note which is align to right side
 
 	return nil
 }

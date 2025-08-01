@@ -12,6 +12,8 @@ import (
 
 //Code inside callbacks(UIButton.clicked, UIEditbox.changed, LLMCompletion.update, etc.), should not write into UIs structures, it should write only into storage or tool's arguments.
 
+//If button triggers LLM completion, use addLLMCompletionButton() instead of addButton().
+
 type ToolCaller struct {
 }
 
