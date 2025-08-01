@@ -467,7 +467,7 @@ func main() {
 				if Tool_Error(err) == nil {
 					caller.ui_uid, err = cl.ReadInt()
 					if Tool_Error(err) == nil {
-						funcName, err := cl.ReadArray()
+						toolName, err := cl.ReadArray()
 						if Tool_Error(err) == nil {
 
 							paramsJs, err := cl.ReadArray()
@@ -481,7 +481,7 @@ func main() {
 										paramsJs = []byte("{}")
 									}
 
-									fnRun, out_params, err := FindToolRunFunc(string(funcName), paramsJs)
+									fnRun, out_params, err := FindToolRunFunc(string(toolName), paramsJs)
 									out_error := err
 									if Tool_Error(out_error) == nil {
 										if fnRun != nil {
@@ -525,7 +525,7 @@ func main() {
 									//add callstack to error
 									var output_errBytes []byte
 									if out_error != nil {
-										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s(%.20s)", funcName, string(paramsJs)))
+										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s(%.20s)", toolName, string(paramsJs)))
 									}
 
 									//send result back
@@ -672,9 +672,11 @@ type SdkTool struct {
 }
 
 type SdkMsg struct {
-	Id             string
-	AppName        string
-	FuncName       string
+	Id         string
+	AppName    string
+	ToolName   string
+	ActionName string
+
 	Progress_label string
 	Progress_done  float64
 	Start_time     float64
@@ -683,7 +685,7 @@ type SdkMsg struct {
 func (msg *SdkMsg) GetLabel() string {
 	label := msg.Progress_label
 	if label == "" {
-		label = fmt.Sprintf("%s:%s()", msg.AppName, msg.FuncName)
+		label = fmt.Sprintf("%s:%s(%s)", msg.AppName, msg.ToolName, msg.ActionName)
 	}
 
 	if msg.Progress_done > 0 {
@@ -819,26 +821,26 @@ func callFuncStopMic() {
 	}
 }
 
-func callFuncMsgStop(msg_id string) {
+func callFuncMsgStop(msg_name string) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
-		err = cl.WriteArray([]byte("stop_msg"))
+		err = cl.WriteArray([]byte("stop_msg_name"))
 		if Tool_Error(err) == nil {
-			err = cl.WriteArray([]byte(msg_id))
+			err = cl.WriteArray([]byte(msg_name))
 			Tool_Error(err)
 		}
 	}
 }
-func callFuncFindMsgName(user_uid string) *SdkMsg {
+func callFuncFindMsgName(msg_name string) *SdkMsg {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
 		err = cl.WriteArray([]byte("find_msg_name"))
 		if Tool_Error(err) == nil {
-			err = cl.WriteArray([]byte(g_main.appName + "_" + user_uid))
+			err = cl.WriteArray([]byte(g_main.appName + "_" + msg_name))
 			if Tool_Error(err) == nil {
 
 				exist, err := cl.ReadInt()
@@ -858,7 +860,7 @@ func callFuncFindMsgName(user_uid string) *SdkMsg {
 	return nil
 }
 
-func (caller *ToolCaller) SetMsgName(user_uid string) {
+func (caller *ToolCaller) SetMsgName(msg_name string) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
@@ -868,7 +870,7 @@ func (caller *ToolCaller) SetMsgName(user_uid string) {
 
 			err = cl.WriteInt(caller.msg_id)
 			if Tool_Error(err) == nil {
-				err = cl.WriteArray([]byte(g_main.appName + "_" + user_uid))
+				err = cl.WriteArray([]byte(g_main.appName + "_" + msg_name))
 				Tool_Error(err)
 			}
 		}
@@ -916,7 +918,7 @@ func callFuncGetToolData(appName string) ([]byte, error) {
 	return nil, fmt.Errorf("connection failed")
 }
 
-func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, funcName string, jsParams []byte) ([]byte, []byte, error) {
+func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, toolName string, jsParams []byte) ([]byte, []byte, error) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
@@ -930,7 +932,7 @@ func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, funcNam
 				if Tool_Error(err) == nil {
 					err = cl.WriteArray([]byte(appName))
 					if Tool_Error(err) == nil {
-						err = cl.WriteArray([]byte(funcName))
+						err = cl.WriteArray([]byte(toolName))
 						if Tool_Error(err) == nil {
 							if len(jsParams) == 0 {
 								jsParams = []byte("{}")
@@ -1198,7 +1200,7 @@ func (parent *UI) _addUILine(sub *UI) {
 	}
 }
 
-func _callTool(funcName string, fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) (*UI, error) {
+func _callTool(toolName string, fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) (*UI, error) {
 	if fnRun != nil {
 		ui := &UI{}
 		out_error := fnRun(caller, ui)
@@ -1211,15 +1213,15 @@ func _callTool(funcName string, fnRun func(caller *ToolCaller, ui *UI) error, ca
 
 		return ui, out_error
 	}
-	return nil, fmt.Errorf("Tool function '%s' not found", funcName)
+	return nil, fmt.Errorf("Tool function '%s' not found", toolName)
 }
 
 func CallTool(fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) (*UI, error) {
 	return _callTool("", fnRun, caller)
 }
 
-func CallToolApp(appName string, funcName string, jsParams []byte, caller *ToolCaller) ([]byte, *UI, error) {
-	dataJs, uiJs, err := caller.callFuncSubCall(0, appName, funcName, jsParams)
+func CallToolApp(appName string, toolName string, jsParams []byte, caller *ToolCaller) ([]byte, *UI, error) {
+	dataJs, uiJs, err := caller.callFuncSubCall(0, appName, toolName, jsParams)
 
 	var ui UI
 	if err == nil {
@@ -1817,7 +1819,7 @@ type UITooltip struct {
 
 type UI struct {
 	AppName  string `json:",omitempty"`
-	FuncName string `json:",omitempty"`
+	ToolName string `json:",omitempty"`
 
 	UID        uint64
 	X, Y, W, H int
@@ -2840,12 +2842,12 @@ func (ui *UI) AddTool(x, y, w, h int, fnRun func(caller *ToolCaller, ui *UI) err
 	return ret_ui, out_error
 }
 
-func (ui *UI) AddToolApp(x, y, w, h int, appName string, funcName string, jsParams []byte, caller *ToolCaller) (*UI, error) {
+func (ui *UI) AddToolApp(x, y, w, h int, appName string, toolName string, jsParams []byte, caller *ToolCaller) (*UI, error) {
 	ret_ui := _newUIItem(x, y, w, h, "")
 	ui._addUISub(ret_ui, "")
 
 	//call router
-	_, uiJs, err := caller.callFuncSubCall(ret_ui.UID, appName, funcName, jsParams)
+	_, uiJs, err := caller.callFuncSubCall(ret_ui.UID, appName, toolName, jsParams)
 	if err == nil {
 		err := json.Unmarshal(uiJs, ret_ui)
 		if Tool_Error(err) == nil {
@@ -2854,7 +2856,7 @@ func (ui *UI) AddToolApp(x, y, w, h int, appName string, funcName string, jsPara
 			ret_ui.W = w
 			ret_ui.H = h
 			ret_ui.AppName = appName
-			ret_ui.FuncName = funcName
+			ret_ui.ToolName = toolName
 
 			return ret_ui, nil
 		}
@@ -2945,6 +2947,8 @@ type LLMMsgUsage struct {
 }
 
 type LLMCompletion struct {
+	UID string
+
 	Temperature       float64
 	Top_p             float64
 	Max_tokens        int
@@ -2967,17 +2971,99 @@ type LLMCompletion struct {
 	Out_messages   []byte //[]*ChatMsg
 	Out_tools      []byte
 
-	Out_answer    string //mělo by vrátit .Run() ...........................
+	Out_answer    string
 	Out_reasoning string
 
 	Out_usage LLMMsgUsage
 
 	deltaMsg func(msgJs []byte)
-	update   func(answer string)
 }
 
-func NewLLMCompletion(systemMessage string, userMessage string) *LLMCompletion {
-	return &LLMCompletion{Temperature: 0.2, Max_tokens: 16384, Top_p: 0.95, SystemMessage: systemMessage, UserMessage: userMessage}
+func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, done func(answer string), caller *ToolCaller) (running bool, answer string) {
+	running, answer = LLMCompletion_find(comp.UID, caller)
+
+	if running {
+		//work in progress
+		tb := ui.addTable("")
+		ln := tb.addLine("")
+		ln.addText("generating ...", "").Align_h = 1
+		StopBt := ln.addButton("Stop", "")
+		StopBt.Cd = UI_GetPalette().E
+		StopBt.clicked = func() error {
+			return LLMCompletion_stop(comp.UID, caller)
+		}
+
+	} else {
+		//start it
+		btn := ui.addButton(buttonLabel, "")
+		btn.clicked = func() error {
+			err := comp.Run(caller)
+			if Tool_Error(err) == nil {
+				if done != nil {
+					done(comp.Out_answer)
+				}
+			}
+			return err
+		}
+	}
+	return
+}
+
+func NewLLMCompletion(UID string, systemMessage string, userMessage string) *LLMCompletion {
+	return &LLMCompletion{UID: UID, Temperature: 0.2, Max_tokens: 16384, Top_p: 0.95, SystemMessage: systemMessage, UserMessage: userMessage}
+}
+
+func LLMCompletion_find(UID string, caller *ToolCaller) (running bool, answer string) {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("llm_find"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteInt(caller.msg_id)
+			if Tool_Error(err) == nil {
+
+				err = cl.WriteArray([]byte(UID))
+				if Tool_Error(err) == nil {
+
+					run, err := cl.ReadInt()
+					if Tool_Error(err) == nil {
+						ans, err := cl.ReadArray()
+						if Tool_Error(err) == nil {
+							running = (run > 0)
+							answer = string(ans)
+							return
+						}
+					}
+
+				}
+			}
+		}
+	}
+	return false, ""
+}
+
+func LLMCompletion_stop(UID string, caller *ToolCaller) error {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("llm_stop"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteInt(caller.msg_id)
+			if Tool_Error(err) == nil {
+
+				err = cl.WriteArray([]byte(UID))
+				if Tool_Error(err) == nil {
+					return nil
+				}
+			}
+		}
+	}
+
+	return fmt.Errorf("connection failed")
 }
 
 func (comp *LLMCompletion) Run(caller *ToolCaller) error {
@@ -3001,13 +3087,13 @@ func (comp *LLMCompletion) Run(caller *ToolCaller) error {
 
 					//delta(s)
 					for {
-						delta_answer, err := cl.ReadArray()
+						//delta_answer, err := cl.ReadArray()
 						delta_raw, err := cl.ReadArray()
-						if Tool_Error(err) == nil && len(delta_answer) > 0 {
+						/*if Tool_Error(err) == nil && len(delta_answer) > 0 {
 							if comp.update != nil {
 								comp.update(string(delta_answer))
 							}
-						}
+						}*/
 						if Tool_Error(err) == nil && len(delta_raw) > 0 {
 							if comp.deltaMsg != nil {
 								comp.deltaMsg(delta_raw)
@@ -3090,5 +3176,3 @@ func (comp *LLMTranscribe) Run(caller *ToolCaller) error {
 
 	return fmt.Errorf("connection failed")
 }
-
-//--- Auto generated ---

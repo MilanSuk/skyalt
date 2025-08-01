@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 
@@ -136,6 +137,8 @@ func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 }
 
 type LLMComplete struct {
+	UID string
+
 	Temperature       float64
 	Top_p             float64
 	Max_tokens        int
@@ -163,7 +166,9 @@ type LLMComplete struct {
 
 	Out_usage LLMMsgUsage
 
-	delta func(msg *ChatMsg)
+	delta      func(msg *ChatMsg)
+	wip_answer string
+	msg        *AppsRouterMsg
 }
 
 func NewLLMCompletion() *LLMComplete {
@@ -219,6 +224,9 @@ type LLMSpeech struct {
 type LLMs struct {
 	services *Services
 
+	running      []*LLMComplete
+	running_lock sync.Mutex
+
 	Cache      []LLMComplete
 	cache_lock sync.Mutex
 }
@@ -257,8 +265,24 @@ func (llms *LLMs) addCache(st *LLMComplete) {
 	Tools_WriteJSONFile("temp/llms_cache.json", llms.Cache)
 }
 
+func (llms *LLMs) Find(uid string, msg *AppsRouterMsg) *LLMComplete {
+	llms.running_lock.Lock()
+	defer llms.running_lock.Unlock()
+
+	for _, it := range llms.running {
+		if it.UID == uid {
+			if it.msg.CmpLastStack(msg) {
+				return it
+			}
+		}
+	}
+	return nil
+}
+
 // usecase: "tools", "code", "chat"
 func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) error {
+
+	st.msg = msg
 
 	dev := &llms.services.sync.Device
 	model := ""
@@ -353,8 +377,36 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 		st.Max_iteration = 1
 	}
 
-	//llms.lock.Lock()
-	//defer llms.lock.Unlock()
+	//add into running list
+	{
+		//add
+		llms.running_lock.Lock()
+		llms.running = append(llms.running, st)
+		llms.running_lock.Unlock()
+
+		defer func() {
+			//remove
+			llms.running_lock.Lock()
+			defer llms.running_lock.Unlock()
+			for i, it := range llms.running {
+				if it == st {
+					llms.running = slices.Delete(llms.running, i, i+1)
+					break
+				}
+			}
+		}()
+	}
+
+	/*if st.delta != nil {
+		for i := range 1000 {
+			st.delta(&ChatMsg{Content: OpenAI_content{Calls: &OpenAI_completion_msgCalls{Content: fmt.Sprintf("hello world: %d", i)}}})
+			time.Sleep(1 * time.Second)
+
+			if !msg.GetContinue() {
+				return nil
+			}
+		}
+	}*/
 
 	//call
 	switch strings.ToLower(provider) {
@@ -403,9 +455,6 @@ func (llms *LLMs) GetUsage() []LLMMsgUsage {
 }
 
 func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *AppsRouterMsg) error {
-	//llms.lock.Lock()
-	//defer llms.lock.Unlock()
-
 	dev := &llms.services.sync.Device
 
 	//call
@@ -422,9 +471,6 @@ func (llms *LLMs) GenerateImage(st *LLMGenerateImage, msg *AppsRouterMsg) error 
 }
 
 func (llms *LLMs) Transcribe(st *LLMTranscribe) error {
-	//llms.lock.Lock()
-	//defer llms.lock.Unlock()
-
 	dev := &llms.services.sync.Device
 
 	//call

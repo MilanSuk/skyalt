@@ -84,7 +84,7 @@ func (cmpl *ToolsAppCompile) BuildMainFile(prompts []*ToolsPrompt) error {
 	//start
 	strInits.WriteString("func _callGlobalInits() {\n\n")
 	strFrees.WriteString("func _callGlobalDestroys() {\n\n")
-	strCalls.WriteString("func FindToolRunFunc(funcName string, jsParams []byte) (func(caller *ToolCaller, ui *UI) error, interface{}, error) {\n\tswitch funcName {\n")
+	strCalls.WriteString("func FindToolRunFunc(toolName string, jsParams []byte) (func(caller *ToolCaller, ui *UI) error, interface{}, error) {\n\tswitch toolName {\n")
 
 	for _, prompt := range prompts {
 		if prompt.Type != ToolsPrompt_TOOL {
@@ -137,7 +137,7 @@ func (cmpl *ToolsAppCompile) BuildMainFile(prompts []*ToolsPrompt) error {
 	//finish
 	strInits.WriteString("}\n")
 	strFrees.WriteString("}\n")
-	strCalls.WriteString("\n\t}\n\treturn nil, nil, fmt.Errorf(\"Function '%s' not found\", funcName)\n}\n")
+	strCalls.WriteString("\n\t}\n\treturn nil, nil, fmt.Errorf(\"Function '%s' not found\", toolName)\n}\n")
 
 	var strFinal strings.Builder
 

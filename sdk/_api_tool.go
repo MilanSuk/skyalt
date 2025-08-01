@@ -353,6 +353,8 @@ func SdkGetDate(unix_sec int64) string
 func SdkGetDateTime(unix_sec int64) string
 
 type LLMCompletion struct {
+	UID string
+
 	Temperature       float64
 	Top_p             float64
 	Max_tokens        int
@@ -368,14 +370,18 @@ type LLMCompletion struct {
 
 	Out_answer    string
 	Out_reasoning string
-
-	//always use this to give user update that it's working in background
-	//'answer' is full answer, not delta.
-	update func(answer string)
 }
 
-func NewLLMCompletion(systemMessage string, userMessage string) *LLMCompletion {
+// Show Button to trigger LLM completion. When it's running, it shows "Stop" button and returns answer(full answer so far). After it's finished, it calls done callback with complete answer.
+func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, done func(answer string), caller *ToolCaller) (running bool, answer string)
+
+// UID: unique ID for completion
+func NewLLMCompletion(UID string, systemMessage string, userMessage string) *LLMCompletion {
 	return &LLMCompletion{Temperature: 0.2, Max_tokens: 16384, Top_p: 0.95, SystemMessage: systemMessage, UserMessage: userMessage}
 }
-
 func (comp *LLMCompletion) Run(caller *ToolCaller) error
+
+// Use this to check If LLM is running. If it's running you can show answer(full answer so far) to user.
+func LLMCompletion_find(UID string, caller *ToolCaller) (running bool, answer string)
+
+func LLMCompletion_stop(UID string, caller *ToolCaller)

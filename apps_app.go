@@ -302,7 +302,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 				return err
 			}
 
-			app.Prompts.ResetGenMsgs(msg.user_uid)
+			app.Prompts.ResetGenMsgs(msg.msg_name)
 
 			//Storage
 			storagePrompt := app.Prompts.FindStorage()

@@ -36,7 +36,7 @@ func _ToolsCaller_UpdateDev(port int) error {
 	return nil
 }
 
-func _ToolsCaller_CallBuild(port int, msg_id uint64, ui_uid uint64, funcName string, params []byte) ([]byte, []byte, []byte, error) {
+func _ToolsCaller_CallBuild(port int, msg_id uint64, ui_uid uint64, toolName string, params []byte) ([]byte, []byte, []byte, error) {
 	cl, err := NewToolsClient("localhost", port)
 	if err != nil {
 		return nil, nil, nil, err
@@ -58,7 +58,7 @@ func _ToolsCaller_CallBuild(port int, msg_id uint64, ui_uid uint64, funcName str
 	if LogsError(err) != nil {
 		return nil, nil, nil, err
 	}
-	err = cl.WriteArray([]byte(funcName)) //function name
+	err = cl.WriteArray([]byte(toolName)) //function name
 	if LogsError(err) != nil {
 		return nil, nil, nil, err
 	}

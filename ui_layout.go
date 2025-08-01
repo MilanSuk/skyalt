@@ -208,7 +208,7 @@ type Layout struct {
 	parent *Layout
 
 	AppName  string
-	FuncName string
+	ToolName string
 
 	touch          bool
 	touchDia       bool
@@ -292,7 +292,7 @@ func NewUiLayoutDOM_root(ui *Ui) *Layout {
 	root.App = true
 
 	root.AppName = "Root"
-	root.FuncName = "ShowRoot"
+	root.ToolName = "ShowRoot"
 	return root
 }
 
