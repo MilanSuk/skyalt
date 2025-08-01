@@ -1883,6 +1883,16 @@ func (ui *UI) setRowHeight(min, max float64) {
 	ui.SetRow(ui.temp_row, min, max)
 }
 
+func (ui *UI) addCenteredUI() *UI {
+	ui.SetColumn(0, 0, 100)
+	ui.SetColumn(1, 10, 20)
+	ui.SetColumn(2, 0, 100)
+
+	ui.SetRow(0, 1, 100)
+
+	return ui.AddLayout(1, 0, 1, 1)
+}
+
 func (ui *UI) addTooltipGroup(x, y, w, h int, tooltip string) {
 	ui.TooltipGroups = append(ui.TooltipGroups, UITooltip{X: x, Y: y, W: w, H: h, Tooltip: tooltip})
 }

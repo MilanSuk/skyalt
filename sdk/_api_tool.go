@@ -17,7 +17,7 @@ import (
 type ToolCaller struct {
 }
 
-type UI struct {
+type UI struct { //also known as Layout
 	Tooltip string
 
 	Enable        bool
@@ -31,6 +31,8 @@ type UI struct {
 
 	changed func(newParams []byte) error
 }
+
+func (ui *UI) addCenteredUI() *UI //return new UI which has width=20 and empty spaces on left and right side
 
 func (ui *UI) setRowHeight(min, max float64) //Set height of current row/line. Must be call before first ui.Add...() is called for the row.
 
