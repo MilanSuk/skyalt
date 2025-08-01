@@ -158,6 +158,38 @@ func (st *DeviceSettings) GetPricingString(provider, model string) string {
 	return pricing
 }
 
+func (st *DeviceSettings) CheckProvider(provider string) error {
+
+	switch strings.ToLower(provider) {
+	case "xai":
+		st, err := NewLLMxAI("")
+		if err == nil {
+			return st.Check()
+		}
+	case "mistral":
+		st, err := NewLLMMistral("")
+		if err == nil {
+			return st.Check()
+		}
+	case "openai":
+		st, err := NewLLMOpenai("")
+		if err == nil {
+			return st.Check()
+		}
+	case "groq":
+		st, err := NewLLMGroq("")
+		if err == nil {
+			return st.Check()
+		}
+	case "llama.cpp":
+		return nil
+	case "whisper.cpp":
+		return nil
+	}
+
+	return fmt.Errorf("Unknown provider '%s'", provider)
+}
+
 func (st *DeviceSettings) UpdateModels() {
 	switch strings.ToLower(st.App_provider) {
 	case "xai":
@@ -372,7 +404,7 @@ func NewLLMMistral(file string) (*LLMMistral, error) {
 	return mst, err
 }
 
-func (mst *LLMMistral) Check(caller *ToolCaller) error {
+func (mst *LLMMistral) Check() error {
 
 	if mst.API_key == "" {
 		return fmt.Errorf("%s API key is empty", mst.Provider)
@@ -560,7 +592,7 @@ func NewLLMGroq(file string) (*LLMGroq, error) {
 	return mst, err
 }
 
-func (mst *LLMGroq) Check(caller *ToolCaller) error {
+func (mst *LLMGroq) Check() error {
 
 	if mst.API_key == "" {
 		return fmt.Errorf("%s API key is empty", mst.Provider)
@@ -701,7 +733,7 @@ func NewLLMOpenai(file string) (*LLMOpenai, error) {
 	return oai, err
 }
 
-func (oai *LLMOpenai) Check(caller *ToolCaller) error {
+func (oai *LLMOpenai) Check() error {
 
 	if oai.API_key == "" {
 		return fmt.Errorf("%s API key is empty", oai.Provider)
@@ -900,7 +932,7 @@ func NewLLMxAI(file string) (*LLMxAI, error) {
 	return xai, err
 }
 
-func (xai *LLMxAI) Check(caller *ToolCaller) error {
+func (xai *LLMxAI) Check() error {
 
 	if xai.API_key == "" {
 		return fmt.Errorf("%s API key is empty", xai.Provider)

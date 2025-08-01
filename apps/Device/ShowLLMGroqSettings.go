@@ -14,7 +14,7 @@ func (st *ShowLLMGroqSettings) run(caller *ToolCaller, ui *UI) error {
 		return err
 	}
 
-	source_llm.Check(caller)
+	source_llm.Check()
 
 	ui.SetColumn(0, 1, 5)
 	ui.SetColumn(1, 1, 20)

@@ -46,6 +46,12 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 		if found {
 			ChatProvider := ChatDiv.AddButton(1, 1, 1, 1, provider+" Settings")
 			ChatProvider.Background = 0.5
+
+			providerErr := source_dev.CheckProvider(provider)
+			if providerErr != nil {
+				ChatProvider.Cd = UI_GetPalette().E
+				ChatProvider.layout.Tooltip = providerErr.Error()
+			}
 			ChatProvider.clicked = func() error {
 				ChatDia.OpenCentered(caller)
 				return nil
