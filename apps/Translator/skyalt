@@ -1,21 +1,20 @@
-#Storage
-App accepts original text and make translation into other language.
-Store original text as "Original" and translated text as "Translation" and language picker text as "Language". 
-
 #function GetLanguageOptions
 Returns list "English", "German", "French", "Czech".
 
 #tool ShowTranslator
+Tool accepts original text and make translation into other language.
+Input parameter is "Original" text and "Language" text(to pick the language, default is "English") and output is "Translation" text. Input is optional and can be empty.
+
+UI:
 First row is editbox(enable multi-line and line-wrapping) with 'Original' from storage. Set row height between 3 and 100.
-Next row has button "Translate", then text "into"(centered) and then drop down to pick a language('Language' from storage) with options GetLanguageOptions()
+Next row has LLM button "Translate", then text "into"(centered) and then drop down to pick a language('Language' from storage) with options GetLanguageOptions()
 Next row has text with 'Translation' from storage.
 
+Functions:
 The "Translate" button send original text into LLM completion with system prompt(replace <language> with 'Language' from storage) :
 "You are Translator. You take a text from user and translate it into <language>.
 
-This tool has only visual output.
-
 
 #Start
-Show Translator
+Show Translator, no input.
 
