@@ -403,42 +403,26 @@ func (router *AppsRouter) FindMessageName(msg_name string) *AppsRouterMsg {
 	return nil
 }
 
-func (router *AppsRouter) NeedMsgRedraw() bool {
-	router.lock.Lock()
-	defer router.lock.Unlock()
-
-	TM := Tools_Time()
-	for _, msg := range router.msgs {
-		if (TM-msg.start_time) > 0.9 && msg.ui_uid != 1 {
-			msg.drawit = true
-		}
-		if msg.drawit {
-			return true
-		}
-	}
-	return false
-}
-
 func (router *AppsRouter) Flush() bool {
-	redraw := false
+	refresh := false
 
 	var doneMsgs []*AppsRouterMsg
 	router.lock.Lock()
 	{
-		//redraw progress/threads with delay
+		//refresh progress/threads with delay
 		{
 			TM := Tools_Time()
-			msg_redraw := false
+			msg_refresh := false
 			for _, msg := range router.msgs {
-				if (TM-msg.start_time) > 0.9 && msg.ui_uid != 1 {
+				if (TM-msg.start_time) > 0.1 && msg.ui_uid != 1 { //give msg 0.1sec to finish, then start refreshing(below)
 					msg.drawit = true
-					msg_redraw = true
+					msg_refresh = true
 				}
 			}
 
-			if msg_redraw && router.refresh_progress_time < TM {
-				redraw = true
-				router.refresh_progress_time = TM + 1
+			if msg_refresh && router.refresh_progress_time < TM {
+				refresh = true
+				router.refresh_progress_time = TM + 1 //next is 1 second later
 			}
 		}
 
@@ -455,7 +439,7 @@ func (router *AppsRouter) Flush() bool {
 			if msg != nil && msg.out_done.Load() {
 
 				if msg.drawit {
-					redraw = true
+					refresh = true
 				}
 
 				if msg.fnDone != nil {
@@ -472,7 +456,7 @@ func (router *AppsRouter) Flush() bool {
 		msg.fnDone(msg.out_data, msg.out_ui, msg.out_cmds, msg.out_error, msg.start_time)
 	}
 
-	return redraw
+	return refresh
 }
 
 func (router *AppsRouter) RunNet() {
