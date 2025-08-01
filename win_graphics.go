@@ -438,14 +438,16 @@ func (gph *WinGph) GetTextMax(str string, const_max_line_px int, prop WinFontPro
 	var lines []WinGphLine
 	start_p := 0
 	for p, ch := range str {
+		chSz := len(string(ch))
+
 		if ch == '\n' {
 			lines = append(lines, WinGphLine{s: start_p, e: p})
-			start_p = p + 1
+			start_p = p + chSz
 		} else {
-			px := txt.GetRangePx(start_p, p+1)
+			px := txt.GetRangePx(start_p, p+chSz) //p+1
 
 			if const_max_line_px > 0 && px > const_max_line_px {
-				s, _ := _UiText_CursorWordRange(str, p-1)
+				s, _ := _UiText_CursorWordRange(str, p-1) //p-1
 				for s > 0 && txt.skips[s-1] {
 					s--
 				}

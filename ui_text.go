@@ -612,11 +612,13 @@ func _UiText_CursorWordRange(text string, cursor int) (int, int) {
 	text = strings.ToLower(text)
 
 	for p, ch := range text {
+		chSz := len(string(ch))
+
 		if OsIsTextWord(ch) {
-			end = p + 1
+			end = p + chSz
 		} else {
 			if p < cursor {
-				start = p + 1
+				start = p + chSz
 			} else {
 				break
 			}
