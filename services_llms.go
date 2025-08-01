@@ -285,68 +285,14 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 	st.msg = msg
 
 	dev := &llms.services.sync.Device
-	model := ""
 
-	provider := dev.Chat_provider
-	smarter := dev.Chat_smarter
+	provider := dev.App_provider
+	model := dev.App_model
+
 	switch strings.ToLower(usecase) {
 	case "code":
-		provider = dev.Coding_provider
-		smarter = dev.Coding_smarter
-	}
-
-	switch strings.ToLower(provider) {
-
-	case "xai":
-		model = "grok-3-mini"
-		if smarter {
-			model = "grok-4"
-		}
-
-	case "mistral":
-		switch usecase {
-		case "tools", "code":
-			model = "devstral-small-latest"
-			if smarter {
-				model = "codestral-latest"
-			}
-		case "chat":
-			model = "mistral-small-latest"
-			if smarter {
-				model = "mistral-large-latest"
-			}
-		}
-
-	case "openai":
-		switch usecase {
-		case "tools", "code":
-			model = "gpt-4.1-mini"
-			if smarter {
-				model = "o4-mini"
-			}
-		case "chat":
-			model = "gpt-4.1-mini"
-			if smarter {
-				model = "o4-mini"
-			}
-		}
-
-	case "groq":
-		switch usecase {
-		case "tools", "code":
-			model = "qwen/qwen3-32b"
-			if smarter {
-				model = "qwen/qwen3-32b"
-			}
-		case "chat":
-			model = "qwen/qwen3-32b"
-			if smarter {
-				model = "qwen/qwen3-32b"
-			}
-		}
-
-	case "llama.cpp":
-		model = ""
+		provider = dev.Code_provider
+		model = dev.Code_model
 	}
 
 	st.Out_usage.Model = model

@@ -42,13 +42,16 @@ type ServicesSyncDeviceSettings struct {
 	DarkPalette   DevPalette
 	CustomPalette DevPalette
 
-	Chat_provider string
-	Chat_smarter  bool
+	App_provider string
+	App_smarter  bool
+	App_model    string
 
-	Coding_provider string
-	Coding_smarter  bool
+	Code_provider string
+	Code_smarter  bool
+	Code_model    string
 
 	Image_provider string
+	Image_model    string
 
 	STT_provider string
 }

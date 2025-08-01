@@ -36,13 +36,16 @@ type DeviceSettings struct {
 	DarkPalette   DeviceSettingsPalette
 	CustomPalette DeviceSettingsPalette
 
-	Chat_provider string
-	Chat_smarter  bool
+	App_provider string
+	App_smarter  bool
+	App_model    string
 
-	Coding_provider string
-	Coding_smarter  bool
+	Code_provider string
+	Code_smarter  bool
+	Code_model    string
 
 	Image_provider string
+	Image_model    string
 
 	STT_provider string
 }
@@ -120,6 +123,102 @@ func NewDeviceSettings(file string) (*DeviceSettings, error) {
 	}
 
 	return LoadFile(file, "DeviceSettings", "json", st, true)
+}
+
+func DeviceSettings_GetPricingStringTooltip() string {
+	return "Price of Input_text/Input_image/Input_cached/Output per 1M tokens"
+}
+func (st *DeviceSettings) GetPricingString(provider, model string) string {
+
+	pricing := "unknown"
+
+	switch strings.ToLower(provider) {
+	case "xai":
+		st, err := NewLLMxAI("")
+		if err == nil {
+			pricing = st.GetPricingString(model)
+		}
+	case "mistral":
+		st, err := NewLLMMistral("")
+		if err == nil {
+			pricing = st.GetPricingString(model)
+		}
+	case "openai":
+		st, err := NewLLMOpenai("")
+		if err == nil {
+			pricing = st.GetPricingString(model)
+		}
+	case "groq":
+		st, err := NewLLMGroq("")
+		if err == nil {
+			pricing = st.GetPricingString(model)
+		}
+	}
+
+	return pricing
+}
+
+func (st *DeviceSettings) UpdateModels() {
+	switch strings.ToLower(st.App_provider) {
+	case "xai":
+		st.App_model = "grok-3-mini"
+		if st.App_smarter {
+			st.App_model = "grok-4"
+		}
+
+	case "mistral":
+		st.App_model = "mistral-small-latest"
+		if st.App_smarter {
+			st.App_model = "mistral-large-latest"
+		}
+
+	case "openai":
+		st.App_model = "gpt-4.1-mini"
+		if st.App_smarter {
+			st.App_model = "o4-mini"
+		}
+
+	case "groq":
+		st.App_model = "qwen/qwen3-32b"
+		if st.App_smarter {
+			st.App_model = "qwen/qwen3-32b"
+		}
+
+	case "llama.cpp":
+		st.App_model = "" //....
+
+	}
+
+	switch strings.ToLower(st.Code_provider) {
+	case "xai":
+		st.Code_model = "grok-3-mini"
+		if st.Code_smarter {
+			st.Code_model = "grok-4"
+		}
+
+	case "mistral":
+		st.Code_model = "devstral-small-latest"
+		if st.Code_smarter {
+			st.Code_model = "codestral-latest"
+		}
+
+	case "openai":
+		st.Code_model = "gpt-4.1-mini"
+		if st.Code_smarter {
+			st.Code_model = "o4-mini"
+		}
+
+	case "groq":
+		st.Code_model = "qwen/qwen3-32b"
+		if st.Code_smarter {
+			st.Code_model = "qwen/qwen3-32b"
+		}
+
+	case "llama.cpp":
+		st.Code_model = "" //....
+
+	}
+
 }
 
 func (st *DeviceSettings) GetPalette() *DeviceSettingsPalette {
