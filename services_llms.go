@@ -397,16 +397,20 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 		}()
 	}
 
-	/*if st.delta != nil {
-		for i := range 1000 {
-			st.delta(&ChatMsg{Content: OpenAI_content{Calls: &OpenAI_completion_msgCalls{Content: fmt.Sprintf("hello world: %d", i)}}})
-			time.Sleep(1 * time.Second)
+	/*
+		//keep for testing - bypass findCache() above
+		if st.delta != nil {
+			for i := range 1000 {
+				st.delta(&ChatMsg{Content: OpenAI_content{Calls: &OpenAI_completion_msgCalls{Content: fmt.Sprintf("hello world: %d", i)}}})
 
-			if !msg.GetContinue() {
-				return nil
+				for range 100 {
+					time.Sleep(10 * time.Millisecond)
+					if !msg.GetContinue() {
+						return nil
+					}
+				}
 			}
-		}
-	}*/
+		}*/
 
 	//call
 	switch strings.ToLower(provider) {
