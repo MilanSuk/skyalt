@@ -2163,6 +2163,11 @@ type UISlider struct {
 	Max   float64
 	Step  float64
 
+	ShowLegend      bool
+	ShowDrawSteps   bool
+	ShowRecommend   bool
+	Recommend_value float64
+
 	changed func() error
 }
 type UIButton struct {

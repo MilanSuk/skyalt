@@ -40,8 +40,8 @@ func (st *SliderEdit) Build(layout *Layout) {
 	tx.Tooltip = st.Tooltip
 
 	sli := layout.AddSlider(1, 0, 1, 1, st.ValuePointer, st.Min, st.Max, st.Step)
-	sli.DrawSteps = st.DrawSteps
-	sli.Legend = st.Legend
+	sli.ShowDrawSteps = st.DrawSteps
+	sli.ShowLegend = st.Legend
 	sli.changed = func() {
 		if st.changed != nil {
 			st.changed()

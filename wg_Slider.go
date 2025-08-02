@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 )
@@ -14,8 +13,10 @@ type Slider struct {
 	Max  float64
 	Step float64
 
-	Legend    bool
-	DrawSteps bool
+	ShowLegend      bool
+	ShowDrawSteps   bool
+	ShowRecommend   bool
+	Recommend_value float64
 
 	changed func()
 }
@@ -36,7 +37,7 @@ func (layout *Layout) AddSliderInt(x, y, w, h int, value *int, min, max, step fl
 }
 
 func (st *Slider) getLLMTip(layout *Layout) string {
-	return Layout_buildLLMTip("Slider", fmt.Sprintf("%v", st.getValue), false, st.Tooltip)
+	return Layout_buildLLMTip("Slider", strconv.FormatFloat(st.getValue(), 'f', -1, 64), false, st.Tooltip)
 }
 
 func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
@@ -60,7 +61,7 @@ func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	rad, coord, cqA, cqB := st._getCoords(rect, value)
 
 	//steps
-	if st.DrawSteps {
+	if st.ShowDrawSteps {
 		sz := rad * 1.2
 		for i := st.Min + st.Step; i < st.Max; i++ {
 			t := (i - st.Min) / (st.Max - st.Min)
@@ -70,20 +71,40 @@ func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 			rc.W = sz
 			rc.H = sz
 
-			cdd := cd
-			if i >= value {
-				cdd = cd2
+			cdd := cd2
+			if i < value {
+				cdd = cd
 			}
 
 			paint.Circle(rc, cdd, cdd, cdd, 0)
 		}
 	}
 
+	if st.ShowRecommend {
+
+		st.Recommend_value = OsClampFloat(st.Recommend_value, st.Min, st.Max)
+
+		sz := rad * 1.5
+		t := (st.Recommend_value - st.Min) / (st.Max - st.Min)
+		rc := coord
+		rc.X = coord.X + coord.W*t - sz/2
+		rc.Y = coord.H/2 - sz/2
+		rc.W = sz
+		rc.H = sz
+
+		cdd := cd2
+		/*if st.Recommend_value < value {
+			cdd = cd
+		}*/
+
+		paint.Circle(rc, cdd, cdd, cdd, 0.0)
+	}
+
 	//track(2x lines)
 	paint.Rect(cqA, cd, cd, cd, 0)
 	paint.Rect(cqB, cd2, cd2, cd2, 0)
 
-	//thumb(sphere)
+	//thumb
 	{
 		var cqT Rect
 		cqT.X = cqB.X - rad
@@ -98,7 +119,7 @@ func (st *Slider) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	}
 
 	//legend
-	if st.Legend {
+	if st.ShowLegend {
 		frontCd := layout.GetPalette().GetGrey(0.2)
 
 		rc := rect

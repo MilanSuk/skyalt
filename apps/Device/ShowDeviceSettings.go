@@ -141,6 +141,8 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 		ui.AddText(0, y, 1, 1, "UI rounding")
 		rounding := source_dev.Rounding * 100
 		sl := ui.AddSlider(1, y, 1, 1, &rounding, 0, 50, 5)
+		sl.ShowRecommend = true
+		sl.Recommend_value = 20
 		sl.changed = func() error {
 			source_dev.Rounding = rounding / 100
 			return nil
@@ -154,6 +156,8 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 		ui.AddText(0, y, 1, 1, "UI scroll thickness")
 		scroll := source_dev.ScrollThick * 100
 		sl := ui.AddSlider(1, y, 1, 1, &scroll, 20, 100, 10)
+		sl.ShowRecommend = true
+		sl.Recommend_value = 50
 		sl.changed = func() error {
 			source_dev.ScrollThick = scroll / 100
 			return nil

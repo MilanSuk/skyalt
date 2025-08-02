@@ -60,6 +60,11 @@ type UISlider struct {
 	Min   float64
 	Max   float64
 	Step  float64
+
+	ShowLegend      bool
+	ShowDrawSteps   bool
+	ShowRecommend   bool
+	Recommend_value float64
 }
 type UIButton struct {
 	Label string
@@ -110,7 +115,6 @@ type UIDropDown struct {
 }
 
 type UIPromptMenu struct {
-	layout  *UI
 	Prompts []string
 	Icons   []PromptMenuIcon
 }
@@ -632,6 +636,11 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 	} else if it.Slider != nil {
 		sl := layout.AddSlider(it.X, it.Y, it.W, it.H, it.Slider.Value, it.Slider.Min, it.Slider.Max, it.Slider.Step)
 		sl.Tooltip = it.Tooltip
+		sl.ShowLegend = it.Slider.ShowLegend
+		sl.ShowDrawSteps = it.Slider.ShowDrawSteps
+		sl.ShowRecommend = it.Slider.ShowRecommend
+		sl.Recommend_value = it.Slider.Recommend_value
+
 		//tooltip_value = strconv.FormatFloat(*it.Slider.Value, 'f', -1, 64)
 		sl.changed = func() {
 			layout.ui.router.CallChangeAsync(parent_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueFloat: *it.Slider.Value}, fnProgress, fnDone)
