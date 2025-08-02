@@ -1914,7 +1914,9 @@ func (layout *Layout) _updateCoordInner() {
 }
 
 func (layout *Layout) updateCoordSoft() {
-	layout._updateCoordInner()
+	if !layout.IsLevel() {
+		layout._updateCoordInner()
+	}
 	for _, it := range layout.childs {
 		it.updateCoordSoft()
 	}
