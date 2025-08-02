@@ -237,7 +237,11 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			FooterLeftDiv.SetRow(0, 1, 100)
 
 			DocDia := FooterLeftDiv.AddDialog("documentation")
-			st.buildDocumentation(&DocDia.UI)
+			DocDia.UI.SetColumn(0, 1, 1)
+			DocDia.UI.SetColumnFromSub(1, 1, 30, true)
+			DocDia.UI.SetColumn(2, 1, 1)
+			DocDia.UI.SetRowFromSub(0, 1, 100, true)
+			st.buildDocumentation(DocDia.UI.AddLayout(1, 0, 1, 1)) //centered
 			DocBt := FooterLeftDiv.AddButton(0, 0, 1, 1, "Documentation")
 			DocBt.Background = 0.5
 			DocBt.layout.Tooltip = "Show documentation"
@@ -606,29 +610,52 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						tx.EnableCodeFormating = true
 					}
 
-					//Price
 					{
-						tx := SideDiv.AddText(0, 2, 1, 1, fmt.Sprintf("<i>%s, $%f", side_promptCode.Usage.Model, side_promptCode.Usage.Prompt_price+side_promptCode.Usage.Input_cached_price+side_promptCode.Usage.Completion_price+side_promptCode.Usage.Reasoning_price))
-						tx.Align_h = 2
+						StatsDiv := SideDiv.AddLayout(0, 2, 1, 1)
+						StatsDiv.SetColumn(0, 1, 100)
+						StatsDiv.SetColumn(1, 1, 100)
 
-						in := side_promptCode.Usage.Prompt_price
-						inCached := side_promptCode.Usage.Input_cached_price
-						out := side_promptCode.Usage.Completion_price + side_promptCode.Usage.Reasoning_price
-						tx.layout.Tooltip = fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s sec\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
-							side_promptCode.Usage.Provider+":"+side_promptCode.Usage.Model,
-							SdkGetDateTime(int64(side_promptCode.Usage.CreatedTimeSec)),
-							strconv.FormatFloat(side_promptCode.Usage.TimeToFirstToken, 'f', 3, 64),
-							strconv.FormatFloat(side_promptCode.Usage.DTime, 'f', 3, 64),
-							strconv.FormatFloat(side_promptCode.Usage.GetSpeed(), 'f', 3, 64),
-							strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
-							strconv.FormatFloat(in, 'f', -1, 64),
-							side_promptCode.Usage.Prompt_tokens,
-							strconv.FormatFloat(inCached, 'f', -1, 64),
-							side_promptCode.Usage.Input_cached_tokens,
-							strconv.FormatFloat(out, 'f', -1, 64),
-							side_promptCode.Usage.Reasoning_tokens,
-							side_promptCode.Usage.Completion_tokens)
+						//Code model picker
+						{
+							CodeDia := StatsDiv.AddDialog("code_picker")
+							CodeDia.UI.SetColumn(0, 8, 20)
+							CodeDia.UI.SetRowFromSub(0, 1, 100, true)
+							_, err := CodeDia.UI.AddToolApp(0, 0, 1, 1, "Device", "ShowLLMsCodeSettings", nil, caller)
+							if err != nil {
+								return fmt.Errorf("AddToolApp() failed: %v", err)
+							}
 
+							ModelBt := StatsDiv.AddButton(0, 0, 1, 1, "Change model")
+							ModelBt.Background = 0.5
+							ModelBt.clicked = func() error {
+								CodeDia.OpenCentered(caller)
+								return nil
+							}
+						}
+
+						//Price
+						{
+							tx := StatsDiv.AddText(1, 0, 1, 1, fmt.Sprintf("<i>%s, $%f", side_promptCode.Usage.Model, side_promptCode.Usage.Prompt_price+side_promptCode.Usage.Input_cached_price+side_promptCode.Usage.Completion_price+side_promptCode.Usage.Reasoning_price))
+							tx.Align_h = 2
+
+							in := side_promptCode.Usage.Prompt_price
+							inCached := side_promptCode.Usage.Input_cached_price
+							out := side_promptCode.Usage.Completion_price + side_promptCode.Usage.Reasoning_price
+							tx.layout.Tooltip = fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s sec\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
+								side_promptCode.Usage.Provider+":"+side_promptCode.Usage.Model,
+								SdkGetDateTime(int64(side_promptCode.Usage.CreatedTimeSec)),
+								strconv.FormatFloat(side_promptCode.Usage.TimeToFirstToken, 'f', 3, 64),
+								strconv.FormatFloat(side_promptCode.Usage.DTime, 'f', 3, 64),
+								strconv.FormatFloat(side_promptCode.Usage.GetSpeed(), 'f', 3, 64),
+								strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
+								strconv.FormatFloat(in, 'f', -1, 64),
+								side_promptCode.Usage.Prompt_tokens,
+								strconv.FormatFloat(inCached, 'f', -1, 64),
+								side_promptCode.Usage.Input_cached_tokens,
+								strconv.FormatFloat(out, 'f', -1, 64),
+								side_promptCode.Usage.Reasoning_tokens,
+								side_promptCode.Usage.Completion_tokens)
+						}
 					}
 
 					//Errors
@@ -715,7 +742,7 @@ func (st *ShowDev) buildSettings(dia *UIDialog, app *RootApp, caller *ToolCaller
 }
 
 func (st *ShowDev) buildDocumentation(ui *UI) {
-	ui.SetColumn(0, 5, 20)
+	ui.SetColumnFromSub(0, 20, 100, true)
 	y := 0
 
 	greyCd := UI_GetPalette().GetGrey(0.5)
@@ -739,6 +766,10 @@ func (st *ShowDev) buildDocumentation(ui *UI) {
 		tx.setMultilined()
 	}
 
+	ui.SetRow(y, 0.1, 0.1)
+	ui.AddDivider(0, y, 1, 1, true)
+	y++
+
 	// Example
 	{
 		ui.AddTextLabel(0, y, 1, 1, "Example")
@@ -749,10 +780,22 @@ func (st *ShowDev) buildDocumentation(ui *UI) {
 		tx.setMultilined()
 	}
 
+	ui.SetRow(y, 0.1, 0.1)
+	ui.AddDivider(0, y, 1, 1, true)
+	y++
+
 	//Services
 	{
-		//LLM completion ....
+		ui.AddTextLabel(0, y, 1, 1, "Services")
+		y++
+		tx := ui.AddText(0, y, 1, 1, "LLM completion, image_gen ....")
+		y++
+		tx.setMultilined()
 	}
+
+	ui.SetRow(y, 0.1, 0.1)
+	ui.AddDivider(0, y, 1, 1, true)
+	y++
 
 	//GUIs
 	{
@@ -799,10 +842,6 @@ func (st *ShowDev) buildDocumentation(ui *UI) {
 		GuiDiv.AddDropDown(1, yy, 1, 1, &str, list, list)
 		yy++
 
-		GuiDiv.AddText(0, yy, 1, 1, "Drop-down")
-		GuiDiv.AddDropDown(1, yy, 1, 1, &str, list, list)
-		yy++
-
 		GuiDiv.AddText(0, yy, 1, 1, "Slider")
 		GuiDiv.AddSlider(1, yy, 1, 1, &number, 0, 2, 0.1)
 		yy++
@@ -815,11 +854,11 @@ func (st *ShowDev) buildDocumentation(ui *UI) {
 		GuiDiv.AddFilePickerButton(1, yy, 1, 1, &str, false, false)
 		yy++
 
-		GuiDiv.AddText(0, yy, 1, 1, "Date(time) picker")
+		GuiDiv.AddText(0, yy, 1, 1, "Date/Time picker")
 		GuiDiv.AddDatePickerButton(1, yy, 1, 1, &date, &date, true)
 		yy++
 
-		GuiDiv.AddText(0, yy, 1, 1, "Date(time) picker")
+		GuiDiv.AddText(0, yy, 1, 1, "Color picker")
 		GuiDiv.AddColorPickerButton(1, yy, 1, 1, &cd)
 		yy++
 
@@ -833,7 +872,13 @@ func (st *ShowDev) buildDocumentation(ui *UI) {
 
 		//ChartColumn ...
 
-		//map ...
+		GuiDiv.AddText(0, yy, 1, 1, "Map")
+		GuiDiv.SetRow(yy, 5, 5)
+		lon := 14.418540
+		lat := 50.073658
+		zoom := 10.0
+		GuiDiv.AddMap(1, yy, 1, 1, &lon, &lat, &zoom) //maybe put into dialog? ....
+		yy++
 
 		//year calendar
 		//month calendar
