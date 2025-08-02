@@ -22,7 +22,7 @@ func (st *TimePickerButton) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1, 100)
 	layout.SetColumn(1, 0.5, 0.5) //space
-	layout.SetColumn(3, 0.5, 0.5)
+	layout.SetColumnFromSub(3, 0, 2, true)
 	layout.SetRow(0, 1, 100)
 
 	btDate := layout.AddButton(0, 0, 1, 1, layout.ConvertTextDate(*st.Value))

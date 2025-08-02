@@ -101,7 +101,7 @@ func (st *DatePickerButton) Build(layout *Layout) {
 		h.Tooltip = "Hour"
 		h.changed = changeEdit
 
-		layout.SetColumn(x, 0.3, 0.3)
+		layout.SetColumnFromSub(x, 0, 2, true)
 		layout.AddText(x, 0, 1, 1, ":").Align_h = 1
 		x++ //space
 
