@@ -36,6 +36,8 @@ func (st *DropDown) getLLMTip(layout *Layout) string {
 }
 
 func (st *DropDown) Build(layout *Layout) {
+	layout.scrollH.Narrow = true
+	layout.scrollV.Show = false
 
 	layout.SetColumnFromSub(0, 1, 100, false)
 
