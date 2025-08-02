@@ -199,9 +199,9 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				ProgressBt := AppsDiv.AddButton(0, y, 1, 1, "")
 				y++
 				ProgressBt.Background = 0.25
-				ProgressBt.IconPath = "resources/warning.png"
+				ProgressBt.IconPath = "resources/running.png"
 				ProgressBt.Icon_margin = 0.2
-				ProgressBt.layout.Tooltip = fmt.Sprintf("%d new errors", len(msgs))
+				ProgressBt.layout.Tooltip = fmt.Sprintf("Running %d jobs", len(msgs))
 				ProgressBt.clicked = func() error {
 					ProgressDia.OpenRelative(ProgressBt.layout, caller)
 					return nil
@@ -268,35 +268,40 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		//Log/Errors
 		{
 			logs := callFuncGetLogs()
-			LogsDia := AppsDiv.AddDialog("logs")
-			st.buildLog(&LogsDia.UI, logs, caller)
+			if len(logs) > 0 {
+				LogsDia := AppsDiv.AddDialog("logs")
+				st.buildLog(&LogsDia.UI, logs, caller)
 
-			hasNewErrs := (len(logs) > 0 && logs[len(logs)-1].Time > source_root.Last_log_time)
-			label := "LOG"
-			if hasNewErrs {
-				n := 0
-				for _, it := range logs {
-					if it.Time > source_root.Last_log_time {
-						n++
+				hasNewErrs := (len(logs) > 0 && logs[len(logs)-1].Time > source_root.Last_log_time)
+				tootip := "Show log"
+				if hasNewErrs {
+					n := 0
+					for _, it := range logs {
+						if it.Time > source_root.Last_log_time {
+							n++
+						}
 					}
+					tootip = fmt.Sprintf("Log has %d new errors", n)
 				}
-				label = fmt.Sprintf("(%d)", n)
-			}
 
-			LogBt := AppsDiv.AddButton(0, y, 1, 1, label)
-			y++
-			LogBt.Background = 0.25
-			if hasNewErrs {
-				LogBt.Background = 1
-				LogBt.Cd = UI_GetPalette().E
-			}
-			LogBt.clicked = func() error {
-				LogsDia.OpenRelative(LogBt.layout, caller)
-
-				if len(logs) > 0 {
-					source_root.Last_log_time = logs[len(logs)-1].Time
+				LogBt := AppsDiv.AddButton(0, y, 1, 1, "")
+				y++
+				LogBt.Background = 0.25
+				LogBt.IconPath = "resources/warning.png"
+				LogBt.Icon_margin = 0.2
+				LogBt.layout.Tooltip = tootip
+				if hasNewErrs {
+					LogBt.Background = 1
+					LogBt.Cd = UI_GetPalette().E
 				}
-				return nil
+				LogBt.clicked = func() error {
+					LogsDia.OpenRelative(LogBt.layout, caller)
+
+					if len(logs) > 0 {
+						source_root.Last_log_time = logs[len(logs)-1].Time
+					}
+					return nil
+				}
 			}
 		}
 
@@ -790,7 +795,7 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
 }
 
 func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
-	ui.SetColumn(0, 1, 20)
+	ui.SetColumnFromSub(0, 1, 30, true)
 
 	{
 		HeaderDiv := ui.AddLayout(0, 0, 1, 1)
@@ -829,8 +834,8 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 
 	ui.SetRowFromSub(1, 1, 15, true)
 	ListDiv := ui.AddLayout(0, 1, 1, 1)
-	ListDiv.SetColumn(0, 1, 4)
-	ListDiv.SetColumn(1, 1, 26)
+	ListDiv.SetColumnFromSub(0, 1, 10, true)
+	ListDiv.SetColumnFromSub(1, 1, 100, true)
 
 	MAX_N := 20
 	y := 0
@@ -841,9 +846,10 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 
 		ListDiv.AddText(0, y, 1, 1, SdkGetDateTime(int64(it.Time)))
 
-		tx := ListDiv.AddText(1, y, 1, 1, it.Msg)
+		tx := ListDiv.AddText(1, y, 1, 1, strings.TrimSpace(it.Msg))
 		tx.layout.Tooltip = it.Stack
 		tx.Cd = UI_GetPalette().E
+		tx.setMultilined()
 
 		y++
 	}
