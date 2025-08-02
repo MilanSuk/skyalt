@@ -229,9 +229,19 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			tx.setMultilined()
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		} else {
-			tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#function <name> //Describe background function.\n#tool <name> //Describe app's feature.\n#start //Enter prompt, which will be executed when new chat is created.")
-			tx.setMultilined()
-			tx.Cd = UI_GetPalette().GetGrey(0.5)
+
+			DocDia := FooterDiv.AddDialog("documentation")
+			st.buildDocumentation(&DocDia.UI)
+			DocBt := FooterDiv.AddButton(0, 0, 1, 1, "Documentation")
+			DocBt.Background = 0.5
+			DocBt.layout.Tooltip = "Show documentation"
+			DocBt.clicked = func() error {
+				DocDia.OpenCentered(caller)
+				return nil
+			}
+			//tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#function <name> //Describe background function.\n#tool <name> //Describe app's feature.\n#start //Enter prompt, which will be executed when new chat is created.")
+			//tx.setMultilined()
+			//tx.Cd = UI_GetPalette().GetGrey(0.5)
 		}
 
 		{
@@ -696,6 +706,72 @@ func (st *ShowDev) buildSettings(dia *UIDialog, app *RootApp, caller *ToolCaller
 		dia.Close(caller)
 		return nil
 	}
+}
+
+func (st *ShowDev) buildDocumentation(ui *UI) {
+	ui.SetColumn(0, 5, 20)
+	y := 0
+
+	greyCd := UI_GetPalette().GetGrey(0.5)
+	greyStr := fmt.Sprintf("<rgba%d,%d,%d,%d>", greyCd.R, greyCd.G, greyCd.B, greyCd.A)
+
+	// Basics
+	{
+		ui.AddTextLabel(0, y, 1, 1, "Basic structure")
+		y++
+
+		ui.SetRowFromSub(y, 1, 100, true)
+		tx := ui.AddText(0, y, 1, 1, "#storage\n"+
+			greyStr+"Describe structures for saving data.</rgba>\n\n"+
+			"#function <name>\n"+
+			greyStr+"Describe background function.</rgba>\n\n"+
+			"#tool <name>\n"+
+			greyStr+"Describe app's feature.</rgba>\n\n"+
+			"#start\n"+
+			greyStr+"Prompt with tool call, which is executed when new tab is created.</rgba>")
+		y++
+		tx.setMultilined()
+	}
+
+	// Example
+	{
+		ui.AddTextLabel(0, y, 1, 1, "Example")
+		y++
+
+		tx := ui.AddText(0, y, 1, 1, "todo ....")
+		y++
+		tx.setMultilined()
+	}
+
+	//GUIs
+	{
+		ui.AddTextLabel(0, y, 1, 1, "GUI components")
+		y++
+
+		ui.SetRowFromSub(y, 1, 100, true)
+		GuiDiv := ui.AddLayout(0, y, 1, 1)
+		y++
+		GuiDiv.SetColumnFromSub(0, 7, 100, true)
+		GuiDiv.SetColumn(1, 1, 100)
+
+		yy := 0
+		str := "Example"
+
+		GuiDiv.AddText(0, yy, 1, 1, "Button")
+		GuiDiv.AddButton(1, yy, 1, 1, "Label")
+		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "Text")
+		GuiDiv.AddText(1, yy, 1, 1, str)
+		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "Editbox")
+		GuiDiv.AddEditboxString(1, yy, 1, 1, &str)
+		yy++
+
+		//...........
+	}
+
 }
 
 func (st *ShowDev) _copyFile(dst, src string) error {
