@@ -187,6 +187,28 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			y++
 		}
 
+		//Progress
+		{
+			msgs := callFuncGetMsgs()
+			if len(msgs) > 0 {
+				ProgressDia := AppsDiv.AddDialog("progress")
+				ProgressDia.UI.SetColumn(0, 5, 15)
+				ProgressDia.UI.SetRowFromSub(0, 1, 10, true)
+				st.buildMessages(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs)
+
+				ProgressBt := AppsDiv.AddButton(0, y, 1, 1, "")
+				y++
+				ProgressBt.Background = 0.25
+				ProgressBt.IconPath = "resources/warning.png"
+				ProgressBt.Icon_margin = 0.2
+				ProgressBt.layout.Tooltip = fmt.Sprintf("%d new errors", len(msgs))
+				ProgressBt.clicked = func() error {
+					ProgressDia.OpenRelative(ProgressBt.layout, caller)
+					return nil
+				}
+			}
+		}
+
 		//create an app
 		{
 			newAppBt := AppsDiv.AddButton(0, y, 1, 1, "<h1>+")
@@ -354,25 +376,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			MediaBt.clicked = func() error {
 				MediaDia.OpenRelative(MediaBt.layout, caller)
 				return nil
-			}
-		}
-
-		//Progress
-		{
-			msgs := callFuncGetMsgs()
-			if len(msgs) > 0 {
-				ProgressDia := AppsDiv.AddDialog("progress")
-				ProgressDia.UI.SetColumn(0, 5, 15)
-				ProgressDia.UI.SetRowFromSub(0, 1, 10, true)
-				st.buildThreads(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs)
-
-				ProgressBt := AppsDiv.AddButton(0, y, 1, 1, fmt.Sprintf("[%d]", len(msgs)))
-				y++
-				ProgressBt.Background = 0
-				ProgressBt.clicked = func() error {
-					ProgressDia.OpenRelative(ProgressBt.layout, caller)
-					return nil
-				}
 			}
 		}
 
@@ -850,7 +853,7 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 
 }
 
-func (st *ShowRoot) buildThreads(ui *UI, msgs []SdkMsg) {
+func (st *ShowRoot) buildMessages(ui *UI, msgs []SdkMsg) {
 	y := 0
 	ui.SetColumn(0, 3, 100)
 	ui.SetColumn(1, 2, 3)
