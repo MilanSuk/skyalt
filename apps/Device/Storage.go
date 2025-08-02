@@ -250,7 +250,57 @@ func (st *DeviceSettings) UpdateModels() {
 		st.Code_model = "" //....
 
 	}
+}
 
+func DeviceSettings_getAppProviders() []string {
+	return []string{"", "xAI", "Mistral", "OpenAI", "Groq", "Llama.cpp"}
+}
+func DeviceSettings_getImageProviders() []string {
+	return []string{"", "xAI", "OpenAI"}
+}
+func DeviceSettings_getSTTProviders() []string {
+	return []string{"", "Whisper.cpp", "OpenAI"}
+}
+
+func (st *DeviceSettings) BuildProvider(ChatDiv *UI, provider string, caller *ToolCaller) {
+	ChatDia := ChatDiv.AddDialog(provider + "_settings")
+	ChatDia.UI.SetColumn(0, 1, 20)
+	ChatDia.UI.SetRowFromSub(0, 1, 100, true)
+	found := true
+	switch strings.ToLower(provider) {
+	case "xai":
+		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMxAISettings{}).run, caller)
+	case "mistral":
+		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMMistralSettings{}).run, caller)
+	case "groq":
+		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMGroqSettings{}).run, caller)
+	case "openai":
+		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMOpenAISettings{}).run, caller)
+	case "llama.cpp":
+		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMLlamacppSettings{}).run, caller)
+	case "whisper.cpp":
+		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMWhispercppSettings{}).run, caller)
+	default:
+		found = false
+	}
+
+	if found {
+		ChatProvider := ChatDiv.AddButton(1, 1, 1, 1, provider+" Settings")
+		ChatProvider.Background = 0.5
+
+		providerErr := st.CheckProvider(provider)
+		if providerErr != nil {
+			ChatProvider.Cd = UI_GetPalette().E
+			ChatProvider.layout.Tooltip = providerErr.Error()
+		}
+		ChatProvider.clicked = func() error {
+			ChatDia.OpenCentered(caller)
+			return nil
+		}
+	} else {
+		errTx := ChatDiv.AddText(1, 1, 1, 1, "Disabled")
+		errTx.Cd = UI_GetPalette().E
+	}
 }
 
 func (st *DeviceSettings) GetPalette() *DeviceSettingsPalette {
