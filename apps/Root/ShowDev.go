@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // [ignore]
@@ -219,20 +220,25 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	{
 		MainDiv.SetRowFromSub(2, 1, 10, true)
 		FooterDiv := MainDiv.AddLayout(1, 2, 1, 1)
-		FooterDiv.SetColumn(0, 1, 100)
-		FooterDiv.SetColumn(1, 1, 6)
-		FooterDiv.SetRowFromSub(0, 2, 5, true)
+		FooterDiv.SetColumnFromSub(0, 1, 100, true)
+		FooterDiv.SetColumn(1, 1, 100)
+		FooterDiv.SetRowFromSub(0, 1, 5, true)
 
 		//Note
 		if app.Dev.MainMode == "secrets" {
 			tx := FooterDiv.AddText(0, 0, 1, 1, "<alias> <value>\nExample: myemail@mail.com myActualEmail@gmail.com\nExample: password_1234 Ek7_sdf6m-o45-erc-er5_-df")
 			tx.setMultilined()
+			tx.Linewrapping = false
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		} else {
 
-			DocDia := FooterDiv.AddDialog("documentation")
+			FooterLeftDiv := FooterDiv.AddLayout(0, 0, 1, 1)
+			FooterLeftDiv.SetColumnFromSub(0, 1, 100, true)
+			FooterLeftDiv.SetRow(0, 1, 100)
+
+			DocDia := FooterLeftDiv.AddDialog("documentation")
 			st.buildDocumentation(&DocDia.UI)
-			DocBt := FooterDiv.AddButton(0, 0, 1, 1, "Documentation")
+			DocBt := FooterLeftDiv.AddButton(0, 0, 1, 1, "Documentation")
 			DocBt.Background = 0.5
 			DocBt.layout.Tooltip = "Show documentation"
 			DocBt.clicked = func() error {
@@ -743,6 +749,11 @@ func (st *ShowDev) buildDocumentation(ui *UI) {
 		tx.setMultilined()
 	}
 
+	//Services
+	{
+		//LLM completion ....
+	}
+
 	//GUIs
 	{
 		ui.AddTextLabel(0, y, 1, 1, "GUI components")
@@ -756,6 +767,13 @@ func (st *ShowDev) buildDocumentation(ui *UI) {
 
 		yy := 0
 		str := "Example"
+		list := []string{"Item A", "Item B", "Item C"}
+		prompts := []string{"Tell me more", "List alternatives", "Delete"}
+
+		date := time.Now().Unix()
+		number := 1.0
+		boolean := true
+		cd := UI_GetPalette().P
 
 		GuiDiv.AddText(0, yy, 1, 1, "Button")
 		GuiDiv.AddButton(1, yy, 1, 1, "Label")
@@ -768,6 +786,58 @@ func (st *ShowDev) buildDocumentation(ui *UI) {
 		GuiDiv.AddText(0, yy, 1, 1, "Editbox")
 		GuiDiv.AddEditboxString(1, yy, 1, 1, &str)
 		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "Checkbox")
+		GuiDiv.AddCheckbox(1, yy, 1, 1, "Label", &number)
+		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "Switch")
+		GuiDiv.AddSwitch(1, yy, 1, 1, "Label", &boolean)
+		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "Drop-down")
+		GuiDiv.AddDropDown(1, yy, 1, 1, &str, list, list)
+		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "Drop-down")
+		GuiDiv.AddDropDown(1, yy, 1, 1, &str, list, list)
+		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "Slider")
+		GuiDiv.AddSlider(1, yy, 1, 1, &number, 0, 2, 0.1)
+		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "Prompt-menu")
+		GuiDiv.AddPromptMenu(1, yy, 1, 1, prompts)
+		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "File picker")
+		GuiDiv.AddFilePickerButton(1, yy, 1, 1, &str, false, false)
+		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "Date(time) picker")
+		GuiDiv.AddDatePickerButton(1, yy, 1, 1, &date, &date, true)
+		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "Date(time) picker")
+		GuiDiv.AddColorPickerButton(1, yy, 1, 1, &cd)
+		yy++
+
+		GuiDiv.AddText(0, yy, 1, 1, "Divider(horizontal/vertical)")
+		GuiDiv.AddDivider(1, yy, 1, 1, true)
+		yy++
+
+		//table ...
+
+		//ChartLines ...
+
+		//ChartColumn ...
+
+		//map ...
+
+		//year calendar
+		//month calendar
+		//day calendar
 
 		//...........
 	}
