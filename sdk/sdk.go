@@ -2704,6 +2704,13 @@ func (ui *UI) AddDropDown(x, y, w, h int, value *string, labels []string, values
 	return item
 }
 
+func (ui *UI) AddPromptMenu(x, y, w, h int, prompts []string) *UIPromptMenu {
+	item := &UIPromptMenu{Prompts: prompts, layout: _newUIItem(x, y, w, h, "")}
+	item.layout.PromptMenu = item
+	ui._addUISub(item.layout, "")
+	return item
+}
+
 func (ui *UI) AddSwitch(x, y, w, h int, label string, value *bool) *UISwitch {
 	item := &UISwitch{Label: label, Value: value, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Switch = item
