@@ -877,7 +877,7 @@ func (layout *Layout) _relayout() {
 }
 
 func (layout *Layout) rebuildList() {
-	if layout.Name != "_list" {
+	if !layout.IsTypeCards() {
 		return
 	}
 
@@ -1376,7 +1376,7 @@ func (layout *Layout) Draw() {
 }
 
 func (layout *Layout) postDraw(depth int, num_cds *int) {
-	if layout.Name == "_layout" || layout.Name == "_list" {
+	if layout.IsTypeLayout() || layout.IsTypeCards() {
 		cd := Layout3_Get_prompt_color(*num_cds)
 		cd.Cd.A = 150
 

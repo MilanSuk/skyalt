@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"image/color"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -78,6 +79,13 @@ func (layout *Layout) AddLayoutCards(x, y, w, h int, autoSpacing bool) *Layout {
 	lay := layout._createDiv(x, y, w, h, "_cards", nil, nil, nil)
 	lay.Cards_autoSpacing = autoSpacing
 	return lay
+}
+
+func (layout *Layout) IsTypeCards() bool {
+	return layout.Name == "_cards"
+}
+func (layout *Layout) IsTypeLayout() bool {
+	return strings.HasPrefix(layout.Name, "_layout")
 }
 
 func (layout *Layout) AddCardsSubItem() *Layout {
