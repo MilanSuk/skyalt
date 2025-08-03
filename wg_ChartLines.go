@@ -131,7 +131,10 @@ func (st *ChartLines) Build(layout *Layout) {
 					rc := rect
 					rc.X += (rect.W * x) - rad
 					rc.W = 2 * rad
-					paint.TooltipEx(rc, fmt.Sprintf("%s%s%f, %f", label, separ, st.Lines[ln].Points[pt].X, st.Lines[ln].Points[pt].Y), false)
+
+					strX := strconv.FormatFloat(st.Lines[ln].Points[pt].X, 'f', -1, 64)
+					strY := strconv.FormatFloat(st.Lines[ln].Points[pt].Y, 'f', -1, 64)
+					paint.TooltipEx(rc, fmt.Sprintf("%s%s%s, %s", label, separ, strX, strY), false)
 				}
 
 				last_x = x
