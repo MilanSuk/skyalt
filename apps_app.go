@@ -46,7 +46,7 @@ type ToolsApp struct {
 func NewToolsApp(appName string, router *AppsRouter) (*ToolsApp, error) {
 	app := &ToolsApp{router: router}
 
-	app.Process = NewToolsAppRun(appName)
+	app.Process = NewToolsAppProcess(appName)
 
 	fl, err := os.ReadFile(app.GetToolsJsonPath())
 	if err == nil {
@@ -244,10 +244,10 @@ func (app *ToolsApp) Tick(generate bool) error {
 		}
 
 		codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
-		if err != nil {
+		if LogsError(err) != nil {
 			return err
 		}
-		app.Prompts.SetCodeErrors(codeErrors)
+		app.Prompts.SetCodeErrors(codeErrors, app)
 		restart = true
 	} else {
 
@@ -264,10 +264,10 @@ func (app *ToolsApp) Tick(generate bool) error {
 				}
 
 				codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
-				if err != nil {
+				if LogsError(err) != nil {
 					return err
 				}
-				app.Prompts.SetCodeErrors(codeErrors)
+				app.Prompts.SetCodeErrors(codeErrors, app)
 				restart = true
 			}
 		} else {
@@ -330,7 +330,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 					if err != nil {
 						return err
 					}
-					app.Prompts.SetCodeErrors(codeErrors)
+					app.Prompts.SetCodeErrors(codeErrors, app)
 					if len(codeErrors) == 0 {
 						break
 					}
@@ -380,7 +380,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 					if err != nil {
 						return err
 					}
-					app.Prompts.SetCodeErrors(codeErrors)
+					app.Prompts.SetCodeErrors(codeErrors, app)
 					if len(codeErrors) == 0 {
 						break
 					}
@@ -435,12 +435,12 @@ func (app *ToolsApp) Tick(generate bool) error {
 				if err != nil {
 					return err
 				}
-				app.Prompts.SetCodeErrors(codeErrors)
+				app.Prompts.SetCodeErrors(codeErrors, app)
 				if len(codeErrors) == 0 {
 					break
 				}
 				if i+1 == MAX_Errors_tries {
-					return fmt.Errorf("failed to generage Storage.go")
+					return fmt.Errorf("failed to generage Tools")
 				}
 			}
 

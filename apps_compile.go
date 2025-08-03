@@ -177,7 +177,7 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr //os.Stderr
 		cmd.Stdout = os.Stdout
-		err := cmd.Run()
+		err := cmd.Run() //can rewrite the file
 		if err != nil {
 
 			var codeErrors []ToolsCodeError
@@ -275,7 +275,7 @@ func _ToolsAppCompile_parseErrorString(errStr string) (ToolsCodeError, error) {
 	// Split the string by colons
 	parts := strings.SplitN(errStr, ":", 3)
 	if len(parts) < 3 {
-		return ToolsCodeError{Line: -1, Msg: errStr}, LogsErrorf("invalid error string format: %s", errStr)
+		return ToolsCodeError{Line: -1, Msg: errStr}, fmt.Errorf("invalid error string format: %s", errStr)
 	}
 
 	// Extract file name
@@ -285,21 +285,21 @@ func _ToolsAppCompile_parseErrorString(errStr string) (ToolsCodeError, error) {
 	lineStr := parts[1]
 	line, err := strconv.Atoi(lineStr)
 	if err != nil {
-		return ToolsCodeError{Line: -1, Msg: errStr}, LogsErrorf("invalid line number: %s", lineStr)
+		return ToolsCodeError{Line: -1, Msg: errStr}, fmt.Errorf("invalid line number: %s", lineStr)
 	}
 
 	// Split the remaining part to get column and message
 	remaining := parts[2]
 	colonIndex := strings.Index(remaining, ":")
 	if colonIndex == -1 {
-		return ToolsCodeError{Line: -1, Msg: errStr}, LogsErrorf("invalid error string format, missing column or message: %s", errStr)
+		return ToolsCodeError{Line: -1, Msg: errStr}, fmt.Errorf("invalid error string format, missing column or message: %s", errStr)
 	}
 
 	// Extract column number
 	colStr := strings.TrimSpace(remaining[:colonIndex])
 	col, err := strconv.Atoi(colStr)
 	if err != nil {
-		return ToolsCodeError{Line: -1, Msg: errStr}, LogsErrorf("invalid column number: %s", colStr)
+		return ToolsCodeError{Line: -1, Msg: errStr}, fmt.Errorf("invalid column number: %s", colStr)
 	}
 
 	// Extract message

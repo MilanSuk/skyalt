@@ -34,7 +34,7 @@ type ToolsAppProcess struct {
 	cmd_error  string
 }
 
-func NewToolsAppRun(appName string) *ToolsAppProcess {
+func NewToolsAppProcess(appName string) *ToolsAppProcess {
 	app := &ToolsAppProcess{}
 
 	app.Compile = NewToolsAppCompile(appName)
