@@ -241,7 +241,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			DocDia.UI.SetColumnFromSub(1, 1, 30, true)
 			DocDia.UI.SetColumn(2, 1, 1)
 			DocDia.UI.SetRowFromSub(0, 1, 100, true)
-			st.buildDocumentation(DocDia.UI.AddLayout(1, 0, 1, 1)) //centered
+			st.buildDocumentation(DocDia.UI.AddLayout(1, 0, 1, 1), caller) //centered
 			DocBt := FooterLeftDiv.AddButton(0, 0, 1, 1, "Documentation")
 			DocBt.Background = 0.5
 			DocBt.layout.Tooltip = "Show documentation"
@@ -741,8 +741,8 @@ func (st *ShowDev) buildSettings(dia *UIDialog, app *RootApp, caller *ToolCaller
 	}
 }
 
-func (st *ShowDev) buildDocumentation(ui *UI) {
-	ui.SetColumnFromSub(0, 20, 100, true)
+func (st *ShowDev) buildDocumentation(ui *UI, caller *ToolCaller) {
+	ui.SetColumnFromSub(0, 1, 100, true)
 	y := 0
 
 	greyCd := UI_GetPalette().GetGrey(0.5)
@@ -805,13 +805,10 @@ func (st *ShowDev) buildDocumentation(ui *UI) {
 		ui.SetRowFromSub(y, 1, 100, true)
 		GuiDiv := ui.AddLayout(0, y, 1, 1)
 		y++
-		GuiDiv.SetColumnFromSub(0, 7, 100, true)
-		GuiDiv.SetColumn(1, 1, 100)
+		GuiDiv.SetColumnFromSub(0, 5, 100, true)
+		GuiDiv.SetColumn(1, 10, 100)
 
-		yy := 0
-		str := "Example"
-		list := []string{"Item A", "Item B", "Item C"}
-		prompts := []string{"Tell me more", "List alternatives", "Delete"}
+		yy := 1
 
 		date := time.Now().Unix()
 		number := 1.0
@@ -819,72 +816,146 @@ func (st *ShowDev) buildDocumentation(ui *UI) {
 		cd := UI_GetPalette().P
 
 		GuiDiv.AddText(0, yy, 1, 1, "Button")
-		GuiDiv.AddButton(1, yy, 1, 1, "Label")
-		yy++
+		GuiDiv.AddButton(1, yy, 1, 1, "Click me!")
+		yy += 2
 
 		GuiDiv.AddText(0, yy, 1, 1, "Text")
-		GuiDiv.AddText(1, yy, 1, 1, str)
-		yy++
+		GuiDiv.AddText(1, yy, 1, 1, "example text")
+		yy += 2
 
 		GuiDiv.AddText(0, yy, 1, 1, "Editbox")
-		GuiDiv.AddEditboxString(1, yy, 1, 1, &str)
-		yy++
+		edit := "edit this"
+		GuiDiv.AddEditboxString(1, yy, 1, 1, &edit)
+		yy += 2
 
 		GuiDiv.AddText(0, yy, 1, 1, "Checkbox")
-		GuiDiv.AddCheckbox(1, yy, 1, 1, "Label", &number)
-		yy++
+		GuiDiv.AddCheckbox(1, yy, 1, 1, "Click me!", &number)
+		yy += 2
 
 		GuiDiv.AddText(0, yy, 1, 1, "Switch")
-		GuiDiv.AddSwitch(1, yy, 1, 1, "Label", &boolean)
-		yy++
+		GuiDiv.AddSwitch(1, yy, 1, 1, "Switch me!", &boolean)
+		yy += 2
 
 		GuiDiv.AddText(0, yy, 1, 1, "Drop-down")
-		GuiDiv.AddDropDown(1, yy, 1, 1, &str, list, list)
-		yy++
+		dropList := []string{"Item A", "Item B", "Item C"}
+		drop := "Item B"
+		GuiDiv.AddDropDown(1, yy, 1, 1, &drop, dropList, dropList)
+		yy += 2
 
 		GuiDiv.AddText(0, yy, 1, 1, "Slider")
 		GuiDiv.AddSlider(1, yy, 1, 1, &number, 0, 2, 0.1)
-		yy++
+		yy += 2
 
 		GuiDiv.AddText(0, yy, 1, 1, "Prompt-menu")
+		prompts := []string{"Tell me more", "List alternatives", "Delete"}
 		GuiDiv.AddPromptMenu(1, yy, 1, 1, prompts)
-		yy++
+		yy += 2
 
 		GuiDiv.AddText(0, yy, 1, 1, "File picker")
-		GuiDiv.AddFilePickerButton(1, yy, 1, 1, &str, false, false)
-		yy++
-
-		GuiDiv.AddText(0, yy, 1, 1, "Date/Time picker")
-		GuiDiv.AddDatePickerButton(1, yy, 1, 1, &date, &date, true)
-		yy++
+		file := "path/to/somewhere"
+		GuiDiv.AddFilePickerButton(1, yy, 1, 1, &file, false, false)
+		yy += 2
 
 		GuiDiv.AddText(0, yy, 1, 1, "Color picker")
 		GuiDiv.AddColorPickerButton(1, yy, 1, 1, &cd)
-		yy++
+		yy += 2
 
-		GuiDiv.AddText(0, yy, 1, 1, "Divider(horizontal/vertical)")
+		GuiDiv.AddText(0, yy, 1, 1, "Date/Time picker")
+		GuiDiv.AddDatePickerButton(1, yy, 1, 1, &date, &date, true)
+		yy += 2
+
+		GuiDiv.AddText(0, yy, 1, 1, "Year calendar")
+		{
+			bt := GuiDiv.AddButton(1, yy, 1, 1, "<Open preview>")
+			bt.Background = 0.5
+			dia := GuiDiv.AddDialog("year_calendar")
+			dia.UI.SetColumn(0, 10, 20)
+			dia.UI.SetRow(0, 10, 20)
+			dia.UI.AddYearCalendar(0, 0, 1, 1, time.Now().Year())
+			bt.clicked = func() error {
+				dia.OpenCentered(caller)
+				return nil
+			}
+		}
+		yy += 2
+
+		GuiDiv.AddText(0, yy, 1, 1, "Month calendar")
+		{
+			bt := GuiDiv.AddButton(1, yy, 1, 1, "<Open preview>")
+			bt.Background = 0.5
+			dia := GuiDiv.AddDialog("month_calendar")
+			dia.UI.SetColumn(0, 10, 20)
+			dia.UI.SetRow(0, 10, 20)
+			dia.UI.AddMonthCalendar(0, 0, 1, 1, time.Now().Year(), int(time.Now().Month()), []UICalendarEvent{{EventID: 1, Title: "Example event", Start: time.Now().Unix() - 10*60, Duration: 3600}})
+			bt.clicked = func() error {
+				dia.OpenCentered(caller)
+				return nil
+			}
+		}
+		yy += 2
+
+		GuiDiv.AddText(0, yy, 1, 1, "Day calendar")
+		{
+			bt := GuiDiv.AddButton(1, yy, 1, 1, "<Open preview>")
+			bt.Background = 0.5
+			dia := GuiDiv.AddDialog("day_calendar")
+			dia.UI.SetColumn(0, 10, 20)
+			dia.UI.SetRow(0, 10, 20)
+			today := time.Now().Unix()
+			dia.UI.AddDayCalendar(0, 0, 1, 1, []int64{today, today - 3600*24, today + 3600*24}, []UICalendarEvent{{EventID: 1, Title: "Example event", Start: time.Now().Unix() - 10*60, Duration: 3600}})
+			bt.clicked = func() error {
+				dia.OpenCentered(caller)
+				return nil
+			}
+		}
+		yy += 2
+
+		GuiDiv.AddText(0, yy, 1, 1, "Divider(<i>horizontal</i>/vertical)")
 		GuiDiv.AddDivider(1, yy, 1, 1, true)
-		yy++
+		yy += 2
 
-		//table ...
+		GuiDiv.SetRowFromSub(yy, 1, 100, true)
+		GuiDiv.AddText(0, yy, 1, 1, "Table")
+		TableDiv := GuiDiv.AddLayout(1, yy, 1, 1)
+		tb := TableDiv.addTable("")
+		ln := tb.addLine("")
+		ln.addText("Column A", "").Align_h = 1
+		ln.addText("Column B", "").Align_h = 1
+		ln.addText("Column C", "").Align_h = 1
+		tb.addDivider()
+		ln = tb.addLine("")
+		ln.addText("1", "")
+		ln.addText("2", "")
+		ln.addButton("Click", "")
+		ln = tb.addLine("")
+		ln.addText("10", "")
+		ln.addText("20", "")
+		ln.addButton("Click", "")
+		yy += 2
 
-		//ChartLines ...
-
-		//ChartColumn ...
-
-		GuiDiv.AddText(0, yy, 1, 1, "Map")
 		GuiDiv.SetRow(yy, 5, 5)
+		GuiDiv.AddText(0, yy, 1, 1, "Line Chart")
+		GuiDiv.AddChartLines(1, yy, 1, 1, []UIChartLine{{Points: []UIChartPoint{{X: 0, Y: 2}, {X: 1, Y: 1}, {X: 2, Y: 1.5}, {X: 3, Y: 1.8}}}})
+		yy += 2
+
+		GuiDiv.SetRow(yy, 5, 5)
+		GuiDiv.AddText(0, yy, 1, 1, "Column Chart")
+		cdA := UI_GetPalette().S
+		cdB := UI_GetPalette().E
+		cdC := UI_GetPalette().P
+		GuiDiv.AddChartColumns(1, yy, 1, 1, []UIChartColumn{
+			{Values: []UIChartColumnValue{{Value: 2, Cd: cdA}, {Value: 3, Cd: cdB}, {Value: 1, Cd: cdC}}},
+			{Values: []UIChartColumnValue{{Value: 1, Cd: cdA}, {Value: 2, Cd: cdB}, {Value: 1, Cd: cdC}}},
+		}, []string{"A", "B"})
+		yy += 2
+
+		GuiDiv.SetRow(yy, 5, 5)
+		GuiDiv.AddText(0, yy, 1, 1, "Map")
 		lon := 14.418540
 		lat := 50.073658
 		zoom := 10.0
-		GuiDiv.AddMap(1, yy, 1, 1, &lon, &lat, &zoom) //maybe put into dialog? ....
-		yy++
-
-		//year calendar
-		//month calendar
-		//day calendar
-
-		//...........
+		GuiDiv.AddMap(1, yy, 1, 1, &lon, &lat, &zoom)
+		yy += 2
 	}
 
 }
