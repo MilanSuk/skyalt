@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,8 +14,39 @@ import (
 	"unsafe"
 )
 
-func getType(path string) int {
-	ext := strings.ToLower(filepath.Ext(path))
+func isFileExists(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
+func getFileExtensionFromUrl(path string) (string, error) {
+	u, err := url.Parse(path)
+	if err != nil {
+		return "", err
+	}
+	pos := strings.LastIndex(u.Path, ".")
+	if pos == -1 {
+		return "", errors.New("'.' not found")
+	}
+	return u.Path[pos+1 : len(u.Path)], nil
+}
+func IsUrl(path string) bool {
+	path = strings.TrimSpace(path)
+	path = strings.ToLower(path)
+	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
+}
+
+func getType(path string) (bool, int) {
+	var ext string
+	isUrl := IsUrl(path)
+	if isUrl {
+		ext, _ = getFileExtensionFromUrl(path)
+	} else {
+		ext = strings.ToLower(filepath.Ext(path))
+	}
 
 	img := (ext == ".png" || ext == ".webp" || ext == ".jpeg" || ext == ".jpg" || ext == ".gif" || ext == ".tiff" || ext == ".bmp")
 	vid := (ext == ".mp4" || ext == ".mkv" || ext == ".webm" || ext == ".mov" || ext == ".avi" || ext == ".flv")
@@ -24,13 +57,13 @@ func getType(path string) int {
 	}
 
 	if vid {
-		return 1
+		return isUrl, 1
 	}
 	if aud {
-		return 2
+		return isUrl, 2
 	}
 
-	return 0 //default = try to open as image
+	return isUrl, 0 //default = try to open as image
 }
 
 func main() {
@@ -42,8 +75,14 @@ func main() {
 	imgs := NewImages()
 	defer imgs.Destroy()
 
+	cache := NewCache()
+	defer cache.Destroy()
+
 	/*{
 		//Tests
+
+		fmt.Println(cache.Get("https://tile.openstreetmap.org/5/5/4.png"))
+
 		av, _ := vlc.Add("../vid.mkv", 0)
 		//vlc.Add("../aud.mp3", 1)
 		//imgs.Add("../resources/logo_small.png", nil)
@@ -140,7 +179,7 @@ func main() {
 		case "type":
 			path := cl_tasks.ReadArray() //must be set!
 
-			tp := getType(string(path))
+			_, tp := getType(string(path))
 			cl_tasks.WriteInt(uint64(tp))
 
 		case "info":
@@ -176,7 +215,7 @@ func main() {
 			var seek_ms uint64
 			var play_duration uint64
 
-			tp := getType(string(path))
+			isUrl, tp := getType(string(path))
 			if tp > 0 { //audio/video
 				item, err := vlc.Add(string(path), playerID)
 				if err == nil {
@@ -189,7 +228,15 @@ func main() {
 					errBytes = []byte(err.Error())
 				}
 			} else { //image
-				item, err := imgs.Add(string(path), blob)
+				pathStr := string(path)
+				if isUrl {
+					pathStr, err = cache.Get(string(path)) //download or get /temp path
+					if err != nil {
+						errBytes = []byte(err.Error())
+					}
+				}
+
+				item, err := imgs.Add(pathStr, blob)
 				if err == nil {
 					width = uint64(item.width)
 					height = uint64(item.height)
@@ -212,7 +259,7 @@ func main() {
 			playerID := cl_tasks.ReadInt()
 			playIt := cl_tasks.ReadInt()
 
-			tp := getType(string(path))
+			_, tp := getType(string(path))
 			if tp > 0 { //audio/video
 				item, err := vlc.Add(string(path), playerID)
 				if err == nil {
@@ -234,7 +281,7 @@ func main() {
 			playerID := cl_tasks.ReadInt()
 			pos_ms := cl_tasks.ReadInt()
 
-			tp := getType(string(path))
+			_, tp := getType(string(path))
 			if tp > 0 { //audio/video
 				item, err := vlc.Add(string(path), playerID)
 				if err == nil {
@@ -252,7 +299,7 @@ func main() {
 			playerID := cl_tasks.ReadInt()
 			volume := cl_tasks.ReadInt() //0-100
 
-			tp := getType(string(path))
+			_, tp := getType(string(path))
 			if tp > 0 { //audio/video
 				item, err := vlc.Add(string(path), playerID)
 				if err == nil {
