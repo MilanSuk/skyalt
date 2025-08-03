@@ -19,10 +19,8 @@ package main
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 )
@@ -79,7 +77,8 @@ func (sec *ToolsSecrets) ReplaceAliases(code string) string {
 	return code
 }
 
-func (sec *ToolsSecrets) encryptAESGCM(plainText []byte) ([]byte, error) {
+//Same func in sdk.go
+/*func (sec *ToolsSecrets) encryptAESGCM(plainText []byte) ([]byte, error) {
 	key := sha256.Sum256([]byte(sec.key))
 
 	block, err := aes.NewCipher(key[:])
@@ -100,7 +99,7 @@ func (sec *ToolsSecrets) encryptAESGCM(plainText []byte) ([]byte, error) {
 
 	ciphertext := aesGCM.Seal(nil, nonce, plainText, nil)
 	return append(nonce, ciphertext...), nil
-}
+}*/
 
 func (sec *ToolsSecrets) decryptAESGCM(cipherText []byte) ([]byte, error) {
 	key := sha256.Sum256([]byte(sec.key))

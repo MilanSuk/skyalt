@@ -457,7 +457,7 @@ func (prompts *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, msg *AppsRo
 			return err
 		}
 	default:
-		return fmt.Errorf("prompt '%s:%s' is unknown type", prompt.Type, prompt.Name)
+		return fmt.Errorf("prompt '%d:%s' is unknown type", prompt.Type, prompt.Name)
 
 	}
 
