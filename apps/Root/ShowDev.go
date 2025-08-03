@@ -220,21 +220,23 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	{
 		MainDiv.SetRowFromSub(2, 1, 10, true)
 		FooterDiv := MainDiv.AddLayout(1, 2, 1, 1)
-		FooterDiv.SetColumnFromSub(0, 1, 100, true)
-		FooterDiv.SetColumn(1, 1, 100)
 		FooterDiv.SetRowFromSub(0, 1, 5, true)
 
 		//Note
 		if app.Dev.MainMode == "secrets" {
+			FooterDiv.SetColumnFromSub(0, 1, 100, true)
+			FooterDiv.SetColumn(1, 1, 100)
+
 			tx := FooterDiv.AddText(0, 0, 1, 1, "<alias> <value>\nExample: myemail@mail.com myActualEmail@gmail.com\nExample: password_1234 Ek7_sdf6m-o45-erc-er5_-df")
 			tx.setMultilined()
 			tx.Linewrapping = false
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		} else {
+			FooterDiv.SetColumn(0, 1, 100)
+			FooterDiv.SetColumn(1, 1, 100)
 
 			FooterLeftDiv := FooterDiv.AddLayout(0, 0, 1, 1)
-			FooterLeftDiv.SetColumnFromSub(0, 1, 100, true)
-			FooterLeftDiv.SetRow(0, 1, 100)
+			FooterLeftDiv.SetColumn(0, 1, 100)
 
 			DocDia := FooterLeftDiv.AddDialog("documentation")
 			DocDia.UI.SetColumn(0, 1, 1)
@@ -249,9 +251,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				DocDia.OpenCentered(caller)
 				return nil
 			}
-			//tx := FooterDiv.AddText(0, 0, 1, 1, "#storage //Describe structures for saving data.\n#function <name> //Describe background function.\n#tool <name> //Describe app's feature.\n#start //Enter prompt, which will be executed when new chat is created.")
-			//tx.setMultilined()
-			//tx.Cd = UI_GetPalette().GetGrey(0.5)
 		}
 
 		{
