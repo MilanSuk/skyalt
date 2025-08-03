@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -195,50 +196,17 @@ func (st *Map) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 				continue
 			}
 
-			/*fnGetBlob := func(fnDone func(bytes []byte, err error)) error {
-
-				type GetTile struct {
-					X    int //tile's X position
-					Y    int //tile's Y position
-					Zoom int //map's zoom
-
-					Out_image []byte
-				}
-
-				fnAsyncDone := func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
-					if err != nil {
-						fnDone(nil, err)
-						return
-					}
-
-					var out GetTile
-					er := LogsJsonUnmarshal(dataJs, &out)
-					if er != nil {
-						fnDone(nil, er)
-						return
-					}
-
-					fnDone(out.Out_image, nil) //ok
-				}
-
-				//un-design ....
-				layout.ui.router.CallBuildAsync(0, "Device", "GetMapTile", GetTile{X: int(x), Y: int(y), Zoom: int(zoom)}, nil, fnAsyncDone)
-				return nil
-			}*/
-
 			tileCoord_sx := (x - float64(bbStart.X)) * tile
 			tileCoord_sy := (y - float64(bbStart.Y)) * tile
 			cdWhite := color.RGBA{255, 255, 255, 255}
-			/*type GetTile struct {
-				X    int //tile's X position
-				Y    int //tile's Y position
-				Zoom int //map's zoom
 
-				Out_image []byte
-			}*/
+			url := layout.ui.router.services.sync.Map.Tiles_url
+			url = strings.ReplaceAll(url, "{x}", strconv.Itoa(int(x)))
+			url = strings.ReplaceAll(url, "{y}", strconv.Itoa(int(y)))
+			url = strings.ReplaceAll(url, "{z}", strconv.Itoa(int(zoom)))
+
 			paint.File(Rect{X: tileCoord_sx, Y: tileCoord_sy, W: tile, H: tile},
-				InitWinImagePath_file("map_tile", layout.UID), //..........
-				//InitWinImagePath_call("Device", "GetMapTile", GetTile{X: int(x), Y: int(y), Zoom: int(zoom)}, fmt.Sprintf("Device:GetMapTile(%d-%d-%d)", int(x), int(y), int(zoom))),
+				InitWinImagePath_file(url, layout.UID),
 				cdWhite, cdWhite, cdWhite,
 				0, 0)
 		}
