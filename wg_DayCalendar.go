@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 )
@@ -18,6 +19,7 @@ func (layout *Layout) AddDayCalendar(x, y, w, h int, Days []int64, Events []Cale
 }
 
 func (st *DayCalendar) Build(layout *Layout) {
+	slices.Sort(st.Days)
 
 	layout.SetColumn(0, 1.2, 1.2) //time
 	for i := range st.Days {
