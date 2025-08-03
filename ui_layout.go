@@ -1362,15 +1362,16 @@ func (layout *Layout) Draw() {
 	keys := layout.ui.win.io.Keys
 	if keys.Ctrl && keys.Shift {
 		n := 0
-		layout.postDraw(0, &n)
 
-		//dialogs
+		postLayout := layout //only top
 		for _, dia := range layout.ui.settings.Dialogs {
 			layDia := layout.FindUID(dia.UID)
 			if layDia != nil {
-				layDia.postDraw(0, &n)
+				postLayout = layDia
 			}
 		}
+
+		postLayout.postDraw(0, &n)
 	}
 }
 
