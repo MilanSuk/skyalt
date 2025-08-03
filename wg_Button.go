@@ -242,7 +242,7 @@ func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 		//on right side
 		rectIcon.X += rectIcon.W - icon_w
 		rectIcon.W = icon_w
-		rectLabel = rectLabel.CutRight(icon_w)
+		//rectLabel = rectLabel.CutRight(icon_w)
 		//}
 
 		var pt WinImagePath

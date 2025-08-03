@@ -19,7 +19,6 @@ package main
 import (
 	"fmt"
 	"image/color"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -90,10 +89,6 @@ func (layout *Layout) IsTypeLayout() bool {
 
 func (layout *Layout) AddCardsSubItem() *Layout {
 	return layout.AddLayout(0, len(layout.childs), 1, 1)
-}
-
-func _extractFileName(path string) string {
-	return filepath.Base(path)
 }
 
 func (dia *LayoutDialog) OpenCentered() {

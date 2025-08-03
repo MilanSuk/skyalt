@@ -115,9 +115,8 @@ type LayoutDrawText struct {
 	Editable     bool
 	Refresh      bool
 	Password     bool
-
-	coordText OsV4
 }
+
 type LayoutDrawCursor struct {
 	Name string
 }
