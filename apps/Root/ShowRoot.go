@@ -198,7 +198,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 				ProgressBt := AppsDiv.AddButton(0, y, 1, 1, "")
 				y++
-				ProgressBt.Background = 0.25
+				//ProgressBt.Background = 0.25
 				ProgressBt.IconPath = "resources/running.png"
 				ProgressBt.Icon_margin = 0.2
 				ProgressBt.layout.Tooltip = fmt.Sprintf("Running %d jobs", len(msgs))
