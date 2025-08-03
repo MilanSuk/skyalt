@@ -62,11 +62,6 @@ func (media *Media) Destroy() {
 		media.client_tasks = nil
 	}
 
-	if media.client_updates != nil {
-		media.client_updates.Destroy()
-		media.client_updates = nil
-	}
-
 	media.server.Destroy()
 
 	fmt.Printf("Media server port: %d closed\n", media.server.port)
@@ -129,17 +124,21 @@ func (media *Media) check() error {
 
 		go func() {
 			defer func() {
+				media.client_updates.Destroy()
 				media.client_updates = nil
 			}()
 
 			for {
-				tp, err := media.client_updates.ReadInt()
+				msg, err := media.client_updates.ReadArray()
 				if err != nil {
 					return
 				}
 
-				switch tp {
-				case 0: //image
+				switch string(msg) {
+				case "exit":
+					return
+
+				case "image":
 					img_path, err := media.client_updates.ReadArray()
 					if err != nil {
 						return
@@ -160,7 +159,7 @@ func (media *Media) check() error {
 					}
 					media.lock.Unlock()
 
-				case 1: //vlc
+				case "video": //vlc
 					img_path, err := media.client_updates.ReadArray()
 					if err != nil {
 						return
@@ -186,6 +185,7 @@ func (media *Media) check() error {
 					media.lock.Unlock()
 				}
 			}
+
 		}()
 
 	}

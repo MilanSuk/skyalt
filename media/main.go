@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 )
@@ -133,8 +134,14 @@ func main() {
 	cl_tasks := NewNetClient("localhost", server_port)
 	defer cl_tasks.Destroy()
 
+	var client_updates_lock sync.Mutex
 	client_updates := NewNetClient("localhost", server_port)
-	defer client_updates.Destroy()
+	defer func() {
+		client_updates_lock.Lock()
+		defer client_updates_lock.Unlock()
+		client_updates.WriteArray([]byte("exit")) //exit
+		client_updates.Destroy()
+	}()
 
 	//check if files changed
 	go func() {
@@ -152,12 +159,16 @@ func main() {
 			min_time := time.Now().Add(-60 * time.Second).UnixNano()
 
 			fnImgChanged := func(path string) {
-				client_updates.WriteInt(0) //type=image
+				client_updates_lock.Lock()
+				defer client_updates_lock.Unlock()
+				client_updates.WriteArray([]byte("image"))
 				client_updates.WriteArray([]byte(path))
 
 			}
 			fnVlcChanged := func(path string, playerID uint64) {
-				client_updates.WriteInt(1) //type=image
+				client_updates_lock.Lock()
+				defer client_updates_lock.Unlock()
+				client_updates.WriteArray([]byte("video"))
 				client_updates.WriteArray([]byte(path))
 				client_updates.WriteInt(playerID)
 			}
