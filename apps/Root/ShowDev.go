@@ -227,7 +227,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			FooterDiv.SetColumnFromSub(0, 1, 100, true)
 			FooterDiv.SetColumn(1, 1, 100)
 
-			tx := FooterDiv.AddText(0, 0, 1, 1, "<alias> <value>\nExample: myemail@mail.com myActualEmail@gmail.com\nExample: password_1234 Ek7_sdf6m-o45-erc-er5_-df")
+			tx := FooterDiv.AddText(0, 0, 1, 1, "<alias> <value>\nExample: myemail@mail.com myRealEmail@gmail.com\nExample: pass_word_34 E7_sm-o45rc-e5-df")
 			tx.setMultilined()
 			tx.Linewrapping = false
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
@@ -612,29 +612,11 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					{
 						StatsDiv := SideDiv.AddLayout(0, 2, 1, 1)
 						StatsDiv.SetColumn(0, 1, 100)
-						StatsDiv.SetColumn(1, 1, 100)
-
-						//Code model picker
-						{
-							CodeDia := StatsDiv.AddDialog("code_picker")
-							CodeDia.UI.SetColumn(0, 8, 20)
-							CodeDia.UI.SetRowFromSub(0, 1, 100, true)
-							_, err := CodeDia.UI.AddToolApp(0, 0, 1, 1, "Device", "ShowLLMsCodeSettings", nil, caller)
-							if err != nil {
-								return fmt.Errorf("AddToolApp() failed: %v", err)
-							}
-
-							ModelBt := StatsDiv.AddButton(0, 0, 1, 1, "Change model")
-							ModelBt.Background = 0.5
-							ModelBt.clicked = func() error {
-								CodeDia.OpenCentered(caller)
-								return nil
-							}
-						}
+						StatsDiv.SetColumnFromSub(1, 1, 100, true)
 
 						//Price
 						{
-							tx := StatsDiv.AddText(1, 0, 1, 1, fmt.Sprintf("<i>%s, $%f", side_promptCode.Usage.Model, side_promptCode.Usage.Prompt_price+side_promptCode.Usage.Input_cached_price+side_promptCode.Usage.Completion_price+side_promptCode.Usage.Reasoning_price))
+							tx := StatsDiv.AddText(0, 0, 1, 1, fmt.Sprintf("<i>%s, $%f", side_promptCode.Usage.Model, side_promptCode.Usage.Prompt_price+side_promptCode.Usage.Input_cached_price+side_promptCode.Usage.Completion_price+side_promptCode.Usage.Reasoning_price))
 							tx.Align_h = 2
 
 							in := side_promptCode.Usage.Prompt_price
@@ -655,6 +637,25 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 								side_promptCode.Usage.Reasoning_tokens,
 								side_promptCode.Usage.Completion_tokens)
 						}
+
+						//Code model picker
+						{
+							CodeDia := StatsDiv.AddDialog("code_picker")
+							CodeDia.UI.SetColumn(0, 8, 20)
+							CodeDia.UI.SetRowFromSub(0, 1, 100, true)
+							_, err := CodeDia.UI.AddToolApp(0, 0, 1, 1, "Device", "ShowLLMsCodeSettings", nil, caller)
+							if err != nil {
+								return fmt.Errorf("AddToolApp() failed: %v", err)
+							}
+
+							ModelBt := StatsDiv.AddButton(1, 0, 1, 1, "Change model")
+							ModelBt.Background = 0.5
+							ModelBt.clicked = func() error {
+								CodeDia.OpenCentered(caller)
+								return nil
+							}
+						}
+
 					}
 
 					//Errors
