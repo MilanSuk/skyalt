@@ -813,7 +813,7 @@ func _UiText_FormatAsCode(str string, palette *DevPalette) string {
 	}
 
 	slices.SortFunc(elements, func(a, b Item) int { return cmp.Compare(a.Start, b.Start) })
-	elements = slices.Compact(elements)
+	elements = slices.CompactFunc(elements, func(a, b Item) bool { return a.Start == b.Start || a.End == b.End })
 	slices.Reverse(elements)
 	for _, e := range elements {
 		str = e.Replace(str)
