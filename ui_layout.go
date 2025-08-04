@@ -710,6 +710,12 @@ func (layout *Layout) updateFromChildRows() (float64, float64) {
 				for i, r := range layout.UserRows {
 					if r.IsFromChild() && it.Y == r.Pos {
 						layout.UserRows[i].Min = OsClampFloat(OsMaxFloat(r.Min, min), r.SetFromChild_min, r.SetFromChild_max)
+
+						//h := layout._getHeight()
+						//if h > 0 {
+						//	layout.UserRows[i].Min = OsMinFloat(layout.UserRows[i].Min, h)
+						//}
+
 						if r.SetFromChild_fix {
 							layout.UserRows[i].Max = layout.UserRows[i].Min
 						} else {

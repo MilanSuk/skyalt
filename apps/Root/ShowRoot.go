@@ -755,26 +755,31 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
 	}
 
 	ui.SetColumnFromSub(0, 1, 30, true)
-	ui.SetRowFromSub(0, 1, 15, true)
 
+	//label
+	ui.AddTextLabel(0, 0, 1, 1, "Spendings")
+
+	//spendings
 	total_price := 0.0
 	{
-		ItemsDiv := ui.AddLayout(0, 0, 1, 1)
-		ItemsDiv.SetColumnFromSub(0, 1, 10, true)
-		ItemsDiv.SetColumnFromSub(1, 1, 10, true)
-		ItemsDiv.SetColumnFromSub(2, 1, 10, true)
-		ItemsDiv.SetColumnFromSub(3, 1, 10, true)
+		ui.SetRow(1, 1, 15) //ui.SetRowFromSub(1, 1, 15, true)
+		ListDiv := ui.AddLayout(0, 1, 1, 1)
+		ListDiv.SetColumnFromSub(0, 1, 10, true)
+		ListDiv.SetColumnFromSub(1, 1, 10, true)
+		ListDiv.SetColumnFromSub(2, 1, 10, true)
+		ListDiv.SetColumnFromSub(3, 1, 10, true)
 
+		//usages = usages[:2]
 		y := 0
 		for i := len(usages) - 1; i >= 0; i-- {
 			usg := &usages[i]
 
-			ItemsDiv.AddText(0, y, 1, 1, usg.Model)
-			ItemsDiv.AddText(1, y, 1, 1, SdkGetDateTime(int64(usg.CreatedTimeSec)))
-			ItemsDiv.AddText(2, y, 1, 1, fmt.Sprintf("%.0fsec", usg.DTime))
+			ListDiv.AddText(0, y, 1, 1, usg.Model)
+			ListDiv.AddText(1, y, 1, 1, SdkGetDateTime(int64(usg.CreatedTimeSec)))
+			ListDiv.AddText(2, y, 1, 1, fmt.Sprintf("%.0fsec", usg.DTime))
 
 			price := (usg.Prompt_price + usg.Input_cached_price + usg.Completion_price + usg.Reasoning_price)
-			ItemsDiv.AddText(3, y, 1, 1, fmt.Sprintf("$%f", price))
+			ListDiv.AddText(3, y, 1, 1, fmt.Sprintf("$%f", price))
 			total_price += price
 
 			y++
@@ -782,14 +787,14 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
 	}
 
 	//space
-	ui.SetRow(1, 0.1, 0.1)
-	ui.AddDivider(0, 1, 1, 1, true)
+	ui.SetRow(2, 0.1, 0.1)
+	ui.AddDivider(0, 2, 1, 1, true)
 
 	//Sum
-	ui.AddText(0, 2, 1, 1, fmt.Sprintf("Total(%d): $%f", len(usages), total_price)).Align_h = 2
+	ui.AddText(0, 3, 1, 1, fmt.Sprintf("Total(%d): $%f", len(usages), total_price)).Align_h = 2
 
 	//Note
-	noteTx := ui.AddText(0, 3, 1, 1, "<i>numbers may not be accurate.")
+	noteTx := ui.AddText(0, 4, 1, 1, "<i>numbers may not be accurate.")
 	noteTx.Align_h = 1
 	noteTx.Cd = UI_GetPalette().GetGrey(0.5)
 }
