@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -722,7 +721,7 @@ func (st *ShowDev) buildSettings(dia *UIDialog, app *RootApp, caller *ToolCaller
 	srcPath := dstPath
 	IconBt := ui.AddFilePickerButton(1, y, 1, 1, &srcPath, false, false)
 	IconBt.changed = func() error {
-		return st._copyFile(filepath.Join("..", app.Name, "icon"), srcPath)
+		return _copyFile(filepath.Join("..", app.Name, "icon"), srcPath)
 	}
 	y++
 	IconBt.Preview = true
@@ -958,31 +957,4 @@ func (st *ShowDev) buildDocumentation(ui *UI, caller *ToolCaller) {
 		yy += 2
 	}
 
-}
-
-func (st *ShowDev) _copyFile(dst, src string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	if _, err = io.Copy(out, in); err != nil {
-		return err
-	}
-	return nil
-}
-
-func _getFileTime(path string) int64 {
-	inf, err := os.Stat(path)
-	if err == nil && inf != nil {
-		return inf.ModTime().UnixNano()
-	}
-	return 0
 }

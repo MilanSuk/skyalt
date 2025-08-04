@@ -153,7 +153,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					bt.Background = 1
 				}*/
 				bt.layout.Tooltip = app.Name
-				bt.IconPath = fmt.Sprintf("apps/%s/icon", app.Name)
+				bt.IconPath = filepath.Join("apps", app.Name, "icon")
 				bt.Icon_margin = 0.4
 
 				bt.clicked = func() error {
@@ -216,7 +216,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			newAppBt.layout.Tooltip = "Create new app"
 			newAppBt.Background = 0.25
 			newAppBt.clicked = func() error {
-
 				appName := st.findUniqueAppName("app", source_root)
 				if appName != "" {
 					os.MkdirAll(filepath.Join("..", appName), os.ModePerm)

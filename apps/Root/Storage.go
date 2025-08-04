@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -107,13 +108,20 @@ func (root *Root) refreshApps() (*RootApp, error) {
 		}
 	}
 
+	//check icons
+	for _, app := range root.Apps {
+		icon := filepath.Join("..", app.Name, "icon")
+		if !_isFileExists(icon) {
+			_copyFile(icon, filepath.Join("..", "..", "resources", "think.png")) //copy default icon
+		}
+	}
+
 	//check select in range
 	if root.Selected_app_i >= 0 {
 		if root.Selected_app_i >= len(root.Apps) {
 			root.Selected_app_i = len(root.Apps) - 1
 		}
 	}
-	//return
 	if root.Selected_app_i >= 0 {
 		return root.Apps[root.Selected_app_i], nil
 	}
@@ -842,4 +850,39 @@ func (app *RootApp) RemoveChat(chat RootChat) error {
 	}
 
 	return nil
+}
+
+func _isFileExists(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
+func _copyFile(dst, src string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err = io.Copy(out, in); err != nil {
+		return err
+	}
+	return nil
+}
+
+func _getFileTime(path string) int64 {
+	inf, err := os.Stat(path)
+	if err == nil && inf != nil {
+		return inf.ModTime().UnixNano()
+	}
+	return 0
 }
