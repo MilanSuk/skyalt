@@ -263,7 +263,6 @@ func (imgs *WinImages) Tick(win *Win) {
 				img._loadFromMedia(win, nil)
 				//fmt.Println("------------", it, time.Now().UnixMilli())
 				redraw = true
-				break //found
 			}
 		}
 	}
