@@ -105,7 +105,7 @@ func (imgs *Images) Add(path string, blob []byte) (*ImagesItem, error) {
 	//create new media
 	item, err := NewImagesItem(path, blob)
 	if err != nil {
-		return nil, err
+		item = &ImagesItem{path: path} //add it anyway, because file can be rewritten later. Error is return below.
 	}
 
 	imgs.lock.Lock()
@@ -114,7 +114,7 @@ func (imgs *Images) Add(path string, blob []byte) (*ImagesItem, error) {
 	//add
 	imgs.media[path] = item
 
-	return item, nil
+	return item, err
 }
 
 type ImagesItem struct {

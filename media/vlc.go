@@ -156,7 +156,7 @@ func (vlc *VLC) Add(path string, playerID uint64) (*VLCItem, error) {
 	//create new media
 	item, err := NewVLCItem(path, vlc)
 	if err != nil {
-		return nil, err
+		item = &VLCItem{path: path} //add it anyway, because file can be rewritten later. Error is return below.
 	}
 
 	vlc.lock.Lock()
@@ -165,7 +165,7 @@ func (vlc *VLC) Add(path string, playerID uint64) (*VLCItem, error) {
 	//add
 	vlc.media[playerID] = item
 
-	return item, nil
+	return item, err
 }
 
 type VLCItem struct {

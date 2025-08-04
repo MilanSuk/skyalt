@@ -149,7 +149,7 @@ func main() {
 			imgs.UpdateFileTimes()
 			vlc.UpdateFileTimes()
 
-			time.Sleep(10 * time.Second) //10s
+			time.Sleep(1 * time.Second) //1s
 		}
 	}()
 
