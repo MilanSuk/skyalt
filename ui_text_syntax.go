@@ -27,12 +27,12 @@ import (
 
 var (
 	g_syntax_basic      = color.RGBA{50, 50, 200, 255} // package, import, type, struct, if, for, etc.
-	g_syntax_structName = color.RGBA{50, 150, 50, 255} // struct names
-	//g_syntax_varName    = color.RGBA{100, 100, 200, 255} // variable names
-	g_syntax_funcName = color.RGBA{140, 140, 50, 255} // function names
+	g_syntax_structName = color.RGBA{50, 150, 50, 255}
+	//g_syntax_varName    = color.RGBA{100, 100, 200, 255}
+	g_syntax_funcName = color.RGBA{140, 140, 50, 255}
 
-	g_syntax_comment     = color.RGBA{50, 150, 150, 255} // comments
-	g_syntax_stringConst = color.RGBA{200, 50, 50, 255}  // string constants
+	g_syntax_comment     = color.RGBA{50, 150, 150, 255}
+	g_syntax_stringConst = color.RGBA{150, 50, 50, 255}
 )
 
 func isStdType(name string) bool {
@@ -66,8 +66,8 @@ type UiTextSyntax struct {
 	Ignore bool
 }
 
-func InitSyntaxItem(str string, start int, end int, cd color.RGBA) UiTextSyntax {
-	return UiTextSyntax{Start: start, End: end, Text: str[start:end], Color: cd}
+func InitSyntaxItem(str string, start int, end int, cd color.RGBA, ignore bool) UiTextSyntax {
+	return UiTextSyntax{Start: start, End: end, Text: str[start:end], Color: cd, Ignore: ignore}
 }
 
 func (e *UiTextSyntax) Replace(code string) string {
@@ -80,7 +80,12 @@ func _UiText_FormatAsCode(code string, palette *DevPalette) string {
 	outliers := _UiText_findOutliers(code)
 
 	var finalElem []UiTextSyntax
-	finalElem = append(finalElem, outliers...)
+	for _, it := range outliers {
+		if it.Ignore {
+			continue
+		}
+		finalElem = append(finalElem, it)
+	}
 
 	elms := _UiText_getWords(code)
 
@@ -140,6 +145,8 @@ func _UiText_FormatAsCode(code string, palette *DevPalette) string {
 		code = e.Replace(code)
 	}
 
+	fmt.Println(code)
+
 	return code
 }
 
@@ -167,7 +174,7 @@ func _UiText_getWords(input string) []UiTextSyntax {
 			if start != -1 {
 				wordText := wordBuilder.String()
 				if wordText != "" {
-					words = append(words, InitSyntaxItem(input, start, i, color.RGBA{}))
+					words = append(words, InitSyntaxItem(input, start, i, color.RGBA{}, false))
 				}
 				// Reset for next word
 				start = -1
@@ -180,11 +187,42 @@ func _UiText_getWords(input string) []UiTextSyntax {
 	if start != -1 {
 		wordText := wordBuilder.String()
 		if wordText != "" {
-			words = append(words, InitSyntaxItem(input, start, len(input), color.RGBA{}))
+			words = append(words, InitSyntaxItem(input, start, len(input), color.RGBA{}, false))
 		}
 	}
 
 	return words
+}
+
+func _UiText_processOutlierPair(s string, i int, prefix, postfix string, cd color.RGBA, ignore bool) (bool, int, []UiTextSyntax) {
+
+	if i <= len(s)-len(prefix) && s[i:i+len(prefix)] == prefix {
+		var items []UiTextSyntax
+
+		start := i
+		i += len(prefix)
+		foundEnd := false
+		for i < len(s) {
+			if i <= len(s)-len(postfix) && s[i:i+len(postfix)] == postfix {
+				items = append(items, InitSyntaxItem(s, start, i+1, cd, ignore))
+				i += len(postfix)
+				foundEnd = true
+				break
+			} else if s[i] == '\n' {
+				items = append(items, InitSyntaxItem(s, start, i-1, cd, ignore))
+				start = i + 1
+			}
+			i++
+		}
+		if !foundEnd {
+			items = append(items, InitSyntaxItem(s, start, len(s)-1, cd, ignore))
+		}
+
+		return true, i, items
+	}
+
+	return false, i, nil
+
 }
 
 func _UiText_findOutliers(s string) []UiTextSyntax {
@@ -201,54 +239,33 @@ func _UiText_findOutliers(s string) []UiTextSyntax {
 			if j == len(s) {
 				end = len(s) - 1
 			}
-			items = append(items, InitSyntaxItem(s, i, end+1, g_syntax_comment))
+			items = append(items, InitSyntaxItem(s, i, end+1, g_syntax_comment, false))
 			i = j
-			// Check for multi-line comment
-		} else if i < len(s)-1 && s[i:i+2] == "/*" {
-			start := i
-			i += 2
-			foundEnd := false
-			for i < len(s) {
-				if i < len(s)-1 && s[i:i+2] == "*/" {
-					items = append(items, InitSyntaxItem(s, start, i+1, g_syntax_comment))
-					i += 2
-					foundEnd = true
-					break
-				} else if s[i] == '\n' {
-					items = append(items, InitSyntaxItem(s, start, i-1, g_syntax_comment))
-					start = i + 1
-					i += 1
-				} else {
-					i += 1
-				}
-			}
-			if !foundEnd {
-				items = append(items, InitSyntaxItem(s, start, len(s)-1, g_syntax_comment))
-			}
-		} else if i < len(s)-1 && s[i] == '"' {
-			start := i
-			i += 2
-			foundEnd := false
-			for i < len(s) {
-				if i < len(s)-1 && s[i] == '"' {
-					items = append(items, InitSyntaxItem(s, start, i+1, g_syntax_stringConst))
-					i += 2
-					foundEnd = true
-					break
-				} else if s[i] == '\n' {
-					items = append(items, InitSyntaxItem(s, start, i-1, g_syntax_stringConst))
-					start = i + 1
-					i += 1
-				} else {
-					i += 1
-				}
-			}
-			if !foundEnd {
-				items = append(items, InitSyntaxItem(s, start, len(s)-1, g_syntax_stringConst))
-			}
-		} else {
-			i += 1
+			continue
 		}
+
+		var found bool
+		var addItems []UiTextSyntax
+
+		found, i, addItems = _UiText_processOutlierPair(s, i, "/*", "*/", g_syntax_comment, false)
+		if found {
+			items = append(items, addItems...)
+			continue
+		}
+
+		found, i, addItems = _UiText_processOutlierPair(s, i, "\"", "\"", g_syntax_stringConst, false)
+		if found {
+			items = append(items, addItems...)
+			continue
+		}
+
+		found, i, addItems = _UiText_processOutlierPair(s, i, "<rgba", "</rgba>", g_syntax_stringConst, true) //ignore=true -> don't highlight syntax inside(probably red error)
+		if found {
+			items = append(items, addItems...)
+			continue
+		}
+
+		i++
 	}
 	return items
 }
