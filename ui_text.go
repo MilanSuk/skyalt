@@ -17,10 +17,7 @@ limitations under the License.
 package main
 
 import (
-	"cmp"
-	"fmt"
 	"image/color"
-	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -835,29 +832,6 @@ func _UiText_RemoveFormatingRGBA(str string) string {
 			str = str[:st] + str[st+en+1:]
 		}
 	}
-	return str
-}
-
-func (e *Item) Replace(str string) string {
-	st := e.Start
-	en := e.End
-	return str[:st] + fmt.Sprintf("<rgba%d,%d,%d,255>%s</rgba>", e.Color.R, e.Color.G, e.Color.B, str[st:en]) + str[en:]
-}
-
-func _UiText_FormatAsCode(str string, palette *DevPalette) string {
-	elements, err := getItems(str)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return str
-	}
-
-	slices.SortFunc(elements, func(a, b Item) int { return cmp.Compare(a.Start, b.Start) })
-	elements = slices.CompactFunc(elements, func(a, b Item) bool { return a.Start == b.Start || a.End == b.End })
-	slices.Reverse(elements)
-	for _, e := range elements {
-		str = e.Replace(str)
-	}
-
 	return str
 }
 

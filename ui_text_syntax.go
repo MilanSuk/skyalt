@@ -13,222 +13,242 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package main
 
 import (
+	"cmp"
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"image/color"
+	"slices"
+	"sort"
+	"strings"
+	"unicode"
 )
 
-var g_syntax_yellow = color.RGBA{200, 200, 50, 255}
-var g_syntax_red = color.RGBA{200, 50, 50, 255}
-var g_syntax_green = color.RGBA{50, 200, 50, 255}
-var g_syntax_blue = color.RGBA{50, 50, 200, 255}
-var g_syntax_purple = color.RGBA{200, 50, 200, 255}
+var (
+	g_syntax_basic      = color.RGBA{50, 50, 200, 255} // package, import, type, struct, if, for, etc.
+	g_syntax_structName = color.RGBA{50, 150, 50, 255} // struct names
+	//g_syntax_varName    = color.RGBA{100, 100, 200, 255} // variable names
+	g_syntax_funcName = color.RGBA{140, 140, 50, 255} // function names
 
-// Item represents a highlighted section of code with its position and color
-type Item struct {
+	g_syntax_comment     = color.RGBA{50, 150, 150, 255} // comments
+	g_syntax_stringConst = color.RGBA{200, 50, 50, 255}  // string constants
+)
+
+func isStdType(name string) bool {
+	var g_syntax_stds = []string{"string",
+		"float32", "float64",
+		"byte", "rune", "bool",
+		"int", "int8", "int16", "int32", "int64",
+		"uint", "uint8", "uint16", "uint32", "uint64",
+		"error",
+	}
+	return slices.Contains(g_syntax_stds, name)
+}
+func isStdKeyword(name string) bool {
+	var g_syntax_stds = []string{"type", "struct",
+		"for", "if", "else", "return", "break", "continue",
+		"var", "const",
+		"map", "chan",
+		"func", "nil",
+		"import", "package",
+	}
+	return slices.Contains(g_syntax_stds, name)
+}
+
+type UiTextSyntax struct {
 	Start int
 	End   int
 	Color color.RGBA
+
+	Text string
+
+	Ignore bool
 }
 
-// visitor implements ast.Visitor to traverse the AST and highlight items
-type visitor struct {
-	fset        *token.FileSet
-	items       []Item
-	structNames map[string]bool       // Set of struct type names
-	scopes      []map[string]bool     // Stack of variable scopes
-	keywords    map[string]color.RGBA // Keywords to highlight
+func InitSyntaxItem(str string, start int, end int, cd color.RGBA) UiTextSyntax {
+	return UiTextSyntax{Start: start, End: end, Text: str[start:end], Color: cd}
 }
 
-// NewVisitor initializes a new visitor with default settings
-func NewVisitor(fset *token.FileSet) *visitor {
-	return &visitor{
-		fset:        fset,
-		items:       []Item{},
-		structNames: make(map[string]bool),
-		scopes:      []map[string]bool{make(map[string]bool)}, // Global scope
-		keywords: map[string]color.RGBA{
-			"func":   g_syntax_yellow, // Yellow for keywords
-			"var":    g_syntax_yellow,
-			"type":   g_syntax_yellow,
-			"return": g_syntax_yellow,
-		},
-	}
+func (e *UiTextSyntax) Replace(code string) string {
+	st := e.Start
+	en := e.End
+	return code[:st] + fmt.Sprintf("<rgba%d,%d,%d,255>%s</rgba>", e.Color.R, e.Color.G, e.Color.B, code[st:en]) + code[en:]
 }
 
-// Visit implements the ast.Visitor interface
-func (v *visitor) Visit(node ast.Node) ast.Visitor {
-	if node == nil {
-		// Exiting a scope
-		if len(v.scopes) > 1 {
-			v.scopes = v.scopes[:len(v.scopes)-1]
+func _UiText_FormatAsCode(code string, palette *DevPalette) string {
+	outliers := _UiText_findOutliers(code)
+
+	var finalElem []UiTextSyntax
+	finalElem = append(finalElem, outliers...)
+
+	elms := _UiText_getWords(code)
+
+	//Ignore elements inside comment or string
+	for i, it := range elms {
+		for _, it2 := range outliers {
+			if (it.Start >= it2.Start && it.Start < it2.End) || (it.End >= it2.Start && it.End < it2.End) {
+				elms[i].Ignore = true
+				break
+			}
 		}
-		return nil
 	}
 
-	switch n := node.(type) {
-	case *ast.File:
-		// Collect struct type names at package level
-		for _, decl := range n.Decls {
-			if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.TYPE {
-				for _, spec := range genDecl.Specs {
-					if tspec, ok := spec.(*ast.TypeSpec); ok {
-						if _, ok := tspec.Type.(*ast.StructType); ok {
-							v.structNames[tspec.Name.Name] = true
-						}
-					}
-				}
-			}
+	//Create structs list
+	var structs []string
+	for _, it := range elms {
+		if it.Ignore {
+			continue
 		}
-		return v
-
-	case *ast.BlockStmt:
-		// Entering a new block scope
-		v.scopes = append(v.scopes, make(map[string]bool))
-		return v
-
-	case *ast.FuncDecl:
-		// Highlight "func" keyword
-		start := v.fset.Position(n.Pos()).Offset
-		v.items = append(v.items, Item{Start: start, End: start + len("func"), Color: v.keywords["func"]})
-		// Highlight function name (declaration)
-		nameStart := v.fset.Position(n.Name.Pos()).Offset
-		nameEnd := v.fset.Position(n.Name.End()).Offset
-		v.items = append(v.items, Item{Start: nameStart, End: nameEnd, Color: g_syntax_blue}) // Blue for functions
-		// New scope for function body
-		v.scopes = append(v.scopes, make(map[string]bool))
-		// Add parameters to scope
-		if n.Type.Params != nil {
-			for _, param := range n.Type.Params.List {
-				for _, name := range param.Names {
-					v.scopes[len(v.scopes)-1][name.Name] = true
-				}
-			}
+		if it.End+1 < len(code) && strings.HasPrefix(code[it.End:], " struct") {
+			structs = append(structs, it.Text)
+			break
 		}
-		return v
+	}
+	sort.Strings(structs)
 
-	case *ast.GenDecl:
-		switch n.Tok {
-		case token.VAR:
-			// Highlight "var" keyword
-			start := v.fset.Position(n.TokPos).Offset
-			v.items = append(v.items, Item{Start: start, End: start + len("var"), Color: v.keywords["var"]})
-			// Highlight variable names and add to scope
-			for _, spec := range n.Specs {
-				vspec := spec.(*ast.ValueSpec)
-				for _, name := range vspec.Names {
-					nameStart := v.fset.Position(name.Pos()).Offset
-					nameEnd := v.fset.Position(name.End()).Offset
-					v.items = append(v.items, Item{Start: nameStart, End: nameEnd, Color: g_syntax_green}) // Green for variables
-					v.scopes[len(v.scopes)-1][name.Name] = true
-				}
-			}
-		case token.TYPE:
-			// Highlight "type" keyword
-			start := v.fset.Position(n.TokPos).Offset
-			v.items = append(v.items, Item{Start: start, End: start + len("type"), Color: v.keywords["type"]})
-			// Highlight struct names and fields
-			for _, spec := range n.Specs {
-				tspec := spec.(*ast.TypeSpec)
-				if structType, ok := tspec.Type.(*ast.StructType); ok {
-					// Highlight struct name
-					nameStart := v.fset.Position(tspec.Name.Pos()).Offset
-					nameEnd := v.fset.Position(tspec.Name.End()).Offset
-					v.items = append(v.items, Item{Start: nameStart, End: nameEnd, Color: g_syntax_red}) // Red for structs
-					// Highlight struct field names
-					for _, field := range structType.Fields.List {
-						for _, fieldName := range field.Names {
-							fieldStart := v.fset.Position(fieldName.Pos()).Offset
-							fieldEnd := v.fset.Position(fieldName.End()).Offset
-							v.items = append(v.items, Item{Start: fieldStart, End: fieldEnd, Color: g_syntax_purple}) // Purple for field names
-						}
-					}
-				}
-			}
+	//Std
+	for _, it := range elms {
+		if it.Ignore {
+			continue
 		}
-		return v
 
-	case *ast.AssignStmt:
-		// Handle short variable declarations (:=)
-		if n.Tok == token.DEFINE {
-			for _, lhs := range n.Lhs {
-				if ident, ok := lhs.(*ast.Ident); ok {
-					nameStart := v.fset.Position(ident.Pos()).Offset
-					nameEnd := v.fset.Position(ident.End()).Offset
-					v.items = append(v.items, Item{Start: nameStart, End: nameEnd, Color: g_syntax_green})
-					v.scopes[len(v.scopes)-1][ident.Name] = true
-				}
-			}
+		//Standard
+		if isStdType(it.Text) || isStdKeyword(it.Text) {
+			it.Color = g_syntax_basic
+			finalElem = append(finalElem, it)
 		}
-		return v
 
-	case *ast.Ident:
-		// Highlight variable usage
-		if v.isVariable(n.Name) {
-			start := v.fset.Position(n.Pos()).Offset
-			end := v.fset.Position(n.End()).Offset
-			v.items = append(v.items, Item{Start: start, End: end, Color: g_syntax_green}) // Green for variable usage
-		} else if v.isStructName(n.Name) {
-			// Highlight struct name usage
-			start := v.fset.Position(n.Pos()).Offset
-			end := v.fset.Position(n.End()).Offset
-			v.items = append(v.items, Item{Start: start, End: end, Color: g_syntax_red}) // Red for struct usage
+		//Function
+		if it.End+1 < len(code) && code[it.End] == '(' {
+			it.Color = g_syntax_funcName
+			finalElem = append(finalElem, it)
+		}
+
+		//Struct
+		if sort.SearchStrings(structs, it.Text) < len(structs) {
+			it.Color = g_syntax_structName
+			finalElem = append(finalElem, it)
+		}
+	}
+
+	//Add marks into code
+	slices.SortFunc(finalElem, func(a, b UiTextSyntax) int { return cmp.Compare(a.Start, b.Start) })
+	finalElem = slices.CompactFunc(finalElem, func(a, b UiTextSyntax) bool { return a.Start == b.Start || a.End == b.End })
+	slices.Reverse(finalElem)
+	for _, e := range finalElem {
+		code = e.Replace(code)
+	}
+
+	return code
+}
+
+func _UiText_getWords(input string) []UiTextSyntax {
+	var words []UiTextSyntax
+
+	// Handle empty string
+	if len(input) == 0 {
+		return words
+	}
+
+	start := -1
+	var wordBuilder strings.Builder
+
+	for i, char := range input {
+		// Check if character is alphabetic or numeric
+		if unicode.IsLetter(char) || unicode.IsNumber(char) || char == '_' {
+			// Start a new word if not already started
+			if start == -1 {
+				start = i
+			}
+			wordBuilder.WriteRune(char)
 		} else {
-			fmt.Println("unknown")
-		}
-		return v
-
-	case *ast.SelectorExpr:
-		// Highlight struct field names in usage (e.g., instance.field)
-		//if ident, ok := n.Sel.(*ast.Ident); ok {
-		fieldStart := v.fset.Position(n.Sel.Pos()).Offset
-		fieldEnd := v.fset.Position(n.Sel.End()).Offset
-		v.items = append(v.items, Item{Start: fieldStart, End: fieldEnd, Color: g_syntax_purple}) // Purple for field names
-		//}
-		return v
-
-	case *ast.CallExpr:
-		// Highlight function name when called
-		if ident, ok := n.Fun.(*ast.Ident); ok {
-			funcStart := v.fset.Position(ident.Pos()).Offset
-			funcEnd := v.fset.Position(ident.End()).Offset
-			v.items = append(v.items, Item{Start: funcStart, End: funcEnd, Color: g_syntax_blue}) // Blue for function calls
-		}
-		return v
-	}
-	return v
-}
-
-// isVariable checks if a name is a variable in the current scope
-func (v *visitor) isVariable(name string) bool {
-	for i := len(v.scopes) - 1; i >= 0; i-- {
-		if v.scopes[i][name] {
-			return true
+			// If we were building a word, save it
+			if start != -1 {
+				wordText := wordBuilder.String()
+				if wordText != "" {
+					words = append(words, InitSyntaxItem(input, start, i, color.RGBA{}))
+				}
+				// Reset for next word
+				start = -1
+				wordBuilder.Reset()
+			}
 		}
 	}
-	return false
-}
 
-// isStructName checks if a name is a known struct type
-func (v *visitor) isStructName(name string) bool {
-	return v.structNames[name]
-}
-
-// getItems parses the code and returns highlighted items
-func getItems(code string) ([]Item, error) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, "source.go", code, parser.AllErrors)
-	if err != nil {
-		return nil, err
+	// Handle case where string ends with a word
+	if start != -1 {
+		wordText := wordBuilder.String()
+		if wordText != "" {
+			words = append(words, InitSyntaxItem(input, start, len(input), color.RGBA{}))
+		}
 	}
 
-	v := NewVisitor(fset)
-	ast.Walk(v, file)
-	return v.items, nil
+	return words
+}
+
+func _UiText_findOutliers(s string) []UiTextSyntax {
+	var items []UiTextSyntax
+	i := 0
+	for i < len(s) {
+		// Check for single-line comment
+		if i < len(s)-1 && s[i:i+2] == "//" {
+			j := i + 2
+			for j < len(s) && s[j] != '\n' {
+				j++
+			}
+			end := j - 1
+			if j == len(s) {
+				end = len(s) - 1
+			}
+			items = append(items, InitSyntaxItem(s, i, end+1, g_syntax_comment))
+			i = j
+			// Check for multi-line comment
+		} else if i < len(s)-1 && s[i:i+2] == "/*" {
+			start := i
+			i += 2
+			foundEnd := false
+			for i < len(s) {
+				if i < len(s)-1 && s[i:i+2] == "*/" {
+					items = append(items, InitSyntaxItem(s, start, i+1, g_syntax_comment))
+					i += 2
+					foundEnd = true
+					break
+				} else if s[i] == '\n' {
+					items = append(items, InitSyntaxItem(s, start, i-1, g_syntax_comment))
+					start = i + 1
+					i += 1
+				} else {
+					i += 1
+				}
+			}
+			if !foundEnd {
+				items = append(items, InitSyntaxItem(s, start, len(s)-1, g_syntax_comment))
+			}
+		} else if i < len(s)-1 && s[i] == '"' {
+			start := i
+			i += 2
+			foundEnd := false
+			for i < len(s) {
+				if i < len(s)-1 && s[i] == '"' {
+					items = append(items, InitSyntaxItem(s, start, i+1, g_syntax_stringConst))
+					i += 2
+					foundEnd = true
+					break
+				} else if s[i] == '\n' {
+					items = append(items, InitSyntaxItem(s, start, i-1, g_syntax_stringConst))
+					start = i + 1
+					i += 1
+				} else {
+					i += 1
+				}
+			}
+			if !foundEnd {
+				items = append(items, InitSyntaxItem(s, start, len(s)-1, g_syntax_stringConst))
+			}
+		} else {
+			i += 1
+		}
+	}
+	return items
 }
