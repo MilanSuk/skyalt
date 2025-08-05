@@ -71,7 +71,11 @@ func (layout *Layout) AddLayoutWithName(x, y, w, h int, name string) *Layout {
 	return layout._createDiv(x, y, w, h, "_layout_"+name, nil, nil, nil)
 }
 func (layout *Layout) AddLayout(x, y, w, h int) *Layout {
-	return layout._createDiv(x, y, w, h, "_layout", nil, nil, nil)
+	lay := layout._createDiv(x, y, w, h, "_layout", nil, nil, nil)
+	lay.fnGetLLMTip = func(layout *Layout) string {
+		return Layout_buildLLMTip("Layout", "", false, layout.Tooltip)
+	}
+	return lay
 }
 
 func (layout *Layout) AddLayoutCards(x, y, w, h int, autoSpacing bool) *Layout {

@@ -2038,6 +2038,9 @@ func (layout *Layout) HScrollToTheRight() {
 }
 
 func Layout_buildLLMTip(tp string, label string, value_quotes bool, tip string) string {
+	if label == "" && tip == "" {
+		return "" //not tip = skip
+	}
 
 	str := ""
 	if tp != "" {

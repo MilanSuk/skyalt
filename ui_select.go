@@ -128,6 +128,7 @@ func (s *UiSelection) UpdateComp(ui *Ui) (done *LayoutPick) {
 				actBr.LLMTip = ""
 				if coverLay != nil {
 					tip := strings.ReplaceAll(coverLay.GetLLMTip(), "\n", " ")
+					tip = _UiText_RemoveFormating(tip)
 					actBr.LLMTip += tip + "\n"
 				}
 
@@ -185,13 +186,15 @@ func (layout *Layout) findSelection(cq OsV4, cqArea float64, min_area int) *Layo
 			}
 		}
 
-		var tip string
-		if layout.fnGetLLMTip != nil {
-			tip = layout.fnGetLLMTip(layout)
-		}
+		if inArea > min_area {
+			var tip string
+			if layout.fnGetLLMTip != nil {
+				tip = layout.fnGetLLMTip(layout)
+			}
+			if tip != "" {
+				return layout
+			}
 
-		if inArea > min_area && tip != "" {
-			return layout
 		}
 	}
 
