@@ -351,7 +351,7 @@ type Chat struct {
 	PresetSystemPrompt string
 	Messages           ChatMsgs
 
-	User_msg_i int
+	Selected_user_msg int
 
 	Error string
 
@@ -382,6 +382,28 @@ func (st *Chat) GetNumUserMessages() int {
 		}
 	}
 	return n
+}
+func (st *Chat) CutMessages(user_i int) {
+	n := 0
+	for i, msg := range st.Messages.Messages {
+		if msg.Content.Msg != nil { //user message
+			if n > user_i {
+				st.Messages.Messages = st.Messages.Messages[:i] //cut
+				st.TempMessages.Messages = nil                  //cut
+				return
+			}
+			n++
+		}
+	}
+	for i, msg := range st.TempMessages.Messages {
+		if msg.Content.Msg != nil { //user message
+			if n > user_i {
+				st.TempMessages.Messages = st.TempMessages.Messages[:i] //cut
+				return
+			}
+			n++
+		}
+	}
 }
 
 func (st *Chat) GetResponse(user_i int) (ret []*ChatMsg) {
@@ -697,6 +719,8 @@ func (chat *Chat) _sendIt(appName string, caller *ToolCaller, root *Root, contin
 
 	caller.SetMsgName(chat.GetChatID())
 
+	chat.CutMessages(chat.Selected_user_msg)
+
 	err := chat.complete(appName, caller, root, continuee)
 	if err != nil {
 		return fmt.Errorf("complete() failed: %v", err)
@@ -713,7 +737,7 @@ func (chat *Chat) complete(appName string, caller *ToolCaller, root *Root, conti
 
 	//needSummary := (len(chat.Messages.Messages) == 0 /*|| len(chat.Label) < 8*/)
 
-	prompt, files := chat.Input.GetFullPrompt()
+	user_msg, files := chat.Input.GetFullPrompt()
 
 	var comp LLMCompletion
 	comp.Temperature = 0.2
@@ -779,7 +803,7 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 	}
 
 	if !continuee {
-		comp.UserMessage = prompt
+		comp.UserMessage = user_msg
 		comp.UserFiles = files
 	}
 	comp.Max_iteration = 10
@@ -805,7 +829,7 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 
 		//activate dash
 		if msg.HasUI() {
-			chat.User_msg_i = chat.GetNumUserMessages() - 1
+			chat.Selected_user_msg = chat.GetNumUserMessages() - 1
 		}
 	}
 	chat.TempMessages = ChatMsgs{} //reset
@@ -825,7 +849,7 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 	for i := old_num_msgs; i < len(chat.Messages.Messages); i++ {
 		msg := chat.Messages.Messages[i]
 		if msg.HasUI() {
-			chat.User_msg_i = chat.GetNumUserMessages() - 1
+			chat.Selected_user_msg = chat.GetNumUserMessages() - 1
 		}
 	}
 

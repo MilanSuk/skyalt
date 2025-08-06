@@ -44,7 +44,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 
 	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
 
-	dashes := source_chat.GetResponse(source_chat.User_msg_i)
+	dashes := source_chat.GetResponse(source_chat.Selected_user_msg)
 
 	var dashUIs []*ChatMsg
 	for _, msg := range dashes {
@@ -107,7 +107,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	if app.Chats[app.Selected_chat_i].Label == "" {
-		app.Chats[app.Selected_chat_i].Label = source_chat.FindUserMessage(source_chat.User_msg_i)
+		app.Chats[app.Selected_chat_i].Label = source_chat.FindUserMessage(source_chat.Selected_user_msg)
 	}
 
 	//Prompt

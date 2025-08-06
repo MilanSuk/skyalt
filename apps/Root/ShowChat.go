@@ -401,7 +401,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 
 	if msg_result != nil && msg_result.HasUI() {
 		user_msg_i := chat.FindToolCallUserMessage(msg_result.Content.Result.Tool_call_id)
-		isOpen := (chat.User_msg_i == user_msg_i)
+		isOpen := (chat.Selected_user_msg == user_msg_i)
 
 		stateStr := "Show"
 
@@ -418,7 +418,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 		}
 
 		bt.clicked = func() error {
-			chat.User_msg_i = user_msg_i //msg_result.Content.Result.Tool_call_id
+			chat.Selected_user_msg = user_msg_i //msg_result.Content.Result.Tool_call_id
 			return nil
 		}
 	}

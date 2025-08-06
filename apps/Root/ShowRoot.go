@@ -43,7 +43,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 		//add brush
 		if st.AddBrush != nil {
-			st.AddBrush.Dash_i = source_chat.User_msg_i
+			st.AddBrush.Dash_i = source_chat.Selected_user_msg
 			source_chat.Input.MergePick(*st.AddBrush)
 			ui.ActivateEditbox("chat_user_prompt", caller)
 			st.AddBrush = nil
@@ -421,7 +421,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 				if source_chat != nil {
 					for _, br := range source_chat.Input.Picks {
-						if br.Dash_i == source_chat.User_msg_i {
+						if br.Dash_i == source_chat.Selected_user_msg {
 							ui.Paint_Brush(br.Cd.Cd, br.Points)
 						}
 					}
@@ -533,14 +533,14 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 						nx++
 						backBt.layout.Tooltip = "Previous dashboard"
 						backBt.Background = 0.5
-						backBt.layout.Enable = (source_chat.User_msg_i > 0)
+						backBt.layout.Enable = (source_chat.Selected_user_msg > 0)
 						backBt.clicked = func() error {
-							source_chat.User_msg_i--
+							source_chat.Selected_user_msg--
 							return nil
 						}
 
 						NavDiv.SetColumnFromSub(nx, 1.5, 100, true)
-						inf := NavDiv.AddText(nx, 0, 1, 1, fmt.Sprintf("%d/%d", source_chat.User_msg_i+1, numUseMessages)) //...
+						inf := NavDiv.AddText(nx, 0, 1, 1, fmt.Sprintf("%d/%d", source_chat.Selected_user_msg+1, numUseMessages)) //...
 						nx++
 						inf.Align_h = 1
 						//inf.layout.Tooltip = dashes.UI_func + "()"
@@ -550,9 +550,9 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 						nx++
 						forwardBt.layout.Tooltip = "Next dashboard"
 						forwardBt.Background = 0.5
-						forwardBt.layout.Enable = (source_chat.User_msg_i+1 < numUseMessages)
+						forwardBt.layout.Enable = (source_chat.Selected_user_msg+1 < numUseMessages)
 						forwardBt.clicked = func() error {
-							source_chat.User_msg_i++
+							source_chat.Selected_user_msg++
 							return nil
 						}
 					}
