@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"strings"
 )
@@ -52,12 +51,8 @@ func Layout3_Get_prompt_color(i int) LayoutPromptColor {
 	return g_prompt_colors[i%len(g_prompt_colors)]
 }
 
-func (cd *LayoutPromptColor) GetLabel() string {
-	return fmt.Sprintf("<rgba%d,%d,%d,%d>{%s}</rgba>", cd.Cd.R, cd.Cd.G, cd.Cd.B, cd.Cd.A, cd.Label)
-}
-
 type LayoutPick struct {
-	Cd     LayoutPromptColor
+	//Cd     LayoutPromptColor
 	LLMTip string
 	Points []OsV2
 }
@@ -85,7 +80,7 @@ func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
 
 		buff.AddCrop(ui.mainLayout.CropWithScroll())
 
-		buff.AddBrush(OsV2{}, s.active.Points, s.active.Cd.Cd, UiSelection_Thick(ui), true)
+		buff.AddBrush(OsV2{}, s.active.Points, ui.GetPalette().P, UiSelection_Thick(ui), true)
 
 		buff.depth = backupDepth
 	}
@@ -97,7 +92,8 @@ func (s *UiSelection) UpdateComp(ui *Ui) (done *LayoutPick) {
 	//start
 	if ui.GetWin().io.Keys.Ctrl {
 		if ui.GetWin().io.Touch.Start {
-			s.active = &LayoutPick{Cd: Layout3_Get_prompt_color(ui.mainLayout.numBrushes())}
+			//s.active = &LayoutPick{Cd: Layout3_Get_prompt_color(ui.mainLayout.numBrushes())}
+			s.active = &LayoutPick{}
 		}
 	}
 

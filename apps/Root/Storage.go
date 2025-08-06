@@ -302,10 +302,32 @@ func (cd *LayoutPromptColor) GetLabel() string {
 	return fmt.Sprintf("<rgba%d,%d,%d,%d>{%s}</rgba>", cd.Cd.R, cd.Cd.G, cd.Cd.B, cd.Cd.A, cd.Label)
 }
 
+var g_prompt_colors = []LayoutPromptColor{
+	{Label: "red", Cd: color.RGBA{255, 0, 0, 255}},
+	{Label: "green", Cd: color.RGBA{0, 255, 0, 255}},
+	{Label: "blue", Cd: color.RGBA{0, 0, 255, 255}},
+
+	{Label: "orange", Cd: color.RGBA{255, 165, 0, 255}},
+	{Label: "pink", Cd: color.RGBA{255, 192, 203, 255}},
+	{Label: "yellow", Cd: color.RGBA{200, 200, 0, 255}},
+
+	{Label: "aqua", Cd: color.RGBA{0, 255, 255, 255}},
+	{Label: "fuchsia", Cd: color.RGBA{255, 0, 255, 255}},
+	{Label: "olive", Cd: color.RGBA{128, 128, 0, 255}},
+	{Label: "teal", Cd: color.RGBA{0, 128, 128, 255}},
+	{Label: "purple", Cd: color.RGBA{128, 0, 128, 255}},
+	{Label: "navy", Cd: color.RGBA{0, 0, 128, 255}},
+	{Label: "marron", Cd: color.RGBA{128, 0, 0, 255}},
+	{Label: "lime", Cd: color.RGBA{0, 255, 0, 255}},
+	{Label: "brown", Cd: color.RGBA{165, 42, 42, 255}},
+	{Label: "grey", Cd: color.RGBA{128, 128, 128, 255}},
+}
+
 type LayoutPick struct {
 	Cd     LayoutPromptColor
 	LLMTip string
 	Points []UIPaintBrushPoint
+	Dash_i int
 }
 
 type ChatInput struct {
@@ -324,15 +346,12 @@ type ChatInput struct {
 type Chat struct {
 	file string
 
-	//Label string //summary
-
 	Input ChatInput
 
 	PresetSystemPrompt string
 	Messages           ChatMsgs
 
 	User_msg_i int
-	//Dash_call_id string
 
 	Error string
 
@@ -461,6 +480,8 @@ func (st *ChatInput) MergePick(in LayoutPick) {
 	i := st.FindPick(in.LLMTip)
 	if i >= 0 {
 		in.Cd = st.Picks[i].Cd
+	} else {
+		in.Cd = g_prompt_colors[len(st.Picks)%len(g_prompt_colors)]
 	}
 
 	//add
