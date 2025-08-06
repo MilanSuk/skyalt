@@ -168,6 +168,10 @@ func (ui *Ui) UpdateIO(winRect OsV4) {
 	}
 }
 
+func (ui *Ui) GetPalette() *DevPalette {
+	return ui.router.services.sync.GetPalette()
+}
+
 func (ui *Ui) SetRefresh() {
 	ui.refresh = true
 }
@@ -258,7 +262,7 @@ func (ui *Ui) Draw() {
 	}
 
 	win := ui.GetWin()
-	win.buff.StartLevel(ui.mainLayout.canvas, ui.router.services.sync.GetPalette().B, OsV4{}, 0)
+	win.buff.StartLevel(ui.mainLayout.canvas, ui.GetPalette().B, OsV4{}, 0)
 
 	ui.mainLayout.Draw()
 	if win.io.Keys.Ctrl {

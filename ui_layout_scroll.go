@@ -147,9 +147,9 @@ func (scroll *UiLayoutScroll) _UpdateH(start OsV2, ui *Ui) OsV4 {
 
 func (scroll *UiLayoutScroll) _GetSlideCd(ui *Ui) color.RGBA {
 
-	cd_slide := ui.router.services.sync.GetPalette().GetGrey(0.5)
+	cd_slide := ui.GetPalette().GetGrey(0.5)
 	if scroll.data <= scroll.screen {
-		cd_slide = Color_Aprox(ui.router.services.sync.GetPalette().OnB, cd_slide, 0.5) // disable
+		cd_slide = Color_Aprox(ui.GetPalette().OnB, cd_slide, 0.5) // disable
 	}
 
 	return cd_slide
@@ -168,7 +168,7 @@ func (scroll *UiLayoutScroll) DrawV(view OsV4, showBackground bool, ui *Ui) {
 	}
 
 	if showBackground {
-		cd := ui.router.services.sync.GetPalette().OnB
+		cd := ui.GetPalette().OnB
 		cd.A = 30
 		ui.GetWin().buff.AddRect(view, cd, 0)
 	}
@@ -191,7 +191,7 @@ func (scroll *UiLayoutScroll) DrawH(view OsV4, showBackground bool, ui *Ui) {
 	}
 
 	if showBackground {
-		cd := ui.router.services.sync.GetPalette().OnB
+		cd := ui.GetPalette().OnB
 		cd.A = 30
 		ui.GetWin().buff.AddRect(view, cd, 0)
 	}

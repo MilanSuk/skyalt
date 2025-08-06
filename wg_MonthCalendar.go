@@ -79,8 +79,8 @@ func (st *MonthCalendar) Build(layout *Layout) {
 			}
 		}
 
-		for y := 0; y < 6; y++ {
-			for x := 0; x < 7; x++ {
+		for y := range 6 {
+			for x := range 7 {
 				Div := layout.AddLayout(x, 2+y, 1, 1)
 				Div.Tooltip = dt.Format("Mon, 02 Jan 2006 15:04")
 				{
@@ -138,7 +138,7 @@ func (st *MonthCalendar) Build(layout *Layout) {
 	}
 
 	//grid
-	for y := 0; y < 6; y++ {
+	for y := range 6 {
 		div := layout.AddLayout(0, 2+y, 7, 1)
 		div.fnDraw = func(rect Rect, l *Layout) (paint LayoutPaint) {
 			paint.Line(rect, 0, 0, 1, 0, layout.GetPalette().GetGrey(0.25), 0.03)
@@ -146,7 +146,7 @@ func (st *MonthCalendar) Build(layout *Layout) {
 		}
 	}
 
-	for x := 0; x < 6; x++ {
+	for x := range 6 {
 		div := layout.AddLayout(1+x, 2, 1, 6)
 		div.fnDraw = func(rect Rect, l *Layout) (paint LayoutPaint) {
 			paint.Line(rect, 0, 0, 0, 1, layout.GetPalette().GetGrey(0.25), 0.03)

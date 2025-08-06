@@ -59,7 +59,7 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 	}
 
 	//draw selection
-	cdSelection := Color_Aprox(ui.router.services.sync.GetPalette().B, frontCd, 0.3)
+	cdSelection := Color_Aprox(ui.GetPalette().B, frontCd, 0.3)
 	var range_sx, range_ex int
 	if selection || editable {
 		if edit.Is(layout) {
@@ -119,7 +119,7 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 			ui.GetWin().SetTextCursorMove()
 		}
 
-		currCd := ui.router.services.sync.GetPalette().OnB
+		currCd := ui.GetPalette().OnB
 		if multi_line {
 			y := WinGph_CursorLineY(lines, cursorPos)
 			ln, ln_cursorPos := WinGph_CursorLine(value, lines, cursorPos)

@@ -300,7 +300,7 @@ func (layout *Layout) GetSettings() *UiRootSettings {
 }
 
 func (layout *Layout) GetPalette() *DevPalette {
-	return layout.ui.router.services.sync.GetPalette()
+	return layout.ui.GetPalette()
 }
 
 func (layout *Layout) projectScroll() {

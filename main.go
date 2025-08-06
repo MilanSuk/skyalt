@@ -90,7 +90,7 @@ func main() {
 				msg := router.FindRecompileMsg("Root")
 				if msg != nil && !msg.out_done.Load() {
 					//compiling
-					pl := ui.router.services.sync.GetPalette()
+					pl := ui.GetPalette()
 					particles_cd := Color_Aprox(pl.P, pl.B, 0.5)
 					win.RenderProgress(msg.progress_label, particles_cd, 0, ui.Cell())
 				} else {

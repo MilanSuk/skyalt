@@ -85,7 +85,7 @@ func (p *UiTooltip) draw(ui *Ui) {
 	//background
 	{
 		ui.GetWin().buff.AddCrop(p.coord)
-		pl := ui.router.services.sync.GetPalette()
+		pl := ui.GetPalette()
 		ui.GetWin().buff.AddRect(p.coord, pl.B, 0)
 		ui.GetWin().buff.AddRect(p.coord, pl.OnB, 1)
 	}
