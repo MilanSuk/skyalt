@@ -2836,9 +2836,9 @@ func (ui *UI) AddDialogBorder(name string, title string) (*UIDialog, *UI) {
 	return dia, lay.AddLayout(1, 1, 1, 1)
 }
 
-func (ui *UI) AddTool(x, y, w, h int, fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) (*UI, error) {
+func (ui *UI) AddTool(x, y, w, h int, layout_name string, fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) (*UI, error) {
 	ret_ui := _newUIItem(x, y, w, h, "")
-	ui._addUISub(ret_ui, "")
+	ui._addUISub(ret_ui, layout_name)
 
 	out_error := fnRun(caller, ret_ui)
 
@@ -2864,9 +2864,9 @@ func (ui *UI) AddTool(x, y, w, h int, fnRun func(caller *ToolCaller, ui *UI) err
 	return ret_ui, out_error
 }
 
-func (ui *UI) AddToolApp(x, y, w, h int, appName string, toolName string, jsParams []byte, caller *ToolCaller) (*UI, error) {
+func (ui *UI) AddToolApp(x, y, w, h int, layout_name string, appName string, toolName string, jsParams []byte, caller *ToolCaller) (*UI, error) {
 	ret_ui := _newUIItem(x, y, w, h, "")
-	ui._addUISub(ret_ui, "")
+	ui._addUISub(ret_ui, layout_name)
 
 	//call router
 	_, uiJs, err := caller.callFuncSubCall(ret_ui.UID, appName, toolName, jsParams)
