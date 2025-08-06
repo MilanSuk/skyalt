@@ -642,9 +642,9 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 							CodeDia := StatsDiv.AddDialog("code_picker")
 							CodeDia.UI.SetColumn(0, 8, 20)
 							CodeDia.UI.SetRowFromSub(0, 1, 100, true)
-							_, err := CodeDia.UI.AddToolApp(0, 0, 1, 1, "Device", "ShowLLMsCodeSettings", nil, caller)
+							_, err := CodeDia.UI.AddToolApp(0, 0, 1, 1, "device_settings", "Device", "ShowLLMsCodeSettings", nil, caller)
 							if err != nil {
-								return fmt.Errorf("AddToolApp() failed: %v", err)
+								return err
 							}
 
 							ModelBt := StatsDiv.AddButton(1, 0, 1, 1, "Change model")

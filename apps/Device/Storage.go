@@ -269,17 +269,17 @@ func (st *DeviceSettings) BuildProvider(ChatDiv *UI, provider string, caller *To
 	found := true
 	switch strings.ToLower(provider) {
 	case "xai":
-		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMxAISettings{}).run, caller)
+		ChatDia.UI.AddTool(0, 0, 1, 1, "xai", (&ShowLLMxAISettings{}).run, caller)
 	case "mistral":
-		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMMistralSettings{}).run, caller)
+		ChatDia.UI.AddTool(0, 0, 1, 1, "mistral", (&ShowLLMMistralSettings{}).run, caller)
 	case "groq":
-		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMGroqSettings{}).run, caller)
+		ChatDia.UI.AddTool(0, 0, 1, 1, "groq", (&ShowLLMGroqSettings{}).run, caller)
 	case "openai":
-		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMOpenAISettings{}).run, caller)
+		ChatDia.UI.AddTool(0, 0, 1, 1, "openai", (&ShowLLMOpenAISettings{}).run, caller)
 	case "llama.cpp":
-		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMLlamacppSettings{}).run, caller)
+		ChatDia.UI.AddTool(0, 0, 1, 1, "llama.cpp", (&ShowLLMLlamacppSettings{}).run, caller)
 	case "whisper.cpp":
-		ChatDia.UI.AddTool(0, 0, 1, 1, (&ShowLLMWhispercppSettings{}).run, caller)
+		ChatDia.UI.AddTool(0, 0, 1, 1, "whisper.cpp", (&ShowLLMWhispercppSettings{}).run, caller)
 	default:
 		found = false
 	}

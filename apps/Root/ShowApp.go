@@ -63,9 +63,9 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 	if len(dashUIs) > 0 {
 		if len(dashUIs) == 1 {
 			//1x Dash
-			appUi, err := ui.AddToolApp(0, 0, dashW, 1, st.AppName, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
+			appUi, err := ui.AddToolApp(0, 0, dashW, 1, fmt.Sprintf("dash_%d", app.Selected_chat_i), st.AppName, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
 			if err != nil {
-				return fmt.Errorf("AddToolApp() failed: %v", err)
+				return err
 			}
 			appUi.changed = func(newParamsJs []byte) error {
 				dashUIs[0].UI_paramsJs = string(newParamsJs) //save back changes
@@ -83,9 +83,9 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 			for i, dash := range dashUIs {
 				DashDiv.SetRowFromSub(i, 1, 100, true)
 
-				appUi, err := DashDiv.AddToolApp(0, i, 1, 1, st.AppName, dash.UI_func, []byte(dash.UI_paramsJs), caller)
+				appUi, err := DashDiv.AddToolApp(0, i, 1, 1, fmt.Sprintf("dash_%d_%d", app.Selected_chat_i, i), st.AppName, dash.UI_func, []byte(dash.UI_paramsJs), caller)
 				if err != nil {
-					return fmt.Errorf("AddToolApp2() failed: %v", err)
+					return err
 				}
 				appUi.changed = func(newParamsJs []byte) error {
 					dash.UI_paramsJs = string(newParamsJs) //save back changes
@@ -136,7 +136,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 		Div.Border_cd = UI_GetPalette().GetGrey(0.2)
 
 		pr := ShowPrompt{AppName: st.AppName, ChatFileName: st.ChatFileName}
-		_, err = Div.AddTool(1, 1, 1, 1, pr.run, caller)
+		_, err = Div.AddTool(1, 1, 1, 1, "prompt", pr.run, caller)
 		if err != nil {
 			return fmt.Errorf("buildInput() failed: %v", err)
 		}
@@ -150,7 +150,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 		SideDiv.SetRow(0, 1, 100)
 
 		//Chat
-		ChatDiv, err := SideDiv.AddTool(0, 0, 1, 1, (&ShowChat{AppName: st.AppName, ChatFileName: st.ChatFileName}).run, caller)
+		ChatDiv, err := SideDiv.AddTool(0, 0, 1, 1, "side", (&ShowChat{AppName: st.AppName, ChatFileName: st.ChatFileName}).run, caller)
 		if err != nil {
 			return fmt.Errorf("ShowChat.run() failed: %v", err)
 		}

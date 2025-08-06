@@ -45,7 +45,7 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 	//Coding
 	{
 		ui.SetRowFromSub(y, 1, 100, true)
-		ui.AddTool(0, y, 1, 1, (&ShowLLMsCodeSettings{}).run, caller)
+		ui.AddTool(0, y, 1, 1, "llm", (&ShowLLMsCodeSettings{}).run, caller)
 	}
 	y++
 	ui.AddDivider(0, y, 1, 1, true)

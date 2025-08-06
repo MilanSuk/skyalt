@@ -43,6 +43,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 		//add brush
 		if st.AddBrush != nil {
+			st.AddBrush.Dash_i = source_chat.User_msg_i
 			source_chat.Input.MergePick(*st.AddBrush)
 			ui.ActivateEditbox("chat_user_prompt", caller)
 			st.AddBrush = nil
@@ -386,7 +387,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	if source_root.ShowSettings {
-		err := st.buildSettings(ui.AddLayout(1, 0, 1, 1), caller)
+		err := st.buildSettings(ui.AddLayoutWithName(1, 0, 1, 1, "Settings"), caller)
 		if err != nil {
 			return err
 		}
@@ -397,21 +398,21 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		}
 
 		if app.Dev.Enable {
-			_, err := ui.AddTool(1, 0, 1, 1, (&ShowDev{AppName: app.Name}).run, caller)
+			_, err := ui.AddTool(1, 0, 1, 1, fmt.Sprintf("dev_%s", app.Name), (&ShowDev{AppName: app.Name}).run, caller)
 			if err != nil {
 				return err
 			}
 
 		} else {
-			ChatDiv := ui.AddLayout(1, 0, 1, 1)
-			ChatDiv.SetColumnResizable(0, 8, 20, 8)
-			ChatDiv.SetColumn(1, 1, 100)
-			ChatDiv.SetRow(0, 1, 100)
+			AppDiv := ui.AddLayoutWithName(1, 0, 1, 1, "App")
+			AppDiv.SetColumnResizable(0, 8, 20, 8)
+			AppDiv.SetColumn(1, 1, 100)
+			AppDiv.SetRow(0, 1, 100)
 
 			//Chat(or settings)
 			//note: must be called before, because it will update chat label
 			{
-				ChatDiv, err := ChatDiv.AddTool(1, 0, 1, 1, (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
+				ChatDiv, err := AppDiv.AddTool(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name), (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
 				if err != nil {
 					return err
 				}
@@ -420,14 +421,16 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 				if source_chat != nil {
 					for _, br := range source_chat.Input.Picks {
-						ui.Paint_Brush(br.Cd.Cd, br.Points)
+						if br.Dash_i == source_chat.User_msg_i {
+							ui.Paint_Brush(br.Cd.Cd, br.Points)
+						}
 					}
 				}
 			}
 
 			//Side
 			{
-				SideDiv := ChatDiv.AddLayout(0, 0, 1, 1)
+				SideDiv := AppDiv.AddLayout(0, 0, 1, 1)
 				SideDiv.SetColumn(0, 1, 100)
 				SideDiv.SetRow(1, 1, 100)
 
@@ -701,7 +704,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller) error {
 	//device settings
 	{
 		ui.SetRowFromSub(y, 0, 100, true)
-		ui.AddToolApp(1, y, 1, 1, "Device", "ShowDeviceSettings", nil, caller)
+		ui.AddToolApp(1, y, 1, 1, "device_settings", "Device", "ShowDeviceSettings", nil, caller)
 		y++
 	}
 
@@ -711,7 +714,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller) error {
 	// LLMs
 	{
 		ui.SetRowFromSub(y, 0, 100, true)
-		ui.AddToolApp(1, y, 1, 1, "Device", "ShowLLMsSettings", nil, caller)
+		ui.AddToolApp(1, y, 1, 1, "llm_settings", "Device", "ShowLLMsSettings", nil, caller)
 		y++
 	}
 
