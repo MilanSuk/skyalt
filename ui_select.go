@@ -65,10 +65,6 @@ type UiSelection struct {
 	active *LayoutPick
 }
 
-func (s *UiSelection) IsActive() bool {
-	return s.active != nil
-}
-
 func UiSelection_Thick(ui *Ui) int {
 	return ui.CellWidth(0.3)
 }
@@ -87,7 +83,7 @@ func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
 
 }
 
-func (s *UiSelection) UpdateComp(ui *Ui) (done *LayoutPick) {
+func (s *UiSelection) UpdateBrush(ui *Ui) *LayoutPick {
 
 	//start
 	if ui.GetWin().io.Keys.Ctrl {
@@ -97,49 +93,44 @@ func (s *UiSelection) UpdateComp(ui *Ui) (done *LayoutPick) {
 		}
 	}
 
-	if !s.IsActive() {
-		return
+	if s.active == nil {
+		return nil
 	}
 
-	//add point
-	s.active.Points = append(s.active.Points, ui.GetWin().io.Touch.Pos)
+	//add new point
+	{
+		pos := ui.GetWin().io.Touch.Pos
+		if len(s.active.Points) == 0 || !s.active.Points[len(s.active.Points)-1].Cmp(pos) {
+			s.active.Points = append(s.active.Points, pos)
+		}
+	}
 
 	//end
 	if ui.GetWin().io.Touch.End {
-		appLay := ui.mainLayout
-		if appLay != nil {
 
-			cq := s.getRect()
+		cq := s.getRect() //need s.active ! nil
+		ret := s.active
+		s.active = nil
+
+		if len(ret.Points) > 0 {
+
 			cq = cq.Crop(ui.Cell() / 3)
 			cq.Size = cq.Size.Max(OsV2{1, 1})
 			cqArea := float64(cq.Area())
 			if cqArea > 0 {
 
 				min_area := 0 //pixel ....
-				coverLay := appLay.findSelection(cq, cqArea, min_area)
 
-				actBr := s.active
+				var tip strings.Builder
+				ui.mainLayout.buildTips(cq, cqArea, min_area, 0, &tip)
+				ret.LLMTip = _UiText_RemoveFormating(tip.String())
 
-				//add tip
-				actBr.LLMTip = ""
-				if coverLay != nil {
-					tip := strings.ReplaceAll(coverLay.GetLLMTip(), "\n", " ")
-					tip = _UiText_RemoveFormating(tip)
-					actBr.LLMTip += tip + "\n"
-				}
-
-				//call
-				if len(actBr.Points) > 0 {
-					done = actBr
-				}
-
+				return ret
 			}
 		}
-
-		s.active = nil
 	}
 
-	return
+	return nil
 }
 
 func (s *UiSelection) getRect() OsV4 {
@@ -165,7 +156,47 @@ func (s *UiSelection) getRect() OsV4 {
 	return InitOsV4ab(min, max)
 }
 
-func (layout *Layout) findSelection(cq OsV4, cqArea float64, min_area int) *Layout {
+func (layout *Layout) buildTips(cq OsV4, cqArea float64, min_area int, depth int, outStr *strings.Builder) {
+
+	if layout.touch { //layout.touchDia
+		inArea := layout.crop.GetIntersect(cq).Area()
+
+		if inArea > min_area {
+			var tp string
+			if layout.fnGetLLMTip != nil {
+				tp = layout.fnGetLLMTip(layout)
+			}
+			if tp != "" {
+				if outStr.Len() > 0 {
+					outStr.WriteString("\n")
+				}
+				for range depth {
+					outStr.WriteString("\t")
+				}
+				if depth > 0 {
+					outStr.WriteString("- ")
+				}
+
+				//add tip
+				outStr.WriteString(tp)
+
+				depth++
+			}
+		}
+	}
+
+	for _, it := range layout.childs {
+		if it.IsShown() {
+			it.buildTips(cq, cqArea, min_area, depth, outStr)
+		}
+	}
+
+	if layout.dialog != nil {
+		layout.dialog.buildTips(cq, cqArea, min_area, 0, outStr)
+	}
+}
+
+/*func (layout *Layout) findSelection(cq OsV4, cqArea float64, min_area int) *Layout {
 	if !layout.touch {
 		return nil
 	}
@@ -202,4 +233,4 @@ func (layout *Layout) findSelection(cq OsV4, cqArea float64, min_area int) *Layo
 	}
 
 	return nil
-}
+}*/

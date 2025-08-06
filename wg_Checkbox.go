@@ -21,7 +21,11 @@ func (layout *Layout) AddCheckbox(x, y, w, h int, label string, value *float64) 
 }
 
 func (st *Checkbox) getLLMTip(layout *Layout) string {
-	return Layout_buildLLMTip("Checkbox", fmt.Sprintf("%v", *st.Value), false, st.Tooltip)
+	val := 0.0
+	if st.Value != nil {
+		val = *st.Value
+	}
+	return Layout_buildLLMTip("Checkbox", "set to", fmt.Sprintf("%v", val), st.Tooltip)
 }
 
 func (st *Checkbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {

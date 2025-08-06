@@ -58,7 +58,7 @@ func (layout *Layout) AddMap(x, y, w, h int, cam *MapCam) *Map {
 }
 
 func (st *Map) getLLMTip(layout *Layout) string {
-	return Layout_buildLLMTip("Map", "", false, st.Tooltip)
+	return Layout_buildLLMTip("Map", "", "", st.Tooltip)
 }
 
 func (mp *Map) AddLocators(loc MapLocators) {

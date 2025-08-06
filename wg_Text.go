@@ -36,7 +36,7 @@ func (layout *Layout) AddText(x, y, w, h int, value string) *Text {
 }
 
 func (st *Text) getLLMTip(layout *Layout) string {
-	return Layout_buildLLMTip("Text", st.Value, true, st.Tooltip)
+	return Layout_buildLLMTip("Text", "is saying", "\""+st.Value+"\"", st.Tooltip)
 }
 
 func (st *Text) Build(layout *Layout) {

@@ -2037,32 +2037,23 @@ func (layout *Layout) HScrollToTheRight() {
 	layout.ui.SetRelayoutSoft()
 }
 
-func Layout_buildLLMTip(tp string, label string, value_quotes bool, tip string) string {
-	if label == "" && tip == "" {
-		return "" //not tip = skip
+func Layout_buildLLMTip(component string, value_prefix string, value string, tip string) string {
+	if value == "" && tip == "" {
+		return "" //skip
 	}
 
-	str := ""
-	if tp != "" {
-		str += "Type: " + tp
-	}
+	str := component
 
-	if label != "" {
-		if value_quotes {
-			label = "\"" + label + "\""
-		}
-
-		if str != "" {
-			str += ", "
-		}
-		str += "Label: " + label
+	if value != "" {
+		str += " " + value_prefix + " " + value
 	}
 
 	if tip != "" {
-		if str != "" {
-			str += ", "
+		if value != "" {
+			str += " and description: " + tip
+		} else {
+			str += " with description: " + tip
 		}
-		str += "Tip: " + tip
 	}
 
 	return str
@@ -2075,38 +2066,34 @@ func Layout_addTip(str string, tooltip string) string {
 	return str
 }
 
-func (layout *Layout) GetLLMTip() string {
+/*func (layout *Layout) GetLLMTip() string {
 	var final string
 
-	for layout != nil {
-		var tip string
-		if layout.fnGetLLMTip != nil {
-			tip = layout.fnGetLLMTip(layout)
-		}
+	var tip string
+	if layout.fnGetLLMTip != nil {
+		tip = layout.fnGetLLMTip(layout)
+	}
 
-		if tip != "" {
-			final = Layout_addTip(final, tip)
-		}
+	if tip != "" {
+		final = Layout_addTip(final, tip)
+	}
 
-		if layout.parent != nil {
-			for _, gr := range layout.parent.TooltipGroups {
-				if gr.InInside(layout) {
-					if gr.Tooltip != "" {
-						final = Layout_addTip(final, Layout_buildLLMTip("", "", false, gr.Tooltip))
-					}
+	if layout.parent != nil {
+		for _, gr := range layout.parent.TooltipGroups {
+			if gr.InInside(layout) {
+				if gr.Tooltip != "" {
+					final = Layout_addTip(final, Layout_buildLLMTip("", "", false, gr.Tooltip))
 				}
 			}
 		}
-
-		layout = layout.parent
 	}
 
-	if final != "" && !strings.HasSuffix(final, ".") {
-		final += "."
-	}
+	//if final != "" && !strings.HasSuffix(final, ".") {
+	//	final += "."
+	//}
 
 	return final
-}
+}*/
 
 func (layout *Layout) CallLayoutUpdates() {
 

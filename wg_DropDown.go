@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"slices"
 )
 
@@ -30,7 +31,13 @@ func (layout *Layout) AddDropDown(x, y, w, h int, value *string, labels []string
 
 func (st *DropDown) getLLMTip(layout *Layout) string {
 	if st.Value != nil {
-		return Layout_buildLLMTip("DropDown", *st.Value, true, st.Tooltip)
+		label := *st.Value
+		i := st.getValueLabelPos()
+		if i >= 0 {
+			label = st.Labels[i]
+		}
+
+		return Layout_buildLLMTip("DropDown", "with selected", fmt.Sprintf("value: \"%s\" and label \"%s\"", *st.Value, label), st.Tooltip)
 	}
 	return "Error: Value == nil"
 }
@@ -58,17 +65,15 @@ func (st *DropDown) Build(layout *Layout) {
 	bt.Border = true
 
 	//set Label and Icon
-	for i, it := range st.Values {
-		if it == *st.Value {
-			if i < len(st.Labels) {
-				bt.Value = st.Labels[i]
-			}
+	{
+		i := st.getValueLabelPos()
+		if i >= 0 {
+			bt.Value = st.Labels[i]
 			if i < len(st.Icons) {
 				bt.IconBlob = st.Icons[i].Blob
 				bt.IconPath = st.Icons[i].Path
 				bt.Icon_margin = st.Icons[i].Margin
 			}
-			break
 		}
 	}
 
@@ -112,4 +117,15 @@ func (st *DropDown) Build(layout *Layout) {
 			}
 		}
 	}
+}
+
+func (st *DropDown) getValueLabelPos() int {
+	for i, it := range st.Values {
+		if it == *st.Value {
+			if i < len(st.Labels) {
+				return i
+			}
+		}
+	}
+	return -1
 }

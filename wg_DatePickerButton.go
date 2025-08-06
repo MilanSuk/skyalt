@@ -20,7 +20,7 @@ func (layout *Layout) AddDatePickerButton(x, y, w, h int, value *int64, page *in
 }
 
 func (st *DatePickerButton) getLLMTip(layout *Layout) string {
-	return Layout_buildLLMTip("DatePickerButton", layout.ConvertTextDate(*st.Value), false, st.Tooltip)
+	return Layout_buildLLMTip("DatePickerButton", "with date", layout.ConvertTextDate(*st.Value), st.Tooltip)
 }
 
 func (st *DatePickerButton) Build(layout *Layout) {

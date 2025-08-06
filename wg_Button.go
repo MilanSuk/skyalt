@@ -100,7 +100,7 @@ func (st *Button) Build(layout *Layout) {
 }
 
 func (st *Button) getLLMTip(layout *Layout) string {
-	return Layout_buildLLMTip("Button", st.Value, true, st.Tooltip)
+	return Layout_buildLLMTip("Button", "labeled ", "\""+st.Value+"\"", st.Tooltip)
 }
 
 func (st *Button) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {

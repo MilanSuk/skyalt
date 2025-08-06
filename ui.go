@@ -320,8 +320,8 @@ func (ui *Ui) Tick() {
 		}
 	}
 
-	root_brush := ui.selection.UpdateComp(ui)
-	if root_brush != nil {
+	addBrush := ui.selection.UpdateBrush(ui)
+	if addBrush != nil {
 		ui.SetRefresh()
 	}
 
@@ -375,7 +375,7 @@ func (ui *Ui) Tick() {
 			AddBrush  *LayoutPick
 			RunPrompt string
 		}
-		ui.router.CallBuildAsync(1, "Root", "ShowRoot", ShowRoot{AddBrush: root_brush, RunPrompt: root_runPrompt}, ui._addLayout_FnProgress, fnDone)
+		ui.router.CallBuildAsync(1, "Root", "ShowRoot", ShowRoot{AddBrush: addBrush, RunPrompt: root_runPrompt}, ui._addLayout_FnProgress, fnDone)
 	}
 
 	if !ui.touch.IsActive() {

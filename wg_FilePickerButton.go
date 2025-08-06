@@ -21,7 +21,11 @@ func (layout *Layout) AddFilePickerButton(x, y, w, h int, path *string, preview 
 }
 
 func (st *FilePickerButton) getLLMTip(layout *Layout) string {
-	return Layout_buildLLMTip("FilePickerButton", *st.Path, true, st.Tooltip)
+	path := ""
+	if st.Path != nil {
+		path = *st.Path
+	}
+	return Layout_buildLLMTip("FilePickerButton", "with path", path, st.Tooltip)
 }
 
 func (st *FilePickerButton) Build(layout *Layout) {

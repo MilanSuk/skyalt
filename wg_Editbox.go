@@ -47,7 +47,7 @@ func (layout *Layout) AddEditbox2(x, y, w, h int, valuePointer interface{}) (*Ed
 }
 
 func (st *Editbox) getLLMTip(layout *Layout) string {
-	return Layout_buildLLMTip("Editbox", st.getValue(), true, st.Tooltip)
+	return Layout_buildLLMTip("Editbox", "saying", st.getValue(), st.Tooltip)
 }
 
 func (st *Editbox) Build(layout *Layout) {

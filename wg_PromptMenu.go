@@ -23,7 +23,7 @@ func (layout *Layout) AddPromptMenu(x, y, w, h int, options []string) *PromptMen
 }
 
 func (st *PromptMenu) getLLMTip(layout *Layout) string {
-	return Layout_buildLLMTip("PromptMenu", "", true, st.Tooltip)
+	return Layout_buildLLMTip("PromptMenu", "", "", st.Tooltip)
 }
 
 func (st *PromptMenu) Build(layout *Layout) {
