@@ -34,7 +34,6 @@ type AppsRouterMsgStack struct {
 type AppsRouterMsg struct {
 	msg_id   uint64
 	msg_name string
-	ui_uid   uint64
 
 	stack []AppsRouterMsgStack
 
@@ -59,11 +58,11 @@ type AppsRouterMsg struct {
 	drawit bool
 }
 
-func NewAppsRouterMsg(msg_id uint64, msg_name string, ui_uid uint64, appName, toolName, actionName string,
+func NewAppsRouterMsg(msg_id uint64, msg_name string, appName, toolName, actionName string,
 	fnProgress func(cmdsJs [][]byte, err error, start_time float64),
 	fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) *AppsRouterMsg {
 
-	msg := &AppsRouterMsg{msg_id: msg_id, msg_name: msg_name, ui_uid: ui_uid, fnProgress: fnProgress, fnDone: fnDone}
+	msg := &AppsRouterMsg{msg_id: msg_id, msg_name: msg_name, fnProgress: fnProgress, fnDone: fnDone}
 
 	msg.start_time = Tools_Time()
 	msg.stack = append(msg.stack, AppsRouterMsgStack{appName: appName, toolName: toolName, actionName: actionName})
@@ -281,7 +280,7 @@ func (router *AppsRouter) CallUpdateAsync(ui_uid uint64, sub_uid uint64, appName
 	}
 
 	msg_id := router.msgs_counter.Add(1)
-	msg := NewAppsRouterMsg(msg_id, "", ui_uid, appName, toolName, "update", fnProgress, fnDone)
+	msg := NewAppsRouterMsg(msg_id, "", appName, toolName, "update", fnProgress, fnDone)
 
 	router.lock.Lock()
 	router.msgs[msg_id] = msg
@@ -309,7 +308,7 @@ func (router *AppsRouter) CallChangeAsync(ui_uid uint64, appName string, toolNam
 	}
 
 	msg_id := router.msgs_counter.Add(1)
-	msg := NewAppsRouterMsg(msg_id, "", ui_uid, appName, toolName, "change", fnProgress, fnDone)
+	msg := NewAppsRouterMsg(msg_id, "", appName, toolName, "change", fnProgress, fnDone)
 
 	msg.drawit = true
 
@@ -339,7 +338,7 @@ func (router *AppsRouter) CallBuildAsync(ui_uid uint64, appName string, toolName
 	}
 
 	msg_id := router.msgs_counter.Add(1)
-	msg := NewAppsRouterMsg(msg_id, "", ui_uid, appName, toolName, "build", fnProgress, fnDone)
+	msg := NewAppsRouterMsg(msg_id, "", appName, toolName, "build", fnProgress, fnDone)
 
 	router.lock.Lock()
 	router.msgs[msg_id] = msg
@@ -370,7 +369,7 @@ func (router *AppsRouter) CallBuildAsync(ui_uid uint64, appName string, toolName
 
 func (router *AppsRouter) AddRecompileMsg(appName string) *AppsRouterMsg {
 	msg_id := router.msgs_counter.Add(1)
-	msg := NewAppsRouterMsg(msg_id, "_compile_", 0, appName, "", "compile", nil, nil)
+	msg := NewAppsRouterMsg(msg_id, "_compile_", appName, "", "compile", nil, nil)
 
 	router.lock.Lock()
 	router.msgs[msg_id] = msg
@@ -414,7 +413,7 @@ func (router *AppsRouter) Flush() bool {
 			TM := Tools_Time()
 			msg_refresh := false
 			for _, msg := range router.msgs {
-				if (TM-msg.start_time) > 0.1 && msg.ui_uid != 1 { //give msg 0.1sec to finish, then start refreshing(below)
+				if (TM-msg.start_time) > 0.1 && len(msg.stack) > 0 && msg.stack[0].actionName != "build" { //give msg 0.1sec to finish, then start refreshing(below)
 					msg.drawit = true
 					msg_refresh = true
 				}
@@ -700,15 +699,15 @@ func (router *AppsRouter) RunNet() {
 					cl.WriteArray(infoJs)
 
 				case "set_msg_name":
-					msg_name, err := cl.ReadInt()
+					msg_id, err := cl.ReadInt()
 					if err == nil {
-						user_id, err := cl.ReadArray()
+						msg_name, err := cl.ReadArray()
 						if err == nil {
 							router.lock.Lock()
 							{
-								msg, found := router.msgs[msg_name]
+								msg, found := router.msgs[msg_id]
 								if found && msg != nil {
-									msg.msg_name = string(user_id)
+									msg.msg_name = string(msg_name)
 								}
 							}
 							router.lock.Unlock()
