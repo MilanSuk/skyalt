@@ -86,7 +86,7 @@ func (s *UiSelection) Draw(buff *WinPaintBuff, ui *Ui) {
 func (s *UiSelection) UpdateBrush(ui *Ui) *LayoutPick {
 
 	//start
-	if ui.GetWin().io.Keys.Ctrl {
+	if ui.GetWin().io.Keys.Ctrl && !ui.GetWin().io.Keys.Shift {
 		if ui.GetWin().io.Touch.Start {
 			//s.active = &LayoutPick{Cd: Layout3_Get_prompt_color(ui.mainLayout.numBrushes())}
 			s.active = &LayoutPick{}

@@ -265,8 +265,8 @@ func (ui *Ui) Draw() {
 	win.buff.StartLevel(ui.mainLayout.canvas, ui.GetPalette().B, OsV4{}, 0)
 
 	ui.mainLayout.Draw()
-	if win.io.Keys.Ctrl {
-		ui.GetWin().PaintCursor("cross")
+	if win.io.Keys.Ctrl && !win.io.Keys.Shift {
+		ui.GetWin().PaintCursor("cross") //brush
 	}
 
 	ui.tooltip.draw(ui)
