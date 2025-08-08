@@ -155,6 +155,10 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 			return fmt.Errorf("ShowChat.run() failed: %v", err)
 		}
 		if isRunning {
+			if source_chat.scroll_down {
+				ChatDiv.VScrollToTheBottom(false, caller)
+				source_chat.scroll_down = false //reset
+			}
 			ChatDiv.VScrollToTheBottom(true, caller)
 		}
 

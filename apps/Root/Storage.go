@@ -344,7 +344,8 @@ type ChatInput struct {
 
 // Chat has label, messages.
 type Chat struct {
-	file string
+	file        string
+	scroll_down bool
 
 	Input ChatInput
 
@@ -361,7 +362,7 @@ type Chat struct {
 }
 
 func NewChat(file string) (*Chat, error) {
-	st := &Chat{ /*Label: "chat"*/ }
+	st := &Chat{file: file}
 	return LoadFile(file, "Chat", "json", st, true)
 }
 
@@ -720,6 +721,8 @@ func (chat *Chat) _sendIt(appName string, caller *ToolCaller, root *Root, contin
 	caller.SetMsgName(chat.GetChatID())
 
 	chat.CutMessages(chat.Selected_user_msg)
+
+	chat.scroll_down = true
 
 	err := chat.complete(appName, caller, root, continuee)
 	if err != nil {
