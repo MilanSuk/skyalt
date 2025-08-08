@@ -18,11 +18,11 @@ func (st *ShowLLMsCodeSettings) run(caller *ToolCaller, ui *UI) error {
 
 	//Coding
 	{
-		ui.SetColumn(0, 1, 100)
-		ui.SetRowFromSub(0, 1, 100, true)
+		ui.SetColumn(0, 1, Layout_MAX_SIZE)
+		ui.SetRowFromSub(0, 1, Layout_MAX_SIZE, true)
 		CodeDiv := ui.AddLayout(0, 0, 1, 1)
 		CodeDiv.SetColumn(0, 1, 4)
-		CodeDiv.SetColumn(1, 1, 100)
+		CodeDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 
 		tx := CodeDiv.AddText(0, 0, 2, 1, "Coding")
 		tx.Align_h = 1

@@ -40,8 +40,8 @@ func (layout *Layout) AddButtonConfirmMenu(x, y, w, h int, label string, icon_pa
 func (st *ButtonConfirm) Build(layout *Layout) {
 	layout.Back_rounding = true //for disable
 
-	layout.SetColumn(0, 1, 100)
-	layout.SetRow(0, 1, 100)
+	layout.SetColumn(0, 1, Layout_MAX_SIZE)
+	layout.SetRow(0, 1, Layout_MAX_SIZE)
 
 	dia := layout.AddDialog("confirm")
 	{
@@ -52,9 +52,9 @@ func (st *ButtonConfirm) Build(layout *Layout) {
 
 		footerDiv := dia.Layout.AddLayout(0, 1, 1, 1)
 
-		footerDiv.SetColumn(0, 3, 100)
+		footerDiv.SetColumn(0, 3, Layout_MAX_SIZE)
 		footerDiv.SetColumn(1, 0.5, 0.5)
-		footerDiv.SetColumn(2, 3, 100)
+		footerDiv.SetColumn(2, 3, Layout_MAX_SIZE)
 
 		yes := footerDiv.AddButtonDanger(0, 0, 1, 1, "Yes")
 		yes.clicked = func() {

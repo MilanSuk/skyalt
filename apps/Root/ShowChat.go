@@ -29,9 +29,9 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 
 	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
 
-	ui.SetColumn(0, 1, 100)
+	ui.SetColumn(0, 1, Layout_MAX_SIZE)
 	ui.SetColumn(1, 5, 20)
-	ui.SetColumn(2, 1, 100)
+	ui.SetColumn(2, 1, Layout_MAX_SIZE)
 
 	//Messages
 	y := 0 //space
@@ -48,7 +48,7 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 			y++ //space above user msg
 		}
 
-		ui.SetRowFromSub(y, 1, 100, true)
+		ui.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 		st.AddChatMsg(ui.AddLayout(1, y, 1, 1), &source_chat.Messages, msg_i, source_chat, source_root, ui, caller)
 		y++
 
@@ -64,7 +64,7 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 			continue //skip
 		}
 
-		ui.SetRowFromSub(y, 1, 100, true)
+		ui.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 		st.AddChatMsg(ui.AddLayout(1, y, 1, 1), &source_chat.TempMessages, msg_i, source_chat, source_root, ui, caller)
 		y++
 
@@ -115,7 +115,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 
 	layout.SetColumn(0, 1, 15)
 	layout.SetColumn(1, 1, 4)
-	layout.SetColumn(2, 1, 100)
+	layout.SetColumn(2, 1, Layout_MAX_SIZE)
 
 	if msg.Usage.Provider != "" {
 		layout.Back_cd = UI_GetPalette().GetGrey(0.09)
@@ -131,12 +131,12 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 			case "text":
 				txt := strings.TrimSpace(it.Text)
 				if txt != "" {
-					layout.SetRowFromSub(y, 1, 100, true)
+					layout.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 
 					UserDiv := layout.AddLayout(0, y, 3, 1)
-					UserDiv.SetColumn(0, 0, 100)
-					UserDiv.SetColumnFromSub(1, 1, 100, true)
-					UserDiv.SetRowFromSub(0, 1, 100, true)
+					UserDiv.SetColumn(0, 0, Layout_MAX_SIZE)
+					UserDiv.SetColumnFromSub(1, 1, Layout_MAX_SIZE, true)
+					UserDiv.SetRowFromSub(0, 1, Layout_MAX_SIZE, true)
 					y++
 
 					tx := UserDiv.AddText(1, 0, 1, 1, txt)
@@ -210,7 +210,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 			txt = strings.TrimSpace(txt)
 
 			if txt != "" {
-				layout.SetRowFromSub(y, 1, 100, true)
+				layout.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 				tx := layout.AddText(0, y, 3, 1, txt)
 				tx.setMultilined()
 				//tx.Align_v = 0
@@ -226,7 +226,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				}
 
 				//text
-				layout.SetRowFromSub(y, 1, 100, true)
+				layout.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 				tx := layout.AddText(0, y, 3, 1, rsp_txt)
 				tx.setMultilined()
 				//tx.Align_v = 0
@@ -267,7 +267,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 		}
 
 		//long space
-		DivIcons.SetColumn(x, 0, 100)
+		DivIcons.SetColumn(x, 0, Layout_MAX_SIZE)
 		x++
 
 		if msg.Usage.Provider == "" {
@@ -385,7 +385,7 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 	if msg.Content.Calls != nil {
 		for _, call := range msg.Content.Calls.Tool_calls {
 			toolDiv := layout.AddLayout(0, y, 3, 1)
-			layout.SetRowFromSub(y, 1, 100, true)
+			layout.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 			st.toolUse(call, toolDiv, msg, chat)
 			y++
 		}
@@ -424,7 +424,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 	}
 
 	// open sub-agent
-	layout.SetColumn(x, 1, 100)
+	layout.SetColumn(x, 1, Layout_MAX_SIZE)
 	ShowParamsBt := layout.AddButton(x, 0, 1, 1, fmt.Sprintf("<i>%s(%s)", it.Function.Name, it.Id))
 	x++
 	ShowParamsBt.Background = 0.5
@@ -443,10 +443,10 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 
 	// parameters
 	if msg.ShowParameters {
-		layout.SetRowFromSub(1, 1, 100, true)
+		layout.SetRowFromSub(1, 1, Layout_MAX_SIZE, true)
 		CallDiv := layout.AddLayout(0, 1, 3, 1)
-		CallDiv.SetColumnFromSub(1, 0, 100, true)
-		CallDiv.SetColumn(2, 1, 100)
+		CallDiv.SetColumnFromSub(1, 0, Layout_MAX_SIZE, true)
+		CallDiv.SetColumn(2, 1, Layout_MAX_SIZE)
 		CallDiv.Back_cd = Color_Aprox(UI_GetPalette().P, UI_GetPalette().B, 0.8)
 
 		yy := 0
@@ -468,7 +468,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 
 				valStr := fmt.Sprintf("%s", val)
 
-				CallDiv.SetRowFromSub(yy, 1, 100, true)
+				CallDiv.SetRowFromSub(yy, 1, Layout_MAX_SIZE, true)
 
 				CallDiv.AddText(1, yy, 1, 1, "<i>"+_ShowChat_cutString(key)) //name
 				//tx.Tooltip = //description from agent tool ....
@@ -487,7 +487,7 @@ func (st *ShowChat) toolUse(it OpenAI_completion_msg_Content_ToolCall, layout *U
 		if msg_result != nil {
 			CallDiv.AddText(0, yy, 3, 1, "Output:")
 			yy++
-			CallDiv.SetRowFromSub(yy, 1, 100, true)
+			CallDiv.SetRowFromSub(yy, 1, Layout_MAX_SIZE, true)
 
 			tx := CallDiv.AddText(1, yy, 2, 1, _ShowChat_cutString(msg_result.Content.Result.Content))
 			tx.setMultilined()

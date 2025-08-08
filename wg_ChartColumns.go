@@ -79,8 +79,8 @@ func (st *ChartColumns) Build(layout *Layout) {
 	small_axis_line := 0.1  //small lines on axis
 
 	layout.SetColumn(0, axis_y, axis_y)
-	layout.SetColumn(1, 1, 100)
-	layout.SetRow(0, 1, 100)
+	layout.SetColumn(1, 1, Layout_MAX_SIZE)
+	layout.SetRow(0, 1, Layout_MAX_SIZE)
 	layout.SetRow(1, axis_x, axis_x)
 
 	DivY := layout.AddLayout(0, 0, 1, 2)

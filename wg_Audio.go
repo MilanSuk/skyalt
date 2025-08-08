@@ -17,10 +17,10 @@ func (st *Audio) Build(layout *Layout) {
 	}
 	img := layout.ui.win.images.Add(InitWinImagePath_file(st.Path, layout.UID), inited)
 
-	layout.SetRow(0, 0, 100)
-	layout.SetRow(2, 0, 100)
+	layout.SetRow(0, 0, Layout_MAX_SIZE)
+	layout.SetRow(2, 0, Layout_MAX_SIZE)
 
-	layout.SetColumn(1, 1, 100) //timeline
+	layout.SetColumn(1, 1, Layout_MAX_SIZE) //timeline
 
 	statusLabel := "▶"
 	if img.path.is_playing {

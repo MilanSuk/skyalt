@@ -40,7 +40,7 @@ func (layout *Layout) AddMonthCalendar(x, y, w, h int, Year int, Month int, Even
 func (st *MonthCalendar) Build(layout *Layout) {
 
 	for x := 0; x < 7; x++ {
-		layout.SetColumn(x, 1, 100)
+		layout.SetColumn(x, 1, Layout_MAX_SIZE)
 	}
 
 	for y := 0; y < 6; y++ {
@@ -84,8 +84,8 @@ func (st *MonthCalendar) Build(layout *Layout) {
 				Div := layout.AddLayout(x, 2+y, 1, 1)
 				Div.Tooltip = dt.Format("Mon, 02 Jan 2006 15:04")
 				{
-					Div.SetColumn(0, 1, 100)
-					Div.SetRow(1, 1, 100)
+					Div.SetColumn(0, 1, Layout_MAX_SIZE)
+					Div.SetRow(1, 1, Layout_MAX_SIZE)
 
 					Day := Div.AddText(0, 0, 1, 1, "<h2>"+strconv.Itoa(dt.Day())+".")
 					if int(dt.Month()) != st.Month { //is day in current month
@@ -101,7 +101,7 @@ func (st *MonthCalendar) Build(layout *Layout) {
 					{
 						Div2.scrollV.Narrow = true
 
-						Div2.SetColumn(0, 1, 100)
+						Div2.SetColumn(0, 1, Layout_MAX_SIZE)
 						y := 0
 						for _, event := range st.Events {
 							if !event.isInTimeRange(dt.Unix(), dt.Unix()+(24*3600)) {

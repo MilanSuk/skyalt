@@ -23,7 +23,7 @@ func (st *DayCalendar) Build(layout *Layout) {
 
 	layout.SetColumn(0, 1.2, 1.2) //time
 	for i := range st.Days {
-		layout.SetColumn(i+1, 1, 100) //days
+		layout.SetColumn(i+1, 1, Layout_MAX_SIZE) //days
 	}
 	layout.SetRow(24*2+2, 0.1, 0.1) //bottom
 
@@ -161,15 +161,15 @@ func _DayCalendar_showDaysView_DayEvent(Events []CalendarEvent, dayStart int64, 
 		cols[fcol] = append(cols[fcol], item)
 	}
 
-	layout.SetRow(0, 1, 100)
+	layout.SetRow(0, 1, Layout_MAX_SIZE)
 
 	for c := range cols {
-		layout.SetColumn(c, 1, 100)
+		layout.SetColumn(c, 1, Layout_MAX_SIZE)
 	}
 
 	for c := range cols {
 		Div := layout.AddLayout(c, 0, 1, 1)
-		Div.SetColumn(0, 1, 100)
+		Div.SetColumn(0, 1, Layout_MAX_SIZE)
 
 		last_end := float64(0)
 		for i, it := range cols[c] {

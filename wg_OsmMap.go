@@ -69,11 +69,11 @@ func (mp *Map) AddRoute(route MapRoute) {
 }
 
 func (st *Map) Build(layout *Layout) {
-	layout.SetColumn(0, 5, 100)
+	layout.SetColumn(0, 5, Layout_MAX_SIZE)
 	layout.SetColumn(1, 6, 12)
-	layout.SetColumn(2, 0.1, 100)
+	layout.SetColumn(2, 0.1, Layout_MAX_SIZE)
 	layout.SetColumn(3, 2, 6)
-	layout.SetRow(0, 1, 100)
+	layout.SetRow(0, 1, Layout_MAX_SIZE)
 
 	layout.scrollH.Show = false
 

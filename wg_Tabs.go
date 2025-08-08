@@ -30,7 +30,7 @@ func (st *Tabs) Build(layout *Layout) {
 		}
 
 		//button
-		layout.SetColumn(i*2+0, 1, 100)
+		layout.SetColumn(i*2+0, 1, Layout_MAX_SIZE)
 		bt := layout.AddButton(i*2+0, 0, 1, 1, st.Labels[i])
 		bt.Tooltip = val
 		if *st.Value == val {

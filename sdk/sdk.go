@@ -1180,7 +1180,7 @@ func (parent *UI) _addUILine(sub *UI) {
 	if parent.table {
 		//table's line
 		if len(parent.Cols) <= parent.temp_col {
-			parent.SetColumnFromSub(parent.temp_col, 1, 100, false) //fix as parent.table_fix? ....
+			parent.SetColumnFromSub(parent.temp_col, 1, Layout_MAX_SIZE, false) //fix as parent.table_fix? ....
 		}
 
 		if len(parent.TooltipGroups) > 0 {
@@ -1192,7 +1192,7 @@ func (parent *UI) _addUILine(sub *UI) {
 	} else {
 		//normal line
 		if len(parent.Cols) == 0 {
-			parent.SetColumn(0, 1, 100)
+			parent.SetColumn(0, 1, Layout_MAX_SIZE)
 		}
 
 		parent.temp_row++
@@ -1884,11 +1884,11 @@ func (ui *UI) setRowHeight(min, max float64) {
 }
 
 func (ui *UI) addCenteredUI() *UI {
-	ui.SetColumn(0, 0, 100)
+	ui.SetColumn(0, 0, Layout_MAX_SIZE)
 	ui.SetColumn(1, 10, 20)
-	ui.SetColumn(2, 0, 100)
+	ui.SetColumn(2, 0, Layout_MAX_SIZE)
 
-	ui.SetRow(0, 1, 100)
+	ui.SetRow(0, 1, Layout_MAX_SIZE)
 
 	return ui.AddLayout(1, 0, 1, 1)
 }
@@ -1930,9 +1930,9 @@ func (ui *UI) addTextH2(label string) *UIText {
 }
 
 func (ui *UI) _autoRowBasic() {
-	//find old min/max
+	//copy old min, max
 	min := 1.0
-	max := 100.0
+	max := Layout_MAX_SIZE
 	for _, r := range ui.Rows {
 		if r.Pos == ui.temp_row {
 			min = r.Min
@@ -2539,6 +2539,8 @@ func (caller *ToolCaller) SetClipboardText(text string) {
 	caller._addCmd(ToolCmd{SetClipboardText: text})
 }
 
+const Layout_MAX_SIZE = -1.0
+
 func (ui *UI) SetColumn(pos int, min, max float64) {
 	for i := range ui.Cols {
 		if ui.Cols[i].Pos == pos {
@@ -2825,8 +2827,8 @@ func (ui *UI) AddDialog(uid string) *UIDialog {
 func (ui *UI) AddDialogBorder(name string, title string) (*UIDialog, *UI) {
 	dia := ui.AddDialog(name)
 	lay := dia.UI
-	lay.SetColumnFromSub(1, 1, 100, true)
-	lay.SetRowFromSub(1, 1, 100, true)
+	lay.SetColumnFromSub(1, 1, Layout_MAX_SIZE, true)
+	lay.SetRowFromSub(1, 1, Layout_MAX_SIZE, true)
 	lay.SetColumn(2, 1, 1)
 	lay.SetRow(2, 1, 1)
 
@@ -2853,8 +2855,8 @@ func (ui *UI) AddTool(x, y, w, h int, layout_name string, fnRun func(caller *Too
 		ret_ui.Rows = nil
 		ret_ui.Items = nil
 
-		ret_ui.SetColumn(0, 1, 100)
-		ret_ui.SetRow(0, 1, 100)
+		ret_ui.SetColumn(0, 1, Layout_MAX_SIZE)
+		ret_ui.SetRow(0, 1, Layout_MAX_SIZE)
 		tx := ret_ui.AddText(0, 0, 1, 1, fmt.Sprintf("<i>Error: %s</i>", out_error.Error()))
 		tx.Align_h = 1
 		tx.Align_v = 1
@@ -2885,8 +2887,8 @@ func (ui *UI) AddToolApp(x, y, w, h int, layout_name string, appName string, too
 	}
 
 	//error
-	ret_ui.SetColumn(0, 1, 100)
-	ret_ui.SetRow(0, 1, 100)
+	ret_ui.SetColumn(0, 1, Layout_MAX_SIZE)
+	ret_ui.SetRow(0, 1, Layout_MAX_SIZE)
 	tx := ret_ui.AddText(0, 0, 1, 1, fmt.Sprintf("<i>Error</i>"))
 	tx.Align_h = 1
 	tx.Align_v = 1

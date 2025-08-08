@@ -55,12 +55,12 @@ func (st *ShowLLMxAISettings) run(caller *ToolCaller, ui *UI) error {
 	y++ //space
 
 	//Models
-	ui.SetRowFromSub(y, 1, 100, true)
+	ui.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 	ModelsDiv := ui.AddLayout(0, y, 2, 1)
 	y++
 	ModelsDiv.SetColumn(0, 5, 5)
-	ModelsDiv.SetColumn(1, 1, 100)
-	ModelsDiv.SetColumn(2, 1, 100)
+	ModelsDiv.SetColumn(1, 1, Layout_MAX_SIZE)
+	ModelsDiv.SetColumn(2, 1, Layout_MAX_SIZE)
 	my := 0
 
 	ModelsDiv.AddText(0, my, 2, 1, "Language models")

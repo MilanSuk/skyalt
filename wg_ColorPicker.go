@@ -17,8 +17,8 @@ func (layout *Layout) AddColorPicker(x, y, w, h int, cd *color.RGBA) *ColorPicke
 
 func (st *ColorPicker) Build(layout *Layout) {
 
-	layout.SetColumn(0, 5, 100)
-	layout.SetColumn(1, 5, 100)
+	layout.SetColumn(0, 5, Layout_MAX_SIZE)
+	layout.SetColumn(1, 5, Layout_MAX_SIZE)
 
 	layout.SetRow(0, 1.5, 1.5)
 	layout.SetRow(4, 1.5, 1.5)
@@ -96,7 +96,7 @@ func (st *ColorPicker) _addValue(layout *Layout, x, y, w, h int, Description str
 	it := layout.AddSliderEdit(x, y, w, h, Value, Min, Max, Step)
 	it.ValuePointerPrec = Prec
 	it.Description_width = 2
-	it.Slider_width = 100
+	it.Slider_width = Layout_MAX_SIZE
 	it.Edit_width = 2
 	it.Description = Description
 	return it

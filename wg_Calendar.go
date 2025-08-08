@@ -29,10 +29,10 @@ func (st *Calendar) Build(layout *Layout) {
 	st.setPage(*st.Page)
 
 	for x := 0; x < 7; x++ {
-		layout.SetColumn(x, 0.9, 100)
+		layout.SetColumn(x, 0.9, Layout_MAX_SIZE)
 	}
 	for y := 0; y < 7; y++ {
-		layout.SetRow(y, 0.9, 100)
+		layout.SetRow(y, 0.9, Layout_MAX_SIZE)
 	}
 
 	//Day names(short)

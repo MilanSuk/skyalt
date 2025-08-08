@@ -24,8 +24,8 @@ func (layout *Layout) AddVideo(x, y, w, h int, path string) *Video {
 
 func (st *Video) Build(layout *Layout) {
 
-	layout.SetColumn(0, 1, 100)
-	layout.SetRow(0, 1, 100)
+	layout.SetColumn(0, 1, Layout_MAX_SIZE)
+	layout.SetRow(0, 1, Layout_MAX_SIZE)
 
 	im := layout.AddImage(0, 0, 1, 1, st.Path, nil)
 	imgDiv := layout.FindGrid(0, 0, 1, 1)
@@ -39,7 +39,7 @@ func (st *Video) Build(layout *Layout) {
 	}
 
 	FooterDiv := layout.AddLayout(0, 1, 1, 1)
-	FooterDiv.SetColumn(1, 1, 100) //timeline
+	FooterDiv.SetColumn(1, 1, Layout_MAX_SIZE) //timeline
 
 	statusLabel := "▶"
 	if img.path.is_playing {

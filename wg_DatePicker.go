@@ -75,9 +75,9 @@ func (st *DatePicker) Build(layout *Layout) {
 	//year/month/day
 	{
 		ymdDiv := layout.AddLayout(0, 2, 7, 1)
-		ymdDiv.SetColumn(0, 1, 100)
-		ymdDiv.SetColumn(1, 1, 100)
-		ymdDiv.SetColumn(2, 1, 100)
+		ymdDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+		ymdDiv.SetColumn(1, 1, Layout_MAX_SIZE)
+		ymdDiv.SetColumn(2, 1, Layout_MAX_SIZE)
 
 		curr := Date_GetDateFromTime(*st.Value)
 

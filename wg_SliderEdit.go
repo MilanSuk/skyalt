@@ -18,7 +18,7 @@ type SliderEdit struct {
 }
 
 func (layout *Layout) AddSliderEdit(x, y, w, h int, valuePointer interface{}, min, max, step float64) *SliderEdit {
-	props := &SliderEdit{Description_width: 100, Slider_width: 100, Edit_width: 100, ValuePointer: valuePointer, ValuePointerPrec: -1, Min: min, Max: max, Step: step}
+	props := &SliderEdit{Description_width: Layout_MAX_SIZE, Slider_width: Layout_MAX_SIZE, Edit_width: Layout_MAX_SIZE, ValuePointer: valuePointer, ValuePointerPrec: -1, Min: min, Max: max, Step: step}
 	layout._createDiv(x, y, w, h, "SliderEdit", props.Build, nil, nil)
 	return props
 }

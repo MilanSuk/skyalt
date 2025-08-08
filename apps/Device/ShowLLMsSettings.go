@@ -17,14 +17,14 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 	source_dev.UpdateModels()
 
 	y := 0
-	ui.SetColumn(0, 1, 100)
+	ui.SetColumn(0, 1, Layout_MAX_SIZE)
 
 	//App
 	{
-		ui.SetRowFromSub(y, 1, 100, true)
+		ui.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 		AppDiv := ui.AddLayout(0, y, 1, 1)
 		AppDiv.SetColumn(0, 1, 4)
-		AppDiv.SetColumn(1, 1, 100)
+		AppDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 
 		tx := AppDiv.AddText(0, 0, 2, 1, "App")
 		tx.Align_h = 1
@@ -44,7 +44,7 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 
 	//Coding
 	{
-		ui.SetRowFromSub(y, 1, 100, true)
+		ui.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 		ui.AddTool(0, y, 1, 1, "llm", (&ShowLLMsCodeSettings{}).run, caller)
 	}
 	y++
@@ -53,10 +53,10 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 
 	//Image
 	/*{
-		ui.SetRowFromSub(y, 1, 100, true)
+		ui.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 		ChatDiv := ui.AddLayout(0, y, 1, 1)
 		ChatDiv.SetColumn(0, 1, 4)
-		ChatDiv.SetColumn(1, 1, 100)
+		ChatDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 
 		tx := ChatDiv.AddText(0, 0, 2, 1, "Image generation")
 		tx.Align_h = 1
@@ -71,10 +71,10 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 
 	//STT
 	{
-		ui.SetRowFromSub(y, 1, 100, true)
+		ui.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 		ChatDiv := ui.AddLayout(0, y, 1, 1)
 		ChatDiv.SetColumn(0, 1, 4)
-		ChatDiv.SetColumn(1, 1, 100)
+		ChatDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 
 		tx := ChatDiv.AddText(0, 0, 2, 1, "Speech to text")
 		tx.Align_h = 1

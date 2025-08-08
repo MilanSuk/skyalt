@@ -31,7 +31,7 @@ func (st *ShowActivityMap) run(caller *ToolCaller, ui *UI) error {
 	}
 	segments := gpx.getGPXSegments()
 
-	ui.SetColumn(0, 1, 100)
+	ui.SetColumn(0, 1, Layout_MAX_SIZE)
 	ui.SetRow(1, 10, 10)
 
 	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Map - %s", SdkGetDate(int64(activity.Date))))

@@ -27,7 +27,7 @@ func (st *DatePickerButton) Build(layout *Layout) {
 	if st.Page == nil {
 		st.Page = &layout.ui.datePage
 	}
-	layout.SetRow(0, 1, 100)
+	layout.SetRow(0, 1, Layout_MAX_SIZE)
 
 	x := 0
 	layout.SetColumn(x, 1, 4)

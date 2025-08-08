@@ -38,8 +38,8 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 		return err
 	}
 
-	ui.SetColumn(0, 1, 100)
-	ui.SetRow(0, 1, 100)
+	ui.SetColumn(0, 1, Layout_MAX_SIZE)
+	ui.SetRow(0, 1, Layout_MAX_SIZE)
 	ui.SetRowFromSub(1, 1, g_ShowApp_prompt_height, true)
 
 	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
@@ -77,11 +77,11 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 		} else {
 			//Multiple Dashes
 			DashDiv := ui.AddLayout(0, 0, dashW, 1)
-			DashDiv.SetColumn(0, 1, 100)
+			DashDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 			DashDiv.App = true
 
 			for i, dash := range dashUIs {
-				DashDiv.SetRowFromSub(i, 1, 100, true)
+				DashDiv.SetRowFromSub(i, 1, Layout_MAX_SIZE, true)
 
 				appUi, err := DashDiv.AddToolApp(0, i, 1, 1, fmt.Sprintf("dash_%d_%d", app.Selected_chat_i, i), st.AppName, dash.UI_func, []byte(dash.UI_paramsJs), caller)
 				if err != nil {
@@ -116,7 +116,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 		d := 0.25
 		dd := 0.25
 		DivInput.SetColumn(0, d, d) //space
-		DivInput.SetColumn(1, 1, 100)
+		DivInput.SetColumn(1, 1, Layout_MAX_SIZE)
 		DivInput.SetColumn(2, d, d) //space
 		DivInput.SetRow(0, d, d)
 		DivInput.SetRowFromSub(1, 1, g_ShowApp_prompt_height-0.5, true)
@@ -125,7 +125,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 		Div := DivInput.AddLayout(1, 1, 1, 1)
 
 		Div.SetColumn(0, dd, dd) //space
-		Div.SetColumn(1, 1, 100)
+		Div.SetColumn(1, 1, Layout_MAX_SIZE)
 		Div.SetColumn(2, dd, dd) //space
 		Div.SetRow(0, dd, dd)
 		Div.SetRowFromSub(1, 1, g_ShowApp_prompt_height-1, true)
@@ -146,8 +146,8 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 	if app.ShowSide {
 		ui.SetColumnResizable(1, 5, 25, 7)
 		SideDiv := ui.AddLayout(1, 0, 1, 2)
-		SideDiv.SetColumn(0, 1, 100)
-		SideDiv.SetRow(0, 1, 100)
+		SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+		SideDiv.SetRow(0, 1, Layout_MAX_SIZE)
 
 		//Chat
 		ChatDiv, err := SideDiv.AddTool(0, 0, 1, 1, "side", (&ShowChat{AppName: st.AppName, ChatFileName: st.ChatFileName}).run, caller)

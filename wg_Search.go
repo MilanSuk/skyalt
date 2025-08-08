@@ -24,7 +24,7 @@ func (layout *Layout) AddSearch(x, y, w, h int, value *string, ghost string) *Se
 
 func (st *Search) Build(layout *Layout) {
 	layout.SetColumn(0, 1, 1)
-	layout.SetColumn(1, 1, 100)
+	layout.SetColumn(1, 1, Layout_MAX_SIZE)
 	layout.SetColumn(2, 1, 0)
 
 	Img := layout.AddImage(0, 0, 1, 1, "resources/search.png", nil)

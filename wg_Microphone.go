@@ -30,8 +30,8 @@ func (st *Microphone) Build(layout *Layout) {
 	}
 	st.Format = strings.ToLower(st.Format)
 
-	layout.SetColumn(0, 1, 100)
-	layout.SetRow(0, 1, 100)
+	layout.SetColumn(0, 1, Layout_MAX_SIZE)
+	layout.SetRow(0, 1, Layout_MAX_SIZE)
 
 	micBt := layout.AddButton(0, 0, 1, 1, "")
 	micBt.Background = 0

@@ -23,8 +23,8 @@ func (st *ColorPickerButton) getLLMTip(layout *Layout) string {
 }
 
 func (st *ColorPickerButton) Build(layout *Layout) {
-	layout.SetColumn(0, 1, 100)
-	layout.SetRow(0, 1, 100)
+	layout.SetColumn(0, 1, Layout_MAX_SIZE)
+	layout.SetRow(0, 1, Layout_MAX_SIZE)
 
 	bt := layout.AddButtonMenu(0, 0, 1, 1, "", "resources/color.png", 0.1)
 	bt.Border = true

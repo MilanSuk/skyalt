@@ -29,8 +29,8 @@ func (st *FilePickerButton) getLLMTip(layout *Layout) string {
 }
 
 func (st *FilePickerButton) Build(layout *Layout) {
-	layout.SetColumn(0, 1, 100)
-	layout.SetRow(0, 1, 100)
+	layout.SetColumn(0, 1, Layout_MAX_SIZE)
+	layout.SetRow(0, 1, Layout_MAX_SIZE)
 
 	layout.dropFile = func(path string) {
 		*st.Path = path

@@ -35,7 +35,7 @@ func (st *ShowLLMWhispercppSettings) run(caller *ToolCaller, ui *UI) error {
 	ui.AddText(0, y, 1, 1, "Address : port")
 	AddrDiv := ui.AddLayout(1, y, 1, 1)
 	{
-		AddrDiv.SetColumn(0, 1, 100)
+		AddrDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 		AddrDiv.SetColumn(1, 0.5, 0.5)
 		AddrDiv.SetColumn(2, 1, 4)
 		AddrDiv.SetColumn(3, 1, 4)

@@ -30,14 +30,14 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 	codeBackCd := UI_GetPalette().GetGrey(0.05)
 
-	ui.SetColumn(0, 1, 100)
-	ui.SetRow(0, 1, 100)
+	ui.SetColumn(0, 1, Layout_MAX_SIZE)
+	ui.SetRow(0, 1, Layout_MAX_SIZE)
 
 	MainDiv := ui.AddLayout(0, 0, 1, 1)
-	MainDiv.SetColumn(0, 1, 100)
+	MainDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 	MainDiv.SetColumn(1, 10, 20)
-	MainDiv.SetColumn(2, 1, 100)
-	MainDiv.SetRow(1, 1, 100)
+	MainDiv.SetColumn(2, 1, Layout_MAX_SIZE)
+	MainDiv.SetRow(1, 1, Layout_MAX_SIZE)
 
 	type SdkToolsCodeError struct {
 		File string
@@ -123,7 +123,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 	{
 		HeaderDiv := MainDiv.AddLayout(1, 0, 1, 1)
-		HeaderDiv.SetColumn(1, 1, 100)
+		HeaderDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 		HeaderDiv.SetColumn(2, 4, 4)
 
 		//app settings
@@ -223,25 +223,25 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 		//Note
 		if app.Dev.MainMode == "secrets" {
-			FooterDiv.SetColumnFromSub(0, 1, 100, true)
-			FooterDiv.SetColumn(1, 1, 100)
+			FooterDiv.SetColumnFromSub(0, 1, Layout_MAX_SIZE, true)
+			FooterDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 
 			tx := FooterDiv.AddText(0, 0, 1, 1, "<alias> <value>\nExample: myemail@mail.com myRealEmail@gmail.com\nExample: pass_word_34 E7_sm-o45rc-e5-df")
 			tx.setMultilined()
 			tx.Linewrapping = false
 			tx.Cd = UI_GetPalette().GetGrey(0.5)
 		} else {
-			FooterDiv.SetColumn(0, 1, 100)
-			FooterDiv.SetColumn(1, 1, 100)
+			FooterDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+			FooterDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 
 			FooterLeftDiv := FooterDiv.AddLayout(0, 0, 1, 1)
-			FooterLeftDiv.SetColumn(0, 1, 100)
+			FooterLeftDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 
 			DocDia := FooterLeftDiv.AddDialog("documentation")
 			DocDia.UI.SetColumn(0, 1, 1)
 			DocDia.UI.SetColumnFromSub(1, 1, 30, true)
 			DocDia.UI.SetColumn(2, 1, 1)
-			DocDia.UI.SetRowFromSub(0, 1, 100, true)
+			DocDia.UI.SetRowFromSub(0, 1, Layout_MAX_SIZE, true)
 			st.buildDocumentation(DocDia.UI.AddLayout(1, 0, 1, 1), caller) //centered
 			DocBt := FooterLeftDiv.AddButton(0, 0, 1, 1, "Documentation")
 			DocBt.Background = 0.5
@@ -254,7 +254,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 		{
 			FooterRightDiv := FooterDiv.AddLayout(1, 0, 1, 1)
-			FooterRightDiv.SetColumn(0, 1, 100)
+			FooterRightDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 
 			//generate
 			{
@@ -265,7 +265,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				if isGenerating {
 					x := 0
 					if !app.Dev.ShowSide {
-						SaveDiv.SetColumn(x, 1, 100)
+						SaveDiv.SetColumn(x, 1, Layout_MAX_SIZE)
 						CompBt := SaveDiv.AddButton(x, 0, 1, 1, "Show")
 						CompBt.Background = 0.5
 						CompBt.layout.Tooltip = "Show generation"
@@ -276,7 +276,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						x++
 					}
 
-					SaveDiv.SetColumn(x, 1, 100)
+					SaveDiv.SetColumn(x, 1, Layout_MAX_SIZE)
 					StopBt := SaveDiv.AddButton(x, 0, 1, 1, "Stop")
 					StopBt.Cd = UI_GetPalette().E
 					StopBt.layout.Tooltip = "Stop generating"
@@ -285,7 +285,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						return nil
 					}
 				} else {
-					SaveDiv.SetColumn(0, 1, 100)
+					SaveDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 					GenerateBt := SaveDiv.AddButton(0, 0, 1, 1, "Generate")
 					GenerateBt.layout.Tooltip = "Save & Generate code"
 					GenerateBt.clicked = func() error {
@@ -346,17 +346,17 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 	//Side panel
 	if app.Dev.ShowSide {
 
-		ui.SetColumn(0, 1, 100)
+		ui.SetColumn(0, 1, Layout_MAX_SIZE)
 		ui.SetColumnResizable(1, 5, 25, 7)
 
 		SideDiv := ui.AddLayout(1, 0, 1, 1)
 
 		if isGenerating {
-			SideDiv.SetColumn(0, 1, 100)
+			SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 
 			{
 				HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
-				HeaderDiv.SetColumn(1, 3, 100)
+				HeaderDiv.SetColumn(1, 3, Layout_MAX_SIZE)
 				//HeaderDiv.ScrollV.Hide = true
 				HeaderDiv.ScrollH.Narrow = true
 
@@ -383,7 +383,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				SideDiv.AddText(0, y, 1, 1, it.Name)
 				y++
 
-				SideDiv.SetRow(y, 2, 100)
+				SideDiv.SetRow(y, 2, Layout_MAX_SIZE)
 				tx := SideDiv.AddText(0, y, 1, 1, it.Message)
 				y++
 				tx.setMultilined()
@@ -393,8 +393,8 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			}
 
 		} else {
-			SideDiv.SetColumn(0, 1, 100)
-			SideDiv.SetRow(1, 1, 100)
+			SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+			SideDiv.SetRow(1, 1, Layout_MAX_SIZE)
 
 			{
 				num_opened_versions := 0
@@ -455,7 +455,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					return nil
 				}
 
-				HeaderDiv.SetColumn(hx, 3, 100)
+				HeaderDiv.SetColumn(hx, 3, Layout_MAX_SIZE)
 				cb := HeaderDiv.AddDropDown(hx, 0, 1, 1, &app.Dev.SideFile, labels, values)
 				hx++
 				cb.Icons = icons
@@ -492,7 +492,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				hx++ //space
 
 				{
-					HeaderDiv.SetColumnFromSub(hx, 5, 100, true)
+					HeaderDiv.SetColumnFromSub(hx, 5, Layout_MAX_SIZE, true)
 					TabsDiv := HeaderDiv.AddLayout(hx, 0, 1, 1)
 					hx++
 					TabsDiv.SetColumn(0, 2, 3)
@@ -610,8 +610,8 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 					{
 						StatsDiv := SideDiv.AddLayout(0, 2, 1, 1)
-						StatsDiv.SetColumn(0, 1, 100)
-						StatsDiv.SetColumnFromSub(1, 1, 100, true)
+						StatsDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+						StatsDiv.SetColumnFromSub(1, 1, Layout_MAX_SIZE, true)
 
 						//Price
 						{
@@ -641,7 +641,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						{
 							CodeDia := StatsDiv.AddDialog("code_picker")
 							CodeDia.UI.SetColumn(0, 8, 20)
-							CodeDia.UI.SetRowFromSub(0, 1, 100, true)
+							CodeDia.UI.SetRowFromSub(0, 1, Layout_MAX_SIZE, true)
 							_, err := CodeDia.UI.AddToolApp(0, 0, 1, 1, "device_settings", "Device", "ShowLLMsCodeSettings", nil, caller)
 							if err != nil {
 								return err
@@ -664,7 +664,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 							SideDiv.SetRowFromSub(4, 1, 5, true)
 							ErrsDiv := SideDiv.AddLayout(0, 4, 1, 1)
 							ErrsDiv.ScrollH.Narrow = true
-							ErrsDiv.SetColumnFromSub(0, 1, 100, true)
+							ErrsDiv.SetColumnFromSub(0, 1, Layout_MAX_SIZE, true)
 							for i, er := range side_promptCode.Errors {
 								tx := ErrsDiv.AddText(0, i, 1, 1, fmt.Sprintf("%d:%d: %s", er.Line, er.Col, er.Msg))
 								tx.Linewrapping = false
@@ -741,7 +741,7 @@ func (st *ShowDev) buildSettings(dia *UIDialog, app *RootApp, caller *ToolCaller
 }
 
 func (st *ShowDev) buildDocumentation(ui *UI, caller *ToolCaller) {
-	ui.SetColumnFromSub(0, 1, 100, true)
+	ui.SetColumnFromSub(0, 1, Layout_MAX_SIZE, true)
 	y := 0
 
 	greyCd := UI_GetPalette().GetGrey(0.5)
@@ -752,7 +752,7 @@ func (st *ShowDev) buildDocumentation(ui *UI, caller *ToolCaller) {
 		ui.AddTextLabel(0, y, 1, 1, "Basic structure")
 		y++
 
-		ui.SetRowFromSub(y, 1, 100, true)
+		ui.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 		tx := ui.AddText(0, y, 1, 1, "#storage\n"+
 			greyStr+"Describe structures for saving data.</rgba>\n\n"+
 			"#function <name>\n"+
@@ -801,11 +801,11 @@ func (st *ShowDev) buildDocumentation(ui *UI, caller *ToolCaller) {
 		ui.AddTextLabel(0, y, 1, 1, "GUI components")
 		y++
 
-		ui.SetRowFromSub(y, 1, 100, true)
+		ui.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 		GuiDiv := ui.AddLayout(0, y, 1, 1)
 		y++
-		GuiDiv.SetColumnFromSub(0, 5, 100, true)
-		GuiDiv.SetColumn(1, 10, 100)
+		GuiDiv.SetColumnFromSub(0, 5, Layout_MAX_SIZE, true)
+		GuiDiv.SetColumn(1, 10, Layout_MAX_SIZE)
 
 		yy := 1
 
@@ -913,7 +913,7 @@ func (st *ShowDev) buildDocumentation(ui *UI, caller *ToolCaller) {
 		GuiDiv.AddDivider(1, yy, 1, 1, true)
 		yy += 2
 
-		GuiDiv.SetRowFromSub(yy, 1, 100, true)
+		GuiDiv.SetRowFromSub(yy, 1, Layout_MAX_SIZE, true)
 		GuiDiv.AddText(0, yy, 1, 1, "Table")
 		TableDiv := GuiDiv.AddLayout(1, yy, 1, 1)
 		tb := TableDiv.addTable("")

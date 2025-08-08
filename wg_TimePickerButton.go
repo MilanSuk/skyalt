@@ -20,10 +20,10 @@ func (st *TimePickerButton) Build(layout *Layout) {
 		st.Page = &layout.ui.datePage
 	}
 
-	layout.SetColumn(0, 1, 100)
+	layout.SetColumn(0, 1, Layout_MAX_SIZE)
 	layout.SetColumn(1, 0.5, 0.5) //space
 	layout.SetColumnFromSub(3, 0, 2, true)
-	layout.SetRow(0, 1, 100)
+	layout.SetRow(0, 1, Layout_MAX_SIZE)
 
 	btDate := layout.AddButton(0, 0, 1, 1, layout.ConvertTextDate(*st.Value))
 	btDate.Tooltip = "Date"

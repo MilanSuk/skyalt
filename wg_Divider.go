@@ -28,20 +28,20 @@ func (st *Divider) Build(layout *Layout) {
 		}
 	} else {
 		if st.Horizontal {
-			layout.SetRow(0, 0, 100)
+			layout.SetRow(0, 0, Layout_MAX_SIZE)
 
-			layout.SetColumn(0, 0, 100)
-			layout.SetColumnFromSub(1, 1, 100, true)
-			layout.SetColumn(2, 0, 100)
+			layout.SetColumn(0, 0, Layout_MAX_SIZE)
+			layout.SetColumnFromSub(1, 1, Layout_MAX_SIZE, true)
+			layout.SetColumn(2, 0, Layout_MAX_SIZE)
 			layout.AddDivider(0, 0, 1, 1, true)
 			layout.AddText(1, 0, 1, 1, st.Label)
 			layout.AddDivider(2, 0, 1, 1, true)
 		} else {
-			layout.SetColumn(0, 0, 100)
+			layout.SetColumn(0, 0, Layout_MAX_SIZE)
 
-			layout.SetRow(0, 0, 100)
-			layout.SetRowFromSub(1, 1, 100, true)
-			layout.SetRow(2, 0, 100)
+			layout.SetRow(0, 0, Layout_MAX_SIZE)
+			layout.SetRowFromSub(1, 1, Layout_MAX_SIZE, true)
+			layout.SetRow(2, 0, Layout_MAX_SIZE)
 			layout.AddDivider(0, 0, 1, 1, true)
 			layout.AddText(0, 1, 1, 1, st.Label) //rotate ....
 			layout.AddDivider(0, 2, 1, 1, true)

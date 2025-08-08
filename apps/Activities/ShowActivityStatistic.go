@@ -21,7 +21,7 @@ func (st *ShowActivityStatistic) run(caller *ToolCaller, ui *UI) error {
 		return fmt.Errorf("activity '%s' not found", st.ActivityID)
 	}
 
-	ui.SetColumn(0, 1, 100)
+	ui.SetColumn(0, 1, Layout_MAX_SIZE)
 	ui.SetRow(1, 2.5, 2.5)
 
 	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Statistic - %s", SdkGetDate(int64(activity.Date))))
@@ -30,12 +30,12 @@ func (st *ShowActivityStatistic) run(caller *ToolCaller, ui *UI) error {
 
 	InfoDiv := ui.AddLayout(0, 1, 1, 1)
 	InfoDiv.Back_cd = UI_GetPalette().GetGrey(0.1)
-	InfoDiv.SetColumn(0, 1, 100)
-	InfoDiv.SetColumn(1, 1, 100)
-	InfoDiv.SetColumn(2, 1, 100)
-	InfoDiv.SetColumn(3, 1, 100)
-	InfoDiv.SetRow(0, 1, 100)
-	InfoDiv.SetRow(1, 1, 100)
+	InfoDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+	InfoDiv.SetColumn(1, 1, Layout_MAX_SIZE)
+	InfoDiv.SetColumn(2, 1, Layout_MAX_SIZE)
+	InfoDiv.SetColumn(3, 1, Layout_MAX_SIZE)
+	InfoDiv.SetRow(0, 1, Layout_MAX_SIZE)
+	InfoDiv.SetRow(1, 1, Layout_MAX_SIZE)
 
 	//load
 	gpx, err := source_activities.GetGpx(st.ActivityID)

@@ -24,7 +24,7 @@ func (st *ShowGroups) run(caller *ToolCaller, ui *UI) error {
 	for _, id := range sorted {
 		group := source_events.Groups[id]
 		GroupDiv := ui.AddLayout(0, y, 1, 1)
-		GroupDiv.SetColumn(0, 2, 100)
+		GroupDiv.SetColumn(0, 2, Layout_MAX_SIZE)
 		GroupDiv.SetColumn(1, 3, 4)
 		GroupDiv.SetColumn(3, 3, 3)
 

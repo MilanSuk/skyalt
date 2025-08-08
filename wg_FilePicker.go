@@ -48,7 +48,7 @@ func (st *FilePicker) Build(layout *Layout) {
 	}
 
 	layout.SetColumn(4, 2, 2)
-	layout.SetColumn(5, 1, 100) //100
+	layout.SetColumn(5, 1, Layout_MAX_SIZE)
 
 	layout.SetRow(1, 2, 10)
 
@@ -141,7 +141,7 @@ func (st *FilePicker) Build(layout *Layout) {
 	}
 
 	List := layout.AddLayout(0, 1, 6, 1)
-	List.SetColumn(0, 3, 100)
+	List.SetColumn(0, 3, Layout_MAX_SIZE)
 	List.SetColumn(1, 2, 2)
 	List.SetColumn(2, 3, 3.5)
 

@@ -46,7 +46,7 @@ func (st *DropDown) Build(layout *Layout) {
 	layout.scrollH.Narrow = true
 	layout.scrollV.Show = false
 
-	layout.SetColumnFromSub(0, 1, 100, false)
+	layout.SetColumnFromSub(0, 1, Layout_MAX_SIZE, false)
 
 	if st.Value == nil {
 		layout.AddText(0, 0, 1, 1, "Error: Value == nil")

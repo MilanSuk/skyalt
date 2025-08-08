@@ -65,13 +65,13 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 	d := 1.5
 	ui.SetColumn(0, d, d)
-	ui.SetColumn(1, 1, 100)
-	ui.SetRow(0, 1, 100)
+	ui.SetColumn(1, 1, Layout_MAX_SIZE)
+	ui.SetRow(0, 1, Layout_MAX_SIZE)
 
 	//Apps
 	{
 		AppsDiv := ui.AddLayout(0, 0, 1, 1)
-		AppsDiv.SetColumn(0, 1, 100)
+		AppsDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 		AppsDiv.Back_cd = UI_GetPalette().GetGrey(0.1)
 
 		y := 0
@@ -102,12 +102,12 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 		//Apps
 		{
-			AppsDiv.SetRow(y, 1, 100)
+			AppsDiv.SetRow(y, 1, Layout_MAX_SIZE)
 			Apps2Div := AppsDiv.AddLayout(0, y, 1, 1)
 			y++
-			Apps2Div.SetColumn(0, 1, 100)
+			Apps2Div.SetColumn(0, 1, Layout_MAX_SIZE)
 			Apps2Div.ScrollV.Narrow = true
-			Apps2Div.SetColumn(0, 1, 100)
+			Apps2Div.SetColumn(0, 1, Layout_MAX_SIZE)
 			yy := 0
 			for i, app := range source_root.Apps {
 				var bt *UIButton
@@ -115,10 +115,10 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				if i == source_root.Selected_app_i && !source_root.ShowSettings {
 					dd := 1.0
 
-					Apps2Div.SetRowFromSub(yy, 1, 100, true)
+					Apps2Div.SetRowFromSub(yy, 1, Layout_MAX_SIZE, true)
 
 					BtDiv := Apps2Div.AddLayout(0, yy, 1, 1)
-					BtDiv.SetColumn(0, 1, 100)
+					BtDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 					BtDiv.SetRow(0, d, d)
 					BtDiv.SetRow(1, dd, dd)
 					BtDiv.Back_cd = Color_Aprox(UI_GetPalette().P, UI_GetPalette().B, 0.6) //UI_GetPalette().P
@@ -406,8 +406,8 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		} else {
 			AppDiv := ui.AddLayoutWithName(1, 0, 1, 1, "App")
 			AppDiv.SetColumnResizable(0, 8, 20, 8)
-			AppDiv.SetColumn(1, 1, 100)
-			AppDiv.SetRow(0, 1, 100)
+			AppDiv.SetColumn(1, 1, Layout_MAX_SIZE)
+			AppDiv.SetRow(0, 1, Layout_MAX_SIZE)
 
 			//Chat(or settings)
 			//note: must be called before, because it will update chat label
@@ -431,19 +431,19 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			//Side
 			{
 				SideDiv := AppDiv.AddLayout(0, 0, 1, 1)
-				SideDiv.SetColumn(0, 1, 100)
-				SideDiv.SetRow(1, 1, 100)
+				SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+				SideDiv.SetRow(1, 1, Layout_MAX_SIZE)
 
 				//Header
 				{
 					SideDiv.SetRow(0, 1, 1.5)
 					HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
-					HeaderDiv.SetRow(0, 1, 100)
+					HeaderDiv.SetRow(0, 1, Layout_MAX_SIZE)
 					HeaderDiv.ScrollH.Narrow = true
 					HeaderDiv.ScrollV.Hide = true
 					//New Tab
 					{
-						HeaderDiv.SetColumn(0, 2, 100)
+						HeaderDiv.SetColumn(0, 2, Layout_MAX_SIZE)
 						bt := HeaderDiv.AddButton(0, 0, 1, 1, "New Tab")
 						bt.Background = 0.5
 						bt.layout.Tooltip = "Create new tab"
@@ -508,9 +508,9 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 						//HeaderDiv.SetColumn(1, 0.5, 0.5) //space
 
-						HeaderDiv.SetColumnFromSub(2, 1, 100, true)
+						HeaderDiv.SetColumnFromSub(2, 1, Layout_MAX_SIZE, true)
 						NavDiv := HeaderDiv.AddLayout(2, 0, 1, 1)
-						NavDiv.SetRow(0, 1, 100)
+						NavDiv.SetRow(0, 1, Layout_MAX_SIZE)
 
 						nx := 0
 
@@ -539,7 +539,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 							return nil
 						}
 
-						NavDiv.SetColumnFromSub(nx, 1.5, 100, true)
+						NavDiv.SetColumnFromSub(nx, 1.5, Layout_MAX_SIZE, true)
 						inf := NavDiv.AddText(nx, 0, 1, 1, fmt.Sprintf("%d/%d", source_chat.Selected_user_msg+1, numUseMessages)) //...
 						nx++
 						inf.Align_h = 1
@@ -560,7 +560,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 				//List of tabs
 				ListsDiv := SideDiv.AddLayout(0, 1, 1, 1)
-				ListsDiv.SetColumn(0, 1, 100)
+				ListsDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 
 				var PinnedDiv *UI
 				var TabsDiv *UI
@@ -569,20 +569,20 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				if num_pins > 0 {
 					ListsDiv.SetRow(0, 0.7, 0.7)
 					ListsDiv.AddDivider(0, 0, 1, 1, true).Label = "<small>Pins"
-					ListsDiv.SetRowFromSub(1, 1, 100, true)
+					ListsDiv.SetRowFromSub(1, 1, Layout_MAX_SIZE, true)
 					PinnedDiv = ListsDiv.AddLayout(0, 1, 1, 1)
-					PinnedDiv.SetColumn(1, 1, 100)
+					PinnedDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 
 					ListsDiv.SetRow(2, 0.7, 0.7)
 					ListsDiv.AddDivider(0, 2, 1, 1, true).Label = "<small>Tabs"
-					ListsDiv.SetRowFromSub(3, 1, 100, true)
+					ListsDiv.SetRowFromSub(3, 1, Layout_MAX_SIZE, true)
 					TabsDiv = ListsDiv.AddLayout(0, 3, 1, 1)
-					TabsDiv.SetColumn(1, 1, 100)
+					TabsDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 
 				} else {
-					ListsDiv.SetRow(0, 1, 100)
+					ListsDiv.SetRow(0, 1, Layout_MAX_SIZE)
 					TabsDiv = ListsDiv.AddLayout(0, 0, 1, 1)
-					TabsDiv.SetColumn(1, 1, 100)
+					TabsDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 				}
 
 				yPinned := 0
@@ -692,9 +692,9 @@ func (st *ShowRoot) findUniqueAppName(prefix string, root *Root) string {
 }
 
 func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller) error {
-	ui.SetColumn(0, 1, 100)
+	ui.SetColumn(0, 1, Layout_MAX_SIZE)
 	ui.SetColumn(1, 10, 16)
-	ui.SetColumn(2, 1, 100)
+	ui.SetColumn(2, 1, Layout_MAX_SIZE)
 
 	y := 0
 	ui.AddTextLabel(1, y, 1, 1, "Settings").Align_h = 1
@@ -703,7 +703,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller) error {
 
 	//device settings
 	{
-		ui.SetRowFromSub(y, 0, 100, true)
+		ui.SetRowFromSub(y, 0, Layout_MAX_SIZE, true)
 		ui.AddToolApp(1, y, 1, 1, "device_settings", "Device", "ShowDeviceSettings", nil, caller)
 		y++
 	}
@@ -713,7 +713,7 @@ func (st *ShowRoot) buildSettings(ui *UI, caller *ToolCaller) error {
 
 	// LLMs
 	{
-		ui.SetRowFromSub(y, 0, 100, true)
+		ui.SetRowFromSub(y, 0, Layout_MAX_SIZE, true)
 		ui.AddToolApp(1, y, 1, 1, "llm_settings", "Device", "ShowLLMsSettings", nil, caller)
 		y++
 	}
@@ -806,7 +806,7 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 
 	{
 		HeaderDiv := ui.AddLayout(0, 0, 1, 1)
-		HeaderDiv.SetColumn(0, 5, 100)
+		HeaderDiv.SetColumn(0, 5, Layout_MAX_SIZE)
 		HeaderDiv.SetColumn(1, 3, 3)
 		HeaderDiv.SetColumn(2, 3, 5)
 
@@ -842,7 +842,7 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 	ui.SetRowFromSub(1, 1, 15, true)
 	ListDiv := ui.AddLayout(0, 1, 1, 1)
 	ListDiv.SetColumnFromSub(0, 1, 10, true)
-	ListDiv.SetColumnFromSub(1, 1, 100, true)
+	ListDiv.SetColumnFromSub(1, 1, Layout_MAX_SIZE, true)
 
 	MAX_N := 20
 	y := 0

@@ -28,7 +28,7 @@ func (st *PromptMenu) getLLMTip(layout *Layout) string {
 
 func (st *PromptMenu) Build(layout *Layout) {
 
-	layout.SetColumnFromSub(0, 1, 100, false)
+	layout.SetColumnFromSub(0, 1, Layout_MAX_SIZE, false)
 
 	cdialog := layout.AddDialog("dialog")
 

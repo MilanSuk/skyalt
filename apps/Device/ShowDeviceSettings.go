@@ -15,7 +15,7 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	ui.SetColumn(0, 4, 4)
-	ui.SetColumn(1, 5, 100)
+	ui.SetColumn(1, 5, Layout_MAX_SIZE)
 
 	y := 0
 
@@ -97,12 +97,12 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 
 	// Theme
 	{
-		ui.SetRowFromSub(y, 1, 100, true)
+		ui.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
 		ui.AddText(0, y, 1, 1, "Theme")
 		ThemeDiv := ui.AddLayout(1, y, 1, 1)
 		y++
 		{
-			ThemeDiv.SetColumn(0, 1, 100)
+			ThemeDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 
 			ThemeDiv.AddDropDown(0, 0, 1, 1, &source_dev.Theme, []string{"Light", "Dark", "Custom"}, []string{"light", "dark", "custom"})
 
@@ -111,10 +111,10 @@ func (st *ShowDeviceSettings) run(caller *ToolCaller, ui *UI) error {
 				ThemeDiv.SetRow(1, 3, 3)
 				slayout := ThemeDiv.AddLayout(0, 1, 1, 1)
 
-				slayout.SetColumn(0, 1, 100)
-				slayout.SetColumn(1, 1, 100)
-				slayout.SetColumn(2, 1, 100)
-				slayout.SetColumn(3, 1, 100)
+				slayout.SetColumn(0, 1, Layout_MAX_SIZE)
+				slayout.SetColumn(1, 1, Layout_MAX_SIZE)
+				slayout.SetColumn(2, 1, Layout_MAX_SIZE)
+				slayout.SetColumn(3, 1, Layout_MAX_SIZE)
 
 				slayout.AddText(0, 0, 1, 1, "Primary").Align_h = 1
 				slayout.AddText(1, 0, 1, 1, "Secondary").Align_h = 1

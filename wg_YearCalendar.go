@@ -18,8 +18,8 @@ func (layout *Layout) AddYearCalendar(x, y, w, h int, Year int) *YearCalendar {
 
 func (st *YearCalendar) Build(layout *Layout) {
 
-	layout.SetColumn(0, 1, 100)
-	layout.SetRowFromSub(1, 5, 100, true)
+	layout.SetColumn(0, 1, Layout_MAX_SIZE)
+	layout.SetRowFromSub(1, 5, Layout_MAX_SIZE, true)
 
 	layout.AddText(0, 0, 1, 1, fmt.Sprintf("<b>Year: %d</b>", st.Year)).Align_h = 1
 
@@ -40,8 +40,8 @@ func (st *YearCalendar) Build(layout *Layout) {
 		Item.SetRow(2, 0.2, space)
 
 		Div := Item.AddLayout(1, 1, 1, 1)
-		Div.SetColumn(0, 1, 100)
-		Div.SetRow(1, 1, 100)
+		Div.SetColumn(0, 1, Layout_MAX_SIZE)
+		Div.SetRow(1, 1, Layout_MAX_SIZE)
 
 		Month := Div.AddText(0, 0, 1, 1, "<h2>"+layout.GetMonthText(1+i))
 		if int(today.Month()) == i+1 {
@@ -57,10 +57,10 @@ func _formMonthCalendar(year, month int, layout *Layout) {
 	layout.Tooltip = fmt.Sprintf("%s, %d", layout.GetMonthText(month), year)
 
 	for x := 0; x < 7; x++ {
-		layout.SetColumn(x, 0.9, 100)
+		layout.SetColumn(x, 0.9, Layout_MAX_SIZE)
 	}
 	for y := 0; y < 7; y++ {
-		layout.SetRow(y, 0.9, 100)
+		layout.SetRow(y, 0.9, Layout_MAX_SIZE)
 	}
 
 	// Day names(short)

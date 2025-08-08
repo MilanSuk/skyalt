@@ -49,7 +49,7 @@ func (st *ShowPrompt) run(caller *ToolCaller, ui *UI) error {
 	{
 		ui.SetColumnFromSub(x, 3, 5, true)
 		DivStart := ui.AddLayout(x, y, 1, 1)
-		DivStart.SetRow(0, 0, 100)
+		DivStart.SetRow(0, 0, Layout_MAX_SIZE)
 		DivStart.Enable = !isRunning
 		x++
 
@@ -124,7 +124,7 @@ func (st *ShowPrompt) run(caller *ToolCaller, ui *UI) error {
 
 	//Editbox
 	{
-		ui.SetColumn(x, 1, 100)
+		ui.SetColumn(x, 1, Layout_MAX_SIZE)
 		ed := ui.AddEditboxString(x, y, 1, 1, &input.Text)
 		ed.Ghost = "What can I do for you?"
 		ed.Multiline = input.Multilined
@@ -137,8 +137,8 @@ func (st *ShowPrompt) run(caller *ToolCaller, ui *UI) error {
 	//switch multi-lined
 	{
 		DivML := ui.AddLayout(x, y, 1, 1)
-		DivML.SetColumn(0, 1, 100)
-		DivML.SetRow(0, 0, 100)
+		DivML.SetColumn(0, 1, Layout_MAX_SIZE)
+		DivML.SetRow(0, 0, Layout_MAX_SIZE)
 		DivML.Enable = !isRunning
 
 		mt := DivML.AddButton(0, 1, 1, 1, "")
@@ -160,8 +160,8 @@ func (st *ShowPrompt) run(caller *ToolCaller, ui *UI) error {
 	{
 		ui.SetColumn(x, 2.5, 2.5)
 		DivSend := ui.AddLayout(x, y, 1, 1)
-		DivSend.SetColumn(0, 1, 100)
-		DivSend.SetRow(0, 0, 100)
+		DivSend.SetColumn(0, 1, Layout_MAX_SIZE)
+		DivSend.SetRow(0, 0, Layout_MAX_SIZE)
 		if !isRunning {
 			SendBt := DivSend.AddButton(0, 1, 1, 1, "Send")
 			SendBt.IconPath = "resources/up.png"
@@ -238,7 +238,7 @@ func (st *ShowPrompt) run(caller *ToolCaller, ui *UI) error {
 		TipsDiv := ui.AddLayout(0, y, x, 1)
 		y++
 		TipsDiv.SetColumn(0, 2, 2)
-		TipsDiv.SetColumn(1, 1, 100)
+		TipsDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 
 		yy := 0
 		for i, br := range input.Picks {

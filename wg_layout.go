@@ -142,9 +142,9 @@ func (layout *Layout) AddDialogBorder(name string, title string, width float64) 
 	if width > 0 {
 		lay.SetColumn(1, 1, width)
 	} else {
-		lay.SetColumnFromSub(1, 1, 100, true)
+		lay.SetColumnFromSub(1, 1, Layout_MAX_SIZE, true)
 	}
-	lay.SetRowFromSub(1, 1, 100, true)
+	lay.SetRowFromSub(1, 1, Layout_MAX_SIZE, true)
 	lay.SetColumn(2, 1, 1)
 	lay.SetRow(2, 1, 1)
 
@@ -154,7 +154,13 @@ func (layout *Layout) AddDialogBorder(name string, title string, width float64) 
 	return dia, lay.AddLayout(1, 1, 1, 1)
 }
 
+const Layout_MAX_SIZE = -1.0
+
 func (layout *Layout) SetColumn(grid_x int, min_size, max_size float64) {
+	if max_size < 0 {
+		max_size = 10000
+	}
+
 	newItem := LayoutCR{Pos: grid_x, Min: min_size, Max: max_size}
 
 	for i := range layout.UserCols {
@@ -168,6 +174,13 @@ func (layout *Layout) SetColumn(grid_x int, min_size, max_size float64) {
 }
 
 func (layout *Layout) SetRow(grid_y int, min_size, max_size float64) {
+	if min_size < 0 {
+		min_size = 10000
+	}
+	if max_size < 0 {
+		max_size = 10000
+	}
+
 	newItem := LayoutCR{Pos: grid_y, Min: min_size, Max: max_size}
 
 	for i := range layout.UserRows {
@@ -181,6 +194,13 @@ func (layout *Layout) SetRow(grid_y int, min_size, max_size float64) {
 }
 
 func (layout *Layout) SetColumnFromSub(grid_x int, min_size, max_size float64, fix bool) {
+	if min_size < 0 {
+		min_size = 10000
+	}
+	if max_size < 0 {
+		max_size = 10000
+	}
+
 	newItem := LayoutCR{Pos: grid_x, SetFromChild_min: min_size, SetFromChild_max: max_size, SetFromChild_fix: fix}
 
 	for i := range layout.UserCols {
@@ -194,6 +214,13 @@ func (layout *Layout) SetColumnFromSub(grid_x int, min_size, max_size float64, f
 }
 
 func (layout *Layout) SetRowFromSub(grid_y int, min_size, max_size float64, fix bool) {
+	if min_size < 0 {
+		min_size = 10000
+	}
+	if max_size < 0 {
+		max_size = 10000
+	}
+
 	newItem := LayoutCR{Pos: grid_y, SetFromChild_min: min_size, SetFromChild_max: max_size, SetFromChild_fix: fix}
 
 	for i := range layout.UserRows {
@@ -207,10 +234,24 @@ func (layout *Layout) SetRowFromSub(grid_y int, min_size, max_size float64, fix 
 }
 
 func (layout *Layout) SetColumnResizable(grid_x int, min_size, max_size, default_size float64) {
+	if min_size < 0 {
+		min_size = 10000
+	}
+	if max_size < 0 {
+		max_size = 10000
+	}
+
 	layout.UserCols = append(layout.UserCols, LayoutCR{Pos: grid_x, Min: min_size, Max: max_size, Resize_value: default_size})
 
 }
 func (layout *Layout) SetRowResizable(grid_y int, min_size, max_size, default_size float64) {
+	if min_size < 0 {
+		min_size = 10000
+	}
+	if max_size < 0 {
+		max_size = 10000
+	}
+
 	layout.UserRows = append(layout.UserRows, LayoutCR{Pos: grid_y, Min: min_size, Max: max_size, Resize_value: default_size})
 }
 
