@@ -871,9 +871,6 @@ func (layout *Layout) _relayout() {
 		}
 	}
 
-	//order List
-	layout.rebuildList()
-
 	for _, it := range layout.childs {
 		if it.IsShown() {
 			it._relayout() //not Inner(), because parent could changed, which may influence the childs setRowFromSub()
@@ -881,11 +878,20 @@ func (layout *Layout) _relayout() {
 	}
 }
 
-func (layout *Layout) rebuildList() {
-	if !layout.IsTypeCards() {
-		return
+func (layout *Layout) _relayoutCards() {
+	//order List
+	if layout.IsTypeCards() {
+		layout.rebuildCards()
 	}
 
+	for _, it := range layout.childs {
+		if it.IsShown() {
+			it._relayoutCards()
+		}
+	}
+}
+
+func (layout *Layout) rebuildCards() {
 	max_width := layout._getWidth()
 
 	//get max item size
@@ -922,12 +928,12 @@ func (layout *Layout) rebuildList() {
 	layout.UserRows = nil
 	for x := range nx {
 		if space_between_x > 0 {
-			layout.UserCols = append(layout.UserCols, LayoutCR{Pos: x*2 + 0, Min: 0, Max: space_between_x}) //space
-
-			layout.UserCols = append(layout.UserCols, LayoutCR{Pos: x*2 + 1, Min: it_width, Max: it_width}) //item
+			layout.SetColumn(x*2+0, 0, space_between_x) //space
+			layout.SetColumn(x*2+1, it_width, it_width) //item
 
 			if x+1 == nx { //last
-				layout.UserCols = append(layout.UserCols, LayoutCR{Pos: x*2 + 2, Min: 0, Max: space_between_x}) //space
+				layout.SetColumn(x*2+2, 0, space_between_x) //space
+
 			}
 		} else {
 			layout.UserCols = append(layout.UserCols, LayoutCR{Pos: x, Min: it_width, Max: it_width})
@@ -936,11 +942,10 @@ func (layout *Layout) rebuildList() {
 	}
 	for y := 0; y < ny; y++ {
 		if space_between_y > 0 {
-
-			layout.UserRows = append(layout.UserRows, LayoutCR{Pos: y*2 + 0, Min: it_height, Max: it_height}) //item
+			layout.SetRowFromSub(y*2+0, it_height, Layout_MAX_SIZE, true) //item
 
 			if y+1 < ny { //not last
-				layout.UserRows = append(layout.UserRows, LayoutCR{Pos: y*2 + 1, Min: space_between_y, Max: space_between_y}) //space
+				layout.SetRow(y*2+1, space_between_y, space_between_y) //space
 			}
 
 		} else {

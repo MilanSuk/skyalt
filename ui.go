@@ -238,16 +238,19 @@ func (ui *Ui) _relayout(layout *Layout) {
 
 	layout.projectScroll()
 
+	layout._relayoutCards()
 	layout.updateFromChildCols(false)
 	layout._relayout()
 	layout.updateFromChildRows()
 	layout._relayout()
 
+	layout._relayoutCards()
 	layout.updateFromChildCols(false)
 	layout._relayout()
 	layout.updateFromChildRows()
 	layout._relayout()
 
+	layout._relayoutCards()
 	layout.updateFromChildCols(true)
 	layout._relayout()
 	layout.updateFromChildRows()
