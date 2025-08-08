@@ -828,7 +828,7 @@ func callFuncMsgStop(msg_name string) {
 
 		err = cl.WriteArray([]byte("stop_msg_name"))
 		if Tool_Error(err) == nil {
-			err = cl.WriteArray([]byte(msg_name))
+			err = cl.WriteArray([]byte(g_main.appName + "_" + msg_name))
 			Tool_Error(err)
 		}
 	}
