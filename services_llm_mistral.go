@@ -326,18 +326,18 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 				var result string
 
 				//call it
-				resJs, uiJs, cmdsJs, err := _ToolsCaller_CallBuild(app_port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments))
+				dataJs, uiGob, cmdsGob, err := _ToolsCaller_CallBuild(app_port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments))
 				if err != nil {
 					return err
 				}
 				//resJs, tool_ui, err := CallToolApp(st.AppName, call.Function.Name, []byte(call.Function.Arguments), caller)
 
 				//add cmds
-				msg.out_flushed_cmds = append(msg.out_flushed_cmds, cmdsJs)
+				msg.out_flushed_cmdsGob = append(msg.out_flushed_cmdsGob, cmdsGob)
 
 				resMap := make(map[string]interface{})
 
-				err = LogsJsonUnmarshal(resJs, &resMap)
+				err = LogsJsonUnmarshal(dataJs, &resMap)
 				if err != nil {
 					return err
 				}
@@ -381,9 +381,8 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 						}
 					}
 				}
-
 				var tool_ui UI
-				LogsJsonUnmarshal(uiJs, &tool_ui)
+				LogsGobUnmarshal(uiGob, &tool_ui)
 
 				hasUI := tool_ui.Is()
 				if hasUI {
@@ -396,7 +395,7 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 				res_msg := msgs.AddCallResult(call.Function.Name, call.Id, result)
 				if hasUI {
 					res_msg.UI_func = call.Function.Name
-					res_msg.UI_paramsJs = string(resJs)
+					res_msg.UI_paramsJs = string(dataJs)
 				}
 				if st.delta != nil {
 					st.delta(res_msg)

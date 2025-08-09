@@ -353,7 +353,7 @@ func (ui *Ui) Tick() {
 			ui.edit.send(false, ui)
 		}
 
-		fnDone := func(ioJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
+		fnDone := func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64) {
 
 			fmt.Printf("_refresh(): %.4fsec\n", OsTime()-start_time)
 
@@ -361,17 +361,34 @@ func (ui *Ui) Tick() {
 				return
 			}
 
+			start_time = OsTime()
 			var uii UI
-			err = LogsJsonUnmarshal(uiJs, &uii)
-			if err == nil {
-				ui.temp_ui = &uii
+			err = LogsGobUnmarshal(uiGob, &uii)
+			if err != nil {
+				return
 			}
+			fmt.Printf("-unmarshal(): %.4fsec\n", OsTime()-start_time)
+			ui.temp_ui = &uii
+
+			/*{
+				start_time = OsTime()
+				var buf bytes.Buffer
+				enc := gob.NewEncoder(&buf)
+				enc.Encode(uii)
+				fmt.Printf("-gob marshal(): %.4fsec\n", OsTime()-start_time)
+
+				start_time = OsTime()
+				dec := gob.NewDecoder(&buf)
+				dec.Decode(&uii)
+				fmt.Printf("-gob unmarshal(): %.4fsec\n", OsTime()-start_time)
+			}*/
 
 			var cmds []ToolCmd
-			err = LogsJsonUnmarshal(cmdsJs, &cmds)
-			if err == nil {
-				ui.temp_cmds = append(ui.temp_cmds, cmds...)
+			err = LogsGobUnmarshal(cmdsGob, &cmds)
+			if err != nil {
+				return
 			}
+			ui.temp_cmds = append(ui.temp_cmds, cmds...)
 		}
 
 		type ShowRoot struct {
@@ -509,25 +526,25 @@ func (ui *Ui) Tick() {
 
 }
 
-func (ui *Ui) _addLayout_FnProgress(cmdsJs [][]byte, err error, start_time float64) {
+func (ui *Ui) _addLayout_FnProgress(cmdsGob [][]byte, err error, start_time float64) {
 	if err != nil {
 		return
 	}
-	for _, js := range cmdsJs {
+	for _, gob := range cmdsGob {
 		var cmds []ToolCmd
-		err := LogsJsonUnmarshal(js, &cmds)
+		err := LogsGobUnmarshal(gob, &cmds)
 		if err == nil {
 			ui.temp_cmds = append(ui.temp_cmds, cmds...)
 		}
 	}
 }
-func (ui *Ui) _addLayout_FnIODone(ioJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
+func (ui *Ui) _addLayout_FnIODone(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64) {
 	if err != nil {
 		return
 	}
 
 	var cmds []ToolCmd
-	err = LogsJsonUnmarshal(cmdsJs, &cmds)
+	err = LogsGobUnmarshal(cmdsGob, &cmds)
 	if err == nil {
 		ui.temp_cmds = append(ui.temp_cmds, cmds...)
 	}

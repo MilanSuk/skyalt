@@ -39,8 +39,8 @@ type AppsRouterMsg struct {
 
 	start_time float64
 
-	fnProgress func(cmdsJs [][]byte, err error, start_time float64)                           //call when 'out_flushed_cmds'
-	fnDone     func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) //called when msg is done
+	fnProgress func(cmdsGob [][]byte, err error, start_time float64)                            //call when 'out_flushed_cmds'
+	fnDone     func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64) //called when msg is done
 
 	stop     atomic.Bool
 	out_done atomic.Bool
@@ -48,19 +48,19 @@ type AppsRouterMsg struct {
 	progress_done  float64
 	progress_label string
 
-	out_data []byte
-	out_ui   []byte
-	out_cmds []byte
+	out_dataJs  []byte
+	out_uiGob   []byte
+	out_cmdsGob []byte
 
-	out_flushed_cmds [][]byte
-	out_error        error
+	out_flushed_cmdsGob [][]byte
+	out_error           error
 
 	drawit bool
 }
 
 func NewAppsRouterMsg(msg_id uint64, msg_name string, appName, toolName, actionName string,
-	fnProgress func(cmdsJs [][]byte, err error, start_time float64),
-	fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) *AppsRouterMsg {
+	fnProgress func(cmdsGob [][]byte, err error, start_time float64),
+	fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) *AppsRouterMsg {
 
 	msg := &AppsRouterMsg{msg_id: msg_id, msg_name: msg_name, fnProgress: fnProgress, fnDone: fnDone}
 
@@ -273,7 +273,7 @@ func (router *AppsRouter) CallUpdateDev() {
 	}
 }
 
-func (router *AppsRouter) CallUpdateAsync(ui_uid uint64, sub_uid uint64, appName string, toolName string, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
+func (router *AppsRouter) CallUpdateAsync(ui_uid uint64, sub_uid uint64, appName string, toolName string, fnProgress func(cmdsGob [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) {
 	app := router.FindApp(appName)
 	if app == nil {
 		return
@@ -290,18 +290,18 @@ func (router *AppsRouter) CallUpdateAsync(ui_uid uint64, sub_uid uint64, appName
 	go func() {
 		defer msg.Done()
 
-		out_subUiJs, out_cmdsJs, out_error := _ToolsCaller_CallUpdate(app.Process.port, msg_id, ui_uid, sub_uid)
+		out_subUiGob, out_cmdsGob, out_error := _ToolsCaller_CallUpdate(app.Process.port, msg_id, ui_uid, sub_uid)
 		msg.out_error = out_error
 
 		if out_error == nil {
-			msg.out_ui = out_subUiJs
-			msg.out_cmds = out_cmdsJs
+			msg.out_uiGob = out_subUiGob
+			msg.out_cmdsGob = out_cmdsGob
 		}
 
 	}()
 }
 
-func (router *AppsRouter) CallChangeAsync(ui_uid uint64, appName string, toolName string, change ToolsSdkChange, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
+func (router *AppsRouter) CallChangeAsync(ui_uid uint64, appName string, toolName string, change ToolsSdkChange, fnProgress func(cmdsGob [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) {
 	app := router.FindApp(appName)
 	if app == nil {
 		return
@@ -320,18 +320,18 @@ func (router *AppsRouter) CallChangeAsync(ui_uid uint64, appName string, toolNam
 	go func() {
 		defer msg.Done()
 
-		out_dataJs, out_cmdsJs, out_error := _ToolsCaller_CallChange(app.Process.port, msg_id, ui_uid, change)
+		out_dataJs, out_cmdsGob, out_error := _ToolsCaller_CallChange(app.Process.port, msg_id, ui_uid, change)
 		msg.out_error = out_error
 
 		if out_error == nil {
-			msg.out_data = out_dataJs
-			msg.out_cmds = out_cmdsJs
+			msg.out_dataJs = out_dataJs
+			msg.out_cmdsGob = out_cmdsGob
 		}
 
 	}()
 }
 
-func (router *AppsRouter) CallBuildAsync(ui_uid uint64, appName string, toolName string, params interface{}, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) *AppsRouterMsg {
+func (router *AppsRouter) CallBuildAsync(ui_uid uint64, appName string, toolName string, paramsJs interface{}, fnProgress func(cmdsGob [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) *AppsRouterMsg {
 	app := router.FindApp(appName)
 	if app == nil {
 		return nil
@@ -344,7 +344,7 @@ func (router *AppsRouter) CallBuildAsync(ui_uid uint64, appName string, toolName
 	router.msgs[msg_id] = msg
 	router.lock.Unlock()
 
-	jsParams, err := _ToolsRouter_getJSON(params)
+	jsParams, err := _ToolsRouter_getJSON(paramsJs)
 	if err != nil {
 		return nil
 	}
@@ -361,7 +361,7 @@ func (router *AppsRouter) CallBuildAsync(ui_uid uint64, appName string, toolName
 		}
 
 		//call it - no parent!
-		msg.out_data, msg.out_ui, msg.out_cmds, msg.out_error = _ToolsCaller_CallBuild(app.Process.port, msg_id, ui_uid, toolName, jsParams)
+		msg.out_dataJs, msg.out_uiGob, msg.out_cmdsGob, msg.out_error = _ToolsCaller_CallBuild(app.Process.port, msg_id, ui_uid, toolName, jsParams)
 	}()
 
 	return msg
@@ -427,9 +427,9 @@ func (router *AppsRouter) Flush() bool {
 
 		//flush cmds
 		for _, msg := range router.msgs {
-			if msg != nil && len(msg.out_flushed_cmds) > 0 {
-				msg.fnProgress(msg.out_flushed_cmds, nil, msg.start_time)
-				msg.out_flushed_cmds = nil
+			if msg != nil && len(msg.out_flushed_cmdsGob) > 0 {
+				msg.fnProgress(msg.out_flushed_cmdsGob, nil, msg.start_time)
+				msg.out_flushed_cmdsGob = nil
 			}
 		}
 
@@ -452,7 +452,7 @@ func (router *AppsRouter) Flush() bool {
 	router.lock.Unlock()
 
 	for _, msg := range doneMsgs {
-		msg.fnDone(msg.out_data, msg.out_ui, msg.out_cmds, msg.out_error, msg.start_time)
+		msg.fnDone(msg.out_dataJs, msg.out_uiGob, msg.out_cmdsGob, msg.out_error, msg.start_time)
 	}
 
 	return refresh
@@ -590,8 +590,8 @@ func (router *AppsRouter) RunNet() {
 									jsParams, err := cl.ReadArray()
 									if err == nil {
 										var dataJs []byte
-										var uiJs []byte
-										var cmdsJs []byte
+										var uiGob []byte
+										var cmdsGob []byte
 										var out_Error error
 										app := router.FindApp(string(appName))
 										if app != nil {
@@ -610,7 +610,7 @@ func (router *AppsRouter) RunNet() {
 											out_Error = app.CheckRun()
 											if out_Error == nil {
 												//call it
-												dataJs, uiJs, cmdsJs, out_Error = _ToolsCaller_CallBuild(app.Process.port, msg_id, ui_uid, string(toolName), jsParams)
+												dataJs, uiGob, cmdsGob, out_Error = _ToolsCaller_CallBuild(app.Process.port, msg_id, ui_uid, string(toolName), jsParams)
 											}
 
 											//remove stack
@@ -633,8 +633,8 @@ func (router *AppsRouter) RunNet() {
 										}
 
 										cl.WriteArray(dataJs)
-										cl.WriteArray(uiJs)
-										cl.WriteArray(cmdsJs)
+										cl.WriteArray(uiGob)
+										cl.WriteArray(cmdsGob)
 										cl.WriteArray([]byte(errStr))
 									}
 								}
@@ -652,7 +652,7 @@ func (router *AppsRouter) RunNet() {
 							{
 								msg, found := router.msgs[msg_id]
 								if found && msg != nil {
-									msg.out_flushed_cmds = append(msg.out_flushed_cmds, cmdsJs)
+									msg.out_flushed_cmdsGob = append(msg.out_flushed_cmdsGob, cmdsJs)
 								}
 							}
 							router.lock.Unlock()
@@ -763,9 +763,7 @@ func (router *AppsRouter) RunNet() {
 				case "get_tool_data":
 					appName, err := cl.ReadArray()
 					if err == nil {
-
 						var promptsJs []byte
-
 						app := router.FindApp(string(appName))
 						if app != nil {
 							promptsJs, _ = LogsJsonMarshalIndent(&app.Prompts)

@@ -310,7 +310,7 @@ func (ui *UI) Is() bool {
 	return len(ui.Items) > 0
 }
 
-func (ui *UI) addDialogs(layout *Layout, appName string, toolName string, parent_UID uint64, fnProgress func(cmdsJs [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
+func (ui *UI) addDialogs(layout *Layout, appName string, toolName string, parent_UID uint64, fnProgress func(cmdsGob [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) {
 	for _, dia := range ui.Dialogs {
 		d := layout.AddDialog(dia.UID)
 		dia.UI.addLayout(d.Layout, appName, toolName, parent_UID, fnProgress, fnDone)
@@ -409,7 +409,7 @@ func (cmd *ToolCmd) Exe(ui *Ui) bool {
 	return found
 }
 
-func (ui *UI) addLayout(layout *Layout, appName string, toolName string, parent_UID uint64, fnProgress func(cmds [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
+func (ui *UI) addLayout(layout *Layout, appName string, toolName string, parent_UID uint64, fnProgress func(cmds [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) {
 
 	if layout.UID != parent_UID {
 		layout.setLayoutFromUI(ui)
@@ -417,13 +417,13 @@ func (ui *UI) addLayout(layout *Layout, appName string, toolName string, parent_
 
 	if ui.HasUpdate {
 		layout.fnUpdate = func() {
-			fnDone := func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
-				if err != nil {
+			fnDone := func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64) {
+				if LogsError(err) != nil {
 					return
 				}
 
 				var subUI UI
-				err = LogsJsonUnmarshal(uiJs, &subUI)
+				err = LogsGobUnmarshal(uiGob, &subUI)
 				if err != nil {
 					return
 				}
@@ -436,10 +436,11 @@ func (ui *UI) addLayout(layout *Layout, appName string, toolName string, parent_
 				layout.ui.SetRedrawBuffer()
 
 				var cmds []ToolCmd
-				err = LogsJsonUnmarshal(cmdsJs, &cmds)
-				if err == nil {
-					layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
+				err = LogsGobUnmarshal(cmdsGob, &cmds)
+				if err != nil {
+					return
 				}
+				layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
 
 				fmt.Printf("_updated(): %.4fsec\n", OsTime()-start_time)
 			}
@@ -452,15 +453,17 @@ func (ui *UI) addLayout(layout *Layout, appName string, toolName string, parent_
 		pre_appName := appName
 		pre_fnDone := fnDone
 		pre_parent_UID := parent_UID
-		fnDone = func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64) {
-			if err != nil {
+		fnDone = func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64) {
+			if LogsError(err) != nil {
 				return
 			}
 			var cmds []ToolCmd
-			err = LogsJsonUnmarshal(cmdsJs, &cmds)
-			if err == nil {
-				layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
+			err = LogsGobUnmarshal(cmdsGob, &cmds)
+			if err != nil {
+				return
 			}
+			layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
+
 			layout.ui.router.CallChangeAsync(pre_parent_UID, pre_appName, "back", ToolsSdkChange{UID: ui.UID, ValueBytes: dataJs}, fnProgress, pre_fnDone)
 		}
 		appName = ui.AppName
@@ -541,7 +544,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, toolName string, parent_
 	ui.addDialogs(layout, appName, toolName, parent_UID, fnProgress, fnDone)
 }
 
-func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, parent_UID uint64, fnProgress func(cmds [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiJs []byte, cmdsJs []byte, err error, start_time float64)) {
+func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, parent_UID uint64, fnProgress func(cmds [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) {
 
 	//var tooltip_value string
 
@@ -552,7 +555,6 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 			itt.addLayout(cardsItem, appName, toolName, parent_UID, fnProgress, fnDone)
 		}
 	} else if it.Text != nil {
-
 		label := it.Text.Label
 		if it.Text.EnableCodeFormating {
 			label = _UiText_FormatAsCode(label, layout.GetPalette())
@@ -594,6 +596,10 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 		} else if it.Editbox.ValueFloat != nil {
 			val = it.Editbox.ValueFloat
 			//tooltip_value = strconv.FormatFloat(*it.Editbox.ValueFloat, 'f', -1, 64)
+		} else {
+			tempStr := ""
+			it.Editbox.Value = &tempStr
+			val = it.Editbox.Value
 		}
 
 		ed, edLay := layout.AddEditbox2(it.X, it.Y, it.W, it.H, val)
@@ -634,6 +640,11 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 		edLay.Editbox_name = it.Editbox.Name
 
 	} else if it.Slider != nil {
+		if it.Slider.Value == nil {
+			tempVal := 0.0
+			it.Slider.Value = &tempVal
+		}
+
 		sl := layout.AddSlider(it.X, it.Y, it.W, it.H, it.Slider.Value, it.Slider.Min, it.Slider.Max, it.Slider.Step)
 		sl.Tooltip = it.Tooltip
 		sl.ShowLegend = it.Slider.ShowLegend
@@ -647,6 +658,11 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 		}
 
 	} else if it.FilePickerButton != nil {
+		if it.FilePickerButton.Path == nil {
+			tempVal := ""
+			it.FilePickerButton.Path = &tempVal
+		}
+
 		bt := layout.AddFilePickerButton(it.X, it.Y, it.W, it.H, it.FilePickerButton.Path, it.FilePickerButton.Preview, it.FilePickerButton.OnlyFolders)
 		bt.Tooltip = it.Tooltip
 		if it.FilePickerButton.Path != nil {
@@ -656,6 +672,10 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 			layout.ui.router.CallChangeAsync(parent_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueString: *it.FilePickerButton.Path}, fnProgress, fnDone)
 		}
 	} else if it.DatePickerButton != nil {
+		if it.DatePickerButton.Date == nil {
+			tempVal := int64(0)
+			it.DatePickerButton.Date = &tempVal
+		}
 		bt := layout.AddDatePickerButton(it.X, it.Y, it.W, it.H, it.DatePickerButton.Date, it.DatePickerButton.Page, it.DatePickerButton.ShowTime)
 		bt.Tooltip = it.Tooltip
 		if it.DatePickerButton.Date != nil {
@@ -666,6 +686,10 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 		}
 
 	} else if it.ColorPickerButton != nil {
+		if it.ColorPickerButton.Cd == nil {
+			tempVal := color.RGBA{}
+			it.ColorPickerButton.Cd = &tempVal
+		}
 		bt := layout.AddColorPickerButton(it.X, it.Y, it.W, it.H, it.ColorPickerButton.Cd)
 		bt.Tooltip = it.Tooltip
 		//tooltip_value = fmt.Sprintf("Color: R:%d, G:%d, B:%d, A:%d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)
@@ -674,6 +698,10 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 		}
 
 	} else if it.DropDown != nil {
+		if it.DropDown.Value == nil {
+			tempVal := ""
+			it.DropDown.Value = &tempVal
+		}
 		cb := layout.AddDropDown(it.X, it.Y, it.W, it.H, it.DropDown.Value, it.DropDown.Labels, it.DropDown.Values)
 		cb.Tooltip = it.Tooltip
 		cb.Icons = it.DropDown.Icons
@@ -694,6 +722,10 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 		}
 
 	} else if it.Switch != nil {
+		if it.Switch.Value == nil {
+			tempVal := false
+			it.Switch.Value = &tempVal
+		}
 		sw := layout.AddSwitch(it.X, it.Y, it.W, it.H, it.Switch.Label, it.Switch.Value)
 		sw.Tooltip = it.Tooltip
 		sw.changed = func() {
@@ -704,6 +736,10 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 			//tooltip_value = fmt.Sprintf("Value: %v, Label: %s", *it.Switch.Value, it.Switch.Label)
 		}
 	} else if it.Checkbox != nil {
+		if it.Checkbox.Value == nil {
+			tempVal := 0.0
+			it.Checkbox.Value = &tempVal
+		}
 		che := layout.AddCheckbox(it.X, it.Y, it.W, it.H, it.Checkbox.Label, it.Checkbox.Value)
 		che.Tooltip = it.Tooltip
 		che.changed = func() {
@@ -732,6 +768,18 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 		d.Label = it.Divider.Label
 
 	} else if it.Map != nil {
+		if it.Map.Lon == nil {
+			tempVal := 0.0
+			it.Map.Lon = &tempVal
+		}
+		if it.Map.Lat == nil {
+			tempVal := 0.0
+			it.Map.Lat = &tempVal
+		}
+		if it.Map.Zoom == nil {
+			tempVal := 0.0
+			it.Map.Zoom = &tempVal
+		}
 		mp := layout.AddMap(it.X, it.Y, it.W, it.H, &MapCam{Lon: *it.Map.Lon, Lat: *it.Map.Lat, Zoom: *it.Map.Zoom})
 		mp.Tooltip = it.Tooltip
 		mp.Locators = it.Map.Locators

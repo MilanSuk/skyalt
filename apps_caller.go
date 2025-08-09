@@ -36,7 +36,7 @@ func _ToolsCaller_UpdateDev(port int) error {
 	return nil
 }
 
-func _ToolsCaller_CallBuild(port int, msg_id uint64, ui_uid uint64, toolName string, params []byte) ([]byte, []byte, []byte, error) {
+func _ToolsCaller_CallBuild(port int, msg_id uint64, ui_uid uint64, toolName string, paramsJs []byte) ([]byte, []byte, []byte, error) {
 	cl, err := NewToolsClient("localhost", port)
 	if err != nil {
 		return nil, nil, nil, err
@@ -62,7 +62,7 @@ func _ToolsCaller_CallBuild(port int, msg_id uint64, ui_uid uint64, toolName str
 	if LogsError(err) != nil {
 		return nil, nil, nil, err
 	}
-	err = cl.WriteArray(params) //params
+	err = cl.WriteArray(paramsJs) //params
 	if LogsError(err) != nil {
 		return nil, nil, nil, err
 	}
@@ -75,11 +75,11 @@ func _ToolsCaller_CallBuild(port int, msg_id uint64, ui_uid uint64, toolName str
 	if LogsError(err) != nil {
 		return nil, nil, nil, err
 	}
-	out_uiJs, err := cl.ReadArray() //output UI
+	out_uiGob, err := cl.ReadArray() //output UI
 	if LogsError(err) != nil {
 		return nil, nil, nil, err
 	}
-	out_cmdsJs, err := cl.ReadArray() //output cmds
+	out_cmdsBog, err := cl.ReadArray() //output cmds
 	if LogsError(err) != nil {
 		return nil, nil, nil, err
 	}
@@ -90,7 +90,7 @@ func _ToolsCaller_CallBuild(port int, msg_id uint64, ui_uid uint64, toolName str
 		LogsError(out_err)
 	}
 
-	return out_dataJs, out_uiJs, out_cmdsJs, out_err
+	return out_dataJs, out_uiGob, out_cmdsBog, out_err
 }
 
 func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change ToolsSdkChange) ([]byte, []byte, error) {
@@ -129,7 +129,7 @@ func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change Tool
 	if LogsError(err) != nil {
 		return nil, nil, err
 	}
-	cmdsJs, _ := cl.ReadArray()
+	cmdsGob, _ := cl.ReadArray()
 
 	if len(errStr) > 0 {
 		err := errors.New(string(errStr))
@@ -137,7 +137,7 @@ func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change Tool
 		return nil, nil, err
 	}
 
-	return dataJs, cmdsJs, nil
+	return dataJs, cmdsGob, nil
 
 }
 
@@ -170,11 +170,11 @@ func _ToolsCaller_CallUpdate(port int, msg_id uint64, ui_uid uint64, sub_uid uin
 	if LogsError(err) != nil {
 		return nil, nil, err
 	}
-	subUiJs, err := cl.ReadArray()
+	subUiGob, err := cl.ReadArray()
 	if LogsError(err) != nil {
 		return nil, nil, err
 	}
-	cmdsJs, _ := cl.ReadArray()
+	cmdsGob, _ := cl.ReadArray()
 
 	if len(errStr) > 0 {
 		err := errors.New(string(errStr))
@@ -182,5 +182,5 @@ func _ToolsCaller_CallUpdate(port int, msg_id uint64, ui_uid uint64, sub_uid uin
 		return nil, nil, err
 	}
 
-	return subUiJs, cmdsJs, nil
+	return subUiGob, cmdsGob, nil
 }

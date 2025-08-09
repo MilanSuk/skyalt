@@ -178,14 +178,14 @@ func (llama *LLMLlamacpp) Complete(st *LLMComplete, app_port int, tools []*Tools
 				var result string
 
 				//call it
-				resJs, uiJs, cmdsJs, err := _ToolsCaller_CallBuild(app_port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments))
+				resJs, uiGob, cmdsGob, err := _ToolsCaller_CallBuild(app_port, msg.msg_id, 0, call.Function.Name, []byte(call.Function.Arguments))
 				if err != nil {
 					return err
 				}
 				//resJs, tool_ui, err := CallToolApp(st.AppName, call.Function.Name, []byte(call.Function.Arguments), caller)
 
 				//add cmds
-				msg.out_flushed_cmds = append(msg.out_flushed_cmds, cmdsJs)
+				msg.out_flushed_cmdsGob = append(msg.out_flushed_cmdsGob, cmdsGob)
 
 				resMap := make(map[string]interface{})
 				err = LogsJsonUnmarshal(resJs, &resMap)
@@ -234,7 +234,7 @@ func (llama *LLMLlamacpp) Complete(st *LLMComplete, app_port int, tools []*Tools
 				}
 
 				var tool_ui UI
-				LogsJsonUnmarshal(uiJs, &tool_ui)
+				LogsGobUnmarshal(uiGob, &tool_ui)
 
 				hasUI := tool_ui.Is()
 				if hasUI {

@@ -604,7 +604,7 @@ func (prompts *ToolsPrompts) _getStorageMsg(storagePrompt *ToolsPrompt) (string,
 
 	systemMessage += "Based on the user message, rewrite the storage.go file. Your job is to design structures. Write additional functions only if the user asks for them. You may write multiple structures.\n"
 
-	systemMessage += "Structure attributes can not have pointers, because they will be saved as JSON, so instead of pointers, use ID, which is saved in a map[integer or string ID].\n"
+	systemMessage += "Structure attributes can not be pointers, because they will be saved as JSON, so instead of pointers, use ID, which is saved in a map[integer or string ID].\n"
 
 	systemMessage += "Load<name_of_struct>() functions always returns pointer, not array."
 
@@ -697,7 +697,7 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 
 	systemMessage += "Based on the user message, rewrite the tool.go file. Your job is to design a function(tool). Look into an example.go to understand how APIs and storage functions work.\n"
 
-	systemMessage += "Figure out <tool's arguments> based on the user prompt. There are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with an upper-case letter. Every argument must have a description as a comment. You can add extra marks(with brackets []) at the end of a comment. You may add multiple marks with your pair of brackets. Here are the marks:\n"
+	systemMessage += "Figure out <tool's arguments> based on the user prompt. Argument can not be pointer. There are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with an upper-case letter. Every argument must have a description as a comment. You can add extra marks(with brackets []) at the end of a comment. You may add multiple marks with your pair of brackets. Here are the marks:\n"
 	systemMessage += "[optional] - caller can ignore the attribute\n"
 	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]\n`
 	systemMessage += "\n"

@@ -23,6 +23,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/gob"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -65,10 +66,7 @@ func ReadJSONFile[T any](path string, defaultValues *T) (*T, error) {
 
 	// Unpack
 	if len(data) > 0 {
-		err := json.Unmarshal(data, defaultValues)
-		if err != nil {
-			return nil, err
-		}
+		LogsJsonUnmarshal(data, defaultValues)
 	}
 
 	g_files_lock.Lock()
@@ -243,6 +241,37 @@ type SdkLog struct {
 	Time  float64
 }
 
+func LogsJsonMarshal(v any) []byte {
+	data, err := json.Marshal(v)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return data
+}
+
+func LogsJsonUnmarshal(data []byte, v any) {
+	err := json.Unmarshal(data, v)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func LogsGobMarshal(v any) []byte {
+	var buf bytes.Buffer
+	err := gob.NewEncoder(&buf).Encode(v)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return buf.Bytes()
+}
+
+func LogsGobUnmarshal(data []byte, v any) {
+	err := gob.NewDecoder(bytes.NewBuffer(data)).Decode(v)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 var g_uis_lock sync.Mutex
 var g_uis map[uint64]*ToolUI //[ui_uid]
 
@@ -371,12 +400,12 @@ func main() {
 										err = cl.WriteArray(output_errBytes) //error
 										Tool_Error(err)
 
-										uiJs, _ := json.Marshal(subUI)
-										err = cl.WriteArray(uiJs) //sub-ui
+										uiGob := LogsGobMarshal(subUI)
+										err = cl.WriteArray(uiGob) //sub-ui
 										Tool_Error(err)
 
-										cmdsJs, _ := json.Marshal(ui.Caller.cmds)
-										err = cl.WriteArray(cmdsJs) //commands
+										cmdsGob := LogsGobMarshal(ui.Caller.cmds)
+										err = cl.WriteArray(cmdsGob) //commands
 										Tool_Error(err)
 									}
 									cl.Destroy()
@@ -403,54 +432,52 @@ func main() {
 						changeJs, err := cl.ReadArray()
 						if Tool_Error(err) == nil {
 							var change SdkChange
-							err = json.Unmarshal(changeJs, &change)
-							if Tool_Error(err) == nil {
-								g_uis_lock.Lock()
-								ui, found := g_uis[ui_uid]
-								g_uis_lock.Unlock()
-								if found {
-									ok = true
-									go func() {
-										ui.lock.Lock()
-										defer ui.lock.Unlock()
+							LogsJsonUnmarshal(changeJs, &change)
+							g_uis_lock.Lock()
+							ui, found := g_uis[ui_uid]
+							g_uis_lock.Unlock()
+							if found {
+								ok = true
+								go func() {
+									ui.lock.Lock()
+									defer ui.lock.Unlock()
 
-										ui.Caller.msg_id = msg_id
-										ui.Caller.cmds = nil
+									ui.Caller.msg_id = msg_id
+									ui.Caller.cmds = nil
 
-										out_error := ui.ui.runChange(change)
+									out_error := ui.ui.runChange(change)
 
-										if out_error == nil {
-											if !ui.Caller._sendProgress(1, "") {
-												out_error = errors.New("_change_interrupted_")
-											}
+									if out_error == nil {
+										if !ui.Caller._sendProgress(1, "") {
+											out_error = errors.New("_change_interrupted_")
 										}
+									}
 
-										//add callstack to error
-										var output_errBytes []byte
-										if out_error != nil {
-											output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s(%.20s)", "_change_", string(changeJs)))
-										}
+									//add callstack to error
+									var output_errBytes []byte
+									if out_error != nil {
+										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s(%.20s)", "_change_", string(changeJs)))
+									}
 
-										//send back
-										{
-											err = cl.WriteArray(output_errBytes) //error
-											Tool_Error(err)
+									//send back
+									{
+										err = cl.WriteArray(output_errBytes) //error
+										Tool_Error(err)
 
-											ioJs, _ := json.Marshal(ui.parameters)
-											err = cl.WriteArray(ioJs) //call parameters
-											Tool_Error(err)
+										dataJs := LogsJsonMarshal(ui.parameters)
+										err = cl.WriteArray(dataJs) //call parameters
+										Tool_Error(err)
 
-											cmdsJs, _ := json.Marshal(ui.Caller.cmds)
-											err = cl.WriteArray(cmdsJs) //commands
-											Tool_Error(err)
-										}
-										cl.Destroy()
+										cmdsGob := LogsGobMarshal(ui.Caller.cmds)
+										err = cl.WriteArray(cmdsGob) //commands
+										Tool_Error(err)
+									}
+									cl.Destroy()
 
-										_saveInstances()
-									}()
-								} else {
-									fmt.Printf("UI UID %d not found\n", ui_uid)
-								}
+									_saveInstances()
+								}()
+							} else {
+								fmt.Printf("UI UID %d not found\n", ui_uid)
 							}
 						}
 					}
@@ -506,18 +533,13 @@ func main() {
 									}
 
 									//out -> bytes
-									var ioJs []byte
-									var uiJs []byte
-									var cmdsJs []byte
+									var dataJs []byte
+									var uiGob []byte
+									var cmdsGob []byte
 									if out_error == nil {
-										ioJs, out_error = json.Marshal(out_params)
-										Tool_Error(out_error)
-
-										uiJs, out_error = json.Marshal(ui)
-										Tool_Error(out_error)
-
-										cmdsJs, out_error = json.Marshal(caller.cmds)
-										Tool_Error(out_error)
+										dataJs = LogsJsonMarshal(out_params)
+										uiGob = LogsGobMarshal(ui)
+										cmdsGob = LogsGobMarshal(caller.cmds)
 
 										caller.cmds = nil
 									}
@@ -531,11 +553,11 @@ func main() {
 									//send result back
 									err = cl.WriteArray(output_errBytes) //error
 									if Tool_Error(err) == nil {
-										err = cl.WriteArray(ioJs) //call parameters(attrs Out_)
+										err = cl.WriteArray(dataJs) //call parameters(attrs Out_)
 										if Tool_Error(err) == nil {
-											err = cl.WriteArray(uiJs) //ui
+											err = cl.WriteArray(uiGob) //ui
 											if Tool_Error(err) == nil {
-												err = cl.WriteArray(cmdsJs) //cmds
+												err = cl.WriteArray(cmdsGob) //cmds
 												Tool_Error(err)
 											}
 										}
@@ -606,10 +628,7 @@ func (caller *ToolCaller) _sendProgress(done float64, label string) bool {
 }
 
 func (caller *ToolCaller) SendFlushCmd() {
-	cmdsJs, err := json.Marshal(caller.cmds)
-	if Tool_Error(err) != nil {
-		return
-	}
+	cmdsGob := LogsGobMarshal(caller.cmds)
 
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
@@ -619,7 +638,7 @@ func (caller *ToolCaller) SendFlushCmd() {
 		if Tool_Error(err) == nil {
 			err = cl.WriteInt(caller.msg_id)
 			if Tool_Error(err) == nil {
-				err = cl.WriteArray(cmdsJs)
+				err = cl.WriteArray(cmdsGob)
 				if Tool_Error(err) == nil {
 					caller.cmds = nil //reset
 				}
@@ -644,10 +663,7 @@ func _updateDev() {
 	}
 	var st UiSyncDeviceSettings
 
-	err = json.Unmarshal(js, &st)
-	if Tool_Error(err) != nil {
-		return
-	}
+	LogsJsonUnmarshal(js, &st)
 
 	g_dev.DateFormat = st.DateFormat
 
@@ -710,8 +726,7 @@ func callFuncGetMsgs() []SdkMsg {
 		if Tool_Error(err) == nil {
 			msgsJs, err := cl.ReadArray()
 			if Tool_Error(err) == nil {
-				err = json.Unmarshal(msgsJs, &msgs)
-				Tool_Error(err)
+				LogsJsonUnmarshal(msgsJs, &msgs)
 			}
 		}
 	}
@@ -736,10 +751,8 @@ func callFuncGetLogs() []SdkLog {
 				logsJs, err := cl.ReadArray()
 				if Tool_Error(err) == nil {
 					var logs []SdkLog
-					err = json.Unmarshal(logsJs, &logs)
-					if Tool_Error(err) == nil {
-						g_logs = append(g_logs, logs...)
-					}
+					LogsJsonUnmarshal(logsJs, &logs)
+					g_logs = append(g_logs, logs...)
 				}
 			}
 		}
@@ -772,9 +785,7 @@ func callFuncGetMicInfo() SdkMicInfo {
 			micJs, err := cl.ReadArray()
 			if Tool_Error(err) == nil {
 				var st SdkMicInfo
-				json.Unmarshal(micJs, &st)
-				Tool_Error(err)
-
+				LogsJsonUnmarshal(micJs, &st)
 				return st
 			}
 		}
@@ -801,9 +812,7 @@ func callFuncGetMediaInfo() map[uint64]SdkMediaItem {
 			micJs, err := cl.ReadArray()
 			if Tool_Error(err) == nil {
 				var st map[uint64]SdkMediaItem
-				json.Unmarshal(micJs, &st)
-				Tool_Error(err)
-
+				LogsJsonUnmarshal(micJs, &st)
 				return st
 			}
 		}
@@ -848,10 +857,8 @@ func callFuncFindMsgName(msg_name string) *SdkMsg {
 					msgJs, err := cl.ReadArray()
 					if Tool_Error(err) == nil {
 						var msg SdkMsg
-						err = json.Unmarshal(msgJs, &msg)
-						if Tool_Error(err) == nil {
-							return &msg
-						}
+						LogsJsonUnmarshal(msgJs, &msg)
+						return &msg
 					}
 				}
 			}
@@ -942,9 +949,9 @@ func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, toolNam
 
 								dataJs, err := cl.ReadArray()
 								if Tool_Error(err) == nil {
-									uiJs, err := cl.ReadArray()
+									uiGob, err := cl.ReadArray()
 									if Tool_Error(err) == nil {
-										cmdsJs, err := cl.ReadArray()
+										cmdsGob, err := cl.ReadArray()
 										if Tool_Error(err) == nil {
 											errBytes, err := cl.ReadArray()
 											if Tool_Error(err) == nil {
@@ -954,12 +961,10 @@ func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, toolNam
 
 												//add cmds
 												var cmds []ToolCmd
-												err = json.Unmarshal(cmdsJs, &cmds)
-												if Tool_Error(err) == nil {
-													caller.cmds = append(caller.cmds, cmds...)
-												}
+												LogsGobUnmarshal(cmdsGob, &cmds)
+												caller.cmds = append(caller.cmds, cmds...)
 
-												return dataJs, uiJs, err
+												return dataJs, uiGob, err
 											}
 										}
 									}
@@ -1221,12 +1226,11 @@ func CallTool(fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) 
 }
 
 func CallToolApp(appName string, toolName string, jsParams []byte, caller *ToolCaller) ([]byte, *UI, error) {
-	dataJs, uiJs, err := caller.callFuncSubCall(0, appName, toolName, jsParams)
+	dataJs, uiGob, err := caller.callFuncSubCall(0, appName, toolName, jsParams)
 
 	var ui UI
 	if err == nil {
-		err = json.Unmarshal(uiJs, &ui)
-		Tool_Error(err)
+		LogsGobUnmarshal(uiGob, &ui)
 	}
 
 	return dataJs, &ui, err
@@ -1298,9 +1302,6 @@ func (ui *UI) runChange(change SdkChange) error {
 		return fmt.Errorf("UID %d not found", change.UID)
 	}
 
-	//itJs, _ := json.MarshalIndent(it, "", "   ")
-	//callFuncPrint("runChange() found:" + string(itJs))
-
 	//sub-app
 	if it.changed != nil {
 		return it.changed(change.ValueBytes)
@@ -1309,16 +1310,12 @@ func (ui *UI) runChange(change SdkChange) error {
 	if it.Text != nil {
 		if it.Text.dropFile != nil {
 			var pathes []string
-			err := json.Unmarshal(change.ValueBytes, &pathes)
-			if err != nil {
-				return err
-			}
+			LogsJsonUnmarshal(change.ValueBytes, &pathes)
 			return it.Text.dropFile(pathes)
 		}
 	}
 
 	if it.Editbox != nil {
-
 		diff := false
 		if it.Editbox.Value != nil {
 			diff = (*it.Editbox.Value != change.ValueString)
@@ -1868,7 +1865,7 @@ type UI struct {
 
 	Paint []UIPaint `json:",omitempty"`
 
-	changed func(newParams []byte) error
+	changed func(newParamsJs []byte) error
 
 	update    func() error
 	HasUpdate bool
@@ -2871,19 +2868,17 @@ func (ui *UI) AddToolApp(x, y, w, h int, layout_name string, appName string, too
 	ui._addUISub(ret_ui, layout_name)
 
 	//call router
-	_, uiJs, err := caller.callFuncSubCall(ret_ui.UID, appName, toolName, jsParams)
+	_, uiGob, err := caller.callFuncSubCall(ret_ui.UID, appName, toolName, jsParams)
 	if err == nil {
-		err := json.Unmarshal(uiJs, ret_ui)
-		if Tool_Error(err) == nil {
-			ret_ui.X = x
-			ret_ui.Y = y
-			ret_ui.W = w
-			ret_ui.H = h
-			ret_ui.AppName = appName
-			ret_ui.ToolName = toolName
+		LogsGobUnmarshal(uiGob, ret_ui)
+		ret_ui.X = x
+		ret_ui.Y = y
+		ret_ui.W = w
+		ret_ui.H = h
+		ret_ui.AppName = appName
+		ret_ui.ToolName = toolName
 
-			return ret_ui, nil
-		}
+		return ret_ui, nil
 	}
 
 	//error
@@ -3091,10 +3086,7 @@ func LLMCompletion_stop(UID string, caller *ToolCaller) error {
 }
 
 func (comp *LLMCompletion) Run(caller *ToolCaller) error {
-	compJs, err := json.Marshal(comp)
-	if err != nil {
-		return err
-	}
+	compJs := LogsJsonMarshal(comp)
 
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
@@ -3130,10 +3122,8 @@ func (comp *LLMCompletion) Run(caller *ToolCaller) error {
 					//result
 					compJs, err = cl.ReadArray()
 					if Tool_Error(err) == nil {
-						err = json.Unmarshal(compJs, comp)
-						if Tool_Error(err) == nil {
-							return nil
-						}
+						LogsJsonUnmarshal(compJs, comp) //update
+						return nil
 					}
 				}
 			}
@@ -3155,10 +3145,7 @@ type LLMTranscribe struct {
 }
 
 func (comp *LLMTranscribe) Run(caller *ToolCaller) error {
-	compJs, err := json.Marshal(comp)
-	if err != nil {
-		return err
-	}
+	compJs := LogsJsonMarshal(comp)
 
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
@@ -3188,10 +3175,8 @@ func (comp *LLMTranscribe) Run(caller *ToolCaller) error {
 					//result
 					compJs, err = cl.ReadArray()
 					if Tool_Error(err) == nil {
-						err = json.Unmarshal(compJs, comp)
-						if Tool_Error(err) == nil {
-							return nil
-						}
+						LogsJsonUnmarshal(compJs, comp) //update
+						return nil
 					}
 				}
 			}
