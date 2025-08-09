@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"image/color"
 	"slices"
-	"sort"
 	"strings"
 	"unicode"
 )
@@ -110,7 +109,6 @@ func _UiText_FormatAsCode(code string, palette *DevPalette) string {
 			break
 		}
 	}
-	sort.Strings(structs)
 
 	//Std
 	for _, it := range elms {
@@ -131,9 +129,11 @@ func _UiText_FormatAsCode(code string, palette *DevPalette) string {
 		}
 
 		//Struct
-		if sort.SearchStrings(structs, it.Text) < len(structs) {
-			it.Color = g_syntax_structName
-			finalElem = append(finalElem, it)
+		{
+			if slices.Contains(structs, it.Text) {
+				it.Color = g_syntax_structName
+				finalElem = append(finalElem, it)
+			}
 		}
 	}
 
@@ -144,8 +144,6 @@ func _UiText_FormatAsCode(code string, palette *DevPalette) string {
 	for _, e := range finalElem {
 		code = e.Replace(code)
 	}
-
-	fmt.Println(code)
 
 	return code
 }
