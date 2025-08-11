@@ -1,26 +1,24 @@
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 )
 
-// Delete event
+// DeleteEvent represents a tool to remove an event from the storage.
 type DeleteEvent struct {
-	EventID json.Number //ID of the event to delete
+	EventID string // The ID of the event to delete.
 }
 
 func (st *DeleteEvent) run(caller *ToolCaller, ui *UI) error {
-	source_events, err := NewEvents("")
+	events, err := LoadEvents()
 	if err != nil {
 		return err
 	}
 
-	ID, err := st.EventID.Int64()
-	if err != nil {
-		return err
+	if _, found := events.Items[st.EventID]; !found {
+		return fmt.Errorf("EventID %s not found", st.EventID)
 	}
 
-	delete(source_events.Events, ID)
-
+	delete(events.Items, st.EventID)
 	return nil
 }

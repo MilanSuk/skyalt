@@ -1,69 +1,45 @@
 package main
 
-// Shows settings for user's body measurements.
+import (
+	"fmt"
+)
+
 type ShowUserBodyMeasurements struct {
+	//No arguments required
 }
 
 func (st *ShowUserBodyMeasurements) run(caller *ToolCaller, ui *UI) error {
-	source_body, err := NewUserBodyMeasurements("")
+	body, err := LoadUserBodyMeasurements()
 	if err != nil {
 		return err
 	}
 
-	ui.SetColumn(0, 2, 4)
-	ui.SetColumn(1, 3, 16)
+	ui.addTextH1("User Body Measurements")
 
-	ui.AddTextLabel(0, 0, 2, 1, "Edit body measurements")
+	form := ui.addTable("")
 
-	ui.AddText(0, 1, 1, 1, "Gender")
-	var gender string
-	if source_body.Female {
-		gender = "female"
-	} else {
-		gender = "male"
+	{
+		ln := form.addLine("Gender = " + body.Gender)
+		ln.addText("Gender", "")
+		ln.addDropDown(&body.Gender, []string{"Man", "Woman"}, []string{"man", "woman"}, "Gender = "+body.Gender)
 	}
 
-	gen := ui.AddDropDown(1, 1, 1, 1, &gender, []string{"Male", "Female"}, []string{"male", "female"})
-	//gen.DialogWidth = 4
-	gen.changed = func() error {
-		source_body.Female = (gender == "female")
-		return nil
+	{
+		ln := form.addLine("BirthYear = " + fmt.Sprintf("%d", body.BirthYear))
+		ln.addText("Year of birth", "")
+		ln.addEditboxInt(&body.BirthYear, "BirthYear = "+fmt.Sprintf("%d", body.BirthYear))
 	}
 
-	year := source_body.BornYear
-	ui.AddText(0, 2, 1, 1, "Year of birth")
-	ed := ui.AddEditboxInt(1, 1, 1, 1, &year)
-	ed.Ghost = "2000"
-	ed.changed = func() error {
-		if year < 1 {
-			year = 1
-		}
-		source_body.BornYear = year
-		return nil
+	{
+		ln := form.addLine("Height = " + fmt.Sprintf("%.2f", body.Height))
+		ln.addText("Height (m)", "")
+		ln.addEditboxFloat(&body.Height, 2, "Height = "+fmt.Sprintf("%.2f", body.Height))
 	}
 
-	height := source_body.Height
-	ui.AddText(0, 3, 1, 1, "Height(meters)")
-	ed = ui.AddEditboxFloat(1, 2, 1, 1, &height, 2)
-	ed.Ghost = "1.7m"
-	ed.changed = func() error {
-		if height < 1 {
-			height = 1
-		}
-		source_body.Height = height
-		return nil
-	}
-
-	weight := source_body.Weight
-	ui.AddText(0, 4, 1, 1, "Weight(kg)")
-	ed = ui.AddEditboxFloat(1, 3, 1, 1, &weight, 2)
-	ed.Ghost = "60 kg"
-	ed.changed = func() error {
-		if weight < 1 {
-			weight = 1
-		}
-		source_body.Weight = weight
-		return nil
+	{
+		ln := form.addLine("Weight = " + fmt.Sprintf("%.1f", body.Weight))
+		ln.addText("Weight (kg)", "")
+		ln.addEditboxFloat(&body.Weight, 1, "Weight = "+fmt.Sprintf("%.1f", body.Weight))
 	}
 
 	return nil

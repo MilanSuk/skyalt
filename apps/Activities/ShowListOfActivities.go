@@ -2,108 +2,88 @@ package main
 
 import (
 	"fmt"
-	"strconv"
-	"time"
+	"sort"
 )
 
-// Shows list of Activities filtered by parameters.
 type ShowListOfActivities struct {
-	DateStart string //Select only runs after this data. Date format: YYYY-MM-DD HH:MM [optional]
-	DateEnd   string //Select only runs before this data. Date format: YYYY-MM-DD HH:MM [optional]
-
-	SortBy        string //Sort activities by. [options: date, distance, duration] [optional]
-	SortAscending bool   //Ascending order for SortBy parameter. [optional]
-
-	MaxNumberOfItems int //Maximum number of items returned. Zero if ignored. [optional]
+	DateStart        string // optional, format: YYYY-MM-DD HH:MM [optional]
+	DateEnd          string // optional, format: YYYY-MM-DD HH:MM [optional]
+	SortBy           string // optional [optional][options: "date", "distance", "duration"]
+	SortAscending    bool   // optional [optional]
+	MaxNumberOfItems int    // optional, zero or negative to show all [optional]
 }
 
 func (st *ShowListOfActivities) run(caller *ToolCaller, ui *UI) error {
-	source_activities, err := NewActivities("")
+	sortBy := st.SortBy
+	if sortBy == "" {
+		sortBy = "date"
+	}
+
+	activities, err := LoadActivities()
 	if err != nil {
 		return err
 	}
 
-	if st.SortBy == "" {
-		st.SortBy = "date"
-	}
-
-	sorted, err := source_activities.Filter(st.DateStart, st.DateEnd, st.SortBy, st.SortAscending, st.MaxNumberOfItems)
+	filtered, err := FilterActivities(st.DateStart, st.DateEnd, sortBy, st.SortAscending, st.MaxNumberOfItems)
 	if err != nil {
 		return err
 	}
 
-	ui.SetColumn(0, 10, 20)
-
-	ui.AddTextLabel(0, 0, 1, 1, "List of activities")
-
-	y := 1
-	//header
-	{
-		HeadDiv := _GetListOfActivities_SetRow(ui.AddLayout(0, y, 1, 1), "")
-		HeadDiv.AddText(0, 0, 1, 1, "<i>Date")
-		HeadDiv.AddText(1, 0, 1, 1, "<i>Type")
-		HeadDiv.AddText(2, 0, 1, 1, "<i>Description")
-		HeadDiv.AddText(3, 0, 1, 1, "<i>Distance(km)")
-		HeadDiv.AddText(4, 0, 1, 1, "<i>Duration(h:m:s)")
-		y++
+	typeSet := make(map[string]struct{})
+	for _, a := range activities.Activities {
+		if a.Type != "" {
+			typeSet[a.Type] = struct{}{}
+		}
+	}
+	var types []string
+	for t := range typeSet {
+		types = append(types, t)
+	}
+	sort.Strings(types)
+	if len(types) == 0 {
+		types = []string{"running", "cycling", "walking", "hiking", "swimming"}
 	}
 
-	//activities
-	sum_time := 0.0
-	sum_distance := 0.0
-	for _, id := range sorted {
-		it := source_activities.Activities[id]
+	ui.addTextH1("List of activities")
 
-		tm := time.Duration(it.Duration * float64(time.Second))
+	table := ui.addTable("")
+	hdr := table.addLine("")
+	hdr.addText("Date", "")
+	hdr.addText("Type", "")
+	hdr.addText("Description", "")
+	hdr.addText("Distance(km)", "")
+	hdr.addText("Duration(h:m:s)", "")
+	hdr.addText("", "")
+	table.addDivider()
 
-		LineDiv := _GetListOfActivities_SetRow(ui.AddLayout(0, y, 1, 1), id)
-		LineDiv.AddText(0, 0, 1, 1, SdkGetDateTime(int64(it.Date)))
-		cb := LineDiv.AddDropDown(1, 0, 1, 1, &it.Type, source_activities.GetTypeLabels(), source_activities.GetTypeValues())
-		cb.changed = func() error {
-			return nil
+	for i := range filtered {
+		act := &filtered[i]
+		line := table.addLine(fmt.Sprintf("ActivityID=%s", act.ID))
+
+		line.addText(SdkGetDateTime(act.StartDate), "")
+
+		line.addDropDown(&act.Type, types, types, "")
+
+		line.addEditboxString(&act.Description, "")
+
+		distStr := "-"
+		if act.Distance > 0 {
+			distStr = fmt.Sprintf("%.1f", act.Distance)
 		}
-		//cb.DialogWidth = 3
-		ed := LineDiv.AddEditboxString(2, 0, 1, 1, &it.Description)
-		ed.changed = func() error {
-			return nil
+		line.addText(distStr, "")
+
+		dur := act.Duration
+		h := dur / 3600
+		m := (dur % 3600) / 60
+		s := dur % 60
+		durStr := "-"
+		if dur > 0 {
+			durStr = fmt.Sprintf("%d:%02d:%02d", h, m, s)
 		}
-		LineDiv.AddText(3, 0, 1, 1, strconv.FormatFloat(it.Distance/1000, 'f', 3, 64))
-		LineDiv.AddText(4, 0, 1, 1, fmt.Sprintf("%d:%02d:%02d", int(tm.Hours()), int(tm.Minutes())%60, int(tm.Seconds())%60))
+		line.addText(durStr, "")
 
-		y++
-
-		sum_distance += it.Distance
-		sum_time += tm.Seconds()
-	}
-
-	ui.SetRow(y, 0.5, 0.5)
-	ui.AddDivider(0, y, 1, 1, true)
-	y++
-
-	//sum
-	{
-		tm := time.Duration(sum_time * float64(time.Second))
-		SumDiv := _GetListOfActivities_SetRow(ui.AddLayout(0, y, 1, 1), "")
-		SumDiv.AddText(0, 0, 1, 1, fmt.Sprintf("<i>%d activities", len(sorted)))
-		SumDiv.AddText(1, 0, 1, 1, "")
-		SumDiv.AddText(2, 0, 1, 1, "")
-		SumDiv.AddText(3, 0, 1, 1, "<i>"+strconv.FormatFloat(sum_distance/1000, 'f', 3, 64))
-		SumDiv.AddText(4, 0, 1, 1, fmt.Sprintf("<i>%d:%02d:%02d", int(tm.Hours()), int(tm.Minutes())%60, int(tm.Seconds())%60))
+		line.addPromptMenu([]string{"Show elevation", "Delete activity"}, fmt.Sprintf("ActivityID=%s", act.ID))
 	}
 
 	return nil
-}
-
-func _GetListOfActivities_SetRow(ui *UI, activity_ID string) *UI {
-	if activity_ID != "" {
-		ui.Tooltip = fmt.Sprintf("ActivityID: %s", activity_ID)
-	}
-
-	ui.SetColumn(0, 1, 4)
-	ui.SetColumn(1, 1, 4)
-	ui.SetColumn(2, 1, 10)
-	ui.SetColumn(3, 1, 3)
-	ui.SetColumn(4, 1, 3)
-
-	return ui
 }

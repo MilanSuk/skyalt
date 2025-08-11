@@ -1,15 +1,18 @@
 package main
 
-// Show calendar's Year view.
+import (
+	"fmt"
+)
+
+// ShowYearCalendar displays a calendar for the specified year.
 type ShowYearCalendar struct {
-	Year int
+	Year int // Year to display the calendar for
 }
 
 func (st *ShowYearCalendar) run(caller *ToolCaller, ui *UI) error {
-	ui.SetColumn(0, 1, Layout_MAX_SIZE)
-	ui.SetRow(0, 1, Layout_MAX_SIZE)
+	ui.addTextH1(fmt.Sprintf("Calendar for year %d", st.Year))
 
-	ui.AddYearCalendar(0, 0, 1, 1, st.Year)
+	ui.addYearCalendar(st.Year)
 
 	return nil
 }

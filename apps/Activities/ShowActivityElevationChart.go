@@ -6,63 +6,72 @@ import (
 	"math"
 )
 
-// Shows elevation chart from the activity file.
 type ShowActivityElevationChart struct {
-	ActivityID string //ID of the activity
+	ActivityID string // ID of the activity
 }
 
 func (st *ShowActivityElevationChart) run(caller *ToolCaller, ui *UI) error {
-	source_activities, err := NewActivities("")
+	activities, err := LoadActivities()
 	if err != nil {
 		return err
 	}
 
-	activity, found := source_activities.Activities[st.ActivityID]
+	activity, found := activities.Activities[st.ActivityID]
 	if !found {
-		return fmt.Errorf("activity '%s' not found", st.ActivityID)
+		return fmt.Errorf("activity ID %s not found", st.ActivityID)
 	}
 
-	// load
-	gpx, err := source_activities.GetGpx(st.ActivityID)
+	dateStr := SdkGetDate(activity.StartDate)
+
+	ui.addTextH1("Elevation for " + dateStr)
+
+	gpx, err := LoadGpx(st.ActivityID)
 	if err != nil {
 		return err
 	}
 
-	segments := gpx.getGPXSegments()
-
-	ui.SetColumn(0, 1, Layout_MAX_SIZE)
-	ui.SetRow(1, 10, 10)
-
-	ui.AddTextLabel(0, 0, 1, 1, fmt.Sprintf("Elevation - %s", SdkGetDate(int64(activity.Date))))
-
-	line := UIChartLine{Label: "Elevation", Cd: color.RGBA{0, 0, 0, 255}}
-
-	last_addDistance := 0.0
-	totalDistance := 0.0
-	for _, seg := range segments {
-		for i := range seg.Trkpts {
-
-			if last_addDistance+0.05 < totalDistance || i == 0 || i == len(seg.Trkpts)-1 {
-				line.Points = append(line.Points, UIChartPoint{
-					X:  totalDistance,
-					Y:  math.Round(seg.Trkpts[i].Ele),
-					Cd: seg.Trkpts[i].Cd,
-				})
-				last_addDistance = totalDistance
-			}
-
-			if i > 0 {
-				totalDistance += gpx.haversine(seg.Trkpts[i-1].Lat, seg.Trkpts[i-1].Lon, seg.Trkpts[i].Lat, seg.Trkpts[i].Lon)
-			}
+	var allPoints []Point
+	for _, track := range gpx.Tracks {
+		for _, seg := range track.Segments {
+			allPoints = append(allPoints, seg.Points...)
 		}
 	}
 
-	ch := ui.AddChartLines(0, 1, 1, 1, []UIChartLine{line})
-	ch.Point_rad = 0
-	ch.Line_thick = 0.06
-	ch.X_unit = "km"
-	ch.Y_unit = "m"
-	ch.Bound_y0 = true
+	var chartPoints []UIChartPoint
+	cumDist := 0.0
+	if len(allPoints) > 0 {
+		chartPoints = append(chartPoints, UIChartPoint{X: cumDist, Y: allPoints[0].Elevation})
+		for i := 1; i < len(allPoints); i++ {
+			d := haversine(allPoints[i-1].Latitude, allPoints[i-1].Longitude, allPoints[i].Latitude, allPoints[i].Longitude)
+			cumDist += d
+			chartPoints = append(chartPoints, UIChartPoint{X: cumDist, Y: allPoints[i].Elevation})
+		}
+	}
+
+	line := UIChartLine{
+		Points: chartPoints,
+		Label:  "Elevation",
+		Cd:     color.RGBA{0, 0, 0, 255},
+	}
+	lines := []UIChartLine{line}
+
+	ui.setRowHeight(10, 20)
+	chart := ui.addChartLines(lines, "")
+	chart.X_unit = "km"
+	chart.Y_unit = "m"
+	chart.Bound_y0 = true
+	chart.Draw_YHelpLines = true
+	chart.Draw_XHelpLines = true
+	chart.Line_thick = 2
 
 	return nil
+}
+
+func haversine(lat1, lon1, lat2, lon2 float64) float64 {
+	const R = 6371.0
+	dLat := (lat2 - lat1) * (math.Pi / 180)
+	dLon := (lon2 - lon1) * (math.Pi / 180)
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(lat1*(math.Pi/180))*math.Cos(lat2*(math.Pi/180))*math.Sin(dLon/2)*math.Sin(dLon/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+	return R * c
 }

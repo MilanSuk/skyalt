@@ -1,56 +1,68 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 )
 
-// Change event's Start or Duration. For example to move event to different day/time.
 type ChangeEventDate struct {
-	ID json.Number //Event ID
-
-	Start string //Date of event start. Format: YYYY-MM-DD HH:MM.
-	End   string //Date of event end. Format: YYYY-MM-DD HH:MM.
-
+	EventID string // The ID of the event to change
+	Start   string // New start date in YYYY-MM-DD HH:MM format
+	End     string // New end date in YYYY-MM-DD HH:MM format
 }
 
+// Changes the start time and duration of an event based on the provided inputs.
 func (st *ChangeEventDate) run(caller *ToolCaller, ui *UI) error {
-	source_events, err := NewEvents("")
-	if err != nil {
-		return err
-	}
+	ui.addTextH1("Change Event Date")
 
-	ts, err := time.ParseInLocation("2006-01-02 15:04", st.Start, time.Local)
-	if err != nil {
-		return err
-	}
-	te, err := time.ParseInLocation("2006-01-02 15:04", st.End, time.Local)
-	if err != nil {
-		return err
-	}
+	form := ui.addTable("Form for changing event date")
 
-	startDate := ts.Unix()
-	endDate := te.Unix()
+	ln := form.addLine("Event ID")
+	ln.addText("Event ID", "")                  // Label for Event ID input
+	ln.addEditboxString(&st.EventID, "EventID") // Input for the event ID
 
-	if startDate >= endDate {
-		endDate = startDate + 30*60
+	ln = form.addLine("New Start Date")
+	ln.addText("New Start Date", "")            // Label for new start date input
+	ln.addEditboxString(&st.Start, "New Start") // Input for the new start date
+
+	ln = form.addLine("New End Date")
+	ln.addText("New End Date", "")          // Label for new end date input
+	ln.addEditboxString(&st.End, "New End") // Input for the new end date
+
+	btn := ui.addButton("Apply Changes", "Button to apply the date changes")
+	btn.clicked = func() error {
+		events, err := LoadEvents()
+		if err != nil {
+			return fmt.Errorf("Failed to load events: %v", err)
+		}
+
+		event, found := events.Items[st.EventID]
+		if !found {
+			return fmt.Errorf("EventID %s not found", st.EventID)
+		}
+
+		startTime, err := time.Parse("2006-01-02 15:04", st.Start)
+		if err != nil {
+			return fmt.Errorf("Invalid Start format: %v", err)
+		}
+
+		endTime, err := time.Parse("2006-01-02 15:04", st.End)
+		if err != nil {
+			return fmt.Errorf("Invalid End format: %v", err)
+		}
+
+		event.Start = startTime.Unix() // Set new start time in Unix seconds
+
+		durationSeconds := endTime.Unix() - startTime.Unix()
+		if durationSeconds < 0 {
+			return fmt.Errorf("End time must be after Start time")
+		}
+		event.Duration = durationSeconds // Set new duration in seconds
+
+		events.Items[st.EventID] = event // Update the event in storage
+
+		return nil
 	}
-
-	ID, err := st.ID.Int64()
-	if err != nil {
-		return err
-	}
-
-	event, found := source_events.Events[ID]
-	if !found {
-		return fmt.Errorf("event '%d' not found", ID)
-	}
-
-	//update
-	event.Start = startDate
-	event.Duration = endDate - startDate
-	source_events.Events[ID] = event
 
 	return nil
 }

@@ -1,54 +1,71 @@
 package main
 
 import (
+	"image/color"
+	"strconv"
 	"time"
 )
 
-// Show calendar's Month view.
+// Year int     // The year for which to show the calendar.
+// Month int    // The month for which to show the calendar (1=January, etc.).
+// GroupIDs []string  // List of Group IDs to filter events by. If empty, show all events. [optional]
 type ShowMonthCalendar struct {
-	Year  int
-	Month int //1=January, 2=February, etc.
-
-	Groups []int //filter only specific calendar groups. Empty=Show all groups. [optional]
+	Year     int
+	Month    int
+	GroupIDs []string
 }
 
 func (st *ShowMonthCalendar) run(caller *ToolCaller, ui *UI) error {
-	source_events, err := NewEvents("")
+	eventsData, err := LoadEvents()
 	if err != nil {
 		return err
 	}
 
-	// Week Days
-	dt := time.Date(st.Year, time.Month(st.Month), 1, 0, 0, 0, 0, time.Local)
-	{
-		firstDay := time.Monday
-		if UI_GetDateFormat() == "us" {
-			firstDay = time.Sunday
-		}
-		for dt.Weekday() != firstDay {
-			dt = dt.AddDate(0, 0, -1)
-		}
-	}
-	var events []UICalendarEvent
-
-	events_ids := source_events.filterEvents(dt.Unix(), dt.Unix()+(31*24*3600), st.Groups)
-	for _, event_id := range events_ids {
-		event := source_events.Events[event_id]
-
-		events = append(events, UICalendarEvent{
-			EventID:  event_id,
-			GroupID:  event.GroupID,
-			Title:    event.Title,
-			Start:    event.Start,
-			Duration: event.Duration,
-			Color:    source_events.findGroupColorOrDefault(event.GroupID, caller)})
-
+	groupsData, err := LoadGroups()
+	if err != nil {
+		return err
 	}
 
-	ui.SetColumn(0, 1, Layout_MAX_SIZE)
-	ui.SetRowFromSub(0, 5, Layout_MAX_SIZE, true)
+	// Calculate start and end times for the month
+	firstOfMonth := time.Date(st.Year, time.Month(st.Month), 1, 0, 0, 0, 0, time.UTC)
+	startTime := firstOfMonth.Unix()
+	endOfMonth := firstOfMonth.AddDate(0, 1, 0) // First day of next month
+	endTime := endOfMonth.Unix() - 1            // Last second of the current month
 
-	ui.AddMonthCalendar(0, 0, 1, 1, st.Year, st.Month, events)
+	eventIDs, err := FilterEvents(startTime, endTime, st.GroupIDs)
+	if err != nil {
+		return err
+	}
+
+	var uiEvents []UICalendarEvent
+	for _, eventIDStr := range eventIDs {
+		if event, found := eventsData.Items[eventIDStr]; found {
+			eventID, err := strconv.ParseInt(event.EventID, 10, 64)
+			if err != nil {
+				continue // Skip if EventID can't be parsed
+			}
+			groupID, err := strconv.ParseInt(event.GroupID, 10, 64)
+			if err != nil {
+				continue // Skip if GroupID can't be parsed
+			}
+
+			uiEvent := UICalendarEvent{
+				EventID:  eventID,
+				GroupID:  groupID,
+				Title:    event.Title,
+				Start:    event.Start,
+				Duration: event.Duration,
+			}
+
+			if group, found := groupsData.Items[event.GroupID]; found {
+				uiEvent.Color = color.RGBA{group.Color.R, group.Color.G, group.Color.B, group.Color.A}
+			}
+
+			uiEvents = append(uiEvents, uiEvent)
+		}
+	}
+
+	ui.addMonthCalendar(st.Year, st.Month, uiEvents)
 
 	return nil
 }
