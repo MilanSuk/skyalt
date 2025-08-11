@@ -1,7 +1,7 @@
-#function GetLanguageOptions
-Returns list "English", "German", "French", "Czech".
+#Function GetLanguageOptions
+Returns list "English", "German", "French", "Czech", "Spanish".
 
-#tool ShowTranslator
+#Tool ShowTranslator
 Tool accepts original text and make translation into other language.
 Input parameter is "Original" text and "Language" text(to pick the language, default is "English") and output is "Translation" text. Input is optional and can be empty.
 
