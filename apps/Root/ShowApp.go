@@ -12,8 +12,6 @@ type ShowApp struct {
 	ChatFileName string
 }
 
-const g_ShowApp_prompt_height = 7
-
 func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 	source_root, err := NewRoot("")
 	if err != nil {

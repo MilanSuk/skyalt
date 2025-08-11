@@ -93,6 +93,28 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
+		//Normal chats
+		{
+			//AppsDiv.SetRow(y, d, d)
+			chatsBt := AppsDiv.AddButton(0, y, 1, 1, "")
+			y++
+			chatsBt.IconPath = "resources/chat.png"
+			chatsBt.Icon_margin = 0.2
+			chatsBt.layout.Tooltip = "Chats"
+			chatsBt.Background = 0.25
+			if source_root.Show == "chats" {
+				chatsBt.Background = 1
+			}
+			chatsBt.clicked = func() error {
+				if source_root.Show != "chats" {
+					source_root.Show = "chats"
+				} else {
+					source_root.Show = ""
+				}
+				return nil
+			}
+		}
+
 		//divider
 		{
 			AppsDiv.SetRow(y, 0.1, 0.1)
@@ -110,9 +132,14 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			Apps2Div.SetColumn(0, 1, Layout_MAX_SIZE)
 			yy := 0
 			for i, app := range source_root.Apps {
+
+				if app.Name == "Device" || app.Name == "Chats" {
+					continue
+				}
+
 				var bt *UIButton
 
-				if i == source_root.Selected_app_i && !source_root.ShowSettings {
+				if i == source_root.Selected_app_i && source_root.Show == "" {
 					dd := 1.0
 
 					Apps2Div.SetRowFromSub(yy, 1, Layout_MAX_SIZE, true)
@@ -139,7 +166,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					btDev.clicked = func() error {
 						app.Dev.Enable = !app.Dev.Enable
 						source_root.Selected_app_i = i
-						source_root.ShowSettings = false
+						source_root.Show = ""
 						return nil
 					}
 
@@ -158,11 +185,11 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				bt.Icon_margin = 0.4
 
 				bt.clicked = func() error {
-					if source_root.Selected_app_i == i && !source_root.ShowSettings {
+					if source_root.Selected_app_i == i && source_root.Show == "" {
 						app.Dev.Enable = false
 					}
 					source_root.Selected_app_i = i
-					source_root.ShowSettings = false
+					source_root.Show = ""
 					return nil
 				}
 
@@ -224,7 +251,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 					//refresh apps & select and set new one
 					source_root.refreshApps()
-					source_root.ShowSettings = false
+					source_root.Show = ""
 					source_root.Selected_app_i = len(source_root.Apps) - 1
 					source_root.Apps[len(source_root.Apps)-1].Dev.Enable = true
 				}
@@ -240,11 +267,15 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			setBt.Icon_margin = 0.2
 			setBt.layout.Tooltip = "Show Settings"
 			setBt.Background = 0.25
-			if source_root.ShowSettings {
+			if source_root.Show == "settings" {
 				setBt.Background = 1
 			}
 			setBt.clicked = func() error {
-				source_root.ShowSettings = !source_root.ShowSettings
+				if source_root.Show != "settings" {
+					source_root.Show = "settings"
+				} else {
+					source_root.Show = ""
+				}
 				return nil
 			}
 		}
@@ -386,13 +417,18 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 	}
 
-	if source_root.ShowSettings {
+	switch source_root.Show {
+	case "chats":
+		_, err = ui.AddToolApp(1, 0, 1, 1, "Chats", "Chats", "ShowChats", nil, caller)
+		if err != nil {
+			return err
+		}
+	case "settings":
 		err := st.buildSettings(ui.AddLayoutWithName(1, 0, 1, 1, "Settings"), caller)
 		if err != nil {
 			return err
 		}
-	} else {
-
+	default:
 		if app == nil {
 			return nil
 		}
@@ -434,248 +470,253 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 				SideDiv.SetRow(1, 1, Layout_MAX_SIZE)
 
-				//Header
-				{
-					SideDiv.SetRow(0, 1, 1.5)
-					HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
-					HeaderDiv.SetRow(0, 1, Layout_MAX_SIZE)
-					HeaderDiv.ScrollH.Narrow = true
-					HeaderDiv.ScrollV.Hide = true
-					//New Tab
-					{
-						HeaderDiv.SetColumn(0, 2, Layout_MAX_SIZE)
-						bt := HeaderDiv.AddButton(0, 0, 1, 1, "New Tab")
-						bt.Background = 0.5
-						bt.layout.Tooltip = "Create new tab"
-						bt.Shortcut = 't'
-						bt.layout.Enable = (app != nil)
-						bt.clicked = func() error {
-							if app == nil {
-								return fmt.Errorf("No app selected")
-							}
-
-							fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
-							source_chat, err = NewChat(filepath.Join("..", app.Name, "Chats", fileName))
-							if err != nil {
-								return nil
-							}
-
-							pos := app.NumPins() //skip pins
-							app.Chats = slices.Insert(app.Chats, pos, RootChat{Label: "Empty", FileName: fileName})
-							app.Selected_chat_i = pos
-
-							ui.ActivateEditbox("chat_user_prompt", caller)
-
-							SideDiv.VScrollToTheTop(caller)
-
-							source_root.ShowSettings = false
-
-							//if exist, prepare StartPrompt to run
-							{
-								type SdkToolsPrompts struct {
-									StartPrompt string
-									//..
-								}
-								var sdk_app SdkToolsPrompts
-								appJs, err := callFuncGetToolData(app.Name)
-								if err != nil {
-									return err
-								}
-								err = json.Unmarshal(appJs, &sdk_app)
-								if err != nil {
-									return err
-								}
-
-								if sdk_app.StartPrompt != "" {
-									_saveInstances() //save previous chat(and root selection)
-
-									source_chat.Input.Text = sdk_app.StartPrompt
-
-									//ch := ShowChat{AppName: app.Name, ChatFileName: fileName}
-									return source_chat._sendIt(app.Name, caller, source_root, false)
-								}
-							}
-
-							return nil
-						}
-					}
-
-					HeaderDiv.SetColumn(1, 0.5, 0.5) //space
-
-					//navigation
-					if source_chat != nil {
-						numUseMessages := source_chat.GetNumUserMessages()
-
-						//HeaderDiv.SetColumn(1, 0.5, 0.5) //space
-
-						HeaderDiv.SetColumnFromSub(2, 1, Layout_MAX_SIZE, true)
-						NavDiv := HeaderDiv.AddLayout(2, 0, 1, 1)
-						NavDiv.SetRow(0, 1, Layout_MAX_SIZE)
-
-						nx := 0
-
-						/*NavDiv.SetColumn(nx, 1.5, 1.5)
-						homeBt := NavDiv.AddButton(nx, 0, 1, 1, "")
-						nx++
-						homeBt.layout.Enable = (source_chat.User_msg_i > 0)
-						homeBt.layout.Tooltip = "First dashboard"
-						homeBt.Background = 0.5
-						homeBt.IconPath = "resources/home.png"
-						homeBt.Icon_margin = 0.5
-						homeBt.clicked = func() error {
-							source_chat.User_msg_i = 0
-							return nil
-						}
-						*/
-
-						NavDiv.SetColumn(nx, 1.5, 1.5)
-						backBt := NavDiv.AddButton(nx, 0, 1, 1, "<")
-						nx++
-						backBt.layout.Tooltip = "Previous dashboard"
-						backBt.Background = 0.5
-						backBt.layout.Enable = (source_chat.Selected_user_msg > 0)
-						backBt.clicked = func() error {
-							source_chat.Selected_user_msg--
-							return nil
-						}
-
-						NavDiv.SetColumnFromSub(nx, 1.5, Layout_MAX_SIZE, true)
-						inf := NavDiv.AddText(nx, 0, 1, 1, fmt.Sprintf("%d/%d", source_chat.Selected_user_msg+1, numUseMessages)) //...
-						nx++
-						inf.Align_h = 1
-						//inf.layout.Tooltip = dashes.UI_func + "()"
-
-						NavDiv.SetColumn(nx, 1.5, 1.5)
-						forwardBt := NavDiv.AddButton(nx, 0, 1, 1, ">")
-						nx++
-						forwardBt.layout.Tooltip = "Next dashboard"
-						forwardBt.Background = 0.5
-						forwardBt.layout.Enable = (source_chat.Selected_user_msg+1 < numUseMessages)
-						forwardBt.clicked = func() error {
-							source_chat.Selected_user_msg++
-							return nil
-						}
-					}
-				}
-
-				//List of tabs
-				ListsDiv := SideDiv.AddLayout(0, 1, 1, 1)
-				ListsDiv.SetColumn(0, 1, Layout_MAX_SIZE)
-
-				var PinnedDiv *UI
-				var TabsDiv *UI
-
-				num_pins := app.NumPins()
-				if num_pins > 0 {
-					ListsDiv.SetRow(0, 0.7, 0.7)
-					ListsDiv.AddDivider(0, 0, 1, 1, true).Label = "<small>Pins"
-					ListsDiv.SetRowFromSub(1, 1, Layout_MAX_SIZE, true)
-					PinnedDiv = ListsDiv.AddLayout(0, 1, 1, 1)
-					PinnedDiv.SetColumn(1, 1, Layout_MAX_SIZE)
-
-					ListsDiv.SetRow(2, 0.7, 0.7)
-					ListsDiv.AddDivider(0, 2, 1, 1, true).Label = "<small>Tabs"
-					ListsDiv.SetRowFromSub(3, 1, Layout_MAX_SIZE, true)
-					TabsDiv = ListsDiv.AddLayout(0, 3, 1, 1)
-					TabsDiv.SetColumn(1, 1, Layout_MAX_SIZE)
-
-				} else {
-					ListsDiv.SetRow(0, 1, Layout_MAX_SIZE)
-					TabsDiv = ListsDiv.AddLayout(0, 0, 1, 1)
-					TabsDiv.SetColumn(1, 1, Layout_MAX_SIZE)
-				}
-
-				yPinned := 0
-				yTabs := 0
-				for i, tab := range app.Chats {
-
-					isSelected := (i == app.Selected_chat_i)
-
-					var btChat *UIButton
-					var btPin *UIButton
-					if tab.Pinned {
-						btPin = PinnedDiv.AddButton(0, yPinned, 1, 1, "")
-						btPin.IconPath = "resources/unpin.png"
-						btPin.layout.Tooltip = "Un-pin tab"
-
-						btChat = PinnedDiv.AddButton(1, yPinned, 1, 1, tab.Label)
-					} else {
-						btPin = TabsDiv.AddButton(0, yTabs, 1, 1, "")
-						btPin.IconPath = "resources/pin.png"
-						btPin.layout.Tooltip = "Pin tab"
-
-						btChat = TabsDiv.AddButton(1, yTabs, 1, 1, tab.Label)
-					}
-
-					btPin.Icon_margin = 0.25
-					btPin.Background = 0.2
-					btPin.clicked = func() error {
-						if tab.Pinned {
-							//move down
-							app.Chats = slices.Insert(app.Chats, num_pins-1, tab)
-							app.Chats = slices.Delete(app.Chats, i, i+1)
-						}
-						app.Chats[i].Pinned = !tab.Pinned
-						return nil
-					}
-
-					btChat.layout.Tooltip = tab.Label
-					btChat.Align = 0
-					btChat.Background = 0.2
-					if isSelected {
-						btChat.Background = 1 //selected
-					}
-					btChat.clicked = func() error {
-						app.Selected_chat_i = i
-						source_root.ShowSettings = false
-						ui.ActivateEditbox("chat_user_prompt", caller)
-						return nil
-					}
-
-					btChat.Drag_group = "chat"
-					btChat.Drop_group = "chat"
-					btChat.Drag_index = i
-					btChat.Drop_v = true
-					btChat.dropMove = func(src_i, dst_i int, aim_i int, src_source, dst_source string) error {
-
-						app.Chats[src_i].Pinned = (aim_i < num_pins)
-
-						Layout_MoveElement(&app.Chats, &app.Chats, src_i, dst_i)
-
-						if app.Selected_chat_i != dst_i {
-							ui.ActivateEditbox("chat_user_prompt", caller)
-						}
-						app.Selected_chat_i = dst_i
-
-						return nil
-					}
-
-					if isSelected { //show only when open
-						//close
-						var btClose *UIButton
-						if tab.Pinned {
-							btClose = PinnedDiv.AddButton(2, yPinned, 1, 1, "X")
-						} else {
-							btClose = TabsDiv.AddButton(2, yTabs, 1, 1, "X")
-						}
-
-						btClose.Background = 0.2
-						btClose.clicked = func() error {
-							return app.RemoveChat(app.Chats[i])
-						}
-					}
-
-					if tab.Pinned {
-						yPinned++
-					} else {
-						yTabs++
-					}
-				}
+				st.buildAppSideDiv(SideDiv, app, source_root, source_chat, caller)
 			}
 		}
 	}
 
 	return nil
+}
+
+func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, app *RootApp, source_root *Root, source_chat *Chat, caller *ToolCaller) {
+
+	//Header
+	{
+		SideDiv.SetRow(0, 1, 1.5)
+		HeaderDiv := SideDiv.AddLayout(0, 0, 1, 1)
+		HeaderDiv.SetRow(0, 1, Layout_MAX_SIZE)
+		HeaderDiv.ScrollH.Narrow = true
+		HeaderDiv.ScrollV.Hide = true
+		//New Tab
+		{
+			HeaderDiv.SetColumn(0, 2, Layout_MAX_SIZE)
+			bt := HeaderDiv.AddButton(0, 0, 1, 1, "New Tab")
+			bt.Background = 0.5
+			bt.layout.Tooltip = "Create new tab"
+			bt.Shortcut = 't'
+			bt.layout.Enable = (app != nil)
+			bt.clicked = func() error {
+				if app == nil {
+					return fmt.Errorf("No app selected")
+				}
+
+				fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
+				source_chat, err := NewChat(filepath.Join("..", app.Name, "Chats", fileName))
+				if err != nil {
+					return nil
+				}
+
+				pos := app.NumPins() //skip pins
+				app.Chats = slices.Insert(app.Chats, pos, RootChat{Label: "Empty", FileName: fileName})
+				app.Selected_chat_i = pos
+
+				SideDiv.ActivateEditbox("chat_user_prompt", caller)
+
+				SideDiv.VScrollToTheTop(caller)
+
+				source_root.Show = ""
+
+				//if exist, prepare StartPrompt to run
+				{
+					type SdkToolsPrompts struct {
+						StartPrompt string
+						//..
+					}
+					var sdk_app SdkToolsPrompts
+					appJs, err := callFuncGetToolData(app.Name)
+					if err != nil {
+						return err
+					}
+					err = json.Unmarshal(appJs, &sdk_app)
+					if err != nil {
+						return err
+					}
+
+					if sdk_app.StartPrompt != "" {
+						_saveInstances() //save previous chat(and root selection)
+
+						source_chat.Input.Text = sdk_app.StartPrompt
+
+						//ch := ShowChat{AppName: app.Name, ChatFileName: fileName}
+						return source_chat._sendIt(app.Name, caller, source_root, false)
+					}
+				}
+
+				return nil
+			}
+		}
+
+		HeaderDiv.SetColumn(1, 0.5, 0.5) //space
+
+		//navigation
+		if source_chat != nil {
+			numUseMessages := source_chat.GetNumUserMessages()
+
+			//HeaderDiv.SetColumn(1, 0.5, 0.5) //space
+
+			HeaderDiv.SetColumnFromSub(2, 1, Layout_MAX_SIZE, true)
+			NavDiv := HeaderDiv.AddLayout(2, 0, 1, 1)
+			NavDiv.SetRow(0, 1, Layout_MAX_SIZE)
+
+			nx := 0
+
+			/*NavDiv.SetColumn(nx, 1.5, 1.5)
+			homeBt := NavDiv.AddButton(nx, 0, 1, 1, "")
+			nx++
+			homeBt.layout.Enable = (source_chat.User_msg_i > 0)
+			homeBt.layout.Tooltip = "First dashboard"
+			homeBt.Background = 0.5
+			homeBt.IconPath = "resources/home.png"
+			homeBt.Icon_margin = 0.5
+			homeBt.clicked = func() error {
+				source_chat.User_msg_i = 0
+				return nil
+			}
+			*/
+
+			NavDiv.SetColumn(nx, 1.5, 1.5)
+			backBt := NavDiv.AddButton(nx, 0, 1, 1, "<")
+			nx++
+			backBt.layout.Tooltip = "Previous dashboard"
+			backBt.Background = 0.5
+			backBt.layout.Enable = (source_chat.Selected_user_msg > 0)
+			backBt.clicked = func() error {
+				source_chat.Selected_user_msg--
+				return nil
+			}
+
+			NavDiv.SetColumnFromSub(nx, 1.5, Layout_MAX_SIZE, true)
+			inf := NavDiv.AddText(nx, 0, 1, 1, fmt.Sprintf("%d/%d", source_chat.Selected_user_msg+1, numUseMessages)) //...
+			nx++
+			inf.Align_h = 1
+			//inf.layout.Tooltip = dashes.UI_func + "()"
+
+			NavDiv.SetColumn(nx, 1.5, 1.5)
+			forwardBt := NavDiv.AddButton(nx, 0, 1, 1, ">")
+			nx++
+			forwardBt.layout.Tooltip = "Next dashboard"
+			forwardBt.Background = 0.5
+			forwardBt.layout.Enable = (source_chat.Selected_user_msg+1 < numUseMessages)
+			forwardBt.clicked = func() error {
+				source_chat.Selected_user_msg++
+				return nil
+			}
+		}
+	}
+
+	//List of tabs
+	ListsDiv := SideDiv.AddLayout(0, 1, 1, 1)
+	ListsDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+
+	var PinnedDiv *UI
+	var TabsDiv *UI
+
+	num_pins := app.NumPins()
+	if num_pins > 0 {
+		ListsDiv.SetRow(0, 0.7, 0.7)
+		ListsDiv.AddDivider(0, 0, 1, 1, true).Label = "<small>Pins"
+		ListsDiv.SetRowFromSub(1, 1, Layout_MAX_SIZE, true)
+		PinnedDiv = ListsDiv.AddLayout(0, 1, 1, 1)
+		PinnedDiv.SetColumn(1, 1, Layout_MAX_SIZE)
+
+		ListsDiv.SetRow(2, 0.7, 0.7)
+		ListsDiv.AddDivider(0, 2, 1, 1, true).Label = "<small>Tabs"
+		ListsDiv.SetRowFromSub(3, 1, Layout_MAX_SIZE, true)
+		TabsDiv = ListsDiv.AddLayout(0, 3, 1, 1)
+		TabsDiv.SetColumn(1, 1, Layout_MAX_SIZE)
+
+	} else {
+		ListsDiv.SetRow(0, 1, Layout_MAX_SIZE)
+		TabsDiv = ListsDiv.AddLayout(0, 0, 1, 1)
+		TabsDiv.SetColumn(1, 1, Layout_MAX_SIZE)
+	}
+
+	yPinned := 0
+	yTabs := 0
+	for i, tab := range app.Chats {
+
+		isSelected := (i == app.Selected_chat_i)
+
+		var btChat *UIButton
+		var btPin *UIButton
+		if tab.Pinned {
+			btPin = PinnedDiv.AddButton(0, yPinned, 1, 1, "")
+			btPin.IconPath = "resources/unpin.png"
+			btPin.layout.Tooltip = "Un-pin tab"
+
+			btChat = PinnedDiv.AddButton(1, yPinned, 1, 1, tab.Label)
+		} else {
+			btPin = TabsDiv.AddButton(0, yTabs, 1, 1, "")
+			btPin.IconPath = "resources/pin.png"
+			btPin.layout.Tooltip = "Pin tab"
+
+			btChat = TabsDiv.AddButton(1, yTabs, 1, 1, tab.Label)
+		}
+
+		btPin.Icon_margin = 0.25
+		btPin.Background = 0.2
+		btPin.clicked = func() error {
+			if tab.Pinned {
+				//move down
+				app.Chats = slices.Insert(app.Chats, num_pins-1, tab)
+				app.Chats = slices.Delete(app.Chats, i, i+1)
+			}
+			app.Chats[i].Pinned = !tab.Pinned
+			return nil
+		}
+
+		btChat.layout.Tooltip = tab.Label
+		btChat.Align = 0
+		btChat.Background = 0.2
+		if isSelected {
+			btChat.Background = 1 //selected
+		}
+		btChat.clicked = func() error {
+			app.Selected_chat_i = i
+			source_root.Show = ""
+			SideDiv.ActivateEditbox("chat_user_prompt", caller)
+			return nil
+		}
+
+		btChat.Drag_group = "chat"
+		btChat.Drop_group = "chat"
+		btChat.Drag_index = i
+		btChat.Drop_v = true
+		btChat.dropMove = func(src_i, dst_i int, aim_i int, src_source, dst_source string) error {
+
+			app.Chats[src_i].Pinned = (aim_i < num_pins)
+
+			Layout_MoveElement(&app.Chats, &app.Chats, src_i, dst_i)
+
+			if app.Selected_chat_i != dst_i {
+				SideDiv.ActivateEditbox("chat_user_prompt", caller)
+			}
+			app.Selected_chat_i = dst_i
+
+			return nil
+		}
+
+		if isSelected { //show only when open
+			//close
+			var btClose *UIButton
+			if tab.Pinned {
+				btClose = PinnedDiv.AddButton(2, yPinned, 1, 1, "X")
+			} else {
+				btClose = TabsDiv.AddButton(2, yTabs, 1, 1, "X")
+			}
+
+			btClose.Background = 0.2
+			btClose.clicked = func() error {
+				return app.RemoveChat(app.Chats[i])
+			}
+		}
+
+		if tab.Pinned {
+			yPinned++
+		} else {
+			yTabs++
+		}
+	}
 }
 
 func (st *ShowRoot) findUniqueAppName(prefix string, root *Root) string {

@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const g_ShowApp_prompt_height = 7
+
 type RootChat struct {
 	FileName string
 	Label    string
@@ -30,7 +32,7 @@ type RootDev struct {
 	ShowSide bool
 	SideFile string //Name.go
 	MainMode string //"prompts", "secrets"
-	SideMode string //"schema", "code", "msg"
+	SideMode string //"code", "schema", "msg"
 
 	SideFile_version int
 }
@@ -46,8 +48,8 @@ type RootApp struct {
 
 // Root
 type Root struct {
-	ShowSettings bool
-	Memory       string
+	Show   string //"chats", "settings"
+	Memory string
 
 	Autosend float64
 
@@ -58,7 +60,7 @@ type Root struct {
 }
 
 func NewRoot(file string) (*Root, error) {
-	st := &Root{ShowSettings: true}
+	st := &Root{Show: "settings"}
 
 	return LoadFile(file, "Root", "json", st, true)
 }
@@ -839,7 +841,7 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 
 	err = comp.Run(caller)
 	if err != nil {
-		return fmt.Errorf("LLMxAICompleteChat.run() failed: %v", err)
+		return fmt.Errorf("comp.run() failed: %v", err)
 	}
 
 	chat.TempMessages = ChatMsgs{} //reset
