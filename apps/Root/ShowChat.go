@@ -339,7 +339,9 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				InfoDia := DivIcons.AddDialog("info")
 				InfoDia.UI.SetColumn(0, 5, 10)
 				InfoDia.UI.SetRowFromSub(0, 1, 20, true)
-				InfoDia.UI.AddText(0, 0, 1, 1, inf).Align_v = 0
+				info := InfoDia.UI.AddText(0, 0, 1, 1, inf)
+				info.Align_v = 0
+				info.setMultilined()
 
 				InfoBt := DivIcons.AddButton(x, 0, 1, 1, "")
 				InfoBt.Cd = iconsCd
