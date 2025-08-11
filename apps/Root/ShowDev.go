@@ -28,6 +28,11 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		return err
 	}
 
+	//check
+	if app.Dev.SideMode == "" {
+		app.Dev.SideMode = "code"
+	}
+
 	codeBackCd := UI_GetPalette().GetGrey(0.05)
 
 	ui.SetColumn(0, 1, Layout_MAX_SIZE)
@@ -165,7 +170,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 			switch app.Dev.MainMode {
 			case "secrets":
 				SecretsBt.Background = 1
-			default: //"code"
+			default: //prompts
 				PromptsBt.Background = 1
 			}
 		}
@@ -420,6 +425,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						hasOpenedSchema = (prompt.Type == ToolsPrompt_TOOL)
 						num_opened_versions = len(prompt.CodeVersions)
 
+						//check
 						if app.Dev.SideFile_version < 0 || app.Dev.SideFile_version >= num_opened_versions {
 							app.Dev.SideFile_version = num_opened_versions - 1
 						}
@@ -586,7 +592,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						tx.Align_v = 0
 						tx.layout.Back_cd = codeBackCd
 
-					default:
+					default: //"code"
 						code := side_promptCode.Code
 						if len(side_promptCode.Errors) > 0 {
 							errCd := UI_GetPalette().E
