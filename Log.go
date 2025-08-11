@@ -17,6 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"runtime/debug"
@@ -92,6 +94,23 @@ func LogsJsonMarshalIndent(v any) ([]byte, error) {
 
 func LogsJsonUnmarshal(data []byte, v any) error {
 	err := json.Unmarshal(data, v)
+	if LogsError(err) != nil {
+		return err
+	}
+	return nil
+}
+
+func LogsGobMarshal(v any) ([]byte, error) {
+	var buf bytes.Buffer
+	err := gob.NewEncoder(&buf).Encode(v)
+	if LogsError(err) != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func LogsGobUnmarshal(data []byte, v any) error {
+	err := gob.NewDecoder(bytes.NewBuffer(data)).Decode(v)
 	if LogsError(err) != nil {
 		return err
 	}
