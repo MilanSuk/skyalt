@@ -37,7 +37,7 @@ func (st *DropDown) getLLMTip(layout *Layout) string {
 			label = st.Labels[i]
 		}
 
-		return Layout_buildLLMTip("DropDown", "with selected", fmt.Sprintf("value: \"%s\" and label \"%s\"", *st.Value, label), st.Tooltip)
+		return Layout_buildLLMTip("DropDown", "with", fmt.Sprintf("value=\"%s\" and label=\"%s\"", *st.Value, label), st.Tooltip)
 	}
 	return "Error: Value == nil"
 }
@@ -63,6 +63,7 @@ func (st *DropDown) Build(layout *Layout) {
 	bt.Align = 0
 	bt.Background = 0
 	bt.Border = true
+	layout.FindGrid(0, 0, 1, 1).fnGetLLMTip = nil //DropDown already has LLMTip
 
 	//set Label and Icon
 	{

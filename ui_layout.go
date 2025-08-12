@@ -2055,7 +2055,7 @@ func Layout_buildLLMTip(component string, value_prefix string, value string, tip
 
 	if tip != "" {
 		if value != "" {
-			str += " and description: " + tip
+			str += ". Description: " + tip
 		} else {
 			str += " with description: " + tip
 		}
