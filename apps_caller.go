@@ -86,7 +86,7 @@ func _ToolsCaller_CallBuild(port int, msg_id uint64, ui_uid uint64, toolName str
 
 	var out_err error
 	if len(errStr) > 0 {
-		out_err := errors.New(string(errStr))
+		out_err = errors.New(string(errStr))
 		LogsError(out_err)
 	}
 
