@@ -195,7 +195,7 @@ type LayoutTooltip struct {
 }
 
 // whole layout must be inside, not partially inside!
-func (tip *LayoutTooltip) InInside(layout *Layout) bool {
+func (tip *LayoutTooltip) IsInside(layout *Layout) bool {
 	return tip.X <= layout.X &&
 		tip.Y <= layout.Y &&
 		tip.X+tip.W >= layout.X+layout.W &&
@@ -2063,42 +2063,6 @@ func Layout_buildLLMTip(component string, value_prefix string, value string, tip
 
 	return str
 }
-func Layout_addTip(str string, tooltip string) string {
-	if str != "" {
-		str += " part of "
-	}
-	str += "(" + tooltip + ")"
-	return str
-}
-
-/*func (layout *Layout) GetLLMTip() string {
-	var final string
-
-	var tip string
-	if layout.fnGetLLMTip != nil {
-		tip = layout.fnGetLLMTip(layout)
-	}
-
-	if tip != "" {
-		final = Layout_addTip(final, tip)
-	}
-
-	if layout.parent != nil {
-		for _, gr := range layout.parent.TooltipGroups {
-			if gr.InInside(layout) {
-				if gr.Tooltip != "" {
-					final = Layout_addTip(final, Layout_buildLLMTip("", "", false, gr.Tooltip))
-				}
-			}
-		}
-	}
-
-	//if final != "" && !strings.HasSuffix(final, ".") {
-	//	final += "."
-	//}
-
-	return final
-}*/
 
 func (layout *Layout) CallLayoutUpdates() {
 

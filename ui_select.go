@@ -176,13 +176,43 @@ func (layout *Layout) buildTips(cq OsV4, cqArea float64, min_area int, depth int
 				if depth > 0 {
 					outStr.WriteString("- ")
 				}
+				depth++
 
 				//add tip
 				outStr.WriteString(tp)
-
-				depth++
 			}
 		}
+
+		group_found := false
+		for _, gr := range layout.TooltipGroups {
+			if gr.IsInside(layout) {
+				if gr.Tooltip != "" {
+
+					if !group_found {
+						if outStr.Len() > 0 {
+							outStr.WriteString("\n")
+						}
+						for range depth {
+							outStr.WriteString("\t")
+						}
+						if depth > 0 {
+							outStr.WriteString("- ")
+						}
+						group_found = true
+					} else {
+						//move than one tip
+						if !strings.HasSuffix(outStr.String(), ".") {
+							outStr.WriteString(". ")
+						}
+					}
+
+					outStr.WriteString(gr.Tooltip)
+				}
+			}
+		}
+		/*if group_found {
+			depth++
+		}*/
 	}
 
 	for _, it := range layout.childs {
