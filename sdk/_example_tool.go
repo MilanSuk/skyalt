@@ -22,12 +22,12 @@ func (st *ShowPersonInfo) run(caller *ToolCaller, ui *UI) error {
 	{
 		form := ui.addTable("Person infomation")
 		ln := form.addLine(fmt.Sprintf("PersonID = %s", st.PersonID))
-		ln.addText("Born", "")                 //description
-		ln.addEditboxInt(&person.Born, "Born") //value
+		ln.addText("Born", "")                                                                     //description
+		ln.addEditboxInt(&person.Born, fmt.Sprintf("Year of born for PersonID = %s", st.PersonID)) //value
 
 		ln = form.addLine(fmt.Sprintf("PersonID = %s", st.PersonID))
-		ln.addText("Height", "")
-		ln.addEditboxInt(&person.Height, "Height")
+		ln.addText("Height", "")                                                               //description
+		ln.addEditboxInt(&person.Height, fmt.Sprintf("Height for PersonID = %s", st.PersonID)) //value
 	}
 
 	return nil

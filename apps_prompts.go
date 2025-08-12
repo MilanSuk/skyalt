@@ -604,7 +604,7 @@ func (prompts *ToolsPrompts) _getStorageMsg(storagePrompt *ToolsPrompt) (string,
 
 	systemMessage += "Based on the user message, rewrite the storage.go file. Your job is to design structures. Write additional functions only if the user asks for them. You may write multiple structures.\n"
 
-	systemMessage += "Structure attributes can not be pointers, because they will be saved as JSON, so instead of pointers, use ID, which is saved in a map[integer or string ID].\n"
+	systemMessage += "Structure attributes can not be pointers, because they will be saved as JSON, so instead of pointers, use ID, which is saved in a map[integer or string ID]. ID must be unique, use for example time.Now().UnixNano() and add comment for attribute how ID should be created.\n"
 
 	systemMessage += "Load<name_of_struct>() functions always returns pointer, not array."
 
