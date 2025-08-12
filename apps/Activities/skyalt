@@ -1,17 +1,18 @@
 #Storage
 First, store User body measurements(Gender, Year of born, Height(meters), Weight(kg)). Default values are: man, born 2000, 1.8meters and 75kg.
 
-Second, store list of activities with ID = name of .gpx file without ext.  Every activity has type, description, startDate(unix time), duration(seconds) and distance(meters). Type attributes can be: "", "Run", "Ride", "Swim", "Walk", "Hike", "Inline", "Workout", "Ski", "Snowboard", "Pilates", "Tenis", "Yoga".
+Second, store list of activities.  Every activity has type, description, startDate(unix time), duration(seconds) and distance(meters). Type attributes can be: "", "Run", "Ride", "Swim", "Walk", "Hike", "Inline", "Workout", "Ski", "Snowboard", "Pilates", "Tenis", "Yoga".
 
 Third, store Gpx. File .gpx is loaded into.
 
 #function FilterActivities
 Function to filter activities based on DateStart(iso string), DateEnd(iso string), SortBy("date", "distance", "duration"), SortAscending(bool) and MaxNumberOfItems(if zero or negative, output all).
+If date is empty string, don't filter based on date.
 
 #function ImportGpx
 Function to import .gpx file. It accepts path to .gpx file.
 a) It reads the file, parses it, extracts date, duration and distance and adds everything into Activities.
-b) Copy input .gpx file into <ID>.gpx file in "Activities" folder(if it doesn't exist, it creates the folder). 
+b) Copy input .gpx file into <Activity ID>.gpx file in "Activities" folder(if it doesn't exist, create the folder).
 
 
 #tool ShowUserBodyMeasurements
