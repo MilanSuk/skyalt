@@ -247,7 +247,7 @@ func (st *ShowPrompt) run(caller *ToolCaller, ui *UI) error {
 				continue //skip
 			}
 
-			TipsDiv.SetRowFromSub(yy, 1, 3, true)
+			TipsDiv.SetRowFromSub(yy, 1, 100, true)
 			TipsDiv.AddText(0, yy, 1, 1, input.Picks[i].Cd.GetLabel())
 			TipsDiv.AddText(1, yy, 1, 1, strings.TrimSpace(br.LLMTip)).setMultilined()
 			yy++
