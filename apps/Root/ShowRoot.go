@@ -819,7 +819,7 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
 
 			ListDiv.AddText(0, y, 1, 1, usg.Model)
 			ListDiv.AddText(1, y, 1, 1, SdkGetDateTime(int64(usg.CreatedTimeSec)))
-			ListDiv.AddText(2, y, 1, 1, fmt.Sprintf("%.0fsec", usg.DTime))
+			ListDiv.AddText(2, y, 1, 1, SdkGetDTime(usg.DTime))
 
 			price := (usg.Prompt_price + usg.Input_cached_price + usg.Completion_price + usg.Reasoning_price)
 			ListDiv.AddText(3, y, 1, 1, fmt.Sprintf("$%f", price))

@@ -318,7 +318,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 						price_sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price
 					}
 				}
-				tx := FooterRightDiv.AddText(0, 1, 1, 1, fmt.Sprintf("<i>Total: $%.4f, %.1fsec", price_sum, time_sum))
+				tx := FooterRightDiv.AddText(0, 1, 1, 1, fmt.Sprintf("<i>Total: $%.4f, %s", price_sum, SdkGetDTime(time_sum)))
 				tx.Align_v = 0
 				tx.Align_h = 2
 				tx.layout.Tooltip = "Total cost of generating code(including bugs fixes)"
@@ -627,11 +627,11 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 							in := side_promptCode.Usage.Prompt_price
 							inCached := side_promptCode.Usage.Input_cached_price
 							out := side_promptCode.Usage.Completion_price + side_promptCode.Usage.Reasoning_price
-							tx.layout.Tooltip = fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s sec\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
+							tx.layout.Tooltip = fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
 								side_promptCode.Usage.Provider+":"+side_promptCode.Usage.Model,
 								SdkGetDateTime(int64(side_promptCode.Usage.CreatedTimeSec)),
 								strconv.FormatFloat(side_promptCode.Usage.TimeToFirstToken, 'f', 3, 64),
-								strconv.FormatFloat(side_promptCode.Usage.DTime, 'f', 3, 64),
+								SdkGetDTime(side_promptCode.Usage.DTime),
 								strconv.FormatFloat(side_promptCode.Usage.GetSpeed(), 'f', 3, 64),
 								strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
 								strconv.FormatFloat(in, 'f', -1, 64),

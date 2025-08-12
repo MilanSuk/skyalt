@@ -31,6 +31,7 @@ import (
 	"image/color"
 	"io"
 	"log"
+	"math"
 	"net"
 	"os"
 	"path/filepath"
@@ -1534,6 +1535,11 @@ func SdkGetDateTime(unix_sec int64) string {
 	tm := time.Unix(unix_sec, 0)
 
 	return SdkGetDate(unix_sec) + " " + fmt.Sprintf("%.02d:%.02d:%.02d", tm.Hour(), tm.Minute(), tm.Second())
+}
+
+func SdkGetDTime(dt_sec float64) string {
+	tm := time.Duration(math.Round(dt_sec*100) / 100 * float64(time.Second))
+	return tm.String()
 }
 
 func OsCopyFile(dst, src string) error {

@@ -89,10 +89,10 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 		ui.SetRowFromSub(y, 1, 2, true)
 
 		in, inCached, out := source_chat.Messages.GetTotalPrice(0, -1)
-		info := ui.AddText(1, y, 1, 1, fmt.Sprintf("<i>$%s, %d tokens, %s sec, %d tokens/sec",
+		info := ui.AddText(1, y, 1, 1, fmt.Sprintf("<i>$%s, %d tokens, %s, %d tokens/sec",
 			strconv.FormatFloat(in+inCached+out, 'f', 3, 64),
 			source_chat.Messages.GetTotalOutputTokens(0, -1),
-			strconv.FormatFloat(source_chat.Messages.GetTotalTime(0, -1), 'f', 3, 64),
+			SdkGetDTime(source_chat.Messages.GetTotalTime(0, -1)),
 			int(source_chat.Messages.GetTotalSpeed(0, -1))))
 		y++
 		info.Align_h = 2 //right
@@ -321,11 +321,11 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				in := msg.Usage.Prompt_price
 				inCached := msg.Usage.Input_cached_price
 				out := msg.Usage.Completion_price + msg.Usage.Reasoning_price
-				inf := fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s sec\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
+				inf := fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
 					msg.Usage.Provider+":"+msg.Usage.Model,
 					SdkGetDateTime(int64(msg.Usage.CreatedTimeSec)),
 					strconv.FormatFloat(msg.Usage.TimeToFirstToken, 'f', 3, 64),
-					strconv.FormatFloat(msg.Usage.DTime, 'f', 3, 64),
+					SdkGetDTime(msg.Usage.DTime),
 					strconv.FormatFloat(msg.Usage.GetSpeed(), 'f', 3, 64),
 					strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
 					strconv.FormatFloat(in, 'f', -1, 64),
