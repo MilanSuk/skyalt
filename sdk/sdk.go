@@ -955,16 +955,17 @@ func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, toolNam
 										if Tool_Error(err) == nil {
 											errBytes, err := cl.ReadArray()
 											if Tool_Error(err) == nil {
-												if len(errBytes) > 0 {
-													err = errors.New(string(errBytes))
+
+												if len(errBytes) == 0 {
+													//add cmds
+													var cmds []ToolCmd
+													LogsGobUnmarshal(cmdsGob, &cmds)
+													caller.cmds = append(caller.cmds, cmds...)
+
+													return dataJs, uiGob, nil //ok
 												}
 
-												//add cmds
-												var cmds []ToolCmd
-												LogsGobUnmarshal(cmdsGob, &cmds)
-												caller.cmds = append(caller.cmds, cmds...)
-
-												return dataJs, uiGob, err
+												return nil, nil, errors.New(string(errBytes))
 											}
 										}
 									}
