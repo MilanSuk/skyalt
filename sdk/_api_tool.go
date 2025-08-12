@@ -8,7 +8,8 @@ import (
 //When ui.addText(), ui.addButton() and other ui.add...() functions are called, every GUI components is added to new line.
 //To add more components on same line, use ui.addTable(). All components in table are aligned by columns which makes tables very usefull for creating forms.
 //Use setRowHeight() only when user prompt require that row has specific height.
-//Some functions may have 'llmtip' argument which describes what UI component represents. If component shows value from storage which has ID, the ID should be part of llmtip - few examples: "Year of born for PersonID=123", "Image with GalleryID='path/to/image'".
+
+//Some functions may have 'llmtip' argument which describes what UI component represents. If component or table line show value from storage which has ID, the format should be <storage path>=<ID>. Few examples: "Year of born for PersonID=123", "Image with GalleryID='path/to/image'".
 
 //Code inside callbacks(UIButton.clicked, UIEditbox.changed, LLMCompletion.update, etc.), should not write into UIs structures, it should write only into storage or tool's arguments.
 
