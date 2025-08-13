@@ -111,13 +111,10 @@ func (b *WinPaintBuff) AddBrush(start OsV2, points []OsV2, cd color.RGBA, thick 
 		ptB := points[i-0]
 
 		v := ptB.Sub(ptA)
-		num_steps := int(v.Len() / float32(thick))
-		if num_steps < 1 {
-			num_steps = 1
-		}
+		num_steps := max(int(v.Len()/float32(thick)), 1)
 		for ii := range num_steps {
 			pt := ptA.Add(v.MulV(float32(ii) / float32(num_steps)))
-			circle.item.DrawCut(InitOsV4Mid(pt, circle.size), b.depth, cd)
+			circle.item.DrawCut(InitOsV4Mid(pt, circle.size), b.depth, cd, b.win.gph)
 
 		}
 	}

@@ -746,7 +746,7 @@ func (win *Win) DrawCicle(mid OsV2, rad OsV2, depth int, cd color.RGBA, thick in
 	if circle != nil {
 		mid.X++
 		mid.Y++
-		circle.item.DrawCut(InitOsV4Mid(mid, circle.size), depth, cd)
+		circle.item.DrawCut(InitOsV4Mid(mid, circle.size), depth, cd, win.gph)
 	}
 }
 
@@ -760,18 +760,18 @@ func (win *Win) DrawRectRound(coord OsV4, rad int, depth int, cd color.RGBA, thi
 		h := coord.Size.Y
 
 		//top corners
-		rr.item.DrawUV(InitOsV4(s.X, s.Y, rad, rad), depth, cd, OsV2f{0, 0}, OsV2f{0.33333, 0.33333})     //left
-		rr.item.DrawUV(InitOsV4(e.X-rad, s.Y, rad, rad), depth, cd, OsV2f{0.66667, 0}, OsV2f{1, 0.33333}) //right
+		rr.item.DrawUV(InitOsV4(s.X, s.Y, rad, rad), depth, cd, OsV2f{0, 0}, OsV2f{0.33333, 0.33333}, win.gph)     //left
+		rr.item.DrawUV(InitOsV4(e.X-rad, s.Y, rad, rad), depth, cd, OsV2f{0.66667, 0}, OsV2f{1, 0.33333}, win.gph) //right
 		//bottom corners
-		rr.item.DrawUV(InitOsV4(s.X, e.Y-rad, rad, rad), depth, cd, OsV2f{0, 0.66667}, OsV2f{0.33333, 1})     //left
-		rr.item.DrawUV(InitOsV4(e.X-rad, e.Y-rad, rad, rad), depth, cd, OsV2f{0.66667, 0.66667}, OsV2f{1, 1}) //right
+		rr.item.DrawUV(InitOsV4(s.X, e.Y-rad, rad, rad), depth, cd, OsV2f{0, 0.66667}, OsV2f{0.33333, 1}, win.gph)     //left
+		rr.item.DrawUV(InitOsV4(e.X-rad, e.Y-rad, rad, rad), depth, cd, OsV2f{0.66667, 0.66667}, OsV2f{1, 1}, win.gph) //right
 
 		//rects
-		rr.item.DrawUV(InitOsV4(s.X, s.Y+rad, rad, h-2*rad), depth, cd, OsV2f{0, 0.33333}, OsV2f{0.33333, 0.66667})     //left
-		rr.item.DrawUV(InitOsV4(e.X-rad, s.Y+rad, rad, h-2*rad), depth, cd, OsV2f{0.66667, 0.33333}, OsV2f{1, 0.66667}) //right
+		rr.item.DrawUV(InitOsV4(s.X, s.Y+rad, rad, h-2*rad), depth, cd, OsV2f{0, 0.33333}, OsV2f{0.33333, 0.66667}, win.gph)     //left
+		rr.item.DrawUV(InitOsV4(e.X-rad, s.Y+rad, rad, h-2*rad), depth, cd, OsV2f{0.66667, 0.33333}, OsV2f{1, 0.66667}, win.gph) //right
 
-		rr.item.DrawUV(InitOsV4(s.X+rad, s.Y, w-2*rad, rad), depth, cd, OsV2f{0.33333, 0}, OsV2f{0.66667, 0.33333})     //top
-		rr.item.DrawUV(InitOsV4(s.X+rad, e.Y-rad, w-2*rad, rad), depth, cd, OsV2f{0.33333, 0.66667}, OsV2f{0.66667, 1}) //bottom
+		rr.item.DrawUV(InitOsV4(s.X+rad, s.Y, w-2*rad, rad), depth, cd, OsV2f{0.33333, 0}, OsV2f{0.66667, 0.33333}, win.gph)     //top
+		rr.item.DrawUV(InitOsV4(s.X+rad, e.Y-rad, w-2*rad, rad), depth, cd, OsV2f{0.33333, 0.66667}, OsV2f{0.66667, 1}, win.gph) //bottom
 
 		if thick == 0 {
 			win.render.DrawRect(s.Add(OsV2{rad, rad}), e.Sub(OsV2{rad, rad}), depth, cd) // mid
@@ -798,11 +798,11 @@ func (win *Win) GetPoly(points []OsV2f, width float64) *WinGphItemPoly {
 }
 
 func (win *Win) DrawPolyQuad(pts [4]OsV2f, uvs [4]OsV2f, poly *WinGphItemPoly, depth int, cd color.RGBA) {
-	poly.item.DrawPointsUV(pts, uvs, depth, cd)
+	poly.item.DrawPointsUV(pts, uvs, depth, cd, win.gph)
 }
 
 func (win *Win) DrawPolyRect(rect OsV4, poly *WinGphItemPoly, depth int, cd color.RGBA) {
-	poly.item.DrawCut(rect, depth, cd)
+	poly.item.DrawCut(rect, depth, cd, win.gph)
 }
 func (win *Win) DrawPolyStart(start OsV2, poly *WinGphItemPoly, depth int, cd color.RGBA) {
 	win.DrawPolyRect(OsV4{Start: start, Size: poly.size}, poly, depth, cd)
@@ -815,7 +815,7 @@ func (win *Win) DrawText(ln string, prop WinFontProps, frontCd color.RGBA, coord
 		start := win.GetTextStart(ln, prop, coord, align.X, align.Y, numLines)
 		start.Y += yLine * prop.lineH
 
-		item.item.DrawCutCds(OsV4{Start: start, Size: item.size}, depth, frontCd, item.cds) //InitOsCdWhite())
+		item.item.DrawCutCds(OsV4{Start: start, Size: item.size}, depth, frontCd, item.cds, win.gph) //InitOsCdWhite())
 	}
 }
 

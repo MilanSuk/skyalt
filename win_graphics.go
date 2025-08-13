@@ -57,14 +57,14 @@ func (it *WinGphItem) Destroy() {
 	}
 }
 
-func (it *WinGphItem) IsUsed() bool {
-	return OsIsTicksIn(it.lastDrawTick, 30000) //30 sec
+func (it *WinGphItem) IsUsed(gph *WinGph) bool {
+	return gph.tick_now < (it.lastDrawTick + 30000) //30 sec
 }
-func (it *WinGphItem) UpdateTick() {
-	it.lastDrawTick = OsTicks()
+func (it *WinGphItem) UpdateTick(gph *WinGph) {
+	it.lastDrawTick = gph.tick_now
 }
 
-func (it *WinGphItem) DrawPointsUV(pts [4]OsV2f, uvs [4]OsV2f, depth int, cd color.RGBA) error {
+func (it *WinGphItem) DrawPointsUV(pts [4]OsV2f, uvs [4]OsV2f, depth int, cd color.RGBA, gph *WinGph) error {
 
 	texture := it.getTexture()
 	if texture != nil {
@@ -75,11 +75,11 @@ func (it *WinGphItem) DrawPointsUV(pts [4]OsV2f, uvs [4]OsV2f, depth int, cd col
 		texture.DrawPointsUV(pts, uvs, depth, cd)
 	}
 
-	it.UpdateTick()
+	it.UpdateTick(gph)
 	return nil
 }
 
-func (it *WinGphItem) DrawCut(coord OsV4, depth int, cd color.RGBA) error {
+func (it *WinGphItem) DrawCut(coord OsV4, depth int, cd color.RGBA, gph *WinGph) error {
 	texture := it.getTexture()
 	if texture != nil {
 		uv := OsV2f{
@@ -88,11 +88,11 @@ func (it *WinGphItem) DrawCut(coord OsV4, depth int, cd color.RGBA) error {
 		texture.DrawQuadUV(coord, depth, cd, OsV2f{}, uv)
 	}
 
-	it.UpdateTick()
+	it.UpdateTick(gph)
 	return nil
 }
 
-func (it *WinGphItem) DrawCutEx(coord OsV4, textStart OsV2, depth int, cd color.RGBA) error {
+func (it *WinGphItem) DrawCutEx(coord OsV4, textStart OsV2, depth int, cd color.RGBA, gph *WinGph) error {
 
 	texture := it.getTexture()
 	if texture != nil {
@@ -105,11 +105,11 @@ func (it *WinGphItem) DrawCutEx(coord OsV4, textStart OsV2, depth int, cd color.
 		texture.DrawQuadUV(coord, depth, cd, uvS, uvE)
 	}
 
-	it.UpdateTick()
+	it.UpdateTick(gph)
 	return nil
 }
 
-func (it *WinGphItem) DrawCutCds(coord OsV4, depth int, defCd color.RGBA, cds []WinGphItemTextCd) error {
+func (it *WinGphItem) DrawCutCds(coord OsV4, depth int, defCd color.RGBA, cds []WinGphItemTextCd, gph *WinGph) error {
 	texture := it.getTexture()
 	if texture != nil {
 		if len(cds) > 0 {
@@ -126,7 +126,7 @@ func (it *WinGphItem) DrawCutCds(coord OsV4, depth int, defCd color.RGBA, cds []
 				cq.Size.X = (cds[i].pos - last_pos)
 				cq.Size.Y = coord.Size.Y
 
-				it.DrawCutEx(cq, OsV2{last_pos, 0}, depth, cd)
+				it.DrawCutEx(cq, OsV2{last_pos, 0}, depth, cd, gph)
 
 				last_pos = cds[i].pos
 			}
@@ -143,7 +143,7 @@ func (it *WinGphItem) DrawCutCds(coord OsV4, depth int, defCd color.RGBA, cds []
 			cq.Size.X = (texture.size.X - last_pos)
 			cq.Size.Y = coord.Size.Y
 
-			it.DrawCutEx(cq, OsV2{last_pos, 0}, depth, cd)
+			it.DrawCutEx(cq, OsV2{last_pos, 0}, depth, cd, gph)
 		} else {
 
 			uv := OsV2f{
@@ -154,11 +154,11 @@ func (it *WinGphItem) DrawCutCds(coord OsV4, depth int, defCd color.RGBA, cds []
 		}
 	}
 
-	it.UpdateTick()
+	it.UpdateTick(gph)
 	return nil
 }
 
-func (it *WinGphItem) DrawUV(coord OsV4, depth int, cd color.RGBA, sUV, eUV OsV2f) error {
+func (it *WinGphItem) DrawUV(coord OsV4, depth int, cd color.RGBA, sUV, eUV OsV2f, gph *WinGph) error {
 	texture := it.getTexture()
 	if texture != nil {
 		szUv := OsV2f{
@@ -172,7 +172,7 @@ func (it *WinGphItem) DrawUV(coord OsV4, depth int, cd color.RGBA, sUV, eUV OsV2
 		texture.DrawQuadUV(coord, depth, cd, sUV, eUV)
 	}
 
-	it.UpdateTick()
+	it.UpdateTick(gph)
 	return nil
 }
 
@@ -285,6 +285,8 @@ type WinGph struct {
 
 	texts_num_created int
 	texts_num_remove  int
+
+	tick_now int64
 }
 
 func NewWinGph() *WinGph {
@@ -310,26 +312,28 @@ func (gph *WinGph) Destroy() {
 
 func (gph *WinGph) Maintenance() {
 
+	gph.tick_now = OsTicks()
+
 	for i := len(gph.fonts) - 1; i >= 0; i-- {
 		gph.fonts[i].Maintenance()
 	}
 
 	for i := len(gph.circles) - 1; i >= 0; i-- {
-		if !gph.circles[i].item.IsUsed() {
+		if !gph.circles[i].item.IsUsed(gph) {
 			gph.circles[i].item.Destroy()
 			gph.circles = slices.Delete(gph.circles, i, i+1)
 		}
 	}
 
 	for i := len(gph.polys) - 1; i >= 0; i-- {
-		if !gph.polys[i].item.IsUsed() {
+		if !gph.polys[i].item.IsUsed(gph) {
 			gph.polys[i].item.Destroy()
 			gph.polys = slices.Delete(gph.polys, i, i+1)
 		}
 	}
 
 	for i := len(gph.texts) - 1; i >= 0; i-- {
-		if !gph.texts[i].item.IsUsed() {
+		if !gph.texts[i].item.IsUsed(gph) {
 			gph.texts[i].item.Destroy()
 			gph.texts = slices.Delete(gph.texts, i, i+1)
 			gph.texts_num_remove++
@@ -355,7 +359,7 @@ func (gph *WinGph) GetTextSize(prop WinFontProps, cur int, text string) OsV2 {
 	if it == nil {
 		return OsV2{0, 0}
 	}
-	it.item.UpdateTick()
+	it.item.UpdateTick(gph)
 
 	if cur < 0 || cur >= len(it.letters) {
 		return it.size
@@ -382,7 +386,7 @@ func (gph *WinGph) GetTextPos(prop WinFontProps, curr_px int, text string, round
 	if it == nil {
 		return 0
 	}
-	it.item.UpdateTick()
+	it.item.UpdateTick(gph)
 
 	last_ad := 0
 	for i, ad := range it.letters {
@@ -407,7 +411,7 @@ func (gph *WinGph) GetText(prop WinFontProps, text string) *WinGphItemText {
 	//find
 	for _, it := range gph.texts {
 		if it.prop.Cmp(&prop) && it.text == text {
-			it.item.UpdateTick()
+			it.item.UpdateTick(gph)
 			return it
 		}
 	}
