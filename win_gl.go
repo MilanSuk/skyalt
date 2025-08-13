@@ -111,7 +111,7 @@ func (ren *WinRender) DrawPointCdI(pos OsV2, depth int, cd color.RGBA) {
 }
 func (ren *WinRender) DrawPointCdF(pos OsV2f, depth int, cd color.RGBA) {
 	gl.Color4ub(cd.R, cd.G, cd.B, cd.A)
-	gl.Vertex3f(float32(pos.X), float32(pos.Y), float32(depth))
+	gl.Vertex3i(int32(pos.X), int32(pos.Y), int32(depth))
 }
 
 func (ren *WinRender) DrawPointEnd() {
@@ -124,10 +124,10 @@ func (ren *WinRender) DrawRect(start OsV2, end OsV2, depth int, cd color.RGBA) {
 
 		gl.Begin(gl.QUADS)
 		{
-			gl.Vertex3f(float32(start.X), float32(start.Y), float32(depth))
-			gl.Vertex3f(float32(end.X), float32(start.Y), float32(depth))
-			gl.Vertex3f(float32(end.X), float32(end.Y), float32(depth))
-			gl.Vertex3f(float32(start.X), float32(end.Y), float32(depth))
+			gl.Vertex3i(int32(start.X), int32(start.Y), int32(depth))
+			gl.Vertex3i(int32(end.X), int32(start.Y), int32(depth))
+			gl.Vertex3i(int32(end.X), int32(end.Y), int32(depth))
+			gl.Vertex3i(int32(start.X), int32(end.Y), int32(depth))
 		}
 		gl.End()
 
@@ -149,8 +149,8 @@ func (ren *WinRender) DrawLine(start OsV2, end OsV2, depth int, thick int, cd co
 		} else {
 			gl.LineWidth(float32(thick))
 			gl.Begin(gl.LINES)
-			gl.Vertex3f(float32(start.X), float32(start.Y), float32(depth))
-			gl.Vertex3f(float32(end.X), float32(end.Y), float32(depth))
+			gl.Vertex3i(int32(start.X), int32(start.Y), int32(depth))
+			gl.Vertex3i(int32(end.X), int32(end.Y), int32(depth))
 			gl.End()
 		}
 	}
@@ -360,16 +360,16 @@ func (tex *WinTexture) DrawQuadUV(coord OsV4, depth int, cd color.RGBA, sUV, eUV
 		e := coord.End()
 
 		gl.TexCoord2f(sUV.X, sUV.Y)
-		gl.Vertex3f(float32(s.X), float32(s.Y), float32(depth))
+		gl.Vertex3i(int32(s.X), int32(s.Y), int32(depth))
 
 		gl.TexCoord2f(eUV.X, sUV.Y)
-		gl.Vertex3f(float32(e.X), float32(s.Y), float32(depth))
+		gl.Vertex3i(int32(e.X), int32(s.Y), int32(depth))
 
 		gl.TexCoord2f(eUV.X, eUV.Y)
-		gl.Vertex3f(float32(e.X), float32(e.Y), float32(depth))
+		gl.Vertex3i(int32(e.X), int32(e.Y), int32(depth))
 
 		gl.TexCoord2f(sUV.X, eUV.Y)
-		gl.Vertex3f(float32(s.X), float32(e.Y), float32(depth))
+		gl.Vertex3i(int32(s.X), int32(e.Y), int32(depth))
 	}
 	gl.End()
 
@@ -390,7 +390,7 @@ func (tex *WinTexture) DrawPointsUV(pts [4]OsV2f, uvs [4]OsV2f, depth int, cd co
 	{
 		for i := range 4 {
 			gl.TexCoord2f(uvs[i].X, uvs[i].Y)
-			gl.Vertex3f(float32(pts[i].X), float32(pts[i].Y), float32(depth))
+			gl.Vertex3i(int32(pts[i].X), int32(pts[i].Y), int32(depth))
 		}
 	}
 	gl.End()
