@@ -24,6 +24,15 @@ import (
 func main() {
 	log.SetFlags(log.Llongfile) //log.LstdFlags | log.Lshortfile
 
+	/*{
+		f, err := os.Create("profile.prof")
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}*/
+
 	InitImageGlobal()
 
 	//SDL
