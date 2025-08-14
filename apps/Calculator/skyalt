@@ -13,7 +13,7 @@ Functions:
 If button is clicked, it uses package "github.com/mnogu/go-calculator" to run 'Expression'. If there is no error, It adds 'Expression' and result into 'Previous' with " = " between. Then set result value to 'Expression'(if floating part is zero, show it without)
 If user presses enter on editbox, it same action as clicked.
 
-Note: Package go-calculator has only on function: func Calculate(expression string) (result float64, err error) 
+Note: Package go-calculator has only one function Calculate(expression string) (result float64, err error) 
 
 #Start
 Show Calculator.
