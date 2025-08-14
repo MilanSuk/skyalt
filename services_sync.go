@@ -17,7 +17,9 @@ limitations under the License.
 package main
 
 import (
+	"image/color"
 	"os"
+	"time"
 )
 
 type ServicesSyncMicrophoneSettings struct {
@@ -83,7 +85,7 @@ type ServicesSync struct {
 func NewServicesSync(services *Services) (*ServicesSync, error) {
 	snc := &ServicesSync{services: services, last_dev_storage_change: -1}
 
-	snc._loadFiles()
+	snc._readOrInitFiles()
 
 	return snc, nil
 }
@@ -91,49 +93,174 @@ func NewServicesSync(services *Services) (*ServicesSync, error) {
 func (snc *ServicesSync) Destroy() {
 }
 
-func (snc *ServicesSync) _loadFiles() error {
-	devJs, err := os.ReadFile("apps/Device/DeviceSettings-DeviceSettings.json")
-	if err == nil {
+func (snc *ServicesSync) _readOrInitFiles() error {
+	var path string
+
+	path = "apps/Device/DeviceSettings-DeviceSettings.json"
+	devJs, err := os.ReadFile(path)
+	if err != nil {
+		//DPI
+		snc.Device.Dpi = GetDeviceDPI()
+		snc.Device.Dpi_default = GetDeviceDPI()
+
+		//UI rounding
+		snc.Device.Rounding = 0.2
+
+		//Scroll
+		snc.Device.ScrollThick = 0.5
+
+		//Speaker
+		snc.Device.Volume = 0.5
+
+		//Theme
+		snc.Device.Theme = "light"
+
+		snc.Device.LightPalette = DevPalette{
+			P:   color.RGBA{37, 100, 120, 255},
+			OnP: color.RGBA{255, 255, 255, 255},
+
+			S:   color.RGBA{170, 200, 170, 255},
+			OnS: color.RGBA{255, 255, 255, 255},
+
+			E:   color.RGBA{180, 40, 30, 255},
+			OnE: color.RGBA{255, 255, 255, 255},
+
+			B:   color.RGBA{250, 250, 250, 255},
+			OnB: color.RGBA{25, 27, 30, 255},
+		}
+
+		snc.Device.DarkPalette = DevPalette{
+			P:   color.RGBA{150, 205, 225, 255},
+			OnP: color.RGBA{0, 50, 65, 255},
+
+			S:   color.RGBA{190, 200, 205, 255},
+			OnS: color.RGBA{40, 50, 55, 255},
+
+			E:   color.RGBA{240, 185, 180, 255},
+			OnE: color.RGBA{45, 45, 65, 255},
+
+			B:   color.RGBA{25, 30, 30, 255},
+			OnB: color.RGBA{230, 230, 230, 255},
+		}
+
+		snc.Device.CustomPalette = DevPalette{
+			P:   color.RGBA{37, 100, 120, 255},
+			OnP: color.RGBA{255, 255, 255, 255},
+
+			S:   color.RGBA{170, 200, 170, 255},
+			OnS: color.RGBA{255, 255, 255, 255},
+
+			E:   color.RGBA{180, 40, 30, 255},
+			OnE: color.RGBA{255, 255, 255, 255},
+
+			B:   color.RGBA{250, 250, 250, 255},
+			OnB: color.RGBA{25, 27, 30, 255},
+		}
+
+		//Date format
+		{
+			_, zn := time.Now().Zone()
+			zn = zn / 3600
+			if zn <= -3 && zn >= -10 {
+				snc.Device.DateFormat = "us"
+			} else {
+				snc.Device.DateFormat = "eu"
+			}
+		}
+
+		Tools_WriteJSONFile(path, &snc.Device)
+	} else {
 		LogsJsonUnmarshal(devJs, &snc.Device)
 	}
 
-	mapJs, err := os.ReadFile("apps/Device/MapSettings-MapSettings.json")
-	if err == nil {
+	path = "apps/Device/MapSettings-MapSettings.json"
+	mapJs, err := os.ReadFile(path)
+	if err != nil {
+		snc.Map.Enable = true
+		snc.Map.Tiles_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+		snc.Map.Copyright = "(c)OpenStreetMap contributors"
+		snc.Map.Copyright_url = "https://www.openstreetmap.org/copyright"
+
+		Tools_WriteJSONFile(path, &snc.Map)
+	} else {
 		LogsJsonUnmarshal(mapJs, &snc.Map)
 	}
 
-	micJs, err := os.ReadFile("apps/Device/MicrophoneSettings-MicrophoneSettings.json")
-	if err == nil {
+	path = "apps/Device/MicrophoneSettings-MicrophoneSettings.json"
+	micJs, err := os.ReadFile(path)
+	if err != nil {
+		snc.Mic.Enable = true
+		snc.Mic.Sample_rate = 44100
+		snc.Mic.Channels = 1
+
+		Tools_WriteJSONFile(path, &snc.Mic)
+	} else {
 		LogsJsonUnmarshal(micJs, &snc.Mic)
 	}
 
-	xaiJs, err := os.ReadFile("apps/Device/LLMxAI-LLMxAI.json")
-	if err == nil {
+	path = "apps/Device/LLMxAI-LLMxAI.json"
+	xaiJs, err := os.ReadFile(path)
+	if err != nil {
+		snc.LLM_xai.Provider = "xAI"
+		snc.LLM_xai.OpenAI_url = "https://api.x.ai/v1"
+		snc.LLM_xai.DevUrl = "https://console.x.ai"
+		Tools_WriteJSONFile(path, &snc.LLM_xai)
+
+	} else {
 		LogsJsonUnmarshal(xaiJs, &snc.LLM_xai)
 	}
 
-	mistralJs, err := os.ReadFile("apps/Device/LLMMistral-LLMMistral.json")
-	if err == nil {
+	path = "apps/Device/LLMMistral-LLMMistral.json"
+	mistralJs, err := os.ReadFile(path)
+	if err != nil {
+		snc.LLM_mistral.Provider = "Mistral"
+		snc.LLM_mistral.OpenAI_url = "https://api.mistral.ai/v1"
+		snc.LLM_mistral.DevUrl = "https://console.mistral.ai"
+
+		Tools_WriteJSONFile(path, &snc.LLM_mistral)
+	} else {
 		LogsJsonUnmarshal(mistralJs, &snc.LLM_mistral)
 	}
 
-	openaiJs, err := os.ReadFile("apps/Device/LLMOpenai-LLMOpenai.json")
-	if err == nil {
+	path = "apps/Device/LLMOpenai-LLMOpenai.json"
+	openaiJs, err := os.ReadFile(path)
+	if err != nil {
+		snc.LLM_openai.Provider = "OpenAI"
+		snc.LLM_openai.OpenAI_url = "https://api.openai.com/v1"
+		snc.LLM_openai.DevUrl = "https://platform.openai.com/"
+		Tools_WriteJSONFile(path, &snc.LLM_openai)
+	} else {
 		LogsJsonUnmarshal(openaiJs, &snc.LLM_openai)
 	}
 
-	groqJs, err := os.ReadFile("apps/Device/LLMGroq-LLMGroq.json")
-	if err == nil {
+	path = "apps/Device/LLMGroq-LLMGroq.json"
+	groqJs, err := os.ReadFile(path)
+	if err != nil {
+		snc.LLM_groq.Provider = "Groq"
+		snc.LLM_groq.OpenAI_url = "https://api.groq.com/openai/v1"
+		snc.LLM_groq.DevUrl = "https://console.groq.com/keys"
+
+		Tools_WriteJSONFile(path, &snc.LLM_groq)
+	} else {
 		LogsJsonUnmarshal(groqJs, &snc.LLM_groq)
 	}
 
 	wspJs, err := os.ReadFile("apps/Device/LLMWhispercpp-LLMWhispercpp.json")
-	if err == nil {
+	if err != nil {
+		snc.LLM_wsp.Address = "http://localhost"
+		snc.LLM_wsp.Port = 8090
+		Tools_WriteJSONFile("apps/Device/LLMWhispercpp-LLMWhispercpp.json", &snc.Map)
+	} else {
 		LogsJsonUnmarshal(wspJs, &snc.LLM_wsp)
 	}
 
-	llamas, err := os.ReadFile("apps/Device/LLMLlamacpp-LLMLlamacpp.json")
-	if err == nil {
+	path = "apps/Device/LLMLlamacpp-LLMLlamacpp.json"
+	llamas, err := os.ReadFile(path)
+	if err != nil {
+		snc.LLM_llama.Address = "http://localhost"
+		snc.LLM_llama.Port = 8070
+		Tools_WriteJSONFile(path, &snc.Map)
+	} else {
 		LogsJsonUnmarshal(llamas, &snc.LLM_llama)
 	}
 
@@ -144,7 +271,7 @@ func (snc *ServicesSync) Tick(devApp_storage_changes int64) bool {
 	if snc.last_dev_storage_change != devApp_storage_changes {
 		snc.last_dev_storage_change = devApp_storage_changes
 
-		snc._loadFiles()
+		snc._readOrInitFiles()
 		return true
 	}
 	return false

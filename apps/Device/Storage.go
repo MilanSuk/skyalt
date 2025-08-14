@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 )
 
 type DeviceSettingsPalette struct {
@@ -52,76 +51,6 @@ type DeviceSettings struct {
 
 func NewDeviceSettings(file string) (*DeviceSettings, error) {
 	st := &DeviceSettings{}
-
-	//DPI
-	st.Dpi = 100
-	st.Dpi_default = 100
-
-	//UI rounding
-	st.Rounding = 0.2
-
-	//Scroll
-	st.ScrollThick = 0.5
-
-	//Speaker
-	st.Volume = 0.5
-
-	//Theme
-	st.Theme = "light"
-
-	st.LightPalette = DeviceSettingsPalette{
-		P:   color.RGBA{37, 100, 120, 255},
-		OnP: color.RGBA{255, 255, 255, 255},
-
-		S:   color.RGBA{170, 200, 170, 255},
-		OnS: color.RGBA{255, 255, 255, 255},
-
-		E:   color.RGBA{180, 40, 30, 255},
-		OnE: color.RGBA{255, 255, 255, 255},
-
-		B:   color.RGBA{250, 250, 250, 255},
-		OnB: color.RGBA{25, 27, 30, 255},
-	}
-
-	st.DarkPalette = DeviceSettingsPalette{
-		P:   color.RGBA{150, 205, 225, 255},
-		OnP: color.RGBA{0, 50, 65, 255},
-
-		S:   color.RGBA{190, 200, 205, 255},
-		OnS: color.RGBA{40, 50, 55, 255},
-
-		E:   color.RGBA{240, 185, 180, 255},
-		OnE: color.RGBA{45, 45, 65, 255},
-
-		B:   color.RGBA{25, 30, 30, 255},
-		OnB: color.RGBA{230, 230, 230, 255},
-	}
-
-	st.CustomPalette = DeviceSettingsPalette{
-		P:   color.RGBA{37, 100, 120, 255},
-		OnP: color.RGBA{255, 255, 255, 255},
-
-		S:   color.RGBA{170, 200, 170, 255},
-		OnS: color.RGBA{255, 255, 255, 255},
-
-		E:   color.RGBA{180, 40, 30, 255},
-		OnE: color.RGBA{255, 255, 255, 255},
-
-		B:   color.RGBA{250, 250, 250, 255},
-		OnB: color.RGBA{25, 27, 30, 255},
-	}
-
-	//Date format
-	{
-		_, zn := time.Now().Zone()
-		zn = zn / 3600
-		if zn <= -3 && zn >= -10 {
-			st.DateFormat = "us"
-		} else {
-			st.DateFormat = "eu"
-		}
-	}
-
 	return LoadFile(file, "DeviceSettings", "json", st, true)
 }
 
@@ -335,12 +264,6 @@ type MapSettings struct {
 
 func NewMapSettings(file string) (*MapSettings, error) {
 	st := &MapSettings{}
-
-	st.Enable = true
-	st.Tiles_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-	st.Copyright = "(c)OpenStreetMap contributors"
-	st.Copyright_url = "https://www.openstreetmap.org/copyright"
-
 	return LoadFile(file, "MapSettings", "json", st, true)
 }
 
@@ -352,11 +275,6 @@ type MicrophoneSettings struct {
 
 func NewMicrophoneSettings(file string) (*MicrophoneSettings, error) {
 	st := &MicrophoneSettings{}
-
-	st.Enable = true
-	st.Sample_rate = 44100
-	st.Channels = 1
-
 	return LoadFile(file, "MicrophoneSettings", "json", st, true)
 }
 
@@ -377,10 +295,6 @@ type LLMLlamacpp struct {
 
 func NewLLMLlamacpp(file string) (*LLMLlamacpp, error) {
 	st := &LLMLlamacpp{}
-
-	st.Address = "http://localhost"
-	st.Port = 8070
-
 	return LoadFile(file, "LLMLlamacpp", "json", st, true)
 }
 
@@ -441,11 +355,6 @@ type LLMMistral struct {
 
 func NewLLMMistral(file string) (*LLMMistral, error) {
 	mst := &LLMMistral{}
-
-	mst.Provider = "Mistral"
-	mst.OpenAI_url = "https://api.mistral.ai/v1"
-	mst.DevUrl = "https://console.mistral.ai"
-
 	var err error
 	mst, err = LoadFile(file, "LLMMistral", "json", mst, true)
 	if err == nil {
@@ -629,11 +538,6 @@ type LLMGroq struct {
 
 func NewLLMGroq(file string) (*LLMGroq, error) {
 	mst := &LLMGroq{}
-
-	mst.Provider = "Groq"
-	mst.OpenAI_url = "https://api.groq.com/openai/v1"
-	mst.DevUrl = "https://console.groq.com/keys"
-
 	var err error
 	mst, err = LoadFile(file, "LLMGroq", "json", mst, true)
 	if err == nil {
@@ -770,11 +674,6 @@ type LLMOpenai struct {
 
 func NewLLMOpenai(file string) (*LLMOpenai, error) {
 	oai := &LLMOpenai{}
-
-	oai.Provider = "OpenAI"
-	oai.OpenAI_url = "https://api.openai.com/v1"
-	oai.DevUrl = "https://platform.openai.com/"
-
 	var err error
 	oai, err = LoadFile(file, "LLMOpenai", "json", oai, true)
 	if err == nil {
@@ -899,10 +798,6 @@ type LLMWhispercpp struct {
 
 func NewLLMWhispercpp(file string) (*LLMWhispercpp, error) {
 	st := &LLMWhispercpp{}
-
-	st.Address = "http://localhost"
-	st.Port = 8090
-
 	return LoadFile(file, "LLMWhispercpp", "json", st, true)
 }
 
@@ -969,11 +864,6 @@ type LLMxAI struct {
 
 func NewLLMxAI(file string) (*LLMxAI, error) {
 	xai := &LLMxAI{}
-
-	xai.Provider = "xAI"
-	xai.OpenAI_url = "https://api.x.ai/v1"
-	xai.DevUrl = "https://console.x.ai"
-
 	var err error
 	xai, err = LoadFile(file, "LLMxAI", "json", xai, true)
 	if err == nil {
