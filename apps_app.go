@@ -146,11 +146,11 @@ func (app *ToolsApp) CheckRun() error {
 	defer app.lock.Unlock()
 
 	if app.Process.Compile.Error != "" {
-		return LogsErrorf("'%s' app has compilation error: %s", app.Process.Compile.GetFolderPath(), app.Process.Compile.Error)
+		return fmt.Errorf("'%s' app has compilation error: %s", app.Process.Compile.GetFolderPath(), app.Process.Compile.Error) //don't log
 	}
 
 	if app.Process.Compile.AppFileTime == 0 {
-		return LogsErrorf("'%s' app is waiting for compilation", app.Process.Compile.GetFolderPath())
+		return fmt.Errorf("'%s' app is waiting for compilation", app.Process.Compile.GetFolderPath()) //don't log
 	}
 
 	return app.Process.CheckRun(app.router)
