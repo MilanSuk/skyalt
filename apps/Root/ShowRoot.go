@@ -454,10 +454,8 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 	switch source_root.Show {
 	case "chats":
-		_, err = ui.AddToolApp(1, 0, 1, 1, "Chats", "Chats", "ShowChats", nil, caller)
-		if err != nil {
-			return err
-		}
+		ui.AddToolApp(1, 0, 1, 1, "Chats", "Chats", "ShowChats", nil, caller)
+
 	case "settings":
 		err := st.buildSettings(ui.AddLayoutWithName(1, 0, 1, 1, "Settings"), caller)
 		if err != nil {

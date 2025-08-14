@@ -61,10 +61,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 	if len(dashUIs) > 0 {
 		if len(dashUIs) == 1 {
 			//1x Dash
-			appUi, err := ui.AddToolApp(0, 0, dashW, 1, fmt.Sprintf("dash_%d", app.Selected_chat_i), st.AppName, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
-			if err != nil {
-				return err
-			}
+			appUi, _ := ui.AddToolApp(0, 0, dashW, 1, fmt.Sprintf("dash_%d", app.Selected_chat_i), st.AppName, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
 			appUi.changed = func(newParamsJs []byte) error {
 				dashUIs[0].UI_paramsJs = string(newParamsJs) //save back changes
 				return nil
@@ -81,10 +78,7 @@ func (st *ShowApp) run(caller *ToolCaller, ui *UI) error {
 			for i, dash := range dashUIs {
 				DashDiv.SetRowFromSub(i, 1, Layout_MAX_SIZE, true)
 
-				appUi, err := DashDiv.AddToolApp(0, i, 1, 1, fmt.Sprintf("dash_%d_%d", app.Selected_chat_i, i), st.AppName, dash.UI_func, []byte(dash.UI_paramsJs), caller)
-				if err != nil {
-					return err
-				}
+				appUi, _ := DashDiv.AddToolApp(0, i, 1, 1, fmt.Sprintf("dash_%d_%d", app.Selected_chat_i, i), st.AppName, dash.UI_func, []byte(dash.UI_paramsJs), caller)
 				appUi.changed = func(newParamsJs []byte) error {
 					dash.UI_paramsJs = string(newParamsJs) //save back changes
 					return nil

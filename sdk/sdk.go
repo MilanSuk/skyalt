@@ -2891,7 +2891,7 @@ func (ui *UI) AddToolApp(x, y, w, h int, layout_name string, appName string, too
 	//error
 	ret_ui.SetColumn(0, 1, Layout_MAX_SIZE)
 	ret_ui.SetRow(0, 1, Layout_MAX_SIZE)
-	tx := ret_ui.AddText(0, 0, 1, 1, fmt.Sprintf("<i>Error</i>"))
+	tx := ret_ui.AddText(0, 0, 1, 1, fmt.Sprintf("<i>Error: %s</i>", err.Error()))
 	tx.Align_h = 1
 	tx.Align_v = 1
 	tx.Cd = UI_GetPalette().E
