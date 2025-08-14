@@ -192,7 +192,7 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 			cmpl.Error = stderr.String()
 			return codeErrors, nil
 		}
-		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
+		fmt.Printf("Fixing '%s' done in %.3fsec\n", cmpl.GetFolderPath(), (float64(time.Now().UnixMilli())/1000)-st)
 	}
 
 	msg.progress_done = 0.25
@@ -231,7 +231,7 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 			return nil, err
 		}
 
-		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
+		fmt.Printf("Updating '%s' done in %.3fsec\n", cmpl.GetFolderPath(), (float64(time.Now().UnixMilli())/1000)-st)
 	}
 	msg.progress_done = 0.5
 
@@ -264,7 +264,7 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 			cmpl.Error = stderr.String()
 			return codeErrors, nil
 		}
-		fmt.Printf("done in %.3fsec\n", (float64(time.Now().UnixMilli())/1000)-st)
+		fmt.Printf("Compiling '%s' done in %.3fsec\n", cmpl.GetFolderPath(), (float64(time.Now().UnixMilli())/1000)-st)
 	}
 	msg.progress_done = 1.0
 

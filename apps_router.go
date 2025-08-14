@@ -939,8 +939,30 @@ func (router *AppsRouter) _hotReload() {
 
 	router._reloadAppList()
 
+	var wg sync.WaitGroup
+
+	//tick Root app first
+	rootApp := router.FindApp("Root")
+	if rootApp != nil {
+		wg.Add(1)
+		go func() {
+			rootApp.Tick(false)
+			wg.Done()
+		}()
+	}
+
 	//ticks
 	for _, app := range router.apps {
-		app.Tick(false)
+		if app == rootApp {
+			continue
+		}
+
+		wg.Add(1)
+		go func() {
+			app.Tick(false)
+			wg.Done()
+		}()
 	}
+
+	wg.Wait()
 }
