@@ -259,6 +259,35 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
+		//settings error
+		var settingsErr string
+		{
+			type CheckLLMs struct {
+				Out_AppProvider_error   string
+				Out_CodeProvider_error  string
+				Out_ImageProvider_error string
+				Out_STTProvider_error   string
+			}
+			dataJs, _, err := CallToolApp("Device", "CheckLLMs", nil, caller)
+			var check CheckLLMs
+			if err == nil {
+				LogsJsonUnmarshal(dataJs, &check)
+			}
+
+			if check.Out_AppProvider_error != "" {
+				if settingsErr != "" {
+					settingsErr += "\n"
+				}
+				settingsErr += "App provider error: " + check.Out_AppProvider_error
+			}
+			if check.Out_CodeProvider_error != "" {
+				if settingsErr != "" {
+					settingsErr += "\n"
+				}
+				settingsErr += "Code provider error: " + check.Out_CodeProvider_error
+			}
+		}
+
 		//Settings
 		{
 			setBt := AppsDiv.AddButton(0, y, 1, 1, "")
@@ -270,6 +299,12 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			if source_root.Show == "settings" {
 				setBt.Background = 1
 			}
+			if settingsErr != "" {
+				//setBt.Background = 1
+				setBt.Cd = UI_GetPalette().E
+				setBt.layout.Tooltip = settingsErr
+			}
+
 			setBt.clicked = func() error {
 				if source_root.Show != "settings" {
 					source_root.Show = "settings"

@@ -88,6 +88,9 @@ func (st *DeviceSettings) GetPricingString(provider, model string) string {
 }
 
 func (st *DeviceSettings) CheckProvider(provider string) error {
+	if provider == "" {
+		return fmt.Errorf("No provider")
+	}
 
 	switch strings.ToLower(provider) {
 	case "xai":
