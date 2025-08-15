@@ -143,9 +143,9 @@ func (st *DeviceSettings) UpdateModels() {
 		}
 
 	case "groq":
-		st.App_model = "qwen/qwen3-32b"
+		st.App_model = "openai/gpt-oss-20b"
 		if st.App_smarter {
-			st.App_model = "qwen/qwen3-32b"
+			st.App_model = "openai/gpt-oss-120b"
 		}
 
 	case "llama.cpp":
@@ -175,7 +175,7 @@ func (st *DeviceSettings) UpdateModels() {
 	case "groq":
 		st.Code_model = "qwen/qwen3-32b"
 		if st.Code_smarter {
-			st.Code_model = "qwen/qwen3-32b"
+			st.Code_model = "openai/gpt-oss-120b"
 		}
 
 	case "llama.cpp":
@@ -594,9 +594,25 @@ func (mst *LLMGroq) ReloadModels() error {
 	mst.LanguageModels = append(mst.LanguageModels, &LLMGroqLanguageModel{
 		Id:                             "qwen/qwen3-32b",
 		Input_modalities:               []string{"text"},
-		Prompt_text_token_price:        0,
-		Cached_prompt_text_token_price: 0,
-		Completion_text_token_price:    0,
+		Prompt_text_token_price:        2900,
+		Cached_prompt_text_token_price: 2900,
+		Completion_text_token_price:    5900,
+	})
+
+	mst.LanguageModels = append(mst.LanguageModels, &LLMGroqLanguageModel{
+		Id:                             "openai/gpt-oss-120b",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        1500,
+		Cached_prompt_text_token_price: 1500,
+		Completion_text_token_price:    7500,
+	})
+
+	mst.LanguageModels = append(mst.LanguageModels, &LLMGroqLanguageModel{
+		Id:                             "openai/gpt-oss-20b",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        1000,
+		Cached_prompt_text_token_price: 1000,
+		Completion_text_token_price:    5000,
 	})
 
 	return nil

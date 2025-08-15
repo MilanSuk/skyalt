@@ -189,6 +189,7 @@ func (a *LLMComplete) Cmp(b *LLMComplete) bool {
 		a.Top_p == b.Top_p &&
 		a.SystemMessage == b.SystemMessage &&
 		a.UserMessage == b.UserMessage &&
+		a.Reasoning_effort == b.Reasoning_effort &&
 		bytes.Equal(a.Out_tools, b.Out_tools) &&
 		bytes.Equal(a.PreviousMessages, b.PreviousMessages)
 }
@@ -293,6 +294,11 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 	case "code":
 		provider = dev.Code_provider
 		model = dev.Code_model
+
+	}
+
+	if strings.Contains(model, "gpt-oss") {
+		st.Reasoning_effort = "medium"
 	}
 
 	st.Out_usage.Model = model
