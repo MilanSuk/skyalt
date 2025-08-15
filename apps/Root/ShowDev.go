@@ -461,6 +461,11 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					return nil
 				}
 
+				if app.Dev.SideFile == "" && len(values) > 0 {
+					app.Dev.SideFile = values[0]
+					app.Dev.SideFile_version = -1 //reset
+				}
+
 				HeaderDiv.SetColumn(hx, 3, Layout_MAX_SIZE)
 				cb := HeaderDiv.AddDropDown(hx, 0, 1, 1, &app.Dev.SideFile, labels, values)
 				hx++
