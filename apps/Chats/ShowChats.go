@@ -97,7 +97,6 @@ func (st *ShowChats) buildSideDiv(SideDiv *UI, root *Root, source_chat *Chat, ca
 			bt.layout.Tooltip = "Create new chat"
 			bt.Shortcut = 't'
 			bt.clicked = func() error {
-
 				//create new
 				fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
 				_, err := NewChat(filepath.Join("Chats", fileName))
@@ -107,7 +106,7 @@ func (st *ShowChats) buildSideDiv(SideDiv *UI, root *Root, source_chat *Chat, ca
 
 				//add
 				pos := root.NumPins() //skip pins
-				root.Chats = slices.Insert(root.Chats, pos, RootChat{Label: "Empty", FileName: fileName})
+				root.Chats = slices.Insert(root.Chats, pos, RootChat{Label: fmt.Sprintf("Chat %s", SdkGetDateTime(time.Now().Unix())), FileName: fileName})
 				root.Selected_chat_i = pos
 
 				SideDiv.ActivateEditbox("chat_user_prompt", caller)

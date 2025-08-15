@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sync"
 	"time"
 )
 
@@ -435,7 +436,7 @@ func (call *OpenAI_completion_msg_Content_ToolCall_Function) GetArgsAsStrings() 
 	return attrs, nil
 }
 
-func (chat *Chat) _sendIt(caller *ToolCaller, root *Root, continuee bool) error {
+func (chat *Chat) _sendIt(caller *ToolCaller, source_root *Root, continuee bool) error {
 	//MsgsDiv.VScrollToTheBottom(false, caller)
 	caller.SendFlushCmd()
 
@@ -449,10 +450,24 @@ func (chat *Chat) _sendIt(caller *ToolCaller, root *Root, continuee bool) error 
 
 	chat.scroll_down = true
 
-	err := chat.complete(caller, root, continuee)
+	//create(summarize) label
+	if len(chat.Messages.Messages) == 0 {
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			if source_root.Selected_chat_i >= 0 && source_root.Selected_chat_i < len(source_root.Chats) {
+				source_root.Chats[source_root.Selected_chat_i].summarize(chat.Input.Text, caller)
+			}
+			wg.Done()
+		}()
+		defer wg.Wait()
+	}
+
+	err := chat.complete(caller, continuee)
 	if err != nil {
 		return fmt.Errorf("complete() failed: %v", err)
 	}
+
 	if !continuee {
 		chat.Input.Reset()
 	}
@@ -461,7 +476,33 @@ func (chat *Chat) _sendIt(caller *ToolCaller, root *Root, continuee bool) error 
 	return nil
 }
 
-func (chat *Chat) complete(caller *ToolCaller, root *Root, continuee bool) error {
+func (root_chat *RootChat) summarize(user_msg string, caller *ToolCaller) error {
+	if len(user_msg) < 30 {
+		root_chat.Label = user_msg
+		return nil
+	}
+
+	var comp LLMCompletion
+	comp.Temperature = 0.5
+	comp.Max_tokens = 4096
+	comp.Top_p = 0.95 //1.0
+	comp.Frequency_penalty = 0
+	comp.Presence_penalty = 0
+	comp.Reasoning_effort = "" //low, high
+
+	comp.SystemMessage = "You are summarizer assistant. User inputs text and you answer with label(under 6 words) for the user text."
+	comp.UserMessage = user_msg
+
+	err := comp.Run(caller)
+	if err != nil {
+		return fmt.Errorf("chat.summarize() failed: %v", err)
+	}
+
+	root_chat.Label = comp.Out_answer
+	return nil
+}
+
+func (chat *Chat) complete(caller *ToolCaller, continuee bool) error {
 
 	//needSummary := (len(chat.Messages.Messages) == 0 /*|| len(chat.Label) < 8*/)
 
@@ -558,13 +599,13 @@ func (chat *Chat) complete(caller *ToolCaller, root *Root, continuee bool) error
 
 	err = comp.Run(caller)
 	if err != nil {
-		return fmt.Errorf("comp.run() failed: %v", err)
+		return fmt.Errorf("chat.complete() failed: %v", err)
 	}
 
 	chat.TempMessages = ChatMsgs{} //reset
 	err = json.Unmarshal(comp.Out_messages, &chat.Messages)
 	if err != nil {
-		return fmt.Errorf("comp.Out_messages failed: %v", err)
+		return fmt.Errorf("chat.Unmarshal() failed: %v", err)
 	}
 
 	//activate new dash
