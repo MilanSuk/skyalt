@@ -170,7 +170,7 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 	//fix files
 	msg.progress_label = "Fixing tools code " + cmpl.GetFolderPath()
 	{
-		fmt.Printf("Fixing '%s' ... ", cmpl.GetFolderPath())
+		fmt.Printf("Fixing '%s' ...\n", cmpl.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000
 		cmd := exec.Command("goimports", "-l", "-w", ".")
 		cmd.Dir = cmpl.GetFolderPath()
@@ -200,7 +200,7 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 	//update packages
 	msg.progress_label = "Updating tools packages " + cmpl.GetFolderPath()
 	{
-		fmt.Printf("Updating packages '%s' ... ", cmpl.GetFolderPath())
+		fmt.Printf("Updating packages '%s' ...\n", cmpl.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000
 
 		if !Tools_IsFileExists(filepath.Join(cmpl.GetFolderPath(), "go.mod")) {
@@ -238,7 +238,7 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 	//compile
 	msg.progress_label = "Compiling tools code " + cmpl.GetFolderPath()
 	{
-		fmt.Printf("Compiling '%s' ... ", cmpl.GetFolderPath())
+		fmt.Printf("Compiling '%s' ...\n", cmpl.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000
 
 		outName := cmpl.GetBinName()
