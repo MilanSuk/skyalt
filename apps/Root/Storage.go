@@ -125,7 +125,28 @@ func (root *Root) refreshApps() (*RootApp, error) {
 		}
 	}
 	if root.Selected_app_i >= 0 {
-		return root.Apps[root.Selected_app_i], nil
+		app := root.Apps[root.Selected_app_i]
+
+		//if .bin not exist, activate Dev mode
+		{
+			isCompiled := false
+			afls, err := os.ReadDir("..")
+			if err != nil {
+				return nil, err
+			}
+			for _, fl := range afls {
+				if !fl.IsDir() || strings.HasSuffix(fl.Name(), ".bin") {
+					isCompiled = true
+					break
+				}
+			}
+
+			if !isCompiled {
+				app.Dev.Enable = true
+			}
+		}
+
+		return app, nil
 	}
 
 	return nil, nil

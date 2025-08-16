@@ -462,49 +462,48 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			return err
 		}
 	default:
-		if app == nil {
-			return nil
-		}
+		if app != nil {
 
-		if app.Dev.Enable {
-			_, err := ui.AddTool(1, 0, 1, 1, fmt.Sprintf("dev_%s", app.Name), (&ShowDev{AppName: app.Name}).run, caller)
-			if err != nil {
-				return err
-			}
-
-		} else {
-			AppDiv := ui.AddLayoutWithName(1, 0, 1, 1, "App")
-			AppDiv.EnableBrush = true
-			AppDiv.SetColumnResizable(0, 8, 20, 8)
-			AppDiv.SetColumn(1, 1, Layout_MAX_SIZE)
-			AppDiv.SetRow(0, 1, Layout_MAX_SIZE)
-
-			//Chat(or settings)
-			//note: must be called before, because it will update chat label
-			{
-				ChatDiv, err := AppDiv.AddTool(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name), (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
+			if app.Dev.Enable {
+				_, err := ui.AddTool(1, 0, 1, 1, fmt.Sprintf("dev_%s", app.Name), (&ShowDev{AppName: app.Name}).run, caller)
 				if err != nil {
 					return err
 				}
 
-				ChatDiv.Back_cd = UI_GetPalette().GetGrey(0.03)
+			} else {
+				AppDiv := ui.AddLayoutWithName(1, 0, 1, 1, "App")
+				AppDiv.EnableBrush = true
+				AppDiv.SetColumnResizable(0, 8, 20, 8)
+				AppDiv.SetColumn(1, 1, Layout_MAX_SIZE)
+				AppDiv.SetRow(0, 1, Layout_MAX_SIZE)
 
-				if source_chat != nil {
-					for _, br := range source_chat.Input.Picks {
-						if br.Dash_i == source_chat.Selected_user_msg {
-							ui.Paint_Brush(br.Cd.Cd, br.Points)
+				//Chat(or settings)
+				//note: must be called before, because it will update chat label
+				{
+					ChatDiv, err := AppDiv.AddTool(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name), (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
+					if err != nil {
+						return err
+					}
+
+					ChatDiv.Back_cd = UI_GetPalette().GetGrey(0.03)
+
+					if source_chat != nil {
+						for _, br := range source_chat.Input.Picks {
+							if br.Dash_i == source_chat.Selected_user_msg {
+								ui.Paint_Brush(br.Cd.Cd, br.Points)
+							}
 						}
 					}
 				}
-			}
 
-			//Side
-			{
-				SideDiv := AppDiv.AddLayout(0, 0, 1, 1)
-				SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
-				SideDiv.SetRow(1, 1, Layout_MAX_SIZE)
+				//Side
+				{
+					SideDiv := AppDiv.AddLayout(0, 0, 1, 1)
+					SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+					SideDiv.SetRow(1, 1, Layout_MAX_SIZE)
 
-				st.buildAppSideDiv(SideDiv, app, source_root, source_chat, caller)
+					st.buildAppSideDiv(SideDiv, app, source_root, source_chat, caller)
+				}
 			}
 		}
 	}
