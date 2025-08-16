@@ -270,6 +270,7 @@ type UI struct {
 
 	Enable        bool
 	EnableTouch   bool
+	EnableBrush   bool
 	Back_cd       color.RGBA
 	Back_margin   float64
 	Back_rounding bool
@@ -911,6 +912,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 func (layout *Layout) setLayoutFromUI(ui *UI) {
 	layout.Enable = ui.Enable
 	layout.EnableTouch = ui.EnableTouch
+	layout.EnableBrush = ui.EnableBrush
 	layout.Back_cd = ui.Back_cd
 	layout.Back_margin = ui.Back_margin
 	layout.Back_rounding = ui.Back_rounding

@@ -87,7 +87,7 @@ func (s *UiSelection) UpdateBrush(ui *Ui) *LayoutPick {
 
 	//start
 	if ui.GetWin().io.Keys.Ctrl && !ui.GetWin().io.Keys.Shift {
-		if ui.GetWin().io.Touch.Start {
+		if ui.GetWin().io.Touch.Start && ui.mainLayout.IsBrushEnabled() {
 			//s.active = &LayoutPick{Cd: Layout3_Get_prompt_color(ui.mainLayout.numBrushes())}
 			s.active = &LayoutPick{}
 		}

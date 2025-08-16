@@ -474,6 +474,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 		} else {
 			AppDiv := ui.AddLayoutWithName(1, 0, 1, 1, "App")
+			AppDiv.EnableBrush = true
 			AppDiv.SetColumnResizable(0, 8, 20, 8)
 			AppDiv.SetColumn(1, 1, Layout_MAX_SIZE)
 			AppDiv.SetRow(0, 1, Layout_MAX_SIZE)

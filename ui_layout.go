@@ -257,6 +257,7 @@ type Layout struct {
 
 	Enable      bool
 	EnableTouch bool
+	EnableBrush bool
 
 	Back_cd       color.RGBA
 	Back_rounding bool
@@ -1145,6 +1146,24 @@ func (layout *Layout) renderBufferBrush(buffer []LayoutDrawPrim) {
 		}
 	}
 
+}
+
+func (layout *Layout) IsBrushEnabled() bool {
+
+	if layout.EnableBrush {
+		return true
+	}
+
+	//subs
+	for _, it := range layout.childs {
+		if it.IsShown() {
+			if it.IsBrushEnabled() {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func (layout *Layout) numBrushes() int {

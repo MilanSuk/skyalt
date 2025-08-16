@@ -1839,6 +1839,7 @@ type UI struct {
 
 	Enable        bool       `json:",omitempty"`
 	EnableTouch   bool       `json:",omitempty"`
+	EnableBrush   bool       `json:",omitempty"`
 	Back_cd       color.RGBA `json:",omitempty"`
 	Back_margin   float64    `json:",omitempty"`
 	Back_rounding bool       `json:",omitempty"`
