@@ -135,7 +135,7 @@ func (root *Root) refreshApps() (*RootApp, error) {
 				return nil, err
 			}
 			for _, fl := range afls {
-				if !fl.IsDir() || strings.HasSuffix(fl.Name(), ".bin") {
+				if !fl.IsDir() && strings.HasSuffix(fl.Name(), ".bin") {
 					isCompiled = true
 					break
 				}
