@@ -252,23 +252,25 @@ func (app *ToolsApp) Tick(generate bool) error {
 	} else {
 
 		if !generate {
-			//only recompile(for example: sdk.go changed)
+			if len(app.Prompts.Prompts) > 0 { //must exist
 
-			if app.Process.Compile.SdkFileTime != sdkFileTime || binFileMissing {
-				msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
-				defer msg.Done()
+				//only recompile(for example: sdk.go changed)
+				if app.Process.Compile.SdkFileTime != sdkFileTime || binFileMissing {
+					msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
+					defer msg.Done()
 
-				err = app.Process.Compile.BuildMainFile(app.Prompts.Prompts) //sdk.go -> main.go
-				if err != nil {
-					return err
+					err = app.Process.Compile.BuildMainFile(app.Prompts.Prompts) //sdk.go -> main.go
+					if err != nil {
+						return err
+					}
+
+					codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
+					if LogsError(err) != nil {
+						return err
+					}
+					app.Prompts.SetCodeErrors(codeErrors, app)
+					restart = true
 				}
-
-				codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
-				if LogsError(err) != nil {
-					return err
-				}
-				app.Prompts.SetCodeErrors(codeErrors, app)
-				restart = true
 			}
 		} else {
 			saved, err := app.Prompts._reloadFromPromptFile(app.Process.Compile.GetFolderPath())
