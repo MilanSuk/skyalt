@@ -6,7 +6,7 @@ UI:
 Whole UI is centered.
 First row has label "Original text".
 Next row is editbox(enable multi-line and line-wrapping) with 'Original' from storage. Set row height between 3 and 100.
-Next row has LLM button "Check".
+Next row has LLM button "Check Grammar".
 Next row has text with 'Fixed' from storage.
 
 Functions:

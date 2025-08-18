@@ -1,4 +1,4 @@
-#Tool ShowSummarizer
+#tool ShowSummarizer
 Tool accepts long text and make summary.
 Input parameter is "LongText" and output is "ShortText". Input is optional and can be empty.
 
