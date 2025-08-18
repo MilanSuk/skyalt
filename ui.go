@@ -93,6 +93,8 @@ func NewUi(win *Win, router *AppsRouter) (*Ui, error) {
 
 	ui.SetRefresh()
 
+	win.getUiStats = ui.stats.Get
+
 	return ui, nil
 }
 func (ui *Ui) Destroy() {
