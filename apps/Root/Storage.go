@@ -130,7 +130,7 @@ func (root *Root) refreshApps() (*RootApp, error) {
 		//if .bin not exist, activate Dev mode
 		{
 			isCompiled := false
-			afls, err := os.ReadDir("..")
+			afls, err := os.ReadDir(filepath.Join("..", app.Name))
 			if err != nil {
 				return nil, err
 			}
