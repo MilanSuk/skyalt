@@ -420,6 +420,9 @@ func (app *ToolsApp) Tick(generate bool) error {
 				if genErr != nil {
 					return genErr
 				}
+				if !msg.GetContinue() {
+					break
+				}
 
 				err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
 				if err != nil {
