@@ -17,11 +17,21 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"os"
 	"slices"
 	"time"
 )
+
+type UiStats struct {
+	Build         float64
+	Changed       float64
+	Relayout_soft float64 //sec
+	Relayout_hard float64
+}
+
+func (s *UiStats) Get() (float64, float64, float64, float64) {
+	return s.Build, s.Changed, s.Relayout_soft, s.Relayout_hard
+}
 
 type Ui struct {
 	win    *Win
@@ -58,6 +68,8 @@ type Ui struct {
 	last_layout_updates_ticks int64
 
 	runPrompt string
+
+	stats UiStats
 }
 
 func NewUi(win *Win, router *AppsRouter) (*Ui, error) {
@@ -98,7 +110,6 @@ func (ui *Ui) open() bool {
 	{
 		jsRead, err := os.ReadFile(ui.GetSettingsPath())
 		if err != nil {
-			//fmt.Printf("Open() failed: %v\n", err)
 			return false
 		}
 
@@ -113,7 +124,7 @@ func (ui *Ui) open() bool {
 	return true
 }
 
-func (ui *Ui) save() bool {
+func (ui *Ui) save() error {
 
 	//save editbox
 	if ui.edit.IsActive() {
@@ -121,15 +132,12 @@ func (ui *Ui) save() bool {
 	}
 
 	//settings
-	{
-		_, err := Tools_WriteJSONFile(ui.GetSettingsPath(), ui.settings)
-		if err != nil {
-			fmt.Printf("Save(%s) failed: %v\n", ui.GetSettingsPath(), err)
-			return false
-		}
+	_, err := Tools_WriteJSONFile(ui.GetSettingsPath(), ui.settings)
+	if err != nil {
+		return LogsErrorf("Save(%s) failed: %v\n", ui.GetSettingsPath(), err)
 	}
 
-	return true
+	return nil
 }
 
 func (ui *Ui) GetWin() *Win {
@@ -354,34 +362,18 @@ func (ui *Ui) Tick() {
 		}
 
 		fnDone := func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64) {
-
-			fmt.Printf("_refresh(): %.4fsec\n", OsTime()-start_time)
-
 			if err != nil {
 				return
 			}
 
-			start_time = OsTime()
+			ui.stats.Build = OsTime() - start_time
+
 			var uii UI
 			err = LogsGobUnmarshal(uiGob, &uii)
 			if err != nil {
 				return
 			}
-			fmt.Printf("-unmarshal(): %.4fsec\n", OsTime()-start_time)
 			ui.temp_ui = &uii
-
-			/*{
-				start_time = OsTime()
-				var buf bytes.Buffer
-				enc := gob.NewEncoder(&buf)
-				enc.Encode(uii)
-				fmt.Printf("-gob marshal(): %.4fsec\n", OsTime()-start_time)
-
-				start_time = OsTime()
-				dec := gob.NewDecoder(&buf)
-				dec.Decode(&uii)
-				fmt.Printf("-gob unmarshal(): %.4fsec\n", OsTime()-start_time)
-			}*/
 
 			var cmds []ToolCmd
 			err = LogsGobUnmarshal(cmdsGob, &cmds)
@@ -458,7 +450,7 @@ func (ui *Ui) Tick() {
 			}
 		}
 
-		fmt.Printf("_relayout(hard): %.4fsec\n", OsTime()-st)
+		ui.stats.Relayout_hard = OsTime() - st
 
 		ui.mainLayout.SetTouchAll()
 
@@ -480,7 +472,7 @@ func (ui *Ui) Tick() {
 			}
 		}
 
-		fmt.Printf("_relayout(soft): %.4fsec\n", OsTime()-st)
+		ui.stats.Relayout_soft = OsTime() - st
 	}
 
 	ui.mainLayout.UpdateTouch()
@@ -549,5 +541,5 @@ func (ui *Ui) _addLayout_FnIODone(dataJs []byte, uiGob []byte, cmdsGob []byte, e
 		ui.temp_cmds = append(ui.temp_cmds, cmds...)
 	}
 
-	fmt.Printf("_changed(): %.4fsec\n", OsTime()-start_time)
+	ui.stats.Changed = OsTime() - start_time
 }

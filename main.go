@@ -76,6 +76,8 @@ func main() {
 	}
 	defer ui.Destroy()
 
+	win.getUiStats = ui.stats.Get
+
 	//Loop
 	run := true
 	redraw := true

@@ -95,6 +95,8 @@ type Win struct {
 	quit bool
 
 	services *Services
+
+	getUiStats func() (float64, float64, float64, float64)
 }
 
 // disk can be nil
@@ -688,21 +690,49 @@ func (win *Win) renderStats() {
 
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
-	text := fmt.Sprintf("FPS(worst: %.1f, best: %.1f, avg: %.1f), Memory(%d imgs: %.2fMB, process: %.2fMB), Threads(%d), Text(live: %d, created: %d, removed: %d)",
-		win.stat.out_worst_fps, win.stat.out_best_fps, win.stat.out_avg_fps,
-		win.images.NumTextures(), float64(win.images.GetBytes())/1024/1024, float64(mem.Sys)/1024/1024, runtime.NumGoroutine(),
-		len(win.gph.texts), win.gph.texts_num_created, win.gph.texts_num_remove)
 
-	sz := win.GetTextSize(-1, text, props)
+	ui_Build, ui_Changed, ui_Relayout_soft, ui_Relayout_hard := win.getUiStats()
+	var ui_Build_fps, ui_Changed_fps, ui_Relayout_soft_fps, ui_Relayout_hard_fps float64
+	if ui_Build > 0 {
+		ui_Build_fps = 1.0 / ui_Build
+	}
+	if ui_Changed > 0 {
+		ui_Changed_fps = 1.0 / ui_Changed
+	}
+	if ui_Relayout_soft > 0 {
+		ui_Relayout_soft_fps = 1.0 / ui_Relayout_soft
+	}
+	if ui_Relayout_hard > 0 {
+		ui_Relayout_hard_fps = 1.0 / ui_Relayout_hard
+	}
+
+	var lines []string
+	lines = append(lines, fmt.Sprintf("Rendering - worst: %.1ffps, best: %.1ffps, avg: %.1ffps", win.stat.out_worst_fps, win.stat.out_best_fps, win.stat.out_avg_fps))
+	lines = append(lines, fmt.Sprintf("UI - build: %.1ffps(%.3fsec), changed: %.1ffps(%.3fsec), layout_soft: %.1ffps(%.3fsec), layout_hard: %.1ffps(%.3fsec)", ui_Build_fps, ui_Build, ui_Changed_fps, ui_Changed, ui_Relayout_soft_fps, ui_Relayout_soft, ui_Relayout_hard_fps, ui_Relayout_hard))
+	lines = append(lines, fmt.Sprintf("Memory - num_images: %d images_size: %.2fMB, process: %.2fMB", win.images.NumTextures(), float64(win.images.GetBytes())/1024/1024, float64(mem.Sys)/1024/1024))
+	lines = append(lines, fmt.Sprintf("Threads - %d", runtime.NumGoroutine()))
+	lines = append(lines, fmt.Sprintf("Texts - live: %d, created: %d, removed: %d", len(win.gph.texts), win.gph.texts_num_created, win.gph.texts_num_remove))
+
+	var sz OsV2
+	for _, ln := range lines {
+		sz = sz.Max(win.GetTextSize(-1, ln, props))
+	}
 
 	screen := win.GetScreenCoord()
 	cq := OsV4{screen.Middle().Sub(sz.MulV(0.5)), sz}
+	cq.Start.Y -= (sz.Y * len(lines)) / 2
 
-	win.render.SetClipRect(screen, cq)
-	depth := 990 //....
-	win.render.DrawRect(cq.Start, cq.End(), depth, color.RGBA{255, 255, 255, 255})
+	y := cq.Start.Y
+	for _, ln := range lines {
+		cq.Start.Y = y
 
-	win.DrawTextLine(text, props, color.RGBA{255, 50, 50, 255}, cq, depth, OsV2{0, 1}, 0, 1)
+		win.render.SetClipRect(screen, cq)
+		depth := 990 //....
+		win.render.DrawRect(cq.Start, cq.End(), depth, color.RGBA{255, 255, 255, 255})
+		win.DrawTextLine(ln, props, color.RGBA{255, 50, 50, 255}, cq, depth, OsV2{0, 1}, 0, 1)
+
+		y += sz.Y
+	}
 }
 
 func (win *Win) RenderError(errStr string) {
