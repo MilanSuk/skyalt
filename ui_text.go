@@ -162,8 +162,11 @@ func (ui *Ui) _Text_update(layout *Layout,
 		}
 	}
 
-	if editable && edit.Is(layout) && refresh {
-		edit.Set(layout.UID, editable, orig_value, value, false, false, true, true, ui)
+	if editable && edit.Is(layout) {
+		if refresh {
+			edit.Set(layout.UID, editable, orig_value, value, false, false, true, true, ui)
+		}
+		edit.UpdateOrigValue(orig_value)
 	}
 
 	//wasActive := active

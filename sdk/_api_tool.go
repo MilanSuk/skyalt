@@ -74,7 +74,6 @@ func (ui *UI) addText(label string, llmtip string) *UIText
 
 type UIEditbox struct {
 	layout     *UI
-	Name       string
 	Value      *string
 	ValueFloat *float64
 	ValueInt   *int
@@ -95,7 +94,8 @@ type UIEditbox struct {
 	enter   func() error
 }
 
-func (ed *UIEditbox) setMultilined() //Enable multi-line & Line-wrapping
+func (ed *UIEditbox) setMultilined()              //Enable multi-line & Line-wrapping
+func (ed *UIEditbox) Activate(caller *ToolCaller) //Activate editbox.
 
 func (ui *UI) addEditboxString(value *string, llmtip string) *UIEditbox
 func (ui *UI) addEditboxInt(value *int, llmtip string) *UIEditbox

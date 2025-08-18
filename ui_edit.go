@@ -153,3 +153,10 @@ func (edit *UiEdit) Tick() {
 func (edit *UiEdit) IsActive() bool {
 	return edit.uid != 0
 }
+
+func (edit *UiEdit) UpdateOrigValue(orig_value string) {
+	if edit.orig_value != orig_value {
+		edit.orig_value = orig_value
+		edit.temp = orig_value
+	}
+}

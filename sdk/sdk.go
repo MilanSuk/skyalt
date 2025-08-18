@@ -1961,6 +1961,9 @@ func (ui *UI) addEditboxString(value *string, tooltip string) *UIEditbox {
 
 	ui._autoRowBasic()
 	ui._addUILine(item.layout)
+
+	item.Name = strconv.FormatUint(item.layout.UID, 10)
+
 	return item
 }
 func (ui *UI) addEditboxInt(value *int, tooltip string) *UIEditbox {
@@ -1969,6 +1972,9 @@ func (ui *UI) addEditboxInt(value *int, tooltip string) *UIEditbox {
 
 	ui._autoRowBasic()
 	ui._addUILine(item.layout)
+
+	item.Name = strconv.FormatUint(item.layout.UID, 10)
+
 	return item
 }
 func (ui *UI) addEditboxFloat(value *float64, precision int, tooltip string) *UIEditbox {
@@ -1977,6 +1983,9 @@ func (ui *UI) addEditboxFloat(value *float64, precision int, tooltip string) *UI
 
 	ui._autoRowBasic()
 	ui._addUILine(item.layout)
+
+	item.Name = strconv.FormatUint(item.layout.UID, 10)
+
 	return item
 }
 func (ed *UIEditbox) setMultilined() {
@@ -1984,6 +1993,10 @@ func (ed *UIEditbox) setMultilined() {
 	ed.Align_h = 0
 	ed.Align_v = 0
 	ed.Linewrapping = true
+}
+
+func (ed *UIEditbox) Activate(caller *ToolCaller) {
+	ed.layout.ActivateEditbox(ed.Name, caller)
 }
 
 func (ui *UI) addButton(label string, tooltip string) *UIButton {
