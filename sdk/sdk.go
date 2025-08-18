@@ -1028,6 +1028,10 @@ func callFuncGetLLMUsage() []byte {
 }
 
 func callFuncRenameApp(oldName, newName string) (string, error) {
+	if oldName == newName {
+		return newName, nil
+	}
+
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()

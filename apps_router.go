@@ -526,25 +526,30 @@ func (router *AppsRouter) RunNet() {
 					cl.WriteArray(usageJs)
 
 				case "rename_app":
-					oldName, err := cl.ReadArray()
+					oldNameBytes, err := cl.ReadArray()
 					if err == nil {
 						newNameBytes, err := cl.ReadArray()
 						if err == nil {
-							app := router.FindApp(string(oldName))
+							app := router.FindApp(string(oldNameBytes))
 							if app != nil {
-								newName, renameErr := app.Rename(string(newNameBytes))
-								if renameErr == nil {
-									router._reloadAppList()
+								if string(oldNameBytes) != string(newNameBytes) {
+									newName, renameErr := app.Rename(string(newNameBytes))
+									if renameErr == nil {
+										router._reloadAppList()
+									}
+									//send back
+									cl.WriteArray([]byte(newName))
+
+									var errBytes []byte
+									if renameErr != nil {
+										errBytes = []byte(renameErr.Error())
+									}
+									cl.WriteArray(errBytes)
+								} else {
+									cl.WriteArray(newNameBytes)
+									cl.WriteArray(nil) //err
 								}
 
-								//send back
-								cl.WriteArray([]byte(newName))
-
-								var errBytes []byte
-								if renameErr != nil {
-									errBytes = []byte(renameErr.Error())
-								}
-								cl.WriteArray(errBytes)
 							}
 						}
 					}

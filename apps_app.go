@@ -95,7 +95,7 @@ func (app *ToolsApp) Rename(newName string) (string, error) {
 	//rename
 	err := os.Rename(filepath.Join("apps", oldName), filepath.Join("apps", newName))
 	if err != nil {
-		return oldName, LogsErrorf("Rename failed: empty newName")
+		return oldName, err
 	}
 
 	return newName, nil
