@@ -54,6 +54,7 @@ func (layout *Layout) AddMap(x, y, w, h int, cam *MapCam) *Map {
 	props := &Map{Cam: cam}
 	lay := layout._createDiv(x, y, w, h, "Map", props.Build, props.Draw, props.Input)
 	lay.fnGetLLMTip = props.getLLMTip
+	lay.fnHasShortcut = props.HasShortcut
 	return props
 }
 
@@ -66,6 +67,16 @@ func (mp *Map) AddLocators(loc MapLocators) {
 }
 func (mp *Map) AddRoute(route MapRoute) {
 	mp.Routes = append(mp.Routes, route)
+}
+
+func (st *Map) addZoom(diff int, layout *Layout) {
+	newZoom := _CompMap_zoomClamp(st.Cam.Zoom + float64(diff))
+
+	st.activateCam(st.Cam.Lon, st.Cam.Lat, newZoom, layout)
+
+	if st.changed != nil {
+		st.changed()
+	}
 }
 
 func (st *Map) Build(layout *Layout) {
@@ -126,23 +137,14 @@ func (st *Map) Build(layout *Layout) {
 		btA.Background = 0.5
 		btS.Background = 0.5
 		btT.Background = 0.5
+		//btA.Shortcut_key = '+'	//must be over map layout
+		//btS.Shortcut_key = '-'
+
 		btA.clicked = func() {
-			newZoom := _CompMap_zoomClamp(st.Cam.Zoom + 1)
-
-			st.activateCam(st.Cam.Lon, st.Cam.Lat, newZoom, layout)
-
-			if st.changed != nil {
-				st.changed()
-			}
+			st.addZoom(+1, layout)
 		}
 		btS.clicked = func() {
-			newZoom := _CompMap_zoomClamp(st.Cam.Zoom - 1)
-
-			st.activateCam(st.Cam.Lon, st.Cam.Lat, newZoom, layout)
-
-			if st.changed != nil {
-				st.changed()
-			}
+			st.addZoom(-1, layout)
 		}
 		btT.clicked = func() {
 			canvas_size := OsV2f{float32(st.rect.W), float32(st.rect.H)}
@@ -281,6 +283,10 @@ func (st *Map) activateCam(lonNew, latNew, zoomNew float64, layout *Layout) {
 	layout.RedrawThis()
 }
 
+func (st *Map) HasShortcut(key byte) bool {
+	return key == '+' || key == '-'
+}
+
 func (st *Map) Input(in LayoutInput, layout *Layout) {
 	st.Cam.Zoom = _CompMap_zoomClamp(st.Cam.Zoom) //check
 
@@ -351,6 +357,16 @@ func (st *Map) Input(in LayoutInput, layout *Layout) {
 
 		st.Cam.Lon = lonNew
 		st.Cam.Lat = latNew
+	}
+
+	//plus/minus(without ctrl) to zoom
+	if layout.IsOver() {
+		if in.Shortcut_key == '+' {
+			st.addZoom(+1, layout)
+		}
+		if in.Shortcut_key == '-' {
+			st.addZoom(-1, layout)
+		}
 	}
 
 	//double click

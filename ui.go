@@ -301,7 +301,7 @@ func (ui *Ui) Tick() {
 	//shortcut
 	ui.edit.shortcut_triggered = false
 	keys := &ui.win.io.Keys
-	if keys.Ctrl && keys.HasChanged {
+	if keys.HasChanged && (keys.Ctrl || keys.Plus || keys.Minus) {
 		var sh byte
 		if keys.CtrlChar != "" {
 			sh = keys.CtrlChar[0]
@@ -320,6 +320,12 @@ func (ui *Ui) Tick() {
 		}
 		if keys.ArrowD {
 			sh = 40
+		}
+		if keys.Plus {
+			sh = '+'
+		}
+		if keys.Minus {
+			sh = '-'
 		}
 
 		if sh != 0 {

@@ -345,7 +345,6 @@ func (win *Win) Event() (bool, bool) {
 
 		case *sdl.MouseWheelEvent:
 			if IsCtrlActive() { // zoom
-
 				if val.Y > 0 {
 					io.Keys.ZoomAdd = true
 				}
@@ -360,68 +359,76 @@ func (win *Win) Event() (bool, bool) {
 
 		case *sdl.KeyboardEvent:
 			if val.Type == sdl.KEYDOWN {
+				keys := &io.Keys
 
+				isZoom := false
 				if IsCtrlActive() {
 					if val.Keysym.Sym == sdl.K_PLUS || val.Keysym.Sym == sdl.K_KP_PLUS {
-						io.Keys.ZoomAdd = true
+						keys.ZoomAdd = true
+						isZoom = true
 					}
 					if val.Keysym.Sym == sdl.K_MINUS || val.Keysym.Sym == sdl.K_KP_MINUS {
-						io.Keys.ZoomSub = true
+						keys.ZoomSub = true
+						isZoom = true
 					}
 					if val.Keysym.Sym == sdl.K_0 || val.Keysym.Sym == sdl.K_KP_0 {
-						io.Keys.ZoomDef = true
+						keys.ZoomDef = true
+						isZoom = true
 					}
 				}
 
-				keys := &io.Keys
+				if !isZoom {
+					keys.Esc = val.Keysym.Sym == sdl.K_ESCAPE
+					keys.Enter = (val.Keysym.Sym == sdl.K_RETURN || val.Keysym.Sym == sdl.K_RETURN2 || val.Keysym.Sym == sdl.K_KP_ENTER)
 
-				keys.Esc = val.Keysym.Sym == sdl.K_ESCAPE
-				keys.Enter = (val.Keysym.Sym == sdl.K_RETURN || val.Keysym.Sym == sdl.K_RETURN2 || val.Keysym.Sym == sdl.K_KP_ENTER)
+					keys.ArrowU = val.Keysym.Sym == sdl.K_UP
+					keys.ArrowD = val.Keysym.Sym == sdl.K_DOWN
+					keys.ArrowL = val.Keysym.Sym == sdl.K_LEFT
+					keys.ArrowR = val.Keysym.Sym == sdl.K_RIGHT
+					keys.Home = val.Keysym.Sym == sdl.K_HOME
+					keys.End = val.Keysym.Sym == sdl.K_END
+					keys.PageU = val.Keysym.Sym == sdl.K_PAGEUP
+					keys.PageD = val.Keysym.Sym == sdl.K_PAGEDOWN
 
-				keys.ArrowU = val.Keysym.Sym == sdl.K_UP
-				keys.ArrowD = val.Keysym.Sym == sdl.K_DOWN
-				keys.ArrowL = val.Keysym.Sym == sdl.K_LEFT
-				keys.ArrowR = val.Keysym.Sym == sdl.K_RIGHT
-				keys.Home = val.Keysym.Sym == sdl.K_HOME
-				keys.End = val.Keysym.Sym == sdl.K_END
-				keys.PageU = val.Keysym.Sym == sdl.K_PAGEUP
-				keys.PageD = val.Keysym.Sym == sdl.K_PAGEDOWN
+					keys.Plus = (val.Keysym.Sym == sdl.K_PLUS || val.Keysym.Sym == sdl.K_KP_PLUS)
+					keys.Minus = (val.Keysym.Sym == sdl.K_MINUS || val.Keysym.Sym == sdl.K_KP_MINUS)
 
-				keys.Copy = val.Keysym.Sym == sdl.K_COPY || (IsCtrlActive() && val.Keysym.Sym == sdl.K_c)
-				keys.Cut = val.Keysym.Sym == sdl.K_CUT || (IsCtrlActive() && val.Keysym.Sym == sdl.K_x)
-				keys.Paste = val.Keysym.Sym == sdl.K_PASTE || (IsCtrlActive() && val.Keysym.Sym == sdl.K_v)
-				keys.SelectAll = val.Keysym.Sym == sdl.K_SELECT || (IsCtrlActive() && val.Keysym.Sym == sdl.K_a)
-				keys.RecordMic = (IsCtrlActive() && val.Keysym.Sym == sdl.K_r)
+					keys.Copy = val.Keysym.Sym == sdl.K_COPY || (IsCtrlActive() && val.Keysym.Sym == sdl.K_c)
+					keys.Cut = val.Keysym.Sym == sdl.K_CUT || (IsCtrlActive() && val.Keysym.Sym == sdl.K_x)
+					keys.Paste = val.Keysym.Sym == sdl.K_PASTE || (IsCtrlActive() && val.Keysym.Sym == sdl.K_v)
+					keys.SelectAll = val.Keysym.Sym == sdl.K_SELECT || (IsCtrlActive() && val.Keysym.Sym == sdl.K_a)
+					keys.RecordMic = (IsCtrlActive() && val.Keysym.Sym == sdl.K_r)
 
-				keys.Backward = val.Keysym.Sym == sdl.K_AC_FORWARD || (IsCtrlActive() && !IsShiftActive() && val.Keysym.Sym == sdl.K_z)
-				keys.Forward = val.Keysym.Sym == sdl.K_AC_BACK || (IsCtrlActive() && val.Keysym.Sym == sdl.K_y) || (IsCtrlActive() && IsShiftActive() && val.Keysym.Sym == sdl.K_z)
+					keys.Backward = val.Keysym.Sym == sdl.K_AC_FORWARD || (IsCtrlActive() && !IsShiftActive() && val.Keysym.Sym == sdl.K_z)
+					keys.Forward = val.Keysym.Sym == sdl.K_AC_BACK || (IsCtrlActive() && val.Keysym.Sym == sdl.K_y) || (IsCtrlActive() && IsShiftActive() && val.Keysym.Sym == sdl.K_z)
 
-				keys.Tab = val.Keysym.Sym == sdl.K_TAB
-				keys.Space = val.Keysym.Sym == sdl.K_SPACE
+					keys.Tab = val.Keysym.Sym == sdl.K_TAB
+					keys.Space = val.Keysym.Sym == sdl.K_SPACE
 
-				keys.Delete = val.Keysym.Sym == sdl.K_DELETE
-				keys.Backspace = val.Keysym.Sym == sdl.K_BACKSPACE
+					keys.Delete = val.Keysym.Sym == sdl.K_DELETE
+					keys.Backspace = val.Keysym.Sym == sdl.K_BACKSPACE
 
-				keys.F1 = val.Keysym.Sym == sdl.K_F1
-				keys.F2 = val.Keysym.Sym == sdl.K_F2
-				keys.F3 = val.Keysym.Sym == sdl.K_F3
-				keys.F4 = val.Keysym.Sym == sdl.K_F4
-				keys.F5 = val.Keysym.Sym == sdl.K_F5
-				keys.F6 = val.Keysym.Sym == sdl.K_F6
-				keys.F7 = val.Keysym.Sym == sdl.K_F7
-				keys.F8 = val.Keysym.Sym == sdl.K_F8
-				keys.F9 = val.Keysym.Sym == sdl.K_F9
-				keys.F10 = val.Keysym.Sym == sdl.K_F10
-				keys.F11 = val.Keysym.Sym == sdl.K_F11
-				keys.F12 = val.Keysym.Sym == sdl.K_F12
+					keys.F1 = val.Keysym.Sym == sdl.K_F1
+					keys.F2 = val.Keysym.Sym == sdl.K_F2
+					keys.F3 = val.Keysym.Sym == sdl.K_F3
+					keys.F4 = val.Keysym.Sym == sdl.K_F4
+					keys.F5 = val.Keysym.Sym == sdl.K_F5
+					keys.F6 = val.Keysym.Sym == sdl.K_F6
+					keys.F7 = val.Keysym.Sym == sdl.K_F7
+					keys.F8 = val.Keysym.Sym == sdl.K_F8
+					keys.F9 = val.Keysym.Sym == sdl.K_F9
+					keys.F10 = val.Keysym.Sym == sdl.K_F10
+					keys.F11 = val.Keysym.Sym == sdl.K_F11
+					keys.F12 = val.Keysym.Sym == sdl.K_F12
 
-				let := val.Keysym.Sym
-				if OsIsTextWord(rune(let)) || let == ' ' {
-					if IsCtrlActive() {
-						keys.CtrlChar = string(let) //string([]byte{byte(let)})
-					}
-					if IsAltActive() {
-						keys.AltChar = string(let)
+					let := val.Keysym.Sym
+					if OsIsTextWord(rune(let)) || let == ' ' {
+						if IsCtrlActive() {
+							keys.CtrlChar = string(let) //string([]byte{byte(let)})
+						}
+						if IsAltActive() {
+							keys.AltChar = string(let)
+						}
 					}
 				}
 
@@ -430,7 +437,7 @@ func (win *Win) Event() (bool, bool) {
 			return true, true
 
 		case *sdl.TextInputEvent:
-			if !(IsCtrlActive() && len(val.Text) > 0 && val.Text[0] == ' ') { // ignore ctrl+space
+			if !IsCtrlActive() { // ignore ctrl
 				io.Keys.Text += val.GetText()
 				io.Keys.HasChanged = true
 			}

@@ -48,6 +48,9 @@ type WinKeys struct {
 	PageU  bool
 	PageD  bool
 
+	Plus  bool
+	Minus bool
+
 	Tab   bool
 	Space bool
 
