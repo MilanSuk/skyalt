@@ -700,8 +700,8 @@ func (st *ShowDev) buildSettings(dia *UIDialog, app *RootApp, caller *ToolCaller
 
 	ui := &dia.UI
 
-	ui.SetColumn(0, 2, 2)
-	ui.SetColumn(1, 3, 7)
+	ui.SetColumn(0, 3, 7)
+	ui.SetColumn(1, 2, 3)
 	y := 0
 
 	//label
@@ -709,25 +709,27 @@ func (st *ShowDev) buildSettings(dia *UIDialog, app *RootApp, caller *ToolCaller
 	y++
 
 	//edit app name
-	ui.AddText(0, y, 1, 1, "Rename")
-	name := app.Name
-	RenameEd := ui.AddEditboxString(1, y, 1, 1, &name)
-	RenameEd.changed = func() error {
-		newName, err := callFuncRenameApp(app.Name, name)
-		if err == nil {
-			app.Name = newName
+	{
+		name := app.Name
+		RenameEd := ui.AddEditboxString(0, y, 1, 1, &name)
+		RenameEd.changed = func() error {
+			newName, err := callFuncRenameApp(app.Name, name)
+			if err == nil {
+				app.Name = newName
+			}
+			return err
 		}
-		return err
+		RenameBt := ui.AddButton(1, y, 1, 1, "Rename app")
+		RenameBt.clicked = RenameEd.changed
+		y++
 	}
-	y++
 
 	y++ //space
 
 	//change icon
-	ui.AddText(0, y, 1, 1, "Icon")
 	dstPath := filepath.Join("apps", app.Name, "icon")
 	srcPath := dstPath
-	IconBt := ui.AddFilePickerButton(1, y, 1, 1, &srcPath, false, false)
+	IconBt := ui.AddFilePickerButton(0, y, 2, 1, &srcPath, false, false)
 	IconBt.changed = func() error {
 		return _copyFile(filepath.Join("..", app.Name, "icon"), srcPath)
 	}
@@ -739,6 +741,7 @@ func (st *ShowDev) buildSettings(dia *UIDialog, app *RootApp, caller *ToolCaller
 	//delete app
 	DeleteBt := ui.AddButton(0, y, 2, 1, "Delete app")
 	y++
+	DeleteBt.Background = 0.5
 	//DeleteBt.Cd = UI_GetPalette().E
 	DeleteBt.ConfirmQuestion = fmt.Sprintf("Are you sure you want to permanently delete '%s' app", app.Name)
 	DeleteBt.clicked = func() error {
