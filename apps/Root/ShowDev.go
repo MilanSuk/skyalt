@@ -831,7 +831,7 @@ func (st *ShowDev) buildDocumentation(ui *UI, caller *ToolCaller) {
 		yy += 2
 
 		GuiDiv.AddText(0, yy, 1, 1, "Editbox")
-		edit := "edit this"
+		edit := "editable text"
 		GuiDiv.AddEditboxString(1, yy, 1, 1, &edit)
 		yy += 2
 
