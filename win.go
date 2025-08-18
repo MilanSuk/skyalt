@@ -702,7 +702,7 @@ func (win *Win) renderStats() {
 	depth := 990 //....
 	win.render.DrawRect(cq.Start, cq.End(), depth, color.RGBA{255, 255, 255, 255})
 
-	win.DrawText(text, props, color.RGBA{255, 50, 50, 255}, cq, depth, OsV2{0, 1}, 0, 1)
+	win.DrawTextLine(text, props, color.RGBA{255, 50, 50, 255}, cq, depth, OsV2{0, 1}, 0, 1)
 }
 
 func (win *Win) RenderError(errStr string) {
@@ -719,7 +719,7 @@ func (win *Win) RenderError(errStr string) {
 	depth := 990 //....
 	win.render.DrawRect(cq.Start, cq.End(), depth, color.RGBA{255, 255, 255, 255})
 
-	win.DrawText(errStr, props, color.RGBA{255, 0, 0, 255}, cq, depth, OsV2{0, 1}, 0, 1)
+	win.DrawTextLine(errStr, props, color.RGBA{255, 0, 0, 255}, cq, depth, OsV2{0, 1}, 0, 1)
 }
 
 func (win *Win) PaintCursor(name string) error {
@@ -809,7 +809,7 @@ func (win *Win) DrawPolyStart(start OsV2, poly *WinGphItemPoly, depth int, cd co
 }
 
 // single line only!
-func (win *Win) DrawText(ln string, prop WinFontProps, frontCd color.RGBA, coord OsV4, depth int, align OsV2, yLine, numLines int) { // single line
+func (win *Win) DrawTextLine(ln string, prop WinFontProps, frontCd color.RGBA, coord OsV4, depth int, align OsV2, yLine, numLines int) { // single line
 	item := win.gph.GetText(prop, ln)
 	if item != nil {
 		start := win.GetTextStart(ln, prop, coord, align.X, align.Y, numLines)

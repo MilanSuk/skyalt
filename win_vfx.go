@@ -257,10 +257,10 @@ func (ptcs *WinParticles) Draw(cd_theme color.RGBA, depth int, win *Win) (bool, 
 		cq.Start.Y += cq.Size.Y + ptcs.cell
 		cq.Size.Y = ptcs.cell
 		if title != "" {
-			win.DrawText(ptcs.description, InitWinFontPropsDef(ptcs.cell), cd, cq, depth+2, OsV2{1, 1}, 0, 1)
+			win.DrawTextLine(ptcs.description, InitWinFontPropsDef(ptcs.cell), cd, cq, depth+2, OsV2{1, 1}, 0, 1)
 		}
 		if proc != "" {
-			win.DrawText(proc, InitWinFontPropsDef(ptcs.cell), cd, cq, depth+2, OsV2{2, 1}, 0, 1)
+			win.DrawTextLine(proc, InitWinFontPropsDef(ptcs.cell), cd, cq, depth+2, OsV2{2, 1}, 0, 1)
 		}
 
 		//cq.Start.Y += ptcs.cell
