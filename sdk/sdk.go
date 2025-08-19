@@ -1911,7 +1911,14 @@ func (ui *UI) addLeftSideUI(resizable bool) (*UI, *UI) {
 	ui.SetColumn(1, 1, Layout_MAX_SIZE)
 
 	ui.SetRow(0, 1, Layout_MAX_SIZE)
-	return ui.AddLayout(0, 0, 1, 1), ui.AddLayout(1, 0, 1, 1)
+
+	left := ui.AddLayout(0, 0, 1, 1)
+	content := ui.AddLayout(1, 0, 1, 1)
+	left.Back_cd = UI_GetPalette().GetGrey(0.09)
+	if !resizable {
+		left.SetColumnFromSub(0, 1, 20, true)
+	}
+	return left, content
 }
 func (ui *UI) addRightSideUI(resizable bool) (*UI, *UI) {
 	if resizable {
@@ -1922,7 +1929,14 @@ func (ui *UI) addRightSideUI(resizable bool) (*UI, *UI) {
 	ui.SetColumn(0, 1, Layout_MAX_SIZE)
 
 	ui.SetRow(0, 1, Layout_MAX_SIZE)
-	return ui.AddLayout(0, 0, 1, 1), ui.AddLayout(1, 0, 1, 1)
+
+	content := ui.AddLayout(0, 0, 1, 1)
+	right := ui.AddLayout(1, 0, 1, 1)
+	right.Back_cd = UI_GetPalette().GetGrey(0.09)
+	if !resizable {
+		right.SetColumnFromSub(0, 1, 20, true)
+	}
+	return content, right
 }
 func (ui *UI) addBothSideUI(resizable_left, resizable_right bool) (*UI, *UI, *UI) {
 	if resizable_left {
@@ -1938,7 +1952,19 @@ func (ui *UI) addBothSideUI(resizable_left, resizable_right bool) (*UI, *UI, *UI
 	}
 
 	ui.SetRow(0, 1, Layout_MAX_SIZE)
-	return ui.AddLayout(0, 0, 1, 1), ui.AddLayout(1, 0, 1, 1), ui.AddLayout(2, 0, 1, 1)
+
+	left := ui.AddLayout(0, 0, 1, 1)
+	content := ui.AddLayout(1, 0, 1, 1)
+	right := ui.AddLayout(2, 0, 1, 1)
+	left.Back_cd = UI_GetPalette().GetGrey(0.09)
+	right.Back_cd = UI_GetPalette().GetGrey(0.09)
+	if !resizable_left {
+		left.SetColumnFromSub(0, 1, 20, true)
+	}
+	if !resizable_right {
+		right.SetColumnFromSub(0, 1, 20, true)
+	}
+	return left, content, right
 }
 
 func (ui *UI) addTooltipGroup(x, y, w, h int, tooltip string) {
