@@ -30,8 +30,6 @@ type UiEdit struct {
 	editable   bool //save
 	start, end int
 
-	RefreshTicks int64
-
 	KeySelectAll bool
 	KeyCopy      bool
 	KeyCut       bool
@@ -85,7 +83,7 @@ func (edit *UiEdit) Set(uid uint64, editable bool, orig_value, value string, ent
 	edit.editable = false
 	edit.activate_next_iters = 0
 	edit.activate_next_uid = 0
-	edit.RefreshTicks = 0
+	//edit.RefreshTicks = 0
 	edit.ResetShortcutKeys()
 
 	//set new
@@ -136,12 +134,6 @@ func (edit *UiEdit) SetActivate(uid uint64) {
 	edit.activate_cursor_at_end = true
 
 	edit.shortcut_triggered = false
-}
-
-func (edit *UiEdit) SetRefreshTicks() {
-	if edit.RefreshTicks == 0 {
-		edit.RefreshTicks = OsTicks()
-	}
 }
 
 func (edit *UiEdit) Tick() {
