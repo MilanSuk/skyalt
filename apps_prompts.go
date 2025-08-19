@@ -674,8 +674,9 @@ func (prompts *ToolsPrompts) _getToolMsg(prompt *ToolsPrompt) (string, string, e
 	toolFile := fmt.Sprintf(`
 package main
 
+//<Tool description>
 type %s struct {
-	//<tool's arguments>
+	//<tool argument with description as comment>
 }
 
 func (st *%s) run(caller *ToolCaller, ui *UI) error {
