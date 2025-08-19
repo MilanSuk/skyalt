@@ -106,11 +106,11 @@ func (ui *UI) addEditboxFloat(value *float64, precision int, llmtip string) *UIE
 type UIButton struct {
 	layout *UI
 	Label  string
-	Align  int
+	Align  int //Default is 1
 
 	Shortcut rune
 
-	Background  float64
+	Background  float64 //0=transparent, 0.5=light back, 1.0=full color. Default is 1.0.
 	Border      bool
 	IconBlob    []byte
 	IconPath    string
