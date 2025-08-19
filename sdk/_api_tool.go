@@ -35,6 +35,10 @@ type UI struct { //also known as Layout
 
 func (ui *UI) addCenteredUI() *UI //return new UI which has width=20 and empty spaces on left and right side
 
+func (ui *UI) addLeftSideUI(resizable bool) (*UI, *UI)                            //returns Left side panel and Content UIs. Left side can be set resizable.
+func (ui *UI) addRightSideUI(resizable bool) (*UI, *UI)                           //returns Content and Right side panel UIs. Right side can be set resizable.
+func (ui *UI) addBothSideUI(resizable_left, resizable_right bool) (*UI, *UI, *UI) //returns Left side panel, Content and Right side panel UIs. Left and Right side can be set resizable.
+
 func (ui *UI) setRowHeight(min, max float64) //Set height of current row/line. Must be call before first ui.Add...() is called for the row.
 
 type UITable struct {
@@ -348,6 +352,23 @@ type UIChartColumns struct {
 }
 
 func (ui *UI) addChartColumns(columns []UIChartColumn, x_labels []string, llmtip string) *UIChartColumns
+
+type UIMedia struct {
+	Blob []byte
+	Path string
+
+	Cd          color.RGBA
+	Draw_border bool
+
+	Margin  float64
+	Align_h int
+	Align_v int
+
+	Translate_x, Translate_y float64
+	Scale_x, Scale_y         float64
+}
+
+func (ui *UI) addMediaFilePath(path string, tooltip string) *UIMedia
 
 // accepts unix time and returns date(formated by user)
 func SdkGetDate(unix_sec int64) string

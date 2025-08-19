@@ -4,11 +4,11 @@ import (
 	"fmt"
 )
 
+// Shows person year of born and height. Properties are editable.
 type ShowPersonInfo struct {
-	PersonID string
+	PersonID string //ID of person to show
 }
 
-// Shows person year of born and height. Properties are editable.
 func (st *ShowPersonInfo) run(caller *ToolCaller, ui *UI) error {
 	people := LoadPeople()
 
