@@ -1902,6 +1902,45 @@ func (ui *UI) addCenteredUI() *UI {
 	return ui.AddLayout(1, 0, 1, 1)
 }
 
+func (ui *UI) addLeftSideUI(resizable bool) (*UI, *UI) {
+	if resizable {
+		ui.SetColumnResizable(0, 1, Layout_MAX_SIZE, 10)
+	} else {
+		ui.SetColumnFromSub(0, 1, 20, true)
+	}
+	ui.SetColumn(1, 1, Layout_MAX_SIZE)
+
+	ui.SetRow(0, 1, Layout_MAX_SIZE)
+	return ui.AddLayout(0, 0, 1, 1), ui.AddLayout(1, 0, 1, 1)
+}
+func (ui *UI) addRightSideUI(resizable bool) (*UI, *UI) {
+	if resizable {
+		ui.SetColumnResizable(1, 1, Layout_MAX_SIZE, 10)
+	} else {
+		ui.SetColumnFromSub(1, 1, 20, true)
+	}
+	ui.SetColumn(0, 1, Layout_MAX_SIZE)
+
+	ui.SetRow(0, 1, Layout_MAX_SIZE)
+	return ui.AddLayout(0, 0, 1, 1), ui.AddLayout(1, 0, 1, 1)
+}
+func (ui *UI) addBothSideUI(resizable_left, resizable_right bool) (*UI, *UI, *UI) {
+	if resizable_left {
+		ui.SetColumnResizable(0, 1, Layout_MAX_SIZE, 10)
+	} else {
+		ui.SetColumnFromSub(0, 1, 20, true)
+	}
+	ui.SetColumn(1, 1, Layout_MAX_SIZE)
+	if resizable_right {
+		ui.SetColumnResizable(2, 1, Layout_MAX_SIZE, 10)
+	} else {
+		ui.SetColumnFromSub(2, 1, 20, true)
+	}
+
+	ui.SetRow(0, 1, Layout_MAX_SIZE)
+	return ui.AddLayout(0, 0, 1, 1), ui.AddLayout(1, 0, 1, 1), ui.AddLayout(2, 0, 1, 1)
+}
+
 func (ui *UI) addTooltipGroup(x, y, w, h int, tooltip string) {
 	ui.TooltipGroups = append(ui.TooltipGroups, UITooltip{X: x, Y: y, W: w, H: h, Tooltip: tooltip})
 }
@@ -2112,6 +2151,15 @@ func (ui *UI) addChartLines(Lines []UIChartLine, tooltip string) *UIChartLines {
 func (ui *UI) addChartColumns(columns []UIChartColumn, x_labels []string, tooltip string) *UIChartColumns {
 	item := &UIChartColumns{Columns: columns, X_Labels: x_labels, ColumnMargin: 0.2, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.ChartColumns = item
+
+	ui.SetRow(ui.temp_row, 5, 20)
+	ui._addUILine(item.layout)
+	return item
+}
+
+func (ui *UI) addMediaFilePath(path string, tooltip string) *UIMedia {
+	item := &UIMedia{Path: path, Blob: nil, Align_h: 1, Align_v: 1, Margin: 0.1, Cd: color.RGBA{255, 255, 255, 255}, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+	item.layout.Media = item
 
 	ui.SetRow(ui.temp_row, 5, 20)
 	ui._addUILine(item.layout)
