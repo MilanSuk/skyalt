@@ -1965,9 +1965,6 @@ func (ui *UI) addEditboxString(value *string, tooltip string) *UIEditbox {
 
 	ui._autoRowBasic()
 	ui._addUILine(item.layout)
-
-	item.Name = strconv.FormatUint(item.layout.UID, 10)
-
 	return item
 }
 func (ui *UI) addEditboxInt(value *int, tooltip string) *UIEditbox {
@@ -1976,9 +1973,6 @@ func (ui *UI) addEditboxInt(value *int, tooltip string) *UIEditbox {
 
 	ui._autoRowBasic()
 	ui._addUILine(item.layout)
-
-	item.Name = strconv.FormatUint(item.layout.UID, 10)
-
 	return item
 }
 func (ui *UI) addEditboxFloat(value *float64, precision int, tooltip string) *UIEditbox {
@@ -1987,9 +1981,6 @@ func (ui *UI) addEditboxFloat(value *float64, precision int, tooltip string) *UI
 
 	ui._autoRowBasic()
 	ui._addUILine(item.layout)
-
-	item.Name = strconv.FormatUint(item.layout.UID, 10)
-
 	return item
 }
 func (ed *UIEditbox) setMultilined() {
@@ -1997,10 +1988,6 @@ func (ed *UIEditbox) setMultilined() {
 	ed.Align_h = 0
 	ed.Align_v = 0
 	ed.Linewrapping = true
-}
-
-func (ed *UIEditbox) Activate(caller *ToolCaller) {
-	ed.layout.ActivateEditbox(ed.Name, caller)
 }
 
 func (ui *UI) addButton(label string, tooltip string) *UIButton {
@@ -2157,7 +2144,6 @@ type UIText struct {
 type UIEditbox struct {
 	layout *UI
 
-	Name       string
 	Value      *string
 	ValueFloat *float64
 	ValueInt   *int
@@ -2171,8 +2157,6 @@ type UIEditbox struct {
 	Formating    bool
 	Multiline    bool
 	Linewrapping bool
-
-	AutoSave bool
 
 	changed func() error
 	enter   func() error
@@ -2507,7 +2491,7 @@ type ToolCmd struct {
 
 	Dialog_Close_UID uint64 `json:",omitempty"`
 
-	Editbox_Activate string `json:",omitempty"`
+	Editbox_Activate uint64 `json:",omitempty"`
 
 	VScrollToTheTop      uint64 `json:",omitempty"`
 	VScrollToTheBottom   uint64 `json:",omitempty"`
@@ -2536,8 +2520,8 @@ func (dia *UIDialog) Close(caller *ToolCaller) {
 	caller._addCmd(ToolCmd{Dialog_Close_UID: dia.UI.UID})
 }
 
-func (ui *UI) ActivateEditbox(editbox_name string, caller *ToolCaller) {
-	caller._addCmd(ToolCmd{Editbox_Activate: editbox_name})
+func (ed *UIEditbox) Activate(caller *ToolCaller) {
+	caller._addCmd(ToolCmd{Editbox_Activate: ed.layout.UID})
 }
 
 func (ui *UI) VScrollToTheTop(caller *ToolCaller) {

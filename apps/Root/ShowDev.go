@@ -183,7 +183,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		ed.Multiline = true
 		ed.Align_v = 0
 		ed.layout.Enable = !isGenerating
-		ed.AutoSave = true //refresh "Save button"
 		ed.changed = func() error {
 			cipher, err := SdkEncryptAESGCM([]byte(fileSecrets))
 			if err != nil {
@@ -209,7 +208,6 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		ed.Multiline = true
 		ed.Align_v = 0
 		ed.layout.Enable = !isGenerating
-		ed.AutoSave = true //refresh "Save button"
 		ed.changed = func() error {
 			if !bytes.Equal(filePrompts, []byte(prompts)) {
 				err = os.WriteFile(prompts_path, []byte(prompts), 0644)

@@ -156,6 +156,8 @@ func (st *FilePicker) Build(layout *Layout) {
 			return
 		}
 
+		EditSearch.RefreshValueFromTemp()
+
 		searchWords := Search_Prepare(g_FilePicker2_search)
 		y := 0
 		for _, f := range dir {

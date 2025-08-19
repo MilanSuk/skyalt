@@ -147,7 +147,7 @@ func (ui *Ui) _Text_update(layout *Layout,
 	prop WinFontProps,
 	align OsV2,
 	selection, editable, tabIsChar bool,
-	multi_line, line_wrapping bool, refresh bool) {
+	multi_line, line_wrapping bool) {
 
 	edit := layout.ui.edit
 	keys := &ui.GetWin().io.Keys
@@ -163,9 +163,9 @@ func (ui *Ui) _Text_update(layout *Layout,
 	}
 
 	if editable && edit.Is(layout) {
-		if refresh {
-			edit.Set(layout.UID, editable, orig_value, value, false, false, true, true, ui)
-		}
+		//if refresh {
+		//	edit.Set(layout.UID, editable, orig_value, value, false, false, true, true, ui)
+		//}
 		edit.UpdateOrigValue(orig_value)
 	}
 

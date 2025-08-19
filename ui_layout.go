@@ -113,7 +113,6 @@ type LayoutDrawText struct {
 	Linewrapping bool
 	Selection    bool
 	Editable     bool
-	Refresh      bool
 	Password     bool
 }
 
@@ -270,8 +269,6 @@ type Layout struct {
 	Drag_index              int
 	Drop_h, Drop_v, Drop_in bool
 
-	Editbox_name string
-
 	UserCols []LayoutCR
 	UserRows []LayoutCR
 
@@ -280,7 +277,7 @@ type Layout struct {
 
 	Cards_autoSpacing bool
 
-	fnUpdate func() //here
+	fnUpdate func()
 
 	fnGetLLMTip func(layout *Layout) string
 }
@@ -434,28 +431,6 @@ func (layout *Layout) FindUID(UID uint64) *Layout {
 
 	for _, it := range layout.childs {
 		d := it.FindUID(UID)
-		if d != nil {
-			return d
-		}
-	}
-
-	return nil
-}
-
-func (layout *Layout) FindEditbox(name string) *Layout {
-	if layout.Editbox_name == name {
-		return layout
-	}
-
-	if layout.dialog != nil {
-		d := layout.dialog.FindEditbox(name)
-		if d != nil {
-			return d
-		}
-	}
-
-	for _, it := range layout.childs {
-		d := it.FindEditbox(name)
 		if d != nil {
 			return d
 		}
@@ -1309,7 +1284,7 @@ func (layout *Layout) textComp() {
 			}
 			align := OsV2{int(tx.Align_h), int(tx.Align_v)}
 
-			layout.ui._Text_update(layout, coordText, tx.Margin, tx.Text, prop, align, tx.Selection, tx.Editable, true, tx.Multiline, tx.Linewrapping, tx.Refresh)
+			layout.ui._Text_update(layout, coordText, tx.Margin, tx.Text, prop, align, tx.Selection, tx.Editable, true, tx.Multiline, tx.Linewrapping)
 		}
 	}
 

@@ -11,6 +11,8 @@ type Search struct {
 	Ghost string
 
 	enter func()
+
+	fnRefreshValueFromTemp func()
 }
 
 func (layout *Layout) AddSearch(x, y, w, h int, value *string, ghost string) *Search {
@@ -33,10 +35,14 @@ func (st *Search) Build(layout *Layout) {
 
 	ed := layout.AddEditbox(1, 0, 1, 1, st.Value)
 	ed.Ghost = st.Ghost
-	ed.Refresh = true
 	ed.enter = func() {
 		if st.enter != nil {
 			st.enter()
+		}
+	}
+	st.fnRefreshValueFromTemp = func() {
+		if ed.fnRefreshValueFromTemp != nil {
+			ed.fnRefreshValueFromTemp()
 		}
 	}
 
@@ -59,6 +65,12 @@ func (st *Search) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 		paint.RectRad(rc, backCd, backCd, backCd, 0, layout.getRounding())
 	}
 	return
+}
+
+func (st *Search) RefreshValueFromTemp() {
+	if st.fnRefreshValueFromTemp != nil {
+		st.fnRefreshValueFromTemp()
+	}
 }
 
 func Search_Prepare(search string) []string {

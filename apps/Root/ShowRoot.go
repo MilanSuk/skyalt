@@ -38,6 +38,67 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		}
 	}
 
+	d := 1.5
+	ui.SetColumn(0, d, d)
+	ui.SetColumn(1, 1, Layout_MAX_SIZE)
+	ui.SetRow(0, 1, Layout_MAX_SIZE)
+
+	var prompt_editbox *UIEditbox
+	switch source_root.Show {
+	case "chats":
+		ui.AddToolApp(1, 0, 1, 1, "Chats", "Chats", "ShowChats", nil, caller)
+
+	case "settings":
+		err := st.buildSettings(ui.AddLayoutWithName(1, 0, 1, 1, "Settings"), caller)
+		if err != nil {
+			return err
+		}
+	default:
+		if app != nil {
+
+			if app.Dev.Enable {
+				_, err := ui.AddTool(1, 0, 1, 1, fmt.Sprintf("dev_%s", app.Name), (&ShowDev{AppName: app.Name}).run, caller)
+				if err != nil {
+					return err
+				}
+
+			} else {
+				AppDiv := ui.AddLayoutWithName(1, 0, 1, 1, "App")
+				AppDiv.EnableBrush = true
+				AppDiv.SetColumnResizable(0, 8, 20, 8)
+				AppDiv.SetColumn(1, 1, Layout_MAX_SIZE)
+				AppDiv.SetRow(0, 1, Layout_MAX_SIZE)
+
+				//Chat(or settings)
+				//note: must be called before, because it will update chat label
+				{
+					prompt_editbox, err = st.buildApp(AppDiv.AddLayoutWithName(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name)), source_root, app, chat_fileName, source_chat, caller)
+					//ChatDiv, err := AppDiv.AddTool(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name), (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
+					if err != nil {
+						return err
+					}
+
+					if source_chat != nil {
+						for _, br := range source_chat.Input.Picks {
+							if br.Dash_i == source_chat.Selected_user_msg {
+								ui.Paint_Brush(br.Cd.Cd, br.Points)
+							}
+						}
+					}
+				}
+
+				//Side
+				{
+					SideDiv := AppDiv.AddLayout(0, 0, 1, 1)
+					SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+					SideDiv.SetRow(1, 1, Layout_MAX_SIZE)
+
+					st.buildAppSideDiv(SideDiv, prompt_editbox, app, source_root, source_chat, caller)
+				}
+			}
+		}
+	}
+
 	//save brush
 	if source_chat != nil {
 
@@ -45,7 +106,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		if st.AddBrush != nil {
 			st.AddBrush.Dash_i = source_chat.Selected_user_msg
 			source_chat.Input.MergePick(*st.AddBrush)
-			ui.ActivateEditbox("chat_user_prompt", caller)
+			prompt_editbox.Activate(caller)
 			st.AddBrush = nil
 		}
 
@@ -60,13 +121,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				return err
 			}
 		}
-
 	}
-
-	d := 1.5
-	ui.SetColumn(0, d, d)
-	ui.SetColumn(1, 1, Layout_MAX_SIZE)
-	ui.SetRow(0, 1, Layout_MAX_SIZE)
 
 	//Apps
 	{
@@ -200,7 +255,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				bt.dropMove = func(src_i, dst_i int, aim_i int, src_source, dst_source string) error {
 					Layout_MoveElement(&source_root.Apps, &source_root.Apps, src_i, dst_i)
 					source_root.Selected_app_i = dst_i
-					ui.ActivateEditbox("chat_user_prompt", caller)
+					prompt_editbox.Activate(caller)
 					return nil
 				}
 
@@ -452,66 +507,416 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 	}
 
-	switch source_root.Show {
-	case "chats":
-		ui.AddToolApp(1, 0, 1, 1, "Chats", "Chats", "ShowChats", nil, caller)
+	return nil
+}
 
-	case "settings":
-		err := st.buildSettings(ui.AddLayoutWithName(1, 0, 1, 1, "Settings"), caller)
-		if err != nil {
-			return err
+func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileName string, source_chat *Chat, caller *ToolCaller) (*UIEditbox, error) {
+	if app == nil {
+		return nil, fmt.Errorf("App is nil")
+	}
+
+	if app.Selected_chat_i < 0 {
+		return nil, fmt.Errorf("Chat is nil")
+	}
+
+	ui.Back_cd = UI_GetPalette().GetGrey(0.03)
+
+	ui.SetColumn(0, 1, Layout_MAX_SIZE)
+	ui.SetRow(0, 1, Layout_MAX_SIZE)
+	ui.SetRowFromSub(1, 1, g_ShowApp_prompt_height, true)
+
+	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
+
+	dashes := source_chat.GetResponse(source_chat.Selected_user_msg)
+
+	var dashUIs []*ChatMsg
+	for _, msg := range dashes {
+		if msg.HasUI() {
+			dashUIs = append(dashUIs, msg)
 		}
-	default:
-		if app != nil {
+	}
 
-			if app.Dev.Enable {
-				_, err := ui.AddTool(1, 0, 1, 1, fmt.Sprintf("dev_%s", app.Name), (&ShowDev{AppName: app.Name}).run, caller)
-				if err != nil {
-					return err
+	app.Chats[app.Selected_chat_i].Label = "" //reset
+
+	dashW := 1
+	if !app.ShowSide {
+		dashW = 2
+	}
+
+	if len(dashUIs) > 0 {
+		if len(dashUIs) == 1 {
+			//1x Dash
+			appUi, _ := ui.AddToolApp(0, 0, dashW, 1, fmt.Sprintf("dash_%d", app.Selected_chat_i), app.Name, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
+			appUi.changed = func(newParamsJs []byte) error {
+				dashUIs[0].UI_paramsJs = string(newParamsJs) //save back changes
+				return nil
+			}
+			app.Chats[app.Selected_chat_i].Label = appUi.findH1()
+
+			appUi.App = true
+		} else {
+			//Multiple Dashes
+			DashDiv := ui.AddLayout(0, 0, dashW, 1)
+			DashDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+			DashDiv.App = true
+
+			for i, dash := range dashUIs {
+				DashDiv.SetRowFromSub(i, 1, Layout_MAX_SIZE, true)
+
+				appUi, _ := DashDiv.AddToolApp(0, i, 1, 1, fmt.Sprintf("dash_%d_%d", app.Selected_chat_i, i), app.Name, dash.UI_func, []byte(dash.UI_paramsJs), caller)
+				appUi.changed = func(newParamsJs []byte) error {
+					dash.UI_paramsJs = string(newParamsJs) //save back changes
+					return nil
 				}
-
-			} else {
-				AppDiv := ui.AddLayoutWithName(1, 0, 1, 1, "App")
-				AppDiv.EnableBrush = true
-				AppDiv.SetColumnResizable(0, 8, 20, 8)
-				AppDiv.SetColumn(1, 1, Layout_MAX_SIZE)
-				AppDiv.SetRow(0, 1, Layout_MAX_SIZE)
-
-				//Chat(or settings)
-				//note: must be called before, because it will update chat label
-				{
-					ChatDiv, err := AppDiv.AddTool(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name), (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
-					if err != nil {
-						return err
-					}
-
-					ChatDiv.Back_cd = UI_GetPalette().GetGrey(0.03)
-
-					if source_chat != nil {
-						for _, br := range source_chat.Input.Picks {
-							if br.Dash_i == source_chat.Selected_user_msg {
-								ui.Paint_Brush(br.Cd.Cd, br.Points)
-							}
-						}
-					}
-				}
-
-				//Side
-				{
-					SideDiv := AppDiv.AddLayout(0, 0, 1, 1)
-					SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
-					SideDiv.SetRow(1, 1, Layout_MAX_SIZE)
-
-					st.buildAppSideDiv(SideDiv, app, source_root, source_chat, caller)
-				}
+				app.Chats[app.Selected_chat_i].Label = appUi.findH1()
+			}
+		}
+	} else {
+		//No dash = only message
+		for i := len(dashes) - 1; i >= 0; i-- {
+			dash := dashes[i]
+			if dash.Content.Calls != nil && dash.Content.Calls.Content != "" {
+				tx := ui.AddText(0, 0, dashW, 1, dash.Content.Calls.Content)
+				tx.Align_h = 1
+				break //done
 			}
 		}
 	}
 
-	return nil
+	if app.Chats[app.Selected_chat_i].Label == "" {
+		app.Chats[app.Selected_chat_i].Label = source_chat.FindUserMessage(source_chat.Selected_user_msg)
+	}
+
+	//Prompt
+	var prompt_editbox *UIEditbox
+	{
+		DivInput := ui.AddLayout(0, 1, 1, 1)
+		d := 0.25
+		dd := 0.25
+		DivInput.SetColumn(0, d, d) //space
+		DivInput.SetColumn(1, 1, Layout_MAX_SIZE)
+		DivInput.SetColumn(2, d, d) //space
+		DivInput.SetRow(0, d, d)
+		DivInput.SetRowFromSub(1, 1, g_ShowApp_prompt_height-0.5, true)
+		DivInput.SetRow(2, d, d)
+
+		Div := DivInput.AddLayout(1, 1, 1, 1)
+
+		Div.SetColumn(0, dd, dd) //space
+		Div.SetColumn(1, 1, Layout_MAX_SIZE)
+		Div.SetColumn(2, dd, dd) //space
+		Div.SetRow(0, dd, dd)
+		Div.SetRowFromSub(1, 1, g_ShowApp_prompt_height-1, true)
+		Div.SetRow(2, dd, dd)
+
+		Div.Back_cd = UI_GetPalette().B //GetGrey(0.05)
+		Div.Back_rounding = true
+		Div.Border_cd = UI_GetPalette().GetGrey(0.2)
+
+		prompt_editbox = st.buildPrompt(Div.AddLayoutWithName(1, 1, 1, 1, "prompt"), source_root, app, source_chat, caller)
+
+		/*pr := ShowPrompt{AppName: st.AppName, ChatFileName: st.ChatFileName}
+		_, err = Div.AddTool(1, 1, 1, 1, "prompt", pr.run, caller)
+		if err != nil {
+			return fmt.Errorf("buildInput() failed: %v", err)
+		}*/
+	}
+
+	//Side panel
+	if app.ShowSide {
+		ui.SetColumnResizable(1, 5, 25, 7)
+		SideDiv := ui.AddLayout(1, 0, 1, 2)
+		SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+		SideDiv.SetRow(0, 1, Layout_MAX_SIZE)
+
+		//Chat
+		ChatDiv, err := SideDiv.AddTool(0, 0, 1, 1, "side", (&ShowChat{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
+		if err != nil {
+			return nil, fmt.Errorf("ShowChat.run() failed: %v", err)
+		}
+		if isRunning {
+			if source_chat.scroll_down {
+				ChatDiv.VScrollToTheBottom(false, caller)
+				source_chat.scroll_down = false //reset
+			}
+			ChatDiv.VScrollToTheBottom(true, caller)
+		}
+
+		//close panel
+		CloseBt := SideDiv.AddButton(0, 1, 1, 1, ">>")
+		CloseBt.layout.Tooltip = "Close chat panel"
+		CloseBt.Background = 0.5
+		CloseBt.clicked = func() error {
+			app.ShowSide = false //hide
+			return nil
+		}
+
+	} else {
+		ShowSideBt := ui.AddButton(1, 1, 1, 1, "<<")
+		ShowSideBt.layout.Tooltip = "Show chat panel"
+		ShowSideBt.Background = 0.5
+		ShowSideBt.clicked = func() error {
+			app.ShowSide = true
+			return nil
+		}
+	}
+
+	return prompt_editbox, nil
 }
 
-func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, app *RootApp, source_root *Root, source_chat *Chat, caller *ToolCaller) {
+func (ui *UI) findH1() string {
+
+	for _, it := range ui.Items {
+		if it.Text != nil && strings.HasPrefix(strings.ToLower(it.Text.Label), "<h1>") {
+
+			str := it.Text.Label
+			str = strings.ReplaceAll(str, "<h1>", "")
+			str = strings.ReplaceAll(str, "</h1>", "")
+			str = strings.ReplaceAll(str, "<H1>", "")
+			str = strings.ReplaceAll(str, "</H1>", "")
+			return str
+		}
+	}
+
+	return ""
+}
+
+func (st *ShowRoot) buildPrompt(ui *UI, source_root *Root, app *RootApp, source_chat *Chat, caller *ToolCaller) *UIEditbox {
+
+	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
+
+	input := &source_chat.Input
+
+	preview_height := 0.0
+	if len(input.Files) > 0 {
+		preview_height = 2
+	}
+
+	ui.SetRowFromSub(0, 1, g_ShowApp_prompt_height-1-preview_height, true)
+
+	/*if isRunning {
+		MsgsDiv.VScrollToTheBottom(true, caller)
+	}*/
+
+	sendIt := func() error {
+		source_chat.Messages.Messages = append(source_chat.Messages.Messages, source_chat.TempMessages.Messages...)
+		return source_chat._sendIt(app.Name, caller, source_root, false)
+	}
+
+	x := 0
+	y := 0
+	{
+		ui.SetColumnFromSub(x, 3, 5, true)
+		DivStart := ui.AddLayout(x, y, 1, 1)
+		DivStart.SetRow(0, 0, Layout_MAX_SIZE)
+		DivStart.Enable = !isRunning
+		x++
+
+		xx := 0
+
+		//Drop file
+		{
+			var filePath string
+			fls := DivStart.AddFilePickerButton(xx, 1, 1, 1, &filePath, false, false)
+			fls.changed = func() error {
+				input.Files = append(input.Files, filePath)
+				return nil
+			}
+			xx++
+		}
+
+		//Auto-send after recording
+		{
+			as := DivStart.AddCheckbox(xx, 1, 1, 1, "", &source_root.Autosend)
+			as.layout.Tooltip = "Auto-send after recording"
+			xx++
+		}
+
+		//Mic
+		{
+			mic := DivStart.AddMicrophone(xx, 1, 1, 1)
+			mic.Transcribe = true
+			mic.Transcribe_response_format = "verbose_json"
+			mic.Shortcut = '\t'
+			mic.Output_onlyTranscript = true
+
+			mic.started = func() error {
+				input.Text_mic = input.Text
+				return nil
+			}
+			mic.finished = func(audio []byte, transcript string) error {
+
+				//save
+				err := input.SetVoice([]byte(transcript))
+				if err != nil {
+					return fmt.Errorf("SetVoice() failed: %v", err)
+				}
+
+				// auto-send
+				if source_root.Autosend > 0 {
+					sendIt()
+				}
+
+				return nil
+			}
+			xx++
+		}
+
+		//Reset brushes
+		if len(input.Picks) > 0 {
+			DivStart.SetColumn(xx, 2, 2)
+			ClearBt := DivStart.AddButton(xx, 1, 1, 1, "Clear")
+			ClearBt.Background = 0.5
+			ClearBt.layout.Tooltip = "Remove Brushes"
+			ClearBt.clicked = func() error {
+				//remove
+				//for i := range st.Picks {
+				//	st.Text = strings.ReplaceAll(st.Text, st.Picks[i].Cd.GetLabel(), "")
+				//}
+				input.Text = ""
+				input.Picks = nil
+				return nil
+			}
+			xx++
+		}
+	}
+
+	//Editbox
+	var prompt_editbox *UIEditbox
+	{
+		ui.SetColumn(x, 1, Layout_MAX_SIZE)
+		prompt_editbox = ui.AddEditboxString(x, y, 1, 1, &input.Text)
+		prompt_editbox.Ghost = "What can I do for you?"
+		prompt_editbox.Multiline = input.Multilined
+		prompt_editbox.enter = sendIt
+		prompt_editbox.layout.Enable = !isRunning
+		x++
+	}
+
+	//switch multi-lined
+	{
+		DivML := ui.AddLayout(x, y, 1, 1)
+		DivML.SetColumn(0, 1, Layout_MAX_SIZE)
+		DivML.SetRow(0, 0, Layout_MAX_SIZE)
+		DivML.Enable = !isRunning
+
+		mt := DivML.AddButton(0, 1, 1, 1, "")
+		mt.IconPath = "resources/multiline.png"
+		mt.Icon_margin = 0.1
+		mt.layout.Tooltip = "Enable/disable multi-line prompt"
+		if !input.Multilined {
+			mt.Background = 0
+		}
+		mt.clicked = func() error {
+			input.Multilined = !input.Multilined
+			return nil
+		}
+		x++
+
+	}
+
+	//Send button
+	{
+		ui.SetColumn(x, 2.5, 2.5)
+		DivSend := ui.AddLayout(x, y, 1, 1)
+		DivSend.SetColumn(0, 1, Layout_MAX_SIZE)
+		DivSend.SetRow(0, 0, Layout_MAX_SIZE)
+		if !isRunning {
+			SendBt := DivSend.AddButton(0, 1, 1, 1, "Send")
+			SendBt.IconPath = "resources/up.png"
+			SendBt.Icon_margin = 0.2
+			SendBt.Align = 0
+			//SendBt.Tooltip = //name of "text" model ....
+			SendBt.clicked = sendIt
+		} else {
+			StopBt := DivSend.AddButton(0, 1, 1, 1, "Stop")
+			StopBt.Cd = UI_GetPalette().E
+			StopBt.clicked = func() error {
+				callFuncMsgStop(source_chat.GetChatID()) //stop
+				return nil
+			}
+		}
+		x++
+	}
+	y++
+
+	//show file previews
+	if len(input.Files) > 0 {
+		ui.SetRow(y, preview_height, preview_height)
+		ImgsCards := ui.AddLayoutCards(0, y, x, 1, true)
+		y++
+
+		for fi, file := range input.Files {
+			ImgDia := ui.AddDialog("image_" + file)
+			ImgDia.UI.SetColumn(0, 5, 12)
+			ImgDia.UI.SetColumn(1, 3, 3)
+			ImgDia.UI.SetRow(1, 5, 15)
+			ImgDia.UI.AddMediaPath(0, 1, 2, 1, file)
+			ImgDia.UI.AddText(0, 0, 1, 1, file)
+			RemoveBt := ImgDia.UI.AddButton(1, 0, 1, 1, "Remove")
+			RemoveBt.clicked = func() error {
+				input.Files = slices.Delete(input.Files, fi, fi+1)
+				ImgDia.Close(caller)
+				return nil
+			}
+
+			imgLay := ImgsCards.AddItem()
+			imgLay.SetColumn(0, 2, 2)
+			imgLay.SetRow(0, 2, 2)
+			imgBt := imgLay.AddButton(0, 0, 1, 1, "")
+			imgBt.IconPath = file
+			imgBt.Icon_margin = 0
+			imgBt.layout.Tooltip = file
+
+			imgBt.Background = 0
+			imgBt.Cd = UI_GetPalette().B
+			imgBt.Border = true
+			imgBt.clicked = func() error {
+				ImgDia.OpenRelative(imgBt.layout, caller)
+				return nil
+			}
+		}
+
+		//remove all files
+		{
+			delLay := ImgsCards.AddItem()
+			delLay.SetColumn(0, 2, 2)
+			delLay.SetRow(0, 2, 2)
+			delBt := delLay.AddButton(0, 0, 1, 1, "Delete All")
+			delBt.Background = 0.5
+			delBt.clicked = func() error {
+				input.Files = nil
+				return nil
+			}
+		}
+	}
+
+	//LLMTips/Brushes
+	if len(input.Picks) > 0 {
+		ui.SetRowFromSub(y, 1, 5, true)
+		TipsDiv := ui.AddLayout(0, y, x, 1)
+		y++
+		TipsDiv.SetColumn(0, 2, 2)
+		TipsDiv.SetColumn(1, 1, Layout_MAX_SIZE)
+
+		yy := 0
+		for i, br := range input.Picks {
+			found_i := source_chat.Input.FindPick(br.LLMTip)
+			if found_i >= 0 && found_i < i { //unique
+				continue //skip
+			}
+
+			TipsDiv.SetRowFromSub(yy, 1, 100, true)
+			TipsDiv.AddText(0, yy, 1, 1, input.Picks[i].Cd.GetLabel())
+			TipsDiv.AddText(1, yy, 1, 1, strings.TrimSpace(br.LLMTip)).setMultilined()
+			yy++
+		}
+	}
+
+	return prompt_editbox
+}
+
+func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, app *RootApp, source_root *Root, source_chat *Chat, caller *ToolCaller) {
 
 	//Header
 	{
@@ -533,17 +938,17 @@ func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, app *RootApp, source_root *Root
 					return fmt.Errorf("No app selected")
 				}
 
-				fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
-				source_chat, err := NewChat(filepath.Join("..", app.Name, "Chats", fileName))
+				chat_fileName := fmt.Sprintf("Chat-%d.json", time.Now().UnixMicro())
+				source_chat, err := NewChat(filepath.Join("..", app.Name, "Chats", chat_fileName))
 				if err != nil {
 					return nil
 				}
 
 				pos := app.NumPins() //skip pins
-				app.Chats = slices.Insert(app.Chats, pos, RootChat{Label: "Empty", FileName: fileName})
+				app.Chats = slices.Insert(app.Chats, pos, RootChat{Label: "Empty", FileName: chat_fileName})
 				app.Selected_chat_i = pos
 
-				SideDiv.ActivateEditbox("chat_user_prompt", caller)
+				prompt_editbox.Activate(caller)
 
 				SideDiv.VScrollToTheTop(caller)
 
@@ -707,7 +1112,7 @@ func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, app *RootApp, source_root *Root
 		btChat.clicked = func() error {
 			app.Selected_chat_i = i
 			source_root.Show = ""
-			SideDiv.ActivateEditbox("chat_user_prompt", caller)
+			prompt_editbox.Activate(caller)
 			return nil
 		}
 
@@ -722,7 +1127,7 @@ func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, app *RootApp, source_root *Root
 			Layout_MoveElement(&app.Chats, &app.Chats, src_i, dst_i)
 
 			if app.Selected_chat_i != dst_i {
-				SideDiv.ActivateEditbox("chat_user_prompt", caller)
+				prompt_editbox.Activate(caller)
 			}
 			app.Selected_chat_i = dst_i
 

@@ -88,8 +88,6 @@ type UIEditbox struct {
 	Multiline    bool
 	Linewrapping bool
 
-	AutoSave bool
-
 	changed func() error //called after .Value or .ValueFloat or .ValueInt has been changed
 	enter   func() error
 }

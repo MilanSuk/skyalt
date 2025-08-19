@@ -24,10 +24,10 @@ type Editbox struct {
 
 	Password bool
 
-	Refresh bool
-
 	changed func()
 	enter   func()
+
+	fnRefreshValueFromTemp func()
 }
 
 func (layout *Layout) AddEditbox(x, y, w, h int, valuePointer interface{}) *Editbox {
@@ -35,15 +35,15 @@ func (layout *Layout) AddEditbox(x, y, w, h int, valuePointer interface{}) *Edit
 	lay := layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
 	lay.fnAutoResize = props.autoResize
 	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
+
+	props.fnRefreshValueFromTemp = func() {
+		edit := layout.ui.edit
+		if edit.Is(layout) {
+			edit.Set(layout.UID, true, edit.orig_value, props.getValue(), false, false, true, true, layout.ui)
+		}
+	}
+
 	return props
-}
-func (layout *Layout) AddEditbox2(x, y, w, h int, valuePointer interface{}) (*Editbox, *Layout) {
-	props := &Editbox{ValuePointer: valuePointer, Align_v: 1, Formating: true, ValueFloatPrec: 2, Cd: layout.GetPalette().OnB}
-	lay := layout._createDiv(x, y, w, h, "Editbox", props.Build, props.Draw, props.Input)
-	lay.fnAutoResize = props.autoResize
-	lay.fnGetAutoResizeMargin = props.getAutoResizeMargin
-	lay.fnGetLLMTip = props.getLLMTip
-	return props, lay
 }
 
 func (st *Editbox) getLLMTip(layout *Layout) string {
@@ -98,7 +98,6 @@ func (st *Editbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	tx.Formating = st.Formating
 	tx.Multiline = st.Multiline
 	tx.Linewrapping = st.Linewrapping
-	tx.Refresh = st.Refresh
 	tx.Password = st.Password
 	tx.Margin = st.getAutoResizeMargin()
 

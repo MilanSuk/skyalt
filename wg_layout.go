@@ -310,7 +310,6 @@ func (paint *LayoutPaint) Text(rect Rect, text string, ghost string, frontCd, fr
 		Linewrapping: false,
 		Selection:    selection,
 		Editable:     editable,
-		Refresh:      false,
 	}
 
 	paint.buffer = append(paint.buffer, LayoutDrawPrim{Rect: rect, Text: prim})

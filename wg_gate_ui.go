@@ -51,8 +51,6 @@ type UIEditbox struct {
 	Formating    bool
 	Multiline    bool
 	Linewrapping bool
-
-	AutoSave bool
 }
 type UISlider struct {
 	Label string
@@ -325,7 +323,7 @@ type ToolCmd struct {
 
 	Dialog_Close_UID uint64 `json:",omitempty"`
 
-	Editbox_Activate string `json:",omitempty"`
+	Editbox_Activate uint64 `json:",omitempty"`
 
 	VScrollToTheTop      uint64 `json:",omitempty"`
 	VScrollToTheBottom   uint64 `json:",omitempty"`
@@ -358,8 +356,8 @@ func (cmd *ToolCmd) Exe(ui *Ui) bool {
 		}
 	}
 
-	if cmd.Editbox_Activate != "" {
-		editDom := ui.mainLayout.FindEditbox(cmd.Editbox_Activate)
+	if cmd.Editbox_Activate > 0 {
+		editDom := ui.mainLayout.FindUID(cmd.Editbox_Activate)
 		if editDom != nil {
 			ui.edit.SetActivate(editDom.UID)
 			found = true
@@ -603,7 +601,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 			val = it.Editbox.Value
 		}
 
-		ed, edLay := layout.AddEditbox2(it.X, it.Y, it.W, it.H, val)
+		ed := layout.AddEditbox(it.X, it.Y, it.W, it.H, val)
 		ed.Tooltip = it.Tooltip
 		ed.Align_h = it.Editbox.Align_h
 		ed.Align_v = it.Editbox.Align_v
@@ -613,7 +611,6 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 		ed.Multiline = it.Editbox.Multiline
 		ed.Linewrapping = it.Editbox.Linewrapping
 		ed.Formating = it.Editbox.Formating
-		ed.Refresh = it.Editbox.AutoSave
 
 		createChange := func() ToolsSdkChange {
 			change := ToolsSdkChange{UID: it.UID}
@@ -637,8 +634,6 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 			change.ValueBool = true
 			layout.ui.router.CallChangeAsync(parent_UID, appName, toolName, change, fnProgress, fnDone)
 		}
-
-		edLay.Editbox_name = it.Editbox.Name
 
 	} else if it.Slider != nil {
 		if it.Slider.Value == nil {
