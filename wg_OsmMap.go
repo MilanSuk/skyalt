@@ -283,7 +283,7 @@ func (st *Map) activateCam(lonNew, latNew, zoomNew float64, layout *Layout) {
 	layout.RedrawThis()
 }
 
-func (st *Map) HasShortcut(key byte) bool {
+func (st *Map) HasShortcut(key rune) bool {
 	return key == '+' || key == '-'
 }
 

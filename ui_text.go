@@ -618,13 +618,13 @@ func (ui *Ui) _UiText_Keys(layout *Layout, text string, lines []WinGphLine, tabI
 
 		layout.ui.edit_history.FindOrAdd(edit.uid, his).AddWithTimeOut(his)
 
-		if keys.Backward {
+		if keys.TextBackward {
 			his = layout.ui.edit_history.FindOrAdd(edit.uid, his).Backward(his)
 			edit.temp = his.str
 			*s = his.cur
 			*e = his.cur
 		}
-		if keys.Forward {
+		if keys.TextForward {
 			his = layout.ui.edit_history.FindOrAdd(edit.uid, his).Forward()
 			edit.temp = his.str
 			*s = his.cur

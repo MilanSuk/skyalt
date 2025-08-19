@@ -63,8 +63,11 @@ type WinKeys struct {
 	SelectAll bool
 	RecordMic bool
 
-	Backward bool
-	Forward  bool
+	TextBackward bool
+	TextForward  bool
+
+	PageBackward bool
+	PageForward  bool
 
 	F1  bool
 	F2  bool

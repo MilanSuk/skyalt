@@ -301,10 +301,10 @@ func (ui *Ui) Tick() {
 	//shortcut
 	ui.edit.shortcut_triggered = false
 	keys := &ui.win.io.Keys
-	if keys.HasChanged && (keys.Ctrl || keys.Plus || keys.Minus) {
-		var sh byte
+	if keys.HasChanged && (keys.Ctrl || keys.Plus || keys.Minus || keys.PageBackward || keys.PageForward) {
+		var sh rune
 		if keys.CtrlChar != "" {
-			sh = keys.CtrlChar[0]
+			sh = rune(keys.CtrlChar[0])
 		}
 		if keys.Tab {
 			sh = '\t'
@@ -326,6 +326,12 @@ func (ui *Ui) Tick() {
 		}
 		if keys.Minus {
 			sh = '-'
+		}
+		if keys.PageBackward {
+			sh = '←'
+		}
+		if keys.PageForward {
+			sh = '→'
 		}
 
 		if sh != 0 {

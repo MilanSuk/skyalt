@@ -1016,6 +1016,7 @@ func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, app 
 			backBt := NavDiv.AddButton(nx, 0, 1, 1, "<")
 			nx++
 			backBt.layout.Tooltip = "Previous dashboard"
+			backBt.Shortcut = '←'
 			backBt.Background = 0.5
 			backBt.layout.Enable = (source_chat.Selected_user_msg > 0)
 			backBt.clicked = func() error {
@@ -1033,6 +1034,7 @@ func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, app 
 			forwardBt := NavDiv.AddButton(nx, 0, 1, 1, ">")
 			nx++
 			forwardBt.layout.Tooltip = "Next dashboard"
+			forwardBt.Shortcut = '→'
 			forwardBt.Background = 0.5
 			forwardBt.layout.Enable = (source_chat.Selected_user_msg+1 < numUseMessages)
 			forwardBt.clicked = func() error {

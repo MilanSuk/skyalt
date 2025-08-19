@@ -7,7 +7,7 @@ import (
 )
 
 type Microphone struct {
-	Shortcut byte
+	Shortcut rune
 
 	Format                     string
 	Transcribe                 bool

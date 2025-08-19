@@ -321,25 +321,40 @@ func (win *Win) Event() (bool, bool) {
 			inputChanged = true
 
 		case *sdl.MouseButtonEvent:
-			win.numClicks = int(val.Clicks)
-			if val.Clicks > 1 {
-				if win.lastClickUp.Distance(OsV2_32(val.X, val.Y)) > float32(GetDeviceDPI())/13 { //7px error space
-					win.numClicks = 1
+			switch val.Button {
+			case sdl.BUTTON_X1:
+				if val.Type == sdl.MOUSEBUTTONUP {
+					io.Keys.PageBackward = true
+					io.Keys.HasChanged = true
 				}
-			}
 
-			io.Touch.Pos = OsV2_32(val.X, val.Y)
-			io.Touch.Rm = (val.Button != sdl.BUTTON_LEFT)
+			case sdl.BUTTON_X2:
+				if val.Type == sdl.MOUSEBUTTONUP {
+					io.Keys.PageForward = true
+					io.Keys.HasChanged = true
+				}
 
-			switch val.Type {
-			case sdl.MOUSEBUTTONDOWN:
-				io.Touch.Start = true
-				sdl.CaptureMouse(true) // keep getting info even mouse is outside window
+			default:
+				win.numClicks = int(val.Clicks)
+				if val.Clicks > 1 {
+					if win.lastClickUp.Distance(OsV2_32(val.X, val.Y)) > float32(GetDeviceDPI())/13 { //7px error space
+						win.numClicks = 1
+					}
+				}
 
-			case sdl.MOUSEBUTTONUP:
-				win.lastClickUp = io.Touch.Pos
-				io.Touch.End = true
-				sdl.CaptureMouse(false)
+				io.Touch.Pos = OsV2_32(val.X, val.Y)
+				io.Touch.Rm = (val.Button != sdl.BUTTON_LEFT)
+
+				switch val.Type {
+				case sdl.MOUSEBUTTONDOWN:
+					io.Touch.Start = true
+					sdl.CaptureMouse(true) // keep getting info even mouse is outside window
+
+				case sdl.MOUSEBUTTONUP:
+					win.lastClickUp = io.Touch.Pos
+					io.Touch.End = true
+					sdl.CaptureMouse(false)
+				}
 			}
 			return true, true
 
@@ -399,8 +414,11 @@ func (win *Win) Event() (bool, bool) {
 					keys.SelectAll = val.Keysym.Sym == sdl.K_SELECT || (IsCtrlActive() && val.Keysym.Sym == sdl.K_a)
 					keys.RecordMic = (IsCtrlActive() && val.Keysym.Sym == sdl.K_r)
 
-					keys.Backward = val.Keysym.Sym == sdl.K_AC_FORWARD || (IsCtrlActive() && !IsShiftActive() && val.Keysym.Sym == sdl.K_z)
-					keys.Forward = val.Keysym.Sym == sdl.K_AC_BACK || (IsCtrlActive() && val.Keysym.Sym == sdl.K_y) || (IsCtrlActive() && IsShiftActive() && val.Keysym.Sym == sdl.K_z)
+					keys.TextBackward = (IsCtrlActive() && !IsShiftActive() && val.Keysym.Sym == sdl.K_z)
+					keys.TextForward = (IsCtrlActive() && val.Keysym.Sym == sdl.K_y) || (IsCtrlActive() && IsShiftActive() && val.Keysym.Sym == sdl.K_z)
+
+					keys.PageBackward = val.Keysym.Sym == sdl.K_AC_FORWARD
+					keys.PageForward = val.Keysym.Sym == sdl.K_AC_BACK
 
 					keys.Tab = val.Keysym.Sym == sdl.K_TAB
 					keys.Space = val.Keysym.Sym == sdl.K_SPACE

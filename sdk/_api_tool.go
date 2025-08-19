@@ -104,7 +104,7 @@ type UIButton struct {
 	Label  string
 	Align  int
 
-	Shortcut byte
+	Shortcut rune
 
 	Background  float64
 	Border      bool

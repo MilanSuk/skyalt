@@ -30,7 +30,7 @@ type Button struct {
 	Cd_fade bool
 
 	ErrorColor   bool
-	Shortcut_key byte
+	Shortcut_key rune
 
 	clicked   func()
 	clickedEx func(numClicks int, altClick bool)
@@ -317,7 +317,7 @@ func (st *Button) getAutoResizeMargin() [4]float64 {
 	return margin
 }
 
-func (st *Button) HasShortcut(key byte) bool {
+func (st *Button) HasShortcut(key rune) bool {
 	return st.Shortcut_key == key
 }
 

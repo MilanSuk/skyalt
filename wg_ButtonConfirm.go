@@ -18,7 +18,7 @@ type ButtonConfirm struct {
 	IconBlob    []byte
 	Icon_margin float64
 
-	Shortcut_key byte
+	Shortcut_key rune
 
 	Question string
 

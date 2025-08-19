@@ -51,7 +51,7 @@ type LayoutInput struct {
 
 	Drop_path string
 
-	Shortcut_key byte
+	Shortcut_key rune
 
 	Pick LayoutPick
 }
@@ -237,7 +237,7 @@ type Layout struct {
 	fnBuild       func(*Layout)
 	fnDraw        func(Rect, *Layout) LayoutPaint
 	fnInput       func(LayoutInput, *Layout)
-	fnHasShortcut func(byte) bool
+	fnHasShortcut func(rune) bool
 	fnSetEditbox  func(string, bool)
 	fnGetEditbox  func() string
 
@@ -452,7 +452,7 @@ func (layout *Layout) FindChildMaxArea() *Layout {
 	return max_layout
 }
 
-func (layout *Layout) FindShortcut(key byte) *Layout {
+func (layout *Layout) FindShortcut(key rune) *Layout {
 	if layout.CanTouch() && layout.fnHasShortcut != nil && layout.fnHasShortcut(key) {
 		return layout
 	}

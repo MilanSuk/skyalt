@@ -2182,7 +2182,7 @@ type UIButton struct {
 	Label string
 	Align int
 
-	Shortcut byte
+	Shortcut rune
 
 	Background  float64
 	Border      bool
@@ -2285,7 +2285,7 @@ type UIDivider struct {
 
 type UIMicrophone struct {
 	layout                     *UI
-	Shortcut                   byte
+	Shortcut                   rune
 	Format                     string
 	Transcribe                 bool
 	Transcribe_response_format string //"verbose_json"
