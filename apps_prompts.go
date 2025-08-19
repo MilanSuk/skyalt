@@ -696,7 +696,7 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 	systemMessage += "file - example.go:\n```go" + string(exampleFile) + "```\n"
 	systemMessage += "file - tool.go:\n```go" + toolFile + "```\n"
 
-	systemMessage += "Based on the user message, rewrite the tool.go file. Your job is to design a function(tool). Look into an example.go to understand how APIs and storage functions work.\n"
+	systemMessage += "Based on the user message, rewrite the tool.go file(keep struct and function header names). Your job is to design a function(tool). Look into an example.go to understand how APIs and storage functions work.\n"
 
 	systemMessage += "Figure out <tool's arguments> based on the user prompt. Argument can not be pointer. There are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with an upper-case letter. Every argument must have a description as a comment. You can add extra marks(with brackets []) at the end of a comment. You may add multiple marks with your pair of brackets. Here are the marks:\n"
 	systemMessage += "[optional] - caller can ignore the attribute\n"
