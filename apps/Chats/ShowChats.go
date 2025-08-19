@@ -109,7 +109,9 @@ func (st *ShowChats) buildSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, root *
 				root.Chats = slices.Insert(root.Chats, pos, RootChat{Label: fmt.Sprintf("Chat %s", SdkGetDateTime(time.Now().Unix())), FileName: fileName})
 				root.Selected_chat_i = pos
 
-				prompt_editbox.Activate(caller)
+				if prompt_editbox != nil {
+					prompt_editbox.Activate(caller)
+				}
 
 				return nil
 			}
@@ -185,7 +187,10 @@ func (st *ShowChats) buildSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, root *
 		}
 		btChat.clicked = func() error {
 			root.Selected_chat_i = i
-			prompt_editbox.Activate(caller)
+			if prompt_editbox != nil {
+				prompt_editbox.Activate(caller)
+			}
+
 			return nil
 		}
 
@@ -200,7 +205,10 @@ func (st *ShowChats) buildSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, root *
 			Layout_MoveElement(&root.Chats, &root.Chats, src_i, dst_i)
 
 			if root.Selected_chat_i != dst_i {
-				prompt_editbox.Activate(caller)
+				if prompt_editbox != nil {
+					prompt_editbox.Activate(caller)
+				}
+
 			}
 			root.Selected_chat_i = dst_i
 

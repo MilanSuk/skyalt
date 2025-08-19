@@ -71,7 +71,8 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 				//Chat(or settings)
 				//note: must be called before, because it will update chat label
-				{
+
+				if app != nil && app.Selected_chat_i >= 0 {
 					prompt_editbox, err = st.buildApp(AppDiv.AddLayoutWithName(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name)), source_root, app, chat_fileName, source_chat, caller)
 					//ChatDiv, err := AppDiv.AddTool(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name), (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
 					if err != nil {
@@ -106,7 +107,10 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		if st.AddBrush != nil {
 			st.AddBrush.Dash_i = source_chat.Selected_user_msg
 			source_chat.Input.MergePick(*st.AddBrush)
-			prompt_editbox.Activate(caller)
+			if prompt_editbox != nil {
+				prompt_editbox.Activate(caller)
+			}
+
 			st.AddBrush = nil
 		}
 
@@ -255,7 +259,10 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				bt.dropMove = func(src_i, dst_i int, aim_i int, src_source, dst_source string) error {
 					Layout_MoveElement(&source_root.Apps, &source_root.Apps, src_i, dst_i)
 					source_root.Selected_app_i = dst_i
-					prompt_editbox.Activate(caller)
+					if prompt_editbox != nil {
+						prompt_editbox.Activate(caller)
+					}
+
 					return nil
 				}
 
@@ -511,13 +518,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 }
 
 func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileName string, source_chat *Chat, caller *ToolCaller) (*UIEditbox, error) {
-	if app == nil {
-		return nil, fmt.Errorf("App is nil")
-	}
-
-	if app.Selected_chat_i < 0 {
-		return nil, fmt.Errorf("Chat is nil")
-	}
 
 	ui.Back_cd = UI_GetPalette().GetGrey(0.03)
 
@@ -948,7 +948,9 @@ func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, app 
 				app.Chats = slices.Insert(app.Chats, pos, RootChat{Label: "Empty", FileName: chat_fileName})
 				app.Selected_chat_i = pos
 
-				prompt_editbox.Activate(caller)
+				if prompt_editbox != nil {
+					prompt_editbox.Activate(caller)
+				}
 
 				SideDiv.VScrollToTheTop(caller)
 
@@ -1114,7 +1116,10 @@ func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, app 
 		btChat.clicked = func() error {
 			app.Selected_chat_i = i
 			source_root.Show = ""
-			prompt_editbox.Activate(caller)
+			if prompt_editbox != nil {
+				prompt_editbox.Activate(caller)
+			}
+
 			return nil
 		}
 
@@ -1129,7 +1134,10 @@ func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, app 
 			Layout_MoveElement(&app.Chats, &app.Chats, src_i, dst_i)
 
 			if app.Selected_chat_i != dst_i {
-				prompt_editbox.Activate(caller)
+				if prompt_editbox != nil {
+					prompt_editbox.Activate(caller)
+				}
+
 			}
 			app.Selected_chat_i = dst_i
 
