@@ -265,14 +265,6 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 			return msg.GetContinue()
 		}
 
-		//print
-		{
-			js, err := LogsJsonMarshalIndent(props)
-			if err == nil {
-				fmt.Printf("---\n" + string(js) + "\n---\n")
-			}
-		}
-
 		jsProps, err := LogsJsonMarshal(props)
 		if err != nil {
 			return err
@@ -417,14 +409,6 @@ func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpe
 
 	st.Out_answer = last_final_msg
 	st.Out_reasoning = last_reasoning_msg
-
-	//print
-	{
-		js, err := LogsJsonMarshalIndent(msgs)
-		if err == nil {
-			fmt.Printf("+++\n" + string(js) + "\n+++\n")
-		}
-	}
 
 	st.Out_messages, err = LogsJsonMarshal(msgs)
 	if err != nil {

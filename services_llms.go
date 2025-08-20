@@ -396,6 +396,14 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 		return LogsErrorf("provider '%s' not found", provider)
 	}
 
+	//print
+	/*{
+		js, err := LogsJsonMarshalIndent(st.Out_messages)
+		if err == nil {
+			fmt.Printf("+++\n" + string(js) + "\n+++\n")
+		}
+	}*/
+
 	//add & save cache
 	llms.addCache(st)
 
