@@ -236,6 +236,16 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 
 	}
 
+	//list of tool calls
+	if msg.Content.Calls != nil {
+		for _, call := range msg.Content.Calls.Tool_calls {
+			toolDiv := layout.AddLayout(0, y, 3, 1)
+			layout.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
+			st.toolUse(call, toolDiv, msg, chat)
+			y++
+		}
+	}
+
 	{
 		DivIcons := layout.AddLayout(0, y, 3, 1)
 
@@ -355,7 +365,6 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 				}
 				x++
 			}
-
 		}
 
 		{
@@ -381,16 +390,6 @@ func (st *ShowChat) AddChatMsg(layout *UI, msgs *ChatMsgs, msg_i int, chat *Chat
 			x++
 		}
 		y++
-	}
-
-	//list of tool calls
-	if msg.Content.Calls != nil {
-		for _, call := range msg.Content.Calls.Tool_calls {
-			toolDiv := layout.AddLayout(0, y, 3, 1)
-			layout.SetRowFromSub(y, 1, Layout_MAX_SIZE, true)
-			st.toolUse(call, toolDiv, msg, chat)
-			y++
-		}
 	}
 
 }
