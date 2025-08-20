@@ -256,7 +256,7 @@ type UIYearCalendar struct {
 	Year   int
 }
 
-func (ui *UI) addYearCalendar(Year int, llmtip string) *UIYearCalendar
+func (ui *UI) addYearCalendar(Year int) *UIYearCalendar
 
 type UIMonthCalendar struct {
 	layout *UI
@@ -266,7 +266,7 @@ type UIMonthCalendar struct {
 	Events []UICalendarEvent
 }
 
-func (ui *UI) addMonthCalendar(Year int, Month int, Events []UICalendarEvent, llmtip string) *UIMonthCalendar
+func (ui *UI) addMonthCalendar(Year int, Month int, Events []UICalendarEvent) *UIMonthCalendar
 
 type UIDayCalendar struct {
 	layout *UI
@@ -274,7 +274,7 @@ type UIDayCalendar struct {
 	Events []UICalendarEvent
 }
 
-func (ui *UI) addDayCalendar(Days []int64, Events []UICalendarEvent, llmtip string) *UIDayCalendar
+func (ui *UI) addDayCalendar(Days []int64, Events []UICalendarEvent) *UIDayCalendar
 
 type UIFilePickerButton struct {
 	layout      *UI
