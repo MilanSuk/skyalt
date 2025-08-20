@@ -35,9 +35,9 @@ type UI struct { //also known as Layout
 
 func (ui *UI) addCenteredUI() *UI //return new UI which has width=20 and empty spaces on left and right side
 
-func (ui *UI) addLeftSideUI(resizable bool) (*UI, *UI)                            //returns Left side panel and Content UIs. Left side can be set resizable.
-func (ui *UI) addRightSideUI(resizable bool) (*UI, *UI)                           //returns Content and Right side panel UIs. Right side can be set resizable.
-func (ui *UI) addBothSideUI(resizable_left, resizable_right bool) (*UI, *UI, *UI) //returns Left side panel, Content and Right side panel UIs. Left and Right side can be set resizable.
+func (ui *UI) addLeftSideUI(resizable bool) (*UI, *UI)                            //add and return Left side panel and Content UIs. Left side can be set resizable.
+func (ui *UI) addRightSideUI(resizable bool) (*UI, *UI)                           //add and return Content and Right side panel UIs. Right side can be set resizable.
+func (ui *UI) addBothSideUI(resizable_left, resizable_right bool) (*UI, *UI, *UI) //add and return Left side panel, Content and Right side panel UIs. Left and Right side can be set resizable.
 
 func (ui *UI) setRowHeight(min, max float64) //Set height of current row/line. Must be call before first ui.Add...() is called for the row.
 
@@ -148,6 +148,7 @@ type UIDropDown struct {
 	changed func() error //called after .Value has been changed
 }
 
+// 'labels' should start with Upper letter and have spaces(if multiple words).
 func (ui *UI) addDropDown(value *string, labels []string, values []string, llmtip string) *UIDropDown
 
 type UIPromptMenuIcon struct {
