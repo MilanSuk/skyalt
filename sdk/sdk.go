@@ -2169,7 +2169,7 @@ func (ui *UI) addChartLines(Lines []UIChartLine, tooltip string) *UIChartLines {
 	item := &UIChartLines{Lines: Lines, Point_rad: 0.2, Line_thick: 0.03, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.ChartLines = item
 
-	ui.SetRow(ui.temp_row, 5, 20)
+	ui.SetRowIfNotSet(ui.temp_row, 5, 20) //maybe setRowHeight() already set it
 	ui._addUILine(item.layout)
 
 	return item
@@ -2178,7 +2178,7 @@ func (ui *UI) addChartColumns(columns []UIChartColumn, x_labels []string, toolti
 	item := &UIChartColumns{Columns: columns, X_Labels: x_labels, ColumnMargin: 0.2, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.ChartColumns = item
 
-	ui.SetRow(ui.temp_row, 5, 20)
+	ui.SetRowIfNotSet(ui.temp_row, 5, 20)
 	ui._addUILine(item.layout)
 	return item
 }
@@ -2187,7 +2187,7 @@ func (ui *UI) addMediaFilePath(path string, tooltip string) *UIMedia {
 	item := &UIMedia{Path: path, Blob: nil, Align_h: 1, Align_v: 1, Margin: 0.1, Cd: color.RGBA{255, 255, 255, 255}, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Media = item
 
-	ui.SetRow(ui.temp_row, 5, 20)
+	ui.SetRowIfNotSet(ui.temp_row, 5, 20)
 	ui._addUILine(item.layout)
 	return item
 }
@@ -2640,6 +2640,15 @@ func (ui *UI) SetRow(pos int, min, max float64) {
 		}
 	}
 	ui.Rows = append(ui.Rows, UIGridSize{Pos: pos, Min: min, Max: max})
+}
+
+func (ui *UI) SetRowIfNotSet(pos int, min, max float64) {
+	for i := range ui.Rows {
+		if ui.Rows[i].Pos == pos {
+			return
+		}
+	}
+	ui.SetRow(pos, min, max)
 }
 
 func (ui *UI) SetColumnResizable(pos int, min, max, default_size float64) {
