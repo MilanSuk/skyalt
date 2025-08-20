@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -369,7 +370,7 @@ func (router *AppsRouter) CallBuildAsync(ui_uid uint64, appName string, toolName
 
 func (router *AppsRouter) AddRecompileMsg(appName string) *AppsRouterMsg {
 	msg_id := router.msgs_counter.Add(1)
-	msg := NewAppsRouterMsg(msg_id, "_compile_", appName, "", "compile", nil, nil)
+	msg := NewAppsRouterMsg(msg_id, "_compile_"+appName, "Root", "", "compile", nil, nil)
 
 	router.lock.Lock()
 	router.msgs[msg_id] = msg
@@ -379,23 +380,15 @@ func (router *AppsRouter) AddRecompileMsg(appName string) *AppsRouterMsg {
 }
 
 func (router *AppsRouter) FindRecompileMsg(appName string) *AppsRouterMsg {
-	router.lock.Lock()
-	defer router.lock.Unlock()
-
-	for _, msg := range router.msgs {
-		if msg != nil && msg.msg_name == "_compile_" && len(msg.stack) > 0 && msg.stack[len(msg.stack)-1].appName == appName {
-			return msg
-		}
-	}
-	return nil
+	return router.FindMessageName("Root", "_compile_"+appName)
 }
 
-func (router *AppsRouter) FindMessageName(msg_name string) *AppsRouterMsg {
+func (router *AppsRouter) FindMessageName(app_name string, msg_name string) *AppsRouterMsg {
 	router.lock.Lock()
 	defer router.lock.Unlock()
 
 	for _, msg := range router.msgs {
-		if msg != nil && msg.msg_name == msg_name {
+		if msg != nil && len(msg.stack) > 0 && msg.stack[0].appName == app_name && msg.msg_name == msg_name {
 			return msg
 		}
 	}
@@ -720,33 +713,39 @@ func (router *AppsRouter) RunNet() {
 					}
 
 				case "find_msg_name":
-					msg_name, err := cl.ReadArray()
+					appName, err := cl.ReadArray()
 					if err == nil {
-						msg := router.FindMessageName(string(msg_name))
+						msg_name, err := cl.ReadArray()
+						if err == nil {
+							msg := router.FindMessageName(string(appName), string(msg_name))
 
-						if msg != nil && len(msg.stack) > 0 {
-							cl.WriteInt(1) //exist
+							if msg != nil && len(msg.stack) > 0 {
+								cl.WriteInt(1) //exist
 
-							last_stack := &msg.stack[len(msg.stack)-1]
+								last_stack := &msg.stack[len(msg.stack)-1]
 
-							msg := SdkMsg{Id: string(msg_name),
-								AppName: last_stack.appName, ToolName: last_stack.toolName, ActionName: last_stack.actionName,
-								Progress_label: msg.progress_label, Progress_done: msg.progress_done,
-								Start_time: msg.start_time}
-							msgJs, _ := LogsJsonMarshal(msg)
-							cl.WriteArray(msgJs)
+								msg := SdkMsg{Id: string(msg_name),
+									AppName: last_stack.appName, ToolName: last_stack.toolName, ActionName: last_stack.actionName,
+									Progress_label: msg.progress_label, Progress_done: msg.progress_done,
+									Start_time: msg.start_time}
+								msgJs, _ := LogsJsonMarshal(msg)
+								cl.WriteArray(msgJs)
 
-						} else {
-							cl.WriteInt(0) //non-exist
+							} else {
+								cl.WriteInt(0) //non-exist
+							}
 						}
 					}
 
 				case "stop_msg_name":
-					msg_name, err := cl.ReadArray()
+					appName, err := cl.ReadArray()
 					if err == nil {
-						msg := router.FindMessageName(string(msg_name))
-						if msg != nil {
-							msg.Stop()
+						msg_name, err := cl.ReadArray()
+						if err == nil {
+							msg := router.FindMessageName(string(appName), string(msg_name))
+							if msg != nil {
+								msg.Stop()
+							}
 						}
 					}
 
@@ -839,6 +838,7 @@ func (router *AppsRouter) RunNet() {
 
 										if msg.Content.Calls != nil && msg.Content.Calls.Content != "" {
 											comp.wip_answer = msg.Content.Calls.Content
+											comp.wip_answer, _ = strings.CutSuffix(comp.wip_answer, ChatMsg_GetDivAfterReasoning()) //cut reasoning divider
 										}
 										msgJs, _ := LogsJsonMarshal(msg)
 

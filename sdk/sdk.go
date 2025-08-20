@@ -244,7 +244,7 @@ type SdkLog struct {
 
 func LogsJsonMarshal(v any) []byte {
 	data, err := json.Marshal(v)
-	if err != nil {
+	if Tool_Error(err) != nil {
 		log.Fatal(err)
 	}
 	return data
@@ -252,7 +252,7 @@ func LogsJsonMarshal(v any) []byte {
 
 func LogsJsonUnmarshal(data []byte, v any) {
 	err := json.Unmarshal(data, v)
-	if err != nil {
+	if Tool_Error(err) != nil {
 		log.Fatal(err)
 	}
 }
@@ -260,7 +260,7 @@ func LogsJsonUnmarshal(data []byte, v any) {
 func LogsGobMarshal(v any) []byte {
 	var buf bytes.Buffer
 	err := gob.NewEncoder(&buf).Encode(v)
-	if err != nil {
+	if Tool_Error(err) != nil {
 		log.Fatal(err)
 	}
 	return buf.Bytes()
@@ -268,7 +268,7 @@ func LogsGobMarshal(v any) []byte {
 
 func LogsGobUnmarshal(data []byte, v any) {
 	err := gob.NewDecoder(bytes.NewBuffer(data)).Decode(v)
-	if err != nil {
+	if Tool_Error(err) != nil {
 		log.Fatal(err)
 	}
 }
@@ -308,7 +308,7 @@ func main() {
 
 	defer g_main.server.Destroy()
 
-	//report tool into router server
+	//report app into router server
 	{
 		cl, err := NewToolClient("localhost", g_main.router_port)
 		if err != nil {
@@ -838,8 +838,11 @@ func callFuncMsgStop(msg_name string) {
 
 		err = cl.WriteArray([]byte("stop_msg_name"))
 		if Tool_Error(err) == nil {
-			err = cl.WriteArray([]byte(g_main.appName + "_" + msg_name))
-			Tool_Error(err)
+			err = cl.WriteArray([]byte(g_main.appName))
+			if Tool_Error(err) == nil {
+				err = cl.WriteArray([]byte(msg_name))
+				Tool_Error(err)
+			}
 		}
 	}
 }
@@ -850,16 +853,19 @@ func callFuncFindMsgName(msg_name string) *SdkMsg {
 
 		err = cl.WriteArray([]byte("find_msg_name"))
 		if Tool_Error(err) == nil {
-			err = cl.WriteArray([]byte(g_main.appName + "_" + msg_name))
+			err = cl.WriteArray([]byte(g_main.appName))
 			if Tool_Error(err) == nil {
+				err = cl.WriteArray([]byte(msg_name))
+				if Tool_Error(err) == nil {
 
-				exist, err := cl.ReadInt()
-				if exist > 0 && Tool_Error(err) == nil {
-					msgJs, err := cl.ReadArray()
-					if Tool_Error(err) == nil {
-						var msg SdkMsg
-						LogsJsonUnmarshal(msgJs, &msg)
-						return &msg
+					exist, err := cl.ReadInt()
+					if exist > 0 && Tool_Error(err) == nil {
+						msgJs, err := cl.ReadArray()
+						if Tool_Error(err) == nil {
+							var msg SdkMsg
+							LogsJsonUnmarshal(msgJs, &msg)
+							return &msg
+						}
 					}
 				}
 			}
@@ -878,7 +884,7 @@ func (caller *ToolCaller) SetMsgName(msg_name string) {
 
 			err = cl.WriteInt(caller.msg_id)
 			if Tool_Error(err) == nil {
-				err = cl.WriteArray([]byte(g_main.appName + "_" + msg_name))
+				err = cl.WriteArray([]byte(msg_name))
 				Tool_Error(err)
 			}
 		}
