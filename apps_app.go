@@ -372,6 +372,9 @@ func (app *ToolsApp) Tick(generate bool) error {
 					if genErr != nil {
 						return genErr
 					}
+					if !msg.GetContinue() {
+						break
+					}
 
 					err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets) //rewrite(remove old) files
 					if err != nil {
@@ -393,63 +396,64 @@ func (app *ToolsApp) Tick(generate bool) error {
 			}
 
 			//Tools
-			for i := range MAX_Errors_tries {
+			if msg.GetContinue() {
+				for i := range MAX_Errors_tries {
 
-				if i == 0 {
-					msg.progress_label = "Generating Tools code"
-				} else {
-					msg.progress_label = "Fixing Tools code"
-				}
-
-				//generate code
-				var wg sync.WaitGroup
-				var genErr error
-				for _, prompt := range app.Prompts.Prompts {
-					if prompt.Type != ToolsPrompt_TOOL || prompt.IsCodeWithoutErrors() {
-						continue
+					if i == 0 {
+						msg.progress_label = "Generating Tools code"
+					} else {
+						msg.progress_label = "Fixing Tools code"
 					}
 
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						err = app.Prompts.generatePromptCode(prompt, msg, app.router.services.llms)
-						if err != nil {
-							genErr = err
+					//generate code
+					var wg sync.WaitGroup
+					var genErr error
+					for _, prompt := range app.Prompts.Prompts {
+						if prompt.Type != ToolsPrompt_TOOL || prompt.IsCodeWithoutErrors() {
+							continue
 						}
-					}()
-				}
-				wg.Wait()
-				if genErr != nil {
-					return genErr
-				}
-				if !msg.GetContinue() {
-					break
-				}
 
-				err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
-				if err != nil {
-					return err
-				}
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+							err = app.Prompts.generatePromptCode(prompt, msg, app.router.services.llms)
+							if err != nil {
+								genErr = err
+							}
+						}()
+					}
+					wg.Wait()
+					if genErr != nil {
+						return genErr
+					}
+					if !msg.GetContinue() {
+						break
+					}
 
-				err = app.Process.Compile.BuildMainFile(app.Prompts.Prompts) //sdk.go -> main.go
-				if err != nil {
-					return err
-				}
+					err = app.Prompts.WriteFiles(app.Process.Compile.GetFolderPath(), secrets)
+					if err != nil {
+						return err
+					}
 
-				codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
-				if err != nil {
-					return err
-				}
-				app.Prompts.SetCodeErrors(codeErrors, app)
-				if len(codeErrors) == 0 {
-					break
-				}
-				if i+1 == MAX_Errors_tries {
-					return fmt.Errorf("failed to generage Tools")
+					err = app.Process.Compile.BuildMainFile(app.Prompts.Prompts) //sdk.go -> main.go
+					if err != nil {
+						return err
+					}
+
+					codeErrors, err := app.Process.Compile._compile(sdkFileTime, appFilesTime, false, msg)
+					if err != nil {
+						return err
+					}
+					app.Prompts.SetCodeErrors(codeErrors, app)
+					if len(codeErrors) == 0 {
+						restart = true
+						break
+					}
+					if i+1 == MAX_Errors_tries {
+						return fmt.Errorf("failed to generage Tools")
+					}
 				}
 			}
-
-			restart = true
 		}
 	}
 
