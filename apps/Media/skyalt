@@ -1,0 +1,19 @@
+
+#function GetSortedDirectoryFiles
+Inputs are "dir" as string and "sortBy" which can be "a-z", "z-a", "first_modified", "last_modified", "size".
+Output is list of files(strings).
+Read directory and sort files(no dirs) by "sortBy".
+
+
+#tool ShowDirectory
+Tool shows list of files in directory and content of selected file.
+Inputs are "Directory"(required, text), "SortBy"(optional, options: "a-z", "z-a", "first_modified", "last_modified", "size") and "SelectedFile"(optional, text).
+No outputs.
+
+UI has resizable left side and then content.
+Left side:
+Show Drop-down menu with "SortBy" options.
+Then show list of files(not sub-dirs) in "Directory". Files are buttons(text is align left). Only one file can be selected(saved into "SelectedFile"). Selection is done by modifing background(transparent -> full for selection).
+
+Content:
+If file is selected, show it as Media here. Set row height between 5 and 100.
