@@ -154,10 +154,11 @@ func (b *WinPaintBuff) AddImage(path WinImagePath, screen OsV4, cd color.RGBA, a
 	//position
 	q := screen
 
-	if img.texture != nil && img.texture.size.Is() {
+	sz := img.loaded_size
+	if sz.Is() {
 
-		fill := OsV2_OutRatio(screen.Size, img.texture.size)
-		fit := OsV4_center(screen, OsV2_InRatio(screen.Size, img.texture.size))
+		fill := OsV2_OutRatio(screen.Size, sz)
+		fit := OsV4_center(screen, OsV2_InRatio(screen.Size, sz))
 
 		if *Scale_x < 0 {
 			//fill
@@ -167,7 +168,7 @@ func (b *WinPaintBuff) AddImage(path WinImagePath, screen OsV4, cd color.RGBA, a
 			q.Start.X = fit.Start.X
 			q.Size.X = fit.Size.X //from layout
 		} else {
-			q.Size.X = int(float64(img.texture.size.X) * *Scale_x) //from orig
+			q.Size.X = int(float64(sz.X) * *Scale_x) //from orig
 		}
 
 		if *Scale_y < 0 {
@@ -178,7 +179,7 @@ func (b *WinPaintBuff) AddImage(path WinImagePath, screen OsV4, cd color.RGBA, a
 			q.Start.Y = fit.Start.Y
 			q.Size.Y = fit.Size.Y //from layout
 		} else {
-			q.Size.Y = int(float64(img.texture.size.Y) * *Scale_y) //from orig
+			q.Size.Y = int(float64(sz.Y) * *Scale_y) //from orig
 		}
 
 		//align
@@ -238,8 +239,8 @@ func (b *WinPaintBuff) AddImage(path WinImagePath, screen OsV4, cd color.RGBA, a
 			q.Start.Y = OsClamp(q.Start.Y, min_y, max_y)
 		}
 
-		*Scale_x = float64(q.Size.X) / float64(img.texture.size.X)
-		*Scale_y = float64(q.Size.Y) / float64(img.texture.size.Y)
+		*Scale_x = float64(q.Size.X) / float64(sz.X)
+		*Scale_y = float64(q.Size.Y) / float64(sz.Y)
 		*Translate_x = float64(q.Start.X - screen.Start.X)
 		*Translate_y = float64(q.Start.Y - screen.Start.Y)
 	}
