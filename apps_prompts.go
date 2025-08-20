@@ -628,6 +628,7 @@ func (prompts *ToolsPrompts) _getFunctionMsg(functionPrompt *ToolsPrompt) (strin
 	funcFile := fmt.Sprintf(`
 package main
 
+/*Function and arguments description*/
 func %s(/*arguments*/) /*return types*/ {
 	//<code based on prompt>
 }
@@ -642,7 +643,7 @@ func %s(/*arguments*/) /*return types*/ {
 
 	systemMessage += "Based on the user message, rewrite the " + functionPrompt.Name + "() function inside " + functionPrompt.Name + ".go file.\n"
 
-	systemMessage += "Figure it out function argument(s), return types(s) and function body based on user message.\n"
+	systemMessage += "Figure it out function & argument(s) description, function argument(s), return types(s) and function body based on user message.\n"
 
 	systemMessage += "Load<name_of_struct>() functions always returns pointer, not array."
 
@@ -690,8 +691,12 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
+	functionHeaders := prompts.getFunctionsHeadersCode()
 	if storagePrompt != nil {
 		systemMessage += "file - storage.go:\n```go" + storagePrompt.GetLastCode() + "\n" + prompts.getFunctionsHeadersCode() + "```\n"
+	} else if functionHeaders != "" {
+		systemMessage += "file - help_functions.go:\n```go" + prompts.getFunctionsHeadersCode() + "```\n"
+
 	}
 	systemMessage += "file - example.go:\n```go" + string(exampleFile) + "```\n"
 	systemMessage += "file - tool.go:\n```go" + toolFile + "```\n"
@@ -703,8 +708,10 @@ func (st *%s) run(caller *ToolCaller, ui *UI) error {
 	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]\n`
 	systemMessage += "\n"
 	if storagePrompt != nil {
-		systemMessage += "Storage.go has list of functions, use them.\n"
+		systemMessage += "storage.go has list of functions, use them.\n"
 		systemMessage += "To access the storage, call the Load...() function in storage.go, which returns the data. Don't call save/write on that data, it's automatically called after the function ends.\n"
+	} else if functionHeaders != "" {
+		systemMessage += "help_functions.go has list of functions, use them.\n"
 	}
 	systemMessage += "Never define constants('const'), use variables('var') for everything.\n"
 
