@@ -361,7 +361,8 @@ func (ui *Ui) Tick() {
 	}
 
 	if (OsTicks() - ui.last_layout_updates_ticks) > 100 { //every 100ms
-		ui.mainLayout.CallLayoutUpdates() //"Root", "ShowRoot", ui.mainLayout.UID)
+		ui.GetTopLayout().CallLayoutUpdates() //"Root", "ShowRoot", ui.mainLayout.UID)
+
 		ui.last_layout_updates_ticks = OsTicks()
 	}
 

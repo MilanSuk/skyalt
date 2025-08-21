@@ -1278,6 +1278,9 @@ func (ui *UI) updateHasFnUpdate() {
 	for _, it := range ui.Items {
 		it.updateHasFnUpdate()
 	}
+	for _, dia := range ui.Dialogs {
+		dia.UI.updateHasFnUpdate()
+	}
 }
 
 func (ui *UI) runUpdate(uid uint64) (*UI, error) {
@@ -1291,6 +1294,13 @@ func (ui *UI) runUpdate(uid uint64) (*UI, error) {
 
 	for _, it := range ui.Items {
 		uii, err := it.runUpdate(uid)
+		if uii != nil {
+			return uii, err
+		}
+	}
+
+	for _, dia := range ui.Dialogs {
+		uii, err := dia.UI.runUpdate(uid)
 		if uii != nil {
 			return uii, err
 		}
@@ -1886,7 +1896,7 @@ type UI struct {
 	changed func(newParamsJs []byte) error
 
 	update    func() error
-	HasUpdate bool
+	HasUpdate bool `json:",omitempty"`
 
 	table              bool
 	temp_col, temp_row int

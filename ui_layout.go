@@ -1337,6 +1337,17 @@ func (layout *Layout) touchComp() {
 	}
 }
 
+func (ui *Ui) GetTopLayout() *Layout {
+	topLay := ui.mainLayout //only top
+
+	for _, dia := range ui.settings.Dialogs {
+		layDia := topLay.FindUID(dia.UID)
+		if layDia != nil {
+			topLay = layDia
+		}
+	}
+	return topLay
+}
 func (layout *Layout) Draw() {
 	buff := layout.ui.GetWin().buff
 	buff.AddCrop(layout.CropWithScroll())
@@ -1367,15 +1378,7 @@ func (layout *Layout) Draw() {
 	if keys.Ctrl && keys.Shift {
 		n := 0
 
-		postLayout := layout //only top
-		for _, dia := range layout.ui.settings.Dialogs {
-			layDia := layout.FindUID(dia.UID)
-			if layDia != nil {
-				postLayout = layDia
-			}
-		}
-
-		postLayout.postDraw(0, &n)
+		layout.ui.GetTopLayout().postDraw(0, &n) //only top
 	}
 }
 
