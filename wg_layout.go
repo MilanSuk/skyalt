@@ -88,7 +88,18 @@ func (layout *Layout) IsTypeCards() bool {
 	return layout.Name == "_cards"
 }
 func (layout *Layout) IsTypeLayout() bool {
-	return strings.HasPrefix(layout.Name, "_layout")
+	if strings.HasPrefix(layout.Name, "_layout") {
+		return true
+	}
+
+	if layout.parent != nil {
+		dia := layout.parent.FindDialog(layout.Name)
+		if dia != nil && dia.Layout == layout {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (layout *Layout) AddCardsSubItem() *Layout {
