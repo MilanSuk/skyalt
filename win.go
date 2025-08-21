@@ -526,10 +526,10 @@ func (win *Win) UpdateIO(last_redraw bool, nosleep bool) (bool, bool, error) {
 	var run, redraw bool
 
 	if !last_redraw {
-		ms := OsTrn(nosleep, 1, 50) //ms
+		ms := 50 //ms
 		for ms > 0 {
 			run, redraw = win.Event()
-			if !run || redraw {
+			if !run || redraw || nosleep {
 				break
 			}
 			time.Sleep(5 * time.Millisecond)
