@@ -233,6 +233,10 @@ func (router *AppsRouter) GetRootApp() *ToolsApp {
 	return router.FindApp("Root")
 }
 
+func (router *AppsRouter) GetNumMsgs() int {
+	return len(router.msgs)
+}
+
 func (router *AppsRouter) GetSortedMsgs() []*AppsRouterMsg {
 	router.lock.Lock()
 	defer router.lock.Unlock()

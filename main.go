@@ -82,7 +82,7 @@ func main() {
 	for run {
 
 		var err error
-		run, redraw, err = win.UpdateIO(redraw)
+		run, redraw, err = win.UpdateIO(redraw, router.GetNumMsgs() > 0)
 		if err != nil {
 			log.Fatalf("UpdateIO() failed: %v\n", err)
 		}

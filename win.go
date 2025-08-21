@@ -522,18 +522,18 @@ func (win *Win) SetRedrawNewImage() {
 	win.redraw_new_image.Add(1)
 }
 
-func (win *Win) UpdateIO(last_redraw bool) (bool, bool, error) {
+func (win *Win) UpdateIO(last_redraw bool, nosleep bool) (bool, bool, error) {
 	var run, redraw bool
 
 	if !last_redraw {
-		ms := 0
-		for ms < 50 {
+		ms := OsTrn(nosleep, 1, 50) //ms
+		for ms > 0 {
 			run, redraw = win.Event()
 			if !run || redraw {
 				break
 			}
 			time.Sleep(5 * time.Millisecond)
-			ms += 5
+			ms -= 5
 		}
 	} else {
 		run, redraw = win.Event()
