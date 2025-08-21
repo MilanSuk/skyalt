@@ -97,7 +97,7 @@ func (img *WinImage) _loadFromMedia(win *Win, inited func()) {
 	img.loaded_size = OsV2{w, h}
 	img.loaded_rgba = rgba
 
-	win.SetRedrawNewImage()
+	win.SetRedraw()
 
 	//fmt.Println(img.path.path, play_pos, play_duration)
 	//fmt.Println("_loadFromMedia()", time.Now().UnixMilli())
@@ -249,7 +249,7 @@ func (imgs *WinImages) Maintenance(win *Win) {
 	}
 }
 
-func (imgs *WinImages) Tick(win *Win) {
+func (imgs *WinImages) Tick(win *Win) bool {
 	imgs.lock.Lock()
 	defer imgs.lock.Unlock()
 
@@ -268,6 +268,14 @@ func (imgs *WinImages) Tick(win *Win) {
 	}
 
 	if redraw {
-		win.SetRedrawNewImage()
+		win.SetRedraw()
 	}
+
+	playing := false
+	for _, img := range imgs.images {
+		if img.path.is_playing {
+			playing = true
+		}
+	}
+	return playing
 }

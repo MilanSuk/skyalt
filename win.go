@@ -62,9 +62,8 @@ type Win struct {
 
 	buff *WinPaintBuff
 
-	winVisible       bool
-	redraw           bool
-	redraw_new_image atomic.Int64
+	winVisible bool
+	redraw     atomic.Int64
 
 	lastClickUp OsV2
 	numClicks   int
@@ -515,51 +514,49 @@ func (win *Win) needRedraw(inputChanged bool) bool {
 }
 
 func (win *Win) SetRedraw() {
-	win.redraw = true
+	win.redraw.Add(1)
 }
 
-func (win *Win) SetRedrawNewImage() {
-	win.redraw_new_image.Add(1)
-}
+func (win *Win) UpdateIO(nosleep bool) (bool, bool, error) {
+	//var run, redraw bool
 
-func (win *Win) UpdateIO(last_redraw bool, nosleep bool) (bool, bool, error) {
-	var run, redraw bool
+	if win.images.Tick(win) {
+		nosleep = true
+	}
 
-	if !last_redraw {
-		ms := 50 //ms
+	redraw := false
+	{
+		ms := 100 //ms
 		for ms > 0 {
-			run, redraw = win.Event()
-			if !run || redraw || nosleep {
+			run, redrawEvent := win.Event()
+			if !run {
+				return false, false, nil
+			}
+			if redrawEvent || nosleep {
+				if redrawEvent {
+					redraw = true
+				}
 				break
 			}
+
 			time.Sleep(5 * time.Millisecond)
 			ms -= 5
 		}
-	} else {
-		run, redraw = win.Event()
-	}
-	win.images.Tick(win)
-
-	if !run {
-		return false, redraw, nil
-	}
-
-	if win.quit {
-		return false, redraw, nil
+		/*if ms <= 0 {
+			fmt.Println("------------ Full sleep")
+		}*/
 	}
 
 	if win.needRedraw(redraw) {
 		win.SetRedraw()
 	}
 
-	//one more time
-	if win.redraw {
-		redraw = true
-		win.redraw = false //reset
+	if win.quit {
+		return false, false, nil
 	}
 
-	if win.redraw_new_image.Load() != 0 {
-		win.redraw_new_image.Store(0)
+	//one more time
+	if win.redraw.Swap(0) != 0 {
 		redraw = true
 	}
 
