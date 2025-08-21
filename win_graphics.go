@@ -277,8 +277,8 @@ func (poly *WinGphItemPoly) CmpPoints(points []OsV2f) bool {
 type WinGph struct {
 	fonts []*WinFont //array index = textH
 
-	texts             []*WinGphItemText
-	textMaxs          []*WinGphItemTextMax
+	texts             map[string][]*WinGphItemText
+	textMaxs          map[string][]*WinGphItemTextMax
 	circles           []*WinGphItemCircle
 	polys             []*WinGphItemPoly
 	roundedRectangles []*WinGphItemRoundedRectangle
@@ -291,6 +291,8 @@ type WinGph struct {
 
 func NewWinGph() *WinGph {
 	gph := &WinGph{}
+	gph.texts = make(map[string][]*WinGphItemText)
+	gph.textMaxs = make(map[string][]*WinGphItemTextMax)
 	return gph
 }
 func (gph *WinGph) Destroy() {
@@ -302,8 +304,11 @@ func (gph *WinGph) Destroy() {
 	for _, it := range gph.circles {
 		it.item.Destroy()
 	}
-	for _, it := range gph.texts {
-		it.item.Destroy()
+
+	for _, itArr := range gph.texts {
+		for _, it := range itArr {
+			it.item.Destroy()
+		}
 	}
 	for _, it := range gph.polys {
 		it.item.Destroy()
@@ -332,11 +337,15 @@ func (gph *WinGph) Maintenance() {
 		}
 	}
 
-	for i := len(gph.texts) - 1; i >= 0; i-- {
-		if !gph.texts[i].item.IsUsed(gph) {
-			gph.texts[i].item.Destroy()
-			gph.texts = slices.Delete(gph.texts, i, i+1)
-			gph.texts_num_remove++
+	for textId, itArr := range gph.texts {
+		for i := len(itArr) - 1; i >= 0; i-- {
+			if !itArr[i].item.IsUsed(gph) {
+				itArr[i].item.Destroy()
+				itArr = slices.Delete(itArr, i, i+1)
+				gph.texts[textId] = itArr
+
+				gph.texts_num_remove++
+			}
 		}
 	}
 }
@@ -409,7 +418,8 @@ func (gph *WinGph) GetText(prop WinFontProps, text string) *WinGphItemText {
 	}
 
 	//find
-	for _, it := range gph.texts {
+	arr := gph.texts[text]
+	for _, it := range arr {
 		if it.prop.Cmp(&prop) && it.text == text {
 			it.item.UpdateTick(gph)
 			return it
@@ -419,7 +429,7 @@ func (gph *WinGph) GetText(prop WinFontProps, text string) *WinGphItemText {
 	//create
 	it := gph.drawString(prop, text)
 	if it != nil {
-		gph.texts = append(gph.texts, it)
+		gph.texts[text] = append(gph.texts[text], it)
 		gph.texts_num_created++
 	}
 	return it
@@ -431,9 +441,12 @@ func (gph *WinGph) GetTextMax(str string, const_max_line_px int, prop WinFontPro
 	}
 
 	//find
-	for _, it := range gph.textMaxs {
-		if it.prop.Cmp(&prop) && it.text == str && it.const_max_line_px == const_max_line_px {
-			return it
+	{
+		arr := gph.textMaxs[str]
+		for _, it := range arr {
+			if it.prop.Cmp(&prop) /*&& it.text == str*/ && it.const_max_line_px == const_max_line_px {
+				return it
+			}
 		}
 	}
 
@@ -474,7 +487,7 @@ func (gph *WinGph) GetTextMax(str string, const_max_line_px int, prop WinFontPro
 	}
 
 	it := &WinGphItemTextMax{text: str, const_max_line_px: const_max_line_px, prop: prop, lines: lines, max_size_x: max_size_x}
-	gph.textMaxs = append(gph.textMaxs, it)
+	gph.textMaxs[str] = append(gph.textMaxs[str], it)
 
 	return it
 }
