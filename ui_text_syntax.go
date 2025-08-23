@@ -47,6 +47,7 @@ func isStdType(name string) bool {
 func isStdKeyword(name string) bool {
 	var g_syntax_stds = []string{"type", "struct",
 		"for", "if", "else", "return", "break", "continue",
+		"switch", "case", "default",
 		"var", "const",
 		"map", "chan",
 		"func", "nil",
