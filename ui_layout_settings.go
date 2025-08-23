@@ -24,6 +24,8 @@ type UiSettings struct {
 	Dialogs []*UiDialog
 	Layouts UiRootSettings
 
+	Highlight_text string
+
 	changed_dialogs bool //open, close
 }
 

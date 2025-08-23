@@ -57,13 +57,32 @@ func (ui *Ui) _Text_getCoord(coord OsV4, value string, multi_line, line_wrapping
 	return coordLN, coordText, showLineNumbers
 }
 
+func (ui *Ui) _Text_drawHighlighLine(value string, highlight_lowerCase string, cd color.RGBA, align OsV2, coord OsV4, prop WinFontProps, yLine, num_lines int) {
+	value_lowerCase := strings.ToLower(value)
+
+	last_i := 0
+	for {
+		i := strings.Index(value_lowerCase[last_i:], highlight_lowerCase)
+		if i < 0 {
+			break
+		}
+
+		if _UiText_IsOutsideRGBA(last_i+i, value_lowerCase) {
+			ui.GetWin().buff.AddTextBack(OsV2{last_i + i, last_i + i + len(highlight_lowerCase)}, value, prop, coord, cd, align, false, yLine, num_lines, ui.Cell())
+		}
+
+		last_i += i + 1
+	}
+}
+
 func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 	value string, ghost string,
 	prop WinFontProps,
 	frontCd color.RGBA,
 	align OsV2,
 	selection, editable bool,
-	multi_line, line_wrapping, password, showLineNumbers bool) {
+	multi_line, line_wrapping, password, showLineNumbers bool,
+	highlight_text string) {
 
 	var coordLN OsV4
 	coordLN, coord, showLineNumbers = ui._Text_getCoord(coord, value, multi_line, line_wrapping, showLineNumbers, prop)
@@ -106,6 +125,9 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 		}
 	}
 
+	//highlight(search)
+	cdHighlight := Color_Aprox(ui.GetPalette().E, frontCd, 0.3)
+
 	// draw
 	if multi_line {
 
@@ -123,6 +145,11 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 			crop_sy, crop_ey := _UiText_GetLineYCrop(startY, len(lines), layout.view, prop) //only rows which are on screen
 			yst = OsMax(curr_sy, crop_sy)
 			yen = OsMin(curr_ey, crop_ey)
+		}
+
+		var highlight_text_lowerCase string
+		if highlight_text != "" {
+			highlight_text_lowerCase = strings.ToLower(highlight_text)
 		}
 
 		sy, ey := _UiText_GetLineYCrop(startY, len(lines), layout.view, prop) //only rows which are on screen
@@ -147,9 +174,19 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 				ui.GetWin().buff.AddText(fmt.Sprintf("%d", 1+y), prop, lnColor, coordLN, OsV2{0, 1}, y, len(lines))
 			}
 
+			if highlight_text != "" {
+				ui._Text_drawHighlighLine(ln, highlight_text_lowerCase, cdHighlight, align, coord, prop, y, len(lines))
+			}
+
 			ui.GetWin().buff.AddText(ln, prop, frontCd, coord, align, y, len(lines)) //line
 		}
 	} else {
+
+		if highlight_text != "" {
+			highlight_text_lowerCase := strings.ToLower(highlight_text)
+			ui._Text_drawHighlighLine(value, highlight_text_lowerCase, cdHighlight, align, coord, prop, 0, 1)
+		}
+
 		ui.GetWin().buff.AddTextBack(OsV2{range_sx, range_ex}, value, prop, coord, cdSelection, align, false, 0, 1, layout.Cell())
 
 		ui.GetWin().buff.AddText(value, prop, frontCd, coord, align, 0, 1)
@@ -177,7 +214,7 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 	if ghost != "" {
 		if (!edit.Is(layout) && value == "") || (edit.Is(layout) && edit.temp == "") {
 			frontCd.A = 100
-			layout.ui._Text_draw(layout, coord, ghost, "", prop, frontCd, OsV2{1, 1}, false, false, false, false, false, false)
+			layout.ui._Text_draw(layout, coord, ghost, "", prop, frontCd, OsV2{1, 1}, false, false, false, false, false, false, ui.settings.Highlight_text)
 		}
 	}
 
@@ -902,6 +939,14 @@ func _UiText_RemoveFormating(str string) string {
 	str = _UiText_RemoveFormatingRGBA(str)
 
 	return str
+}
+
+func _UiText_IsOutsideRGBA(cur int, str string) bool {
+	if strings.LastIndex(str[:cur], "</rgba") >= strings.LastIndex(str[:cur], "<rgba") {
+		return true
+	}
+
+	return false
 }
 
 func (ui *Ui) _UiText_getMaxLinePx(max_px int, multi_line, line_wrapping bool) int {

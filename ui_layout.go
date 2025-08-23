@@ -1062,7 +1062,7 @@ func (layout *Layout) renderBuffer(buffer []LayoutDrawPrim) (hasBrush bool) {
 			}
 
 			align := OsV2{int(tx.Align_h), int(tx.Align_v)}
-			layout.ui._Text_draw(layout, coordText, tx.Text, tx.Ghost, prop, frontCd, align, tx.Selection, tx.Editable, tx.Multiline, tx.Linewrapping, tx.Password, tx.ShowLineNumbers)
+			layout.ui._Text_draw(layout, coordText, tx.Text, tx.Ghost, prop, frontCd, align, tx.Selection, tx.Editable, tx.Multiline, tx.Linewrapping, tx.Password, tx.ShowLineNumbers, layout.ui.settings.Highlight_text)
 
 			//draw border
 			if tx.Editable {
@@ -1356,39 +1356,6 @@ func (ui *Ui) GetTopLayout() *Layout {
 		}
 	}
 	return topLay
-}
-func (layout *Layout) Draw() {
-	buff := layout.ui.GetWin().buff
-	buff.AddCrop(layout.CropWithScroll())
-	buff.AddRect(buff.crop, layout.GetPalette().B, 0)
-
-	//base
-	layout._drawBuffers()
-
-	//dialogs
-	for _, dia := range layout.ui.settings.Dialogs {
-		layDia := layout.FindUID(dia.UID)
-		if layDia != nil {
-			layApp := layDia.GetApp()
-			if layApp != nil {
-				//alpha grey background
-				backCanvas := layApp.CropWithScroll()
-				buff.StartLevel(layDia.CropWithScroll(), layout.GetPalette().B, backCanvas, layout.ui.CellWidth(layout.getRounding()))
-			}
-
-			layDia._drawBuffers() //add renderToTexture optimalization ....
-		}
-	}
-
-	//selection
-	layout.ui.selection.Draw(buff, layout.ui)
-
-	keys := layout.ui.win.io.Keys
-	if keys.Ctrl && keys.Shift {
-		n := 0
-
-		layout.ui.GetTopLayout().postDraw(0, &n) //only top
-	}
 }
 
 func (layout *Layout) postDraw(depth int, num_cds *int) {

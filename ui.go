@@ -269,6 +269,40 @@ func (ui *Ui) _relayout(layout *Layout) {
 	layout._draw()
 }
 
+func (ui *Ui) drawInner() {
+	buff := ui.GetWin().buff
+
+	buff.AddCrop(ui.mainLayout.CropWithScroll())
+	buff.AddRect(buff.crop, ui.GetPalette().B, 0)
+
+	//base
+	ui.mainLayout._drawBuffers()
+
+	//dialogs
+	for _, dia := range ui.settings.Dialogs {
+		layDia := ui.mainLayout.FindUID(dia.UID)
+		if layDia != nil {
+			layApp := layDia.GetApp()
+			if layApp != nil {
+				//alpha grey background
+				backCanvas := layApp.CropWithScroll()
+				buff.StartLevel(layDia.CropWithScroll(), ui.GetPalette().B, backCanvas, ui.CellWidth(layApp.getRounding()))
+			}
+
+			layDia._drawBuffers() //add renderToTexture optimalization ....
+		}
+	}
+
+	//selection
+	ui.selection.Draw(buff, ui)
+
+	keys := ui.win.io.Keys
+	if keys.Ctrl && keys.Shift {
+		n := 0
+
+		ui.GetTopLayout().postDraw(0, &n) //only top
+	}
+}
 func (ui *Ui) Draw() {
 	if ui.tooltip.touch(ui) {
 		ui.SetRedrawBuffer()
@@ -277,7 +311,7 @@ func (ui *Ui) Draw() {
 	win := ui.GetWin()
 	win.buff.StartLevel(ui.mainLayout.canvas, ui.GetPalette().B, OsV4{}, 0)
 
-	ui.mainLayout.Draw()
+	ui.drawInner()
 	if win.io.Keys.Ctrl && !win.io.Keys.Shift {
 		ui.GetWin().PaintCursor("cross") //brush
 	}
@@ -493,7 +527,7 @@ func (ui *Ui) Tick() {
 	ui.mainLayout.UpdateTouch()
 	ui.mainLayout.TouchDialogs(ui.edit.uid, ui.touch.canvas)
 
-	ui.mainLayout.textComp()
+	ui.mainLayout.textComp() //slow, run only when win inputChanged ........
 
 	// close all levels
 	if ui.win.io.Keys.Shift && ui.win.io.Keys.Esc {
