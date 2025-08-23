@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"strings"
 	"unicode/utf8"
@@ -24,13 +25,48 @@ import (
 	"github.com/go-audio/audio"
 )
 
+func (ui *Ui) _Text_getLineNumberWidth(value string, multi_line, line_wrapping, showLineNumbers bool, prop WinFontProps) (int, bool) {
+	if !multi_line || line_wrapping {
+		showLineNumbers = false
+	}
+
+	if showLineNumbers {
+		mx, _ := ui.win.GetTextSizeMax(fmt.Sprintf("%d", 1+strings.Count(value, "\n")), 1000000000, prop)
+		mx += 2 * ui.CellWidth(0.1) //margin
+		return mx, true
+	}
+	return 0, false
+}
+
+func (ui *Ui) _Text_getCoord(coord OsV4, value string, multi_line, line_wrapping, showLineNumbers bool, prop WinFontProps) (OsV4, OsV4, bool) {
+	var mx int
+	mx, showLineNumbers = ui._Text_getLineNumberWidth(value, multi_line, line_wrapping, showLineNumbers, prop)
+
+	coordLN := OsV4{} //line numbers
+	coordText := coord
+
+	if showLineNumbers {
+		mx = OsClamp(mx, 0, coordText.Size.X)
+
+		coordLN = coordText
+		coordLN.Size.X = mx
+
+		coordText.Start.X += mx
+		coordText.Size.X -= mx
+	}
+	return coordLN, coordText, showLineNumbers
+}
+
 func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 	value string, ghost string,
 	prop WinFontProps,
 	frontCd color.RGBA,
 	align OsV2,
 	selection, editable bool,
-	multi_line, line_wrapping bool, password bool) {
+	multi_line, line_wrapping, password, showLineNumbers bool) {
+
+	var coordLN OsV4
+	coordLN, coord, showLineNumbers = ui._Text_getCoord(coord, value, multi_line, line_wrapping, showLineNumbers, prop)
 
 	edit := ui.edit
 
@@ -72,6 +108,9 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 
 	// draw
 	if multi_line {
+
+		lnColor := ui.GetPalette().GetGrey(0.5)
+
 		//select
 		var yst, yen int
 		var curr_sy, curr_ey int
@@ -104,7 +143,11 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 				ui.GetWin().buff.AddTextBack(OsV2{rl_sx, rl_ex}, ln, prop, coord, cdSelection, align, false, y, len(lines), layout.Cell())
 			}
 
-			ui.GetWin().buff.AddText(ln, prop, frontCd, coord, align, y, len(lines))
+			if showLineNumbers {
+				ui.GetWin().buff.AddText(fmt.Sprintf("%d", 1+y), prop, lnColor, coordLN, OsV2{0, 1}, y, len(lines))
+			}
+
+			ui.GetWin().buff.AddText(ln, prop, frontCd, coord, align, y, len(lines)) //line
 		}
 	} else {
 		ui.GetWin().buff.AddTextBack(OsV2{range_sx, range_ex}, value, prop, coord, cdSelection, align, false, 0, 1, layout.Cell())
@@ -134,7 +177,7 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 	if ghost != "" {
 		if (!edit.Is(layout) && value == "") || (edit.Is(layout) && edit.temp == "") {
 			frontCd.A = 100
-			layout.ui._Text_draw(layout, coord, ghost, "", prop, frontCd, OsV2{1, 1}, false, false, false, false, false)
+			layout.ui._Text_draw(layout, coord, ghost, "", prop, frontCd, OsV2{1, 1}, false, false, false, false, false, false)
 		}
 	}
 
@@ -147,7 +190,9 @@ func (ui *Ui) _Text_update(layout *Layout,
 	prop WinFontProps,
 	align OsV2,
 	selection, editable, tabIsChar bool,
-	multi_line, line_wrapping bool) {
+	multi_line, line_wrapping, showLineNumbers bool) {
+
+	_, coord, _ = ui._Text_getCoord(coord, value, multi_line, line_wrapping, showLineNumbers, prop)
 
 	edit := layout.ui.edit
 	keys := &ui.GetWin().io.Keys

@@ -108,12 +108,13 @@ type LayoutDrawText struct {
 	Align_h uint8
 	Align_v uint8
 
-	Formating    bool
-	Multiline    bool
-	Linewrapping bool
-	Selection    bool
-	Editable     bool
-	Password     bool
+	Formating       bool
+	Multiline       bool
+	Linewrapping    bool
+	Selection       bool
+	Editable        bool
+	Password        bool
+	ShowLineNumbers bool
 }
 
 type LayoutDrawCursor struct {
@@ -756,7 +757,7 @@ func (layout *Layout) updateFromChildRows() (float64, float64) {
 	return float64(min_px) / float64(layout.Cell()), float64(max_px) / float64(layout.Cell())
 }
 
-func (layout *Layout) resizeFromPaintText(value string, multiline bool, linewrapping bool, margin [4]float64) {
+func (layout *Layout) resizeFromPaintText(value string, multiline bool, linewrapping, showLineNumbers bool, margin [4]float64) {
 
 	prop := InitWinFontPropsDef(layout.Cell())
 
@@ -805,12 +806,20 @@ func (layout *Layout) resizeFromPaintText(value string, multiline bool, linewrap
 	min_sizePx := OsV2{min.X, min.Y * prop.lineH}
 	min_sizePx.X += layout.ui.CellWidth(margin[2]) + layout.ui.CellWidth(margin[3])
 	min_sizePx.Y += layout.ui.CellWidth(margin[0]) + layout.ui.CellWidth(margin[1])
-	min_size_x := float64(min_sizePx.X) / float64(layout.Cell())
-	min_size_y := float64(min_sizePx.Y) / float64(layout.Cell())
 
 	max_sizePx := OsV2{max.X, max.Y * prop.lineH}
 	max_sizePx.X += layout.ui.CellWidth(margin[2]) + layout.ui.CellWidth(margin[3])
 	max_sizePx.Y += layout.ui.CellWidth(margin[0]) + layout.ui.CellWidth(margin[1])
+
+	var mx int
+	mx, showLineNumbers = layout.ui._Text_getLineNumberWidth(value, multiline, linewrapping, showLineNumbers, prop)
+	if showLineNumbers {
+		min_sizePx.X += mx
+		max_sizePx.X += mx
+	}
+
+	min_size_x := float64(min_sizePx.X) / float64(layout.Cell())
+	min_size_y := float64(min_sizePx.Y) / float64(layout.Cell())
 	max_size_x := float64(max_sizePx.X) / float64(layout.Cell())
 	max_size_y := float64(max_sizePx.Y) / float64(layout.Cell())
 
@@ -1053,7 +1062,7 @@ func (layout *Layout) renderBuffer(buffer []LayoutDrawPrim) (hasBrush bool) {
 			}
 
 			align := OsV2{int(tx.Align_h), int(tx.Align_v)}
-			layout.ui._Text_draw(layout, coordText, tx.Text, tx.Ghost, prop, frontCd, align, tx.Selection, tx.Editable, tx.Multiline, tx.Linewrapping, tx.Password)
+			layout.ui._Text_draw(layout, coordText, tx.Text, tx.Ghost, prop, frontCd, align, tx.Selection, tx.Editable, tx.Multiline, tx.Linewrapping, tx.Password, tx.ShowLineNumbers)
 
 			//draw border
 			if tx.Editable {
@@ -1284,7 +1293,7 @@ func (layout *Layout) textComp() {
 			}
 			align := OsV2{int(tx.Align_h), int(tx.Align_v)}
 
-			layout.ui._Text_update(layout, coordText, tx.Margin, tx.Text, prop, align, tx.Selection, tx.Editable, true, tx.Multiline, tx.Linewrapping)
+			layout.ui._Text_update(layout, coordText, tx.Margin, tx.Text, prop, align, tx.Selection, tx.Editable, true, tx.Multiline, tx.Linewrapping, tx.ShowLineNumbers)
 		}
 	}
 

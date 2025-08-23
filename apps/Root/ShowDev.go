@@ -611,6 +611,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 						tx := SideDiv.AddText(0, 1, 1, 1, code)
 						tx.setMultilined()
+						tx.ShowLineNumbers = true
 						tx.Linewrapping = false
 						tx.Align_v = 0
 						tx.layout.Back_cd = codeBackCd

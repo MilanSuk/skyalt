@@ -296,7 +296,7 @@ func (st *Button) Input(in LayoutInput, layout *Layout) {
 }
 
 func (st *Button) autoResize(layout *Layout) {
-	layout.resizeFromPaintText(st.Value, true, false, st.getAutoResizeMargin())
+	layout.resizeFromPaintText(st.Value, true, false, false, st.getAutoResizeMargin())
 }
 func (st *Button) getAutoResizeMargin() [4]float64 {
 

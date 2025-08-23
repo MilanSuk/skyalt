@@ -27,23 +27,25 @@ type UIText struct {
 	Align_v int
 	Cd      color.RGBA
 
-	Selection    bool
-	Formating    bool
-	Multiline    bool
-	Linewrapping bool
+	Selection       bool
+	Formating       bool
+	Multiline       bool
+	Linewrapping    bool
+	ShowLineNumbers bool
 
 	EnableDropFile bool
 
 	EnableCodeFormating bool
 }
 type UIEditbox struct {
-	Name       string
-	Value      *string
-	ValueFloat *float64
-	ValueInt   *int
-	Precision  int
-	Ghost      string
-	Password   bool
+	Name            string
+	Value           *string
+	ValueFloat      *float64
+	ValueInt        *int
+	Precision       int
+	Ghost           string
+	Password        bool
+	ShowLineNumbers bool
 
 	Align_h int //0=left, 1=center, 2=right
 	Align_v int //0=top, 1=center, 2=bottom
@@ -565,6 +567,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 		tx.Align_v = it.Text.Align_v
 		tx.Multiline = it.Text.Multiline
 		tx.Linewrapping = it.Text.Linewrapping
+		tx.ShowLineNumbers = it.Text.ShowLineNumbers
 		tx.Formating = it.Text.Formating
 		tx.Selection = it.Text.Selection
 
@@ -608,6 +611,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 		ed.ValueFloatPrec = it.Editbox.Precision
 		ed.Ghost = it.Editbox.Ghost
 		ed.Password = it.Editbox.Password
+		ed.ShowLineNumbers = it.Editbox.ShowLineNumbers
 		ed.Multiline = it.Editbox.Multiline
 		ed.Linewrapping = it.Editbox.Linewrapping
 		ed.Formating = it.Editbox.Formating

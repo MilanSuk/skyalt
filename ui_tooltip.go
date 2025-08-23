@@ -92,7 +92,7 @@ func (p *UiTooltip) draw(ui *Ui) {
 
 	prop := InitWinFontPropsDef(ui.Cell())
 	textCoord := p.coord.Crop(UiTooltip_getExtraSpace(ui))
-	ui._Text_draw(ui.mainLayout, textCoord, ctx.text, "", prop, ctx.cd, OsV2{0, 0}, false, false, true, true, false)
+	ui._Text_draw(ui.mainLayout, textCoord, ctx.text, "", prop, ctx.cd, OsV2{0, 0}, false, false, true, true, false, false)
 }
 
 func (p *UiTooltip) touch(ui *Ui) bool {

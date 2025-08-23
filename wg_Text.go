@@ -13,10 +13,11 @@ type Text struct {
 	Align_h int
 	Align_v int
 
-	Selection    bool
-	Formating    bool
-	Multiline    bool
-	Linewrapping bool
+	Selection       bool
+	Formating       bool
+	Multiline       bool
+	Linewrapping    bool
+	ShowLineNumbers bool
 }
 
 func (layout *Layout) AddText2(x, y, w, h int, value string) (*Text, *Layout) {
@@ -59,6 +60,7 @@ func (st *Text) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 		tx.Formating = st.Formating
 		tx.Multiline = st.Multiline
 		tx.Linewrapping = st.Linewrapping
+		tx.ShowLineNumbers = st.ShowLineNumbers
 		tx.Margin = st.getAutoResizeMargin()
 	}
 
@@ -78,7 +80,7 @@ func (st *Text) Input(in LayoutInput, layout *Layout) {
 }
 
 func (st *Text) autoResize(layout *Layout) {
-	layout.resizeFromPaintText(st.Value, st.Multiline, st.Linewrapping, st.getAutoResizeMargin())
+	layout.resizeFromPaintText(st.Value, st.Multiline, st.Linewrapping, st.ShowLineNumbers, st.getAutoResizeMargin())
 }
 func (st *Text) getAutoResizeMargin() [4]float64 {
 	m := (1 - WinFontProps_GetDefaultLineH()) / 2

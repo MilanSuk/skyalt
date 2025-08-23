@@ -18,9 +18,10 @@ type Editbox struct {
 	Align_h int //0=left, 1=center, 2=right
 	Align_v int //0=top, 1=center, 2=bottom
 
-	Formating    bool
-	Multiline    bool
-	Linewrapping bool
+	Formating       bool
+	Multiline       bool
+	Linewrapping    bool
+	ShowLineNumbers bool
 
 	Password bool
 
@@ -99,6 +100,7 @@ func (st *Editbox) Draw(rect Rect, layout *Layout) (paint LayoutPaint) {
 	tx.Multiline = st.Multiline
 	tx.Linewrapping = st.Linewrapping
 	tx.Password = st.Password
+	tx.ShowLineNumbers = st.ShowLineNumbers
 	tx.Margin = st.getAutoResizeMargin()
 
 	return
@@ -121,7 +123,7 @@ func (st *Editbox) autoResize(layout *Layout) {
 	if layout.ui.edit.Is(layout) {
 		value = layout.ui.edit.temp
 	}
-	layout.resizeFromPaintText(value, st.Multiline, st.Linewrapping, st.getAutoResizeMargin())
+	layout.resizeFromPaintText(value, st.Multiline, st.Linewrapping, st.ShowLineNumbers, st.getAutoResizeMargin())
 }
 func (st *Editbox) getAutoResizeMargin() [4]float64 {
 	m := (1 - WinFontProps_GetDefaultLineH()) / 2

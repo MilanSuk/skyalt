@@ -2220,10 +2220,11 @@ type UIText struct {
 	Align_v int
 	Cd      color.RGBA
 
-	Selection    bool
-	Formating    bool
-	Multiline    bool
-	Linewrapping bool
+	Selection       bool
+	Formating       bool
+	Multiline       bool
+	Linewrapping    bool
+	ShowLineNumbers bool
 
 	EnableDropFile bool
 
@@ -2234,12 +2235,13 @@ type UIText struct {
 type UIEditbox struct {
 	layout *UI
 
-	Value      *string
-	ValueFloat *float64
-	ValueInt   *int
-	Precision  int
-	Ghost      string
-	Password   bool
+	Value           *string
+	ValueFloat      *float64
+	ValueInt        *int
+	Precision       int
+	Ghost           string
+	Password        bool
+	ShowLineNumbers bool
 
 	Align_h int //0=left, 1=center, 2=right
 	Align_v int //0=top, 1=center, 2=bottom
