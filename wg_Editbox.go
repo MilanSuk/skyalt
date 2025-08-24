@@ -65,6 +65,7 @@ func (st *Editbox) Build(layout *Layout) {
 			if st.changed != nil {
 				st.changed()
 			}
+			layout.ui.edit.SetActivate(layout.UID)
 		}
 	}
 

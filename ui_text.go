@@ -305,11 +305,28 @@ func (ui *Ui) _Text_update(layout *Layout,
 				if drop_path != "" && layout.IsTouchPosInside() {
 					drop_path = "'" + drop_path + "'"
 
+					touchCursor := ui.win.GetTextPosCoord(ui.GetWin().io.Touch.Pos.X, value, prop, coord, align)
+
 					firstCur := OsTrn(edit.start < edit.end, edit.start, edit.end)
 					lastCur := OsTrn(edit.start > edit.end, edit.start, edit.end)
-					edit.temp = edit.temp[:firstCur] + drop_path + edit.temp[lastCur:]
-					edit.start = firstCur
-					edit.end = firstCur + len(drop_path)
+
+					if touchCursor >= firstCur && touchCursor <= lastCur {
+						//remove old
+						if firstCur != lastCur {
+							edit.temp = edit.temp[:firstCur] + edit.temp[lastCur:]
+							lastCur = firstCur
+						}
+
+						//insert
+						edit.temp = edit.temp[:firstCur] + drop_path + edit.temp[lastCur:]
+						edit.start = firstCur
+						edit.end = firstCur + len(drop_path)
+					} else {
+						//insert
+						edit.temp = edit.temp[:touchCursor] + drop_path + edit.temp[touchCursor:]
+						edit.start = touchCursor
+						edit.end = touchCursor + len(drop_path)
+					}
 				}
 
 				//old_value := value
