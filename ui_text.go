@@ -126,7 +126,7 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 	}
 
 	//highlight(search)
-	cdHighlight := Color_Aprox(ui.GetPalette().E, frontCd, 0.3)
+	cdHighlight := Color_Aprox(ui.GetPalette().E, ui.GetPalette().GetGrey(0.5), 0.8)
 
 	// draw
 	if multi_line {
@@ -182,12 +182,12 @@ func (ui *Ui) _Text_draw(layout *Layout, coord OsV4,
 		}
 	} else {
 
+		ui.GetWin().buff.AddTextBack(OsV2{range_sx, range_ex}, value, prop, coord, cdSelection, align, false, 0, 1, layout.Cell())
+
 		if highlight_text != "" {
 			highlight_text_lowerCase := strings.ToLower(highlight_text)
 			ui._Text_drawHighlighLine(value, highlight_text_lowerCase, cdHighlight, align, coord, prop, 0, 1)
 		}
-
-		ui.GetWin().buff.AddTextBack(OsV2{range_sx, range_ex}, value, prop, coord, cdSelection, align, false, 0, 1, layout.Cell())
 
 		ui.GetWin().buff.AddText(value, prop, frontCd, coord, align, 0, 1)
 	}
