@@ -105,8 +105,9 @@ type AppsRouter struct {
 
 	lock sync.Mutex
 
-	msgs         map[uint64]*AppsRouterMsg
-	msgs_counter atomic.Uint64 //to create unique msg_id
+	msgs           map[uint64]*AppsRouterMsg
+	msgs_counter   atomic.Uint64 //to create unique msg_id
+	text_highlight string
 
 	apps map[string]*ToolsApp
 
@@ -699,6 +700,12 @@ func (router *AppsRouter) RunNet() {
 				case "get_media_info":
 					infoJs, _ := router.services.media.GetInfo()
 					cl.WriteArray(infoJs)
+
+				case "set_text_highlight":
+					text, err := cl.ReadArray()
+					if err == nil {
+						router.text_highlight = string(text)
+					}
 
 				case "set_msg_name":
 					msg_id, err := cl.ReadInt()

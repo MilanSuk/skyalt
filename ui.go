@@ -394,6 +394,8 @@ func (ui *Ui) Tick() {
 		ui.SetRefresh()
 	}
 
+	ui.settings.Highlight_text = ui.router.text_highlight
+
 	if (OsTicks() - ui.last_layout_updates_ticks) > 100 { //every 100ms
 		ui.GetTopLayout().CallLayoutUpdates() //"Root", "ShowRoot", ui.mainLayout.UID)
 

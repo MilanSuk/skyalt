@@ -821,6 +821,19 @@ func callFuncGetMediaInfo() map[uint64]SdkMediaItem {
 	return map[uint64]SdkMediaItem{}
 }
 
+func callFuncSetTextHighlight(text string) {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("set_text_highlight"))
+		if Tool_Error(err) == nil {
+			err = cl.WriteArray([]byte(text))
+			Tool_Error(err)
+		}
+	}
+}
+
 func callFuncStopMic() {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
@@ -2235,13 +2248,14 @@ type UIText struct {
 type UIEditbox struct {
 	layout *UI
 
-	Value           *string
-	ValueFloat      *float64
-	ValueInt        *int
-	Precision       int
-	Ghost           string
-	Password        bool
-	ShowLineNumbers bool
+	Value            *string
+	ValueFloat       *float64
+	ValueInt         *int
+	Precision        int
+	Ghost            string
+	Password         bool
+	ShowLineNumbers  bool
+	ActivateOnCreate bool
 
 	Align_h int //0=left, 1=center, 2=right
 	Align_v int //0=top, 1=center, 2=bottom
@@ -2582,7 +2596,6 @@ type ToolCmd struct {
 	Dialog_OnTouch      bool   `json:",omitempty"`
 
 	Dialog_Close_UID uint64 `json:",omitempty"`
-
 	Editbox_Activate uint64 `json:",omitempty"`
 
 	VScrollToTheTop      uint64 `json:",omitempty"`

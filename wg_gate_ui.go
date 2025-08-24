@@ -38,14 +38,15 @@ type UIText struct {
 	EnableCodeFormating bool
 }
 type UIEditbox struct {
-	Name            string
-	Value           *string
-	ValueFloat      *float64
-	ValueInt        *int
-	Precision       int
-	Ghost           string
-	Password        bool
-	ShowLineNumbers bool
+	Name             string
+	Value            *string
+	ValueFloat       *float64
+	ValueInt         *int
+	Precision        int
+	Ghost            string
+	Password         bool
+	ShowLineNumbers  bool
+	ActivateOnCreate bool
 
 	Align_h int //0=left, 1=center, 2=right
 	Align_v int //0=top, 1=center, 2=bottom
@@ -637,6 +638,12 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 			change := createChange()
 			change.ValueBool = true
 			layout.ui.router.CallChangeAsync(parent_UID, appName, toolName, change, fnProgress, fnDone)
+		}
+
+		if it.Editbox.ActivateOnCreate {
+			if it.Editbox.ActivateOnCreate && layout.ui.mainLayout.FindUID(it.UID) == nil {
+				layout.ui.edit.SetActivate(it.UID)
+			}
 		}
 
 	} else if it.Slider != nil {

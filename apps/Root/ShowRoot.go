@@ -38,24 +38,37 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		}
 	}
 
+	//run prompt(from PromptMenu)
+	if st.RunPrompt != "" && source_chat != nil {
+		_saveInstances() //save previous chat(and root selection)
+		source_chat.Input.Text = st.RunPrompt
+		st.RunPrompt = ""
+
+		err := source_chat._sendIt(app.Name, caller, source_root, false)
+		if err != nil {
+			return err
+		}
+	}
+
 	d := 1.5
 	ui.SetColumn(0, d, d)
 	ui.SetColumn(1, 1, Layout_MAX_SIZE)
 	ui.SetRow(0, 1, Layout_MAX_SIZE)
 
-	var SearchEditbox *UIEditbox
 	if source_root.EnableTextHighlighting {
 		SearchDiv := ui.AddLayout(0, 1, 2, 1)
-		SearchDiv.SetColumnFromSub(0, 2, 10, true)
+		SearchDiv.SetColumnFromSub(0, 1, 10, true)
 		SearchDiv.SetColumn(1, 1, 100)
 
 		SearchDiv.AddText(0, 0, 1, 1, "Search")
-		SearchEditbox = SearchDiv.AddEditboxString(1, 0, 1, 1, &source_root.TextHighlighting)
+		SearchEditbox := SearchDiv.AddEditboxString(1, 0, 1, 1, &source_root.TextHighlighting)
+		SearchEditbox.ActivateOnCreate = true
 
-		//call api to send it to skyalt ....
+		callFuncSetTextHighlight(source_root.TextHighlighting)
+	} else {
+		callFuncSetTextHighlight("")
 	}
 
-	var prompt_editbox *UIEditbox
 	switch source_root.Show {
 	case "chats":
 		ui.AddToolApp(1, 0, 1, 1, "Chats", "Chats", "ShowChats", nil, caller)
@@ -85,7 +98,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				//note: must be called before, because it will update chat label
 
 				if app.Selected_chat_i >= 0 {
-					prompt_editbox, err = st.buildApp(AppDiv.AddLayoutWithName(1, 0, 1, 1, fmt.Sprintf("app_%s", app.Name)), source_root, app, chat_fileName, source_chat, caller)
+					err = st.buildApp(AppDiv.AddLayoutWithName(1, 0, 1, 1, fmt.Sprintf("app_%s", app.Name)), source_root, app, chat_fileName, source_chat, caller)
 					//ChatDiv, err := AppDiv.AddTool(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name), (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
 					if err != nil {
 						return err
@@ -106,35 +119,8 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 					SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 					SideDiv.SetRow(1, 1, Layout_MAX_SIZE)
 
-					st.buildAppSideDiv(SideDiv, prompt_editbox, app, source_root, source_chat, caller)
+					st.buildAppSideDiv(SideDiv, app, source_root, source_chat, caller)
 				}
-			}
-		}
-	}
-
-	//save brush
-	if source_chat != nil {
-
-		//add brush
-		if st.AddBrush != nil {
-			st.AddBrush.Dash_i = source_chat.Selected_user_msg
-			source_chat.Input.MergePick(*st.AddBrush)
-			if prompt_editbox != nil {
-				prompt_editbox.Activate(caller)
-			}
-
-			st.AddBrush = nil
-		}
-
-		//run prompt(from PromptMenu)
-		if st.RunPrompt != "" {
-			_saveInstances() //save previous chat(and root selection)
-			source_chat.Input.Text = st.RunPrompt
-			st.RunPrompt = ""
-
-			err := source_chat._sendIt(app.Name, caller, source_root, false)
-			if err != nil {
-				return err
 			}
 		}
 	}
@@ -271,10 +257,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				bt.dropMove = func(src_i, dst_i int, aim_i int, src_source, dst_source string) error {
 					Layout_MoveElement(&source_root.Apps, &source_root.Apps, src_i, dst_i)
 					source_root.Selected_app_i = dst_i
-					if prompt_editbox != nil {
-						prompt_editbox.Activate(caller)
-					}
-
 					return nil
 				}
 
@@ -565,9 +547,6 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			y++
 			SearchBt.clicked = func() error {
 				source_root.EnableTextHighlighting = !source_root.EnableTextHighlighting
-				if source_root.EnableTextHighlighting {
-					SearchEditbox.Activate(caller) //SearchEditbox == nil ..........
-				}
 				return nil
 			}
 		}
@@ -576,7 +555,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	return nil
 }
 
-func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileName string, source_chat *Chat, caller *ToolCaller) (*UIEditbox, error) {
+func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileName string, source_chat *Chat, caller *ToolCaller) error {
 
 	ui.Back_cd = UI_GetPalette().GetGrey(0.03)
 
@@ -647,7 +626,6 @@ func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileN
 	}
 
 	//Prompt
-	var prompt_editbox *UIEditbox
 	{
 		DivInput := ui.AddLayoutWithName(0, 1, 1, 1, fmt.Sprintf("prompt_%s", source_chat.GetChatID()))
 		d := 0.25
@@ -672,7 +650,7 @@ func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileN
 		Div.Back_rounding = true
 		Div.Border_cd = UI_GetPalette().GetGrey(0.2)
 
-		prompt_editbox = st.buildPrompt(Div.AddLayoutWithName(1, 1, 1, 1, "prompt"), source_root, app, source_chat, caller)
+		st.buildPrompt(Div.AddLayoutWithName(1, 1, 1, 1, "prompt"), source_root, app, source_chat, caller)
 
 		/*pr := ShowPrompt{AppName: st.AppName, ChatFileName: st.ChatFileName}
 		_, err = Div.AddTool(1, 1, 1, 1, "prompt", pr.run, caller)
@@ -691,7 +669,7 @@ func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileN
 		//Chat
 		ChatDiv, err := SideDiv.AddTool(0, 0, 1, 1, "side", (&ShowChat{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
 		if err != nil {
-			return nil, fmt.Errorf("ShowChat.run() failed: %v", err)
+			return fmt.Errorf("ShowChat.run() failed: %v", err)
 		}
 		if isRunning {
 			if source_chat.scroll_down {
@@ -720,7 +698,7 @@ func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileN
 		}
 	}
 
-	return prompt_editbox, nil
+	return nil
 }
 
 func (ui *UI) findH1() string {
@@ -740,7 +718,7 @@ func (ui *UI) findH1() string {
 	return ""
 }
 
-func (st *ShowRoot) buildPrompt(ui *UI, source_root *Root, app *RootApp, source_chat *Chat, caller *ToolCaller) *UIEditbox {
+func (st *ShowRoot) buildPrompt(ui *UI, source_root *Root, app *RootApp, source_chat *Chat, caller *ToolCaller) {
 
 	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
 
@@ -841,14 +819,28 @@ func (st *ShowRoot) buildPrompt(ui *UI, source_root *Root, app *RootApp, source_
 	}
 
 	//Editbox
-	var prompt_editbox *UIEditbox
 	{
 		ui.SetColumn(x, 1, Layout_MAX_SIZE)
-		prompt_editbox = ui.AddEditboxString(x, y, 1, 1, &input.Text)
+		prompt_editbox := ui.AddEditboxString(x, y, 1, 1, &input.Text)
 		prompt_editbox.Ghost = "What can I do for you?"
 		prompt_editbox.Multiline = input.Multilined
 		prompt_editbox.enter = sendIt
 		prompt_editbox.layout.Enable = !isRunning
+		prompt_editbox.ActivateOnCreate = true
+
+		//save brush
+		if source_chat != nil {
+			//add brush
+			if st.AddBrush != nil {
+				st.AddBrush.Dash_i = source_chat.Selected_user_msg
+				source_chat.Input.MergePick(*st.AddBrush)
+				if prompt_editbox != nil {
+					prompt_editbox.Activate(caller)
+				}
+				st.AddBrush = nil
+			}
+		}
+
 		x++
 	}
 
@@ -971,11 +963,9 @@ func (st *ShowRoot) buildPrompt(ui *UI, source_root *Root, app *RootApp, source_
 			yy++
 		}
 	}
-
-	return prompt_editbox
 }
 
-func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, app *RootApp, source_root *Root, source_chat *Chat, caller *ToolCaller) {
+func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, app *RootApp, source_root *Root, source_chat *Chat, caller *ToolCaller) {
 
 	//Header
 	{
@@ -1006,10 +996,6 @@ func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, app 
 				pos := app.NumPins() //skip pins
 				app.Chats = slices.Insert(app.Chats, pos, RootChat{Label: "Empty", FileName: chat_fileName})
 				app.Selected_chat_i = pos
-
-				if prompt_editbox != nil {
-					prompt_editbox.Activate(caller)
-				}
 
 				SideDiv.VScrollToTheTop(caller)
 
@@ -1175,9 +1161,6 @@ func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, app 
 		btChat.clicked = func() error {
 			app.Selected_chat_i = i
 			source_root.Show = ""
-			if prompt_editbox != nil {
-				prompt_editbox.Activate(caller)
-			}
 
 			return nil
 		}
@@ -1192,12 +1175,6 @@ func (st *ShowRoot) buildAppSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, app 
 
 			Layout_MoveElement(&app.Chats, &app.Chats, src_i, dst_i)
 
-			if app.Selected_chat_i != dst_i {
-				if prompt_editbox != nil {
-					prompt_editbox.Activate(caller)
-				}
-
-			}
 			app.Selected_chat_i = dst_i
 
 			return nil

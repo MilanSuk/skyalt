@@ -24,7 +24,6 @@ func (st *ShowChats) run(caller *ToolCaller, ui *UI) error {
 	ui.SetColumn(1, 1, Layout_MAX_SIZE)
 	ui.SetRow(0, 1, Layout_MAX_SIZE)
 
-	var prompt_editbox *UIEditbox
 	{
 		MainDiv := ui.AddLayout(1, 0, 1, 1)
 		MainDiv.SetColumn(0, 1, Layout_MAX_SIZE)
@@ -62,10 +61,7 @@ func (st *ShowChats) run(caller *ToolCaller, ui *UI) error {
 			Div.Back_rounding = true
 			Div.Border_cd = UI_GetPalette().GetGrey(0.2)
 
-			prompt_editbox = st.buildPrompt(Div.AddLayoutWithName(1, 1, 1, 1, "prompt"), source_root, source_chat, caller)
-			if err != nil {
-				return fmt.Errorf("buildInput() failed: %v", err)
-			}
+			st.buildPrompt(Div.AddLayoutWithName(1, 1, 1, 1, "prompt"), source_root, source_chat, caller)
 		}
 	}
 
@@ -74,13 +70,13 @@ func (st *ShowChats) run(caller *ToolCaller, ui *UI) error {
 		SideDiv := ui.AddLayout(0, 0, 1, 1)
 		SideDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 		SideDiv.SetRow(1, 1, Layout_MAX_SIZE)
-		st.buildSideDiv(SideDiv, prompt_editbox, source_root, source_chat, caller)
+		st.buildSideDiv(SideDiv, source_root, source_chat, caller)
 	}
 
 	return nil
 }
 
-func (st *ShowChats) buildSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, root *Root, source_chat *Chat, caller *ToolCaller) {
+func (st *ShowChats) buildSideDiv(SideDiv *UI, root *Root, source_chat *Chat, caller *ToolCaller) {
 
 	//Header
 	{
@@ -108,10 +104,6 @@ func (st *ShowChats) buildSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, root *
 				pos := root.NumPins() //skip pins
 				root.Chats = slices.Insert(root.Chats, pos, RootChat{Label: fmt.Sprintf("Chat %s", SdkGetDateTime(time.Now().Unix())), FileName: fileName})
 				root.Selected_chat_i = pos
-
-				if prompt_editbox != nil {
-					prompt_editbox.Activate(caller)
-				}
 
 				return nil
 			}
@@ -187,10 +179,6 @@ func (st *ShowChats) buildSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, root *
 		}
 		btChat.clicked = func() error {
 			root.Selected_chat_i = i
-			if prompt_editbox != nil {
-				prompt_editbox.Activate(caller)
-			}
-
 			return nil
 		}
 
@@ -204,12 +192,6 @@ func (st *ShowChats) buildSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, root *
 
 			Layout_MoveElement(&root.Chats, &root.Chats, src_i, dst_i)
 
-			if root.Selected_chat_i != dst_i {
-				if prompt_editbox != nil {
-					prompt_editbox.Activate(caller)
-				}
-
-			}
 			root.Selected_chat_i = dst_i
 
 			return nil
@@ -238,7 +220,7 @@ func (st *ShowChats) buildSideDiv(SideDiv *UI, prompt_editbox *UIEditbox, root *
 	}
 }
 
-func (st *ShowChats) buildPrompt(ui *UI, source_root *Root, source_chat *Chat, caller *ToolCaller) *UIEditbox {
+func (st *ShowChats) buildPrompt(ui *UI, source_root *Root, source_chat *Chat, caller *ToolCaller) {
 
 	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
 
@@ -284,14 +266,15 @@ func (st *ShowChats) buildPrompt(ui *UI, source_root *Root, source_chat *Chat, c
 	}
 
 	//Editbox
-	var prompt_editbox *UIEditbox
 	{
 		ui.SetColumn(x, 1, Layout_MAX_SIZE)
-		prompt_editbox = ui.AddEditboxString(x, y, 1, 1, &input.Text)
+		prompt_editbox := ui.AddEditboxString(x, y, 1, 1, &input.Text)
 		prompt_editbox.Ghost = "What can I do for you?"
 		prompt_editbox.Multiline = input.Multilined
 		prompt_editbox.enter = sendIt
 		prompt_editbox.layout.Enable = !isRunning
+		prompt_editbox.ActivateOnCreate = true
+
 		x++
 	}
 
@@ -415,5 +398,4 @@ func (st *ShowChats) buildPrompt(ui *UI, source_root *Root, source_chat *Chat, c
 		}
 	}*/
 
-	return prompt_editbox
 }

@@ -77,13 +77,15 @@ func (ui *UI) addTextH2(label string) *UIText //add secondary heading
 func (ui *UI) addText(label string, llmtip string) *UIText
 
 type UIEditbox struct {
-	layout     *UI
-	Value      *string
-	ValueFloat *float64
-	ValueInt   *int
-	Precision  int
-	Ghost      string
-	Password   bool
+	layout           *UI
+	Value            *string
+	ValueFloat       *float64
+	ValueInt         *int
+	Precision        int
+	Ghost            string
+	Password         bool
+	ShowLineNumbers  bool
+	ActivateOnCreate bool
 
 	Align_h int //0=left, 1=center, 2=right
 	Align_v int //0=top, 1=center, 2=bottom
@@ -96,8 +98,7 @@ type UIEditbox struct {
 	enter   func() error
 }
 
-func (ed *UIEditbox) setMultilined()              //Enable multi-line & Line-wrapping
-func (ed *UIEditbox) Activate(caller *ToolCaller) //Activate editbox.
+func (ed *UIEditbox) setMultilined() //Enable multi-line & Line-wrapping
 
 func (ui *UI) addEditboxString(value *string, llmtip string) *UIEditbox
 func (ui *UI) addEditboxInt(value *int, llmtip string) *UIEditbox
