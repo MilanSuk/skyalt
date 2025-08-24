@@ -43,6 +43,18 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	ui.SetColumn(1, 1, Layout_MAX_SIZE)
 	ui.SetRow(0, 1, Layout_MAX_SIZE)
 
+	var SearchEditbox *UIEditbox
+	if source_root.EnableTextHighlighting {
+		SearchDiv := ui.AddLayout(0, 1, 2, 1)
+		SearchDiv.SetColumnFromSub(0, 2, 10, true)
+		SearchDiv.SetColumn(1, 1, 100)
+
+		SearchDiv.AddText(0, 0, 1, 1, "Search")
+		SearchEditbox = SearchDiv.AddEditboxString(1, 0, 1, 1, &source_root.TextHighlighting)
+
+		//call api to send it to skyalt ....
+	}
+
 	var prompt_editbox *UIEditbox
 	switch source_root.Show {
 	case "chats":
@@ -72,8 +84,8 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				//Chat(or settings)
 				//note: must be called before, because it will update chat label
 
-				if app != nil && app.Selected_chat_i >= 0 {
-					prompt_editbox, err = st.buildApp(AppDiv.AddLayoutWithName(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name)), source_root, app, chat_fileName, source_chat, caller)
+				if app.Selected_chat_i >= 0 {
+					prompt_editbox, err = st.buildApp(AppDiv.AddLayoutWithName(1, 0, 1, 1, fmt.Sprintf("app_%s", app.Name)), source_root, app, chat_fileName, source_chat, caller)
 					//ChatDiv, err := AppDiv.AddTool(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name), (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
 					if err != nil {
 						return err
@@ -468,27 +480,54 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 
 			MediaDia := AppsDiv.AddDialog("media")
 			{
-				MediaDia.UI.SetColumnFromSub(0, 1, 20, true)
-				MediaDia.UI.SetColumn(1, 1, 2)
-				MediaDia.UI.SetColumn(2, 2, 5)
+
+				MediaDia.UI.SetColumnFromSub(0, 1, 2, true)
+				MediaDia.UI.SetColumnFromSub(1, 1, 10, true)
+				MediaDia.UI.SetColumn(3, 2, 5)
+				MediaDia.UI.SetColumnFromSub(4, 1, 20, true)
 				yy := 0
 				for playerID, it := range mediaInfo {
-					//path
-					tx := MediaDia.UI.AddText(0, yy, 1, 1, it.Path)
-					tx.layout.Tooltip = fmt.Sprintf("%d", playerID)
+
+					//progress
+					Progress := MediaDia.UI.AddText(0, yy, 1, 1, "xxx")
+					Progress.layout.update = func() error {
+						mediaInfo := callFuncGetMediaInfo()
+						it := mediaInfo[playerID]
+						Progress.Label = fmt.Sprintf("%d%%", int(float64(it.Seek)/float64(it.Duration)*100))
+						return nil
+					}
 
 					//time
-					MediaDia.UI.AddText(1, yy, 1, 1, fmt.Sprintf("%d%%", int(float64(it.Seek)/float64(it.Duration)*100)))
+					MediaDia.UI.AddText(1, yy, 1, 1, fmt.Sprintf("%s / %s", SdkGetDTime(float64(it.Seek/1000)), SdkGetDTime(float64(it.Duration/1000))))
 
-					//pause ....
+					//pause/play
+					statusLabel := "▶"
+					if it.IsPlaying {
+						statusLabel = "⏸︎"
+					}
+					PauseBt := MediaDia.UI.AddButton(2, yy, 1, 1, statusLabel)
+					PauseBt.Background = 0.5
+					PauseBt.clicked = func() error {
+						//send back new value ....
+						return nil
+					}
 
-					//stop ....
-
-					//volume ....
-
+					//volume
 					vol := it.Volume
-					volume := MediaDia.UI.AddSlider(2, yy, 1, 1, &vol, 0, 1, 0.1)
+					volume := MediaDia.UI.AddSlider(3, yy, 1, 1, &vol, 0, 1, 0.1)
 					volume.changed = func() error {
+						//send back new value ....
+						return nil
+					}
+
+					//path
+					tx := MediaDia.UI.AddText(4, yy, 1, 1, it.Path)
+					tx.layout.Tooltip = fmt.Sprintf("%d", playerID)
+
+					//remove
+					StopBt := MediaDia.UI.AddButton(5, yy, 1, 1, "X")
+					StopBt.Background = 0.5
+					StopBt.clicked = func() error {
 						//send back new value ....
 						return nil
 					}
@@ -512,6 +551,26 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 			}
 		}
 
+		//Text highlighting
+		{
+			SearchBt := AppsDiv.AddButton(0, y, 1, 1, "")
+			SearchBt.layout.Tooltip = "Search"
+			SearchBt.IconPath = "resources/search.png"
+			SearchBt.Icon_margin = 0.2
+			SearchBt.Background = 0.25
+			if source_root.EnableTextHighlighting {
+				SearchBt.Background = 1.0
+			}
+			SearchBt.Shortcut = 'f'
+			y++
+			SearchBt.clicked = func() error {
+				source_root.EnableTextHighlighting = !source_root.EnableTextHighlighting
+				if source_root.EnableTextHighlighting {
+					SearchEditbox.Activate(caller) //SearchEditbox == nil ..........
+				}
+				return nil
+			}
+		}
 	}
 
 	return nil
@@ -546,7 +605,7 @@ func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileN
 	if len(dashUIs) > 0 {
 		if len(dashUIs) == 1 {
 			//1x Dash
-			appUi, _ := ui.AddToolApp(0, 0, dashW, 1, fmt.Sprintf("dash_%d", app.Selected_chat_i), app.Name, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
+			appUi, _ := ui.AddToolApp(0, 0, dashW, 1, fmt.Sprintf("chat_%s", source_chat.GetChatID()), app.Name, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
 			appUi.changed = func(newParamsJs []byte) error {
 				dashUIs[0].UI_paramsJs = string(newParamsJs) //save back changes
 				return nil
@@ -556,14 +615,14 @@ func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileN
 			appUi.App = true
 		} else {
 			//Multiple Dashes
-			DashDiv := ui.AddLayout(0, 0, dashW, 1)
+			DashDiv := ui.AddLayoutWithName(0, 0, dashW, 1, fmt.Sprintf("chat_%s", source_chat.GetChatID()))
 			DashDiv.SetColumn(0, 1, Layout_MAX_SIZE)
 			DashDiv.App = true
 
 			for i, dash := range dashUIs {
 				DashDiv.SetRowFromSub(i, 1, Layout_MAX_SIZE, true)
 
-				appUi, _ := DashDiv.AddToolApp(0, i, 1, 1, fmt.Sprintf("dash_%d_%d", app.Selected_chat_i, i), app.Name, dash.UI_func, []byte(dash.UI_paramsJs), caller)
+				appUi, _ := DashDiv.AddToolApp(0, i, 1, 1, fmt.Sprintf("dash_%s_%d", source_chat.GetChatID(), i), app.Name, dash.UI_func, []byte(dash.UI_paramsJs), caller)
 				appUi.changed = func(newParamsJs []byte) error {
 					dash.UI_paramsJs = string(newParamsJs) //save back changes
 					return nil
@@ -590,7 +649,7 @@ func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileN
 	//Prompt
 	var prompt_editbox *UIEditbox
 	{
-		DivInput := ui.AddLayout(0, 1, 1, 1)
+		DivInput := ui.AddLayoutWithName(0, 1, 1, 1, fmt.Sprintf("prompt_%s", source_chat.GetChatID()))
 		d := 0.25
 		dd := 0.25
 		DivInput.SetColumn(0, d, d) //space

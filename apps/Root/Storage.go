@@ -57,6 +57,9 @@ type Root struct {
 	Selected_app_i int
 
 	Last_log_time float64
+
+	EnableTextHighlighting bool
+	TextHighlighting       string
 }
 
 func NewRoot(file string) (*Root, error) {
