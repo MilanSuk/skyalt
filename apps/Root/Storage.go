@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const g_ShowApp_prompt_height = 7
+const g_ShowApp_prompt_height = 10
 
 type RootChat struct {
 	FileName string

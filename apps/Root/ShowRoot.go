@@ -50,6 +50,18 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		}
 	}
 
+	//save brush
+	activate_prompt := false
+	if source_chat != nil {
+		//add brush
+		if st.AddBrush != nil {
+			st.AddBrush.Dash_i = source_chat.Selected_user_msg
+			source_chat.Input.MergePick(*st.AddBrush)
+			activate_prompt = true
+			st.AddBrush = nil
+		}
+	}
+
 	d := 1.5
 	ui.SetColumn(0, d, d)
 	ui.SetColumn(1, 1, Layout_MAX_SIZE)
@@ -98,7 +110,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				//note: must be called before, because it will update chat label
 
 				if app.Selected_chat_i >= 0 {
-					err = st.buildApp(AppDiv.AddLayoutWithName(1, 0, 1, 1, fmt.Sprintf("app_%s", app.Name)), source_root, app, chat_fileName, source_chat, caller)
+					err = st.buildApp(AppDiv.AddLayoutWithName(1, 0, 1, 1, fmt.Sprintf("app_%s", app.Name)), activate_prompt, source_root, app, chat_fileName, source_chat, caller)
 					//ChatDiv, err := AppDiv.AddTool(1, 0, 1, 1, fmt.Sprintf("chat_%s", app.Name), (&ShowApp{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
 					if err != nil {
 						return err
@@ -555,7 +567,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 	return nil
 }
 
-func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileName string, source_chat *Chat, caller *ToolCaller) error {
+func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, app *RootApp, chat_fileName string, source_chat *Chat, caller *ToolCaller) error {
 
 	ui.Back_cd = UI_GetPalette().GetGrey(0.03)
 
@@ -650,7 +662,7 @@ func (st *ShowRoot) buildApp(ui *UI, source_root *Root, app *RootApp, chat_fileN
 		Div.Back_rounding = true
 		Div.Border_cd = UI_GetPalette().GetGrey(0.2)
 
-		st.buildPrompt(Div.AddLayoutWithName(1, 1, 1, 1, "prompt"), source_root, app, source_chat, caller)
+		st.buildPrompt(Div.AddLayoutWithName(1, 1, 1, 1, "prompt"), activate_prompt, source_root, app, source_chat, caller)
 
 		/*pr := ShowPrompt{AppName: st.AppName, ChatFileName: st.ChatFileName}
 		_, err = Div.AddTool(1, 1, 1, 1, "prompt", pr.run, caller)
@@ -718,7 +730,7 @@ func (ui *UI) findH1() string {
 	return ""
 }
 
-func (st *ShowRoot) buildPrompt(ui *UI, source_root *Root, app *RootApp, source_chat *Chat, caller *ToolCaller) {
+func (st *ShowRoot) buildPrompt(ui *UI, activate_prompt bool, source_root *Root, app *RootApp, source_chat *Chat, caller *ToolCaller) {
 
 	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
 
@@ -827,18 +839,8 @@ func (st *ShowRoot) buildPrompt(ui *UI, source_root *Root, app *RootApp, source_
 		prompt_editbox.enter = sendIt
 		prompt_editbox.layout.Enable = !isRunning
 		prompt_editbox.ActivateOnCreate = true
-
-		//save brush
-		if source_chat != nil {
-			//add brush
-			if st.AddBrush != nil {
-				st.AddBrush.Dash_i = source_chat.Selected_user_msg
-				source_chat.Input.MergePick(*st.AddBrush)
-				if prompt_editbox != nil {
-					prompt_editbox.Activate(caller)
-				}
-				st.AddBrush = nil
-			}
+		if activate_prompt {
+			prompt_editbox.Activate(caller)
 		}
 
 		x++
@@ -944,7 +946,7 @@ func (st *ShowRoot) buildPrompt(ui *UI, source_root *Root, app *RootApp, source_
 
 	//LLMTips/Brushes
 	if len(input.Picks) > 0 {
-		ui.SetRowFromSub(y, 1, 5, true)
+		ui.SetRowFromSub(y, 1, 8, true)
 		TipsDiv := ui.AddLayout(0, y, x, 1)
 		y++
 		TipsDiv.SetColumn(0, 2, 2)
@@ -961,6 +963,13 @@ func (st *ShowRoot) buildPrompt(ui *UI, source_root *Root, app *RootApp, source_
 			TipsDiv.AddText(0, yy, 1, 1, input.Picks[i].Cd.GetLabel())
 			TipsDiv.AddText(1, yy, 1, 1, strings.TrimSpace(br.LLMTip)).setMultilined()
 			yy++
+
+			if i+1 < len(input.Picks) {
+				TipsDiv.SetRow(yy, 0.1, 0.1)
+				TipsDiv.AddDivider(0, yy, 2, 1, true)
+				yy++
+			}
+
 		}
 	}
 }
