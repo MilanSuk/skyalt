@@ -36,13 +36,18 @@ func (s *UiSettings) IsChanged() bool {
 }
 
 func (s *UiSettings) CloseAllDialogs(ui *Ui) {
-	for _, dia := range s.Dialogs {
-		dia.Close(ui)
+	for i := len(s.Dialogs) - 1; i >= 0; i-- {
+		s.Dialogs[i].Close(ui)
 	}
 	s.Dialogs = nil
 }
 
 func (s *UiSettings) OpenDialog(uid uint64, relative_uid uint64, parentTouch OsV2) *UiDialog {
+	f := s.FindDialog(uid)
+	if f != nil {
+		return f
+	}
+
 	dia := &UiDialog{UID: uid, Relative_uid: relative_uid, TouchPos: parentTouch}
 	s.Dialogs = append(s.Dialogs, dia)
 	s.changed_dialogs = true
@@ -123,6 +128,15 @@ func (dia *UiDialog) Close(ui *Ui) {
 func (dia *UiDialog) GetDialogCoord(q OsV4, ui *Ui) OsV4 {
 
 	winRect := ui.winRect
+	{
+		lay := ui.mainLayout.FindUID(dia.UID)
+		if lay != nil {
+			app := lay.GetApp()
+			if app != nil {
+				winRect = app.crop
+			}
+		}
+	}
 
 	var relLayout *Layout
 	if dia.Relative_uid != 0 {
@@ -143,7 +157,7 @@ func (dia *UiDialog) GetDialogCoord(q OsV4, ui *Ui) OsV4 {
 		}
 
 	}
-	return q
+	return q.GetIntersect(winRect) //crop by parent
 }
 
 type UiRootScroll struct {
