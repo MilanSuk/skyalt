@@ -1,5 +1,5 @@
 #Storage
-You are making calendar app. Store Events(EventID) and Groups(with GroupID)
+You are making calendar app. Store Events(EventID) and Groups(GroupID).
 Every Event has:
 - Title(text)
 - Description(text)
@@ -15,66 +15,66 @@ Every Group has:
 
 
 
-#function FilterEvents
+#Function FilterEvents
 Inputs: Event start time. Event end time, List of GroupIDs.
 Output: List of EventID
 Filter Events by inputs. If list of GroupIDs is empty, show events for all groups.
 
 
 
-#tool GetListOfGroups
+#Tool GetListOfGroups
 Returns list of groups(ID and attributes) as JSON.
 No visual output.
 
-#tool GetWeekDays
+#Tool GetWeekDays
 Input is 'Date' in format YYYY-MM-DD HH:MM
 Returns list of 7 dates(YYYY-MM-DD HH:MM) which are ordered list of days in the week including 'Date' parameter.
 No visual output.
 
 
 
-#tool ShowYearCalendar
+#Tool ShowYearCalendar
 Show year calendar for specific year.
 
-#tool ShowMonthCalendar
+#Tool ShowMonthCalendar
 Show month calendar for specific year and month. Optionaly has list of GroupIDs, which need to be filtered - if empty, show all events for all groups.
 
-#tool ShowDayCalendar
+#Tool ShowDayCalendar
 Show days calendar. It accepts list of dates(text) in format YYYY-MM-DD
 
 
 
-#tool ShowAddNewEvent
-Show form to add new event. User will fill the form and send it.
+#Tool ShowAddNewEventDialog
+Inputs: Event attributes(Title, Description, Start, Duration). All are optional.
+Outputs: None.
+Show form with inputs(every line has text with description and UI to set a value). Finish with "Save" button which If it's clicked, add event to 'Events'.
 Whole UI is centered.
 
-#tool ShowEditEvent
+#Tool ShowEditEvent
 It accepts EventID and show form to edit all events attributes. User will fill the form and send it.
 Whole UI is centered.
 
-#tool DeleteEvent
+#Tool DeleteEvent
 It accepts EventID and delete the event.
 No visual output.
 
-#tool ChangeEventDate
+#Tool ChangeEventDate
 It accepts EventID, Start and End dates(format YYYY-MM-DD HH:MM) and change event's Start or Duration. Usefull to move event to different day/time.
 Whole UI is centered.
 
-#tool ChangeEventGroup
+#Tool ChangeEventGroup
 It accepts EventID and GroupID and change event's GroupID attribute.
 No visual output.
 
-
-
-#tool ShowAddNewGroup
+#Tool ShowAddNewGroup
 It accepts Label(text, optional) and Red/Green/Blue color(in format <0-255>) and show GUI to add new group. User can set label and color.
 Whole UI is centered.
 
-#tool ShowEditGroup
+#Tool ShowEditGroup
 It accepts GroupID and show form to edit all group attributes. User will fill the form and send it.
 Whole UI is centered.
 
-#tool ShowGroups
+#Tool ShowGroups
 Show list of groups.
 Whole UI is centered.
 
