@@ -45,42 +45,42 @@ func _ToolsCaller_CallBuild(port int, msg_id uint64, ui_uid uint64, toolName str
 
 	//send
 	err = cl.WriteArray([]byte("build"))
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	err = cl.WriteInt(msg_id) //msg_id
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	err = cl.WriteInt(ui_uid) //UI UID
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, nil, err
 	}
 	err = cl.WriteArray([]byte(toolName)) //function name
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, nil, err
 	}
 	err = cl.WriteArray(paramsJs) //params
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	errStr, err := cl.ReadArray() //output error
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, nil, err
 	}
 	out_dataJs, err := cl.ReadArray() //output data
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, nil, err
 	}
 	out_uiGob, err := cl.ReadArray() //output UI
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, nil, err
 	}
 	out_cmdsBog, err := cl.ReadArray() //output cmds
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, nil, err
 	}
 
@@ -103,30 +103,30 @@ func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change Tool
 
 	//send
 	err = cl.WriteArray([]byte("change"))
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 	err = cl.WriteInt(msg_id)
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 	err = cl.WriteInt(ui_uid)
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 	changeJs, _ := LogsJsonMarshal(change)
 
 	err = cl.WriteArray(changeJs)
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 
 	errStr, err := cl.ReadArray()
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 	dataJs, err := cl.ReadArray()
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 	cmdsGob, _ := cl.ReadArray()
@@ -150,28 +150,28 @@ func _ToolsCaller_CallUpdate(port int, msg_id uint64, ui_uid uint64, sub_uid uin
 
 	//send
 	err = cl.WriteArray([]byte("update"))
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 	err = cl.WriteInt(msg_id)
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 	err = cl.WriteInt(ui_uid)
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 	err = cl.WriteInt(sub_uid)
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 
 	errStr, err := cl.ReadArray()
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 	subUiGob, err := cl.ReadArray()
-	if LogsError(err) != nil {
+	if err != nil {
 		return nil, nil, err
 	}
 	cmdsGob, _ := cl.ReadArray()
