@@ -20,18 +20,18 @@ import (
 	"fmt"
 	"image/color"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode"
 )
 
 var (
-	g_syntax_basic      = color.RGBA{50, 50, 200, 255} // package, import, type, struct, if, for, etc.
-	g_syntax_structName = color.RGBA{50, 150, 50, 255}
-	//g_syntax_varName    = color.RGBA{100, 100, 200, 255}
-	g_syntax_funcName = color.RGBA{140, 140, 50, 255}
+	g_syntax_basic  = color.RGBA{50, 50, 150, 255} // blue
+	g_syntax_struct = color.RGBA{150, 150, 50, 255}
+	g_syntax_func   = color.RGBA{50, 150, 50, 255} //green
 
 	g_syntax_comment     = color.RGBA{50, 150, 150, 255}
-	g_syntax_stringConst = color.RGBA{150, 50, 50, 255}
+	g_syntax_stringConst = color.RGBA{150, 50, 50, 255} //red
 )
 
 func isStdType(name string) bool {
@@ -46,7 +46,7 @@ func isStdType(name string) bool {
 }
 func isStdKeyword(name string) bool {
 	var g_syntax_stds = []string{"type", "struct",
-		"for", "if", "else", "return", "break", "continue",
+		"for", "if", "else", "return", "break", "continue", "range",
 		"switch", "case", "default",
 		"var", "const",
 		"map", "chan",
@@ -76,7 +76,7 @@ func (e *UiTextSyntax) Replace(code string) string {
 	return code[:st] + fmt.Sprintf("<rgba%d,%d,%d,255>%s</rgba>", e.Color.R, e.Color.G, e.Color.B, code[st:en]) + code[en:]
 }
 
-func _UiText_FormatAsCode(code string, palette *DevPalette) string {
+func _UiText_FormatAsCode(code string) string {
 	outliers := _UiText_findOutliers(code)
 
 	var finalElem []UiTextSyntax
@@ -123,16 +123,21 @@ func _UiText_FormatAsCode(code string, palette *DevPalette) string {
 			finalElem = append(finalElem, it)
 		}
 
+		if _UiText_isNumber(it.Text) {
+			it.Color = g_syntax_stringConst
+			finalElem = append(finalElem, it)
+		}
+
 		//Function
 		if it.End+1 < len(code) && code[it.End] == '(' {
-			it.Color = g_syntax_funcName
+			it.Color = g_syntax_func
 			finalElem = append(finalElem, it)
 		}
 
 		//Struct
 		{
 			if slices.Contains(structs, it.Text) {
-				it.Color = g_syntax_structName
+				it.Color = g_syntax_struct
 				finalElem = append(finalElem, it)
 			}
 		}
@@ -149,6 +154,11 @@ func _UiText_FormatAsCode(code string, palette *DevPalette) string {
 	return code
 }
 
+func _UiText_isNumber(str string) bool {
+	_, err := strconv.ParseFloat(str, 64)
+	return err == nil
+}
+
 func _UiText_getWords(input string) []UiTextSyntax {
 	var words []UiTextSyntax
 
@@ -160,14 +170,14 @@ func _UiText_getWords(input string) []UiTextSyntax {
 	start := -1
 	var wordBuilder strings.Builder
 
-	for i, char := range input {
+	for i, ch := range input {
 		// Check if character is alphabetic or numeric
-		if unicode.IsLetter(char) || unicode.IsNumber(char) || char == '_' {
+		if unicode.IsLetter(ch) || unicode.IsNumber(ch) || ch == '_' || (ch == '.' && start >= 0 && _UiText_isNumber(input[start:i])) {
 			// Start a new word if not already started
 			if start == -1 {
 				start = i
 			}
-			wordBuilder.WriteRune(char)
+			wordBuilder.WriteRune(ch)
 		} else {
 			// If we were building a word, save it
 			if start != -1 {

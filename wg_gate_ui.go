@@ -559,7 +559,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, par
 	} else if it.Text != nil {
 		label := it.Text.Label
 		if it.Text.EnableCodeFormating {
-			label = _UiText_FormatAsCode(label, layout.GetPalette())
+			label = _UiText_FormatAsCode(label)
 		}
 
 		tx := layout.AddText(it.X, it.Y, it.W, it.H, label)
