@@ -575,60 +575,110 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 	ui.SetRow(0, 1, Layout_MAX_SIZE)
 	ui.SetRowFromSub(1, 1, g_ShowApp_prompt_height, true)
 
-	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
-
-	dashes := source_chat.GetResponse(source_chat.Selected_user_msg)
-
-	var dashUIs []*ChatMsg
-	for _, msg := range dashes {
-		if msg.HasUI() {
-			dashUIs = append(dashUIs, msg)
-		}
-	}
-
 	app.Chats[app.Selected_chat_i].Label = "" //reset
 
-	dashW := 1
-	if !app.ShowSide {
-		dashW = 2
+	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
+
+	first_selected_user_msg := source_chat.Selected_user_msg
+
+	for {
+		msgs := source_chat.GetResponse(first_selected_user_msg)
+
+		hasDialog := false
+		for _, msg := range msgs {
+			if msg.HasUI() && strings.Contains(strings.ToLower(msg.UI_func), "dialog") {
+				hasDialog = true
+			}
+		}
+		if !hasDialog || first_selected_user_msg == 0 {
+			break
+		}
+		first_selected_user_msg--
 	}
 
-	if len(dashUIs) > 0 {
-		if len(dashUIs) == 1 {
-			//1x Dash
-			appUi, _ := ui.AddToolApp(0, 0, dashW, 1, fmt.Sprintf("chat_%s", source_chat.GetChatID()), app.Name, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
-			appUi.changed = func(newParamsJs []byte) error {
-				dashUIs[0].UI_paramsJs = string(newParamsJs) //save back changes
-				return nil
+	//show page(with dialogs)
+	last_dashUi := ui
+
+	for sel_user_msg := first_selected_user_msg; sel_user_msg <= source_chat.Selected_user_msg; sel_user_msg++ {
+
+		msgs := source_chat.GetResponse(sel_user_msg)
+
+		dashW := 1
+		if !app.ShowSide {
+			dashW = 2
+		}
+
+		var dashUIs []*ChatMsg
+		for _, msg := range msgs {
+			if msg.HasUI() {
+				dashUIs = append(dashUIs, msg)
 			}
-			app.Chats[app.Selected_chat_i].Label = appUi.findH1()
+		}
 
-			appUi.App = true
-		} else {
-			//Multiple Dashes
-			DashDiv := ui.AddLayoutWithName(0, 0, dashW, 1, fmt.Sprintf("chat_%s", source_chat.GetChatID()))
-			DashDiv.SetColumn(0, 1, Layout_MAX_SIZE)
-			DashDiv.App = true
+		if len(dashUIs) > 0 {
+			if last_dashUi != ui {
+				dia := last_dashUi.AddDialog(fmt.Sprintf("dialog_%s_%d", source_chat.GetChatID(), sel_user_msg))
+				dia.close = func() {
+					//go back
+					if sel_user_msg > 0 {
+						source_chat.Selected_user_msg = sel_user_msg - 1
+					}
+				}
 
-			for i, dash := range dashUIs {
-				DashDiv.SetRowFromSub(i, 1, Layout_MAX_SIZE, true)
+				dia.OpenCentered(caller)
 
-				appUi, _ := DashDiv.AddToolApp(0, i, 1, 1, fmt.Sprintf("dash_%s_%d", source_chat.GetChatID(), i), app.Name, dash.UI_func, []byte(dash.UI_paramsJs), caller)
+				dashW = 1
+				//dia.UI.SetColumnFromSub(0, 5, 20, true)
+				//dia.UI.SetRowFromSub(0, 5, 20, true)
+				dia.UI.SetColumn(0, 15, 20)
+				dia.UI.SetRow(0, 15, 20)
+				last_dashUi = &dia.UI
+
+				//callFuncPrint(fmt.Sprintf("dialog: %d", sel_user_msg))
+			}
+
+			if len(dashUIs) == 1 {
+
+				//1x Dash
+				appUi, _ := last_dashUi.AddToolApp(0, 0, dashW, 1, fmt.Sprintf("dash_%s", source_chat.GetChatID()), app.Name, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
 				appUi.changed = func(newParamsJs []byte) error {
-					dash.UI_paramsJs = string(newParamsJs) //save back changes
+					dashUIs[0].UI_paramsJs = string(newParamsJs) //save back changes
 					return nil
 				}
 				app.Chats[app.Selected_chat_i].Label = appUi.findH1()
+
+				appUi.App = true
+				last_dashUi = appUi
+			} else {
+				//Multiple Dashes
+				DashDiv := last_dashUi.AddLayoutWithName(0, 0, dashW, 1, fmt.Sprintf("dash_%s", source_chat.GetChatID()))
+				DashDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+				DashDiv.App = true
+				last_dashUi = DashDiv
+
+				for i, dash := range dashUIs {
+					DashDiv.SetRowFromSub(i, 1, Layout_MAX_SIZE, true)
+
+					appUi, _ := DashDiv.AddToolApp(0, i, 1, 1, fmt.Sprintf("dash_%s_%d", source_chat.GetChatID(), i), app.Name, dash.UI_func, []byte(dash.UI_paramsJs), caller)
+					appUi.changed = func(newParamsJs []byte) error {
+						dash.UI_paramsJs = string(newParamsJs) //save back changes
+						return nil
+					}
+
+					if i == 0 { //first
+						app.Chats[app.Selected_chat_i].Label = appUi.findH1()
+					}
+				}
 			}
-		}
-	} else {
-		//No dash = only message
-		for i := len(dashes) - 1; i >= 0; i-- {
-			dash := dashes[i]
-			if dash.Content.Calls != nil && dash.Content.Calls.Content != "" {
-				tx := ui.AddText(0, 0, dashW, 1, dash.Content.Calls.Content)
-				tx.Align_h = 1
-				break //done
+		} else {
+			//No dash = only message
+			for i := len(msgs) - 1; i >= 0; i-- {
+				dash := msgs[i]
+				if dash.Content.Calls != nil && dash.Content.Calls.Content != "" {
+					tx := ui.AddText(0, 0, dashW, 1, dash.Content.Calls.Content)
+					tx.Align_h = 1
+					break //done
+				}
 			}
 		}
 	}
