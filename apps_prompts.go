@@ -200,7 +200,9 @@ func (prompts *ToolsPrompts) SetCodeErrors(errs []ToolsCodeError, app *ToolsApp)
 
 	//add
 	for _, er := range errs {
-		file_name := strings.TrimRight(filepath.Base(er.File), filepath.Ext(er.File))
+		file_name := filepath.Base(er.File)
+		file_name, _ = strings.CutSuffix(file_name, filepath.Ext(er.File))
+		file_name, _ = strings.CutPrefix(file_name, "./")
 
 		prompt := prompts.FindPromptName(file_name)
 		if prompt != nil {
@@ -485,8 +487,12 @@ func (prompts *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, msg *AppsRo
 	defer prompts.RemoveGenMsg(prompt.Name)
 	comp.delta = func(msg *ChatMsg) {
 		msgStr := ""
+
 		if msg.Content.Calls != nil {
 			msgStr = msg.Content.Calls.Content
+			if msgStr != "" {
+				msgStr, _ = strings.CutSuffix(msgStr, ChatMsg_GetDivAfterReasoning()) //cut reasoning divider
+			}
 		}
 		prompts.AddGenMsg(prompt.Name, msgStr)
 	}
@@ -510,8 +516,6 @@ func (prompts *ToolsPrompts) RemoveOldCodeFiles(folderPath string) error {
 
 	//remove all .go files
 	for _, info := range files {
-		//name := strings.TrimRight(info.Name(), filepath.Ext(info.Name()))
-
 		if info.IsDir() || filepath.Ext(info.Name()) != ".go" || info.Name() == "main.go" {
 			continue
 		}
@@ -680,7 +684,7 @@ type %s struct {
 	//<tool argument with description as comment>
 }
 
-func (st *%s) run(caller *ToolCaller, ui *UI) error {
+func (tool *%s) run(caller *ToolCaller, ui *UI) error {
 
 	//<code based on prompt>
 
