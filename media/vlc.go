@@ -99,8 +99,6 @@ func (vlc *VLC) Maintenance(min_time int64, fnVlcChanged func(path string, playe
 		diff := (sp.check_file_time != sp.open_file_time)
 		if diff {
 			fnVlcChanged(sp.path, playerID) //file changed
-			sp.open_file_time = sp.check_file_time
-
 		} else if sp.IsPlaying() {
 
 			if C.int(sp.last_frame) != sp.videoCtx.frame {
@@ -122,7 +120,7 @@ func (vlc *VLC) Maintenance(min_time int64, fnVlcChanged func(path string, playe
 		}
 
 		if !sp.IsPlaying() {
-			if (sp.last_use_time > 0 && sp.last_use_time < min_time) || diff {
+			if (sp.last_use_time > 0 && sp.last_use_time < min_time) || diff { //diff(!), which mean it's delete here and .Add() later
 				//fmt.Println("Maintenance() removing " + it.path)
 				sp.Destroy()
 				delete(vlc.media, playerID)

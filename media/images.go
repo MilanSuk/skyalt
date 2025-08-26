@@ -76,7 +76,7 @@ func (imgs *Images) Maintenance(min_time int64, fnImgChanged func(path string)) 
 			fnImgChanged(path)
 		}
 
-		if (it.last_use_time > 0 && it.last_use_time < min_time) || diff {
+		if (it.last_use_time > 0 && it.last_use_time < min_time) || diff { //diff(!), which mean it's delete here and .Add() later
 			//fmt.Println("Maintenance() removing " + it.path)
 			it.Destroy()
 			delete(imgs.media, path)
