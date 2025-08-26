@@ -85,8 +85,9 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		//Usage LLMMsgUsage
 	}
 	type SdkToolsPromptGen struct {
-		Name    string
-		Message string
+		Name      string
+		Message   string
+		StartTime int64
 	}
 	type SdkToolsPrompts struct {
 		Changed bool
@@ -386,8 +387,13 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				SideDiv.AddText(0, y, 1, 1, it.Name)
 				y++
 
+				msgStr := it.Message
+				if msgStr == "" {
+					msgStr = fmt.Sprintf("Reasoning is hidden - %s", SdkGetDTime(float64(time.Now().Unix()-it.StartTime)))
+				}
+
 				SideDiv.SetRow(y, 2, Layout_MAX_SIZE)
-				tx := SideDiv.AddText(0, y, 1, 1, it.Message)
+				tx := SideDiv.AddText(0, y, 1, 1, msgStr)
 				y++
 				tx.setMultilined()
 				tx.Align_v = 0

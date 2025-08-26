@@ -710,8 +710,7 @@ func (msg *SdkMsg) GetLabel() string {
 		label += fmt.Sprintf(" - %.2f%%", msg.Progress_done*100)
 	} else {
 		//Time
-		dt := time.Since(time.Unix(int64(msg.Start_time), 0))
-		label += fmt.Sprintf("- %d:%02d:%02d", int(dt.Hours()), int(dt.Minutes())%60, int(dt.Seconds())%60)
+		label += " - " + SdkGetDTime(float64(time.Now().Unix()-int64(msg.Start_time)))
 	}
 	return label
 }

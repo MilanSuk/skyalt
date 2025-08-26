@@ -24,6 +24,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 )
 
 type ToolsPromptMessages struct {
@@ -128,8 +129,9 @@ func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, us
 }
 
 type ToolsPromptGen struct {
-	Name    string
-	Message string
+	Name      string
+	Message   string
+	StartTime int64
 }
 
 type ToolsPrompts struct {
@@ -172,7 +174,7 @@ func (prompts *ToolsPrompts) AddGenMsg(name string, msg string) {
 		}
 	}
 	//add
-	prompts.Generating_items = append(prompts.Generating_items, &ToolsPromptGen{Name: name, Message: msg})
+	prompts.Generating_items = append(prompts.Generating_items, &ToolsPromptGen{Name: name, Message: msg, StartTime: time.Now().Unix()})
 }
 func (prompts *ToolsPrompts) RemoveGenMsg(name string) {
 	prompts.lock.Lock()
