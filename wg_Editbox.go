@@ -112,7 +112,7 @@ func (st *Editbox) Input(in LayoutInput, layout *Layout) {
 	active := in.IsActive
 	inside := in.IsInside && (active || !in.IsUse)
 	if in.IsUp && active && inside && in.AltClick {
-		dia := layout.FindDialog("context")
+		dia := layout.FindDialogName("context")
 		if dia != nil {
 			dia.OpenOnTouch()
 		}
@@ -243,7 +243,7 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 	SelectAll.Background = 0.25
 	SelectAll.clicked = func() {
 		layout.SelectAllText()
-		dia.Close()
+		dia.Close(layout.ui)
 	}
 
 	Copy := dia.Layout.AddButton(0, 1, 1, 1, "Copy")
@@ -251,7 +251,7 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 	Copy.Background = 0.25
 	Copy.clicked = func() {
 		layout.CopyText()
-		dia.Close()
+		dia.Close(layout.ui)
 	}
 
 	Cut := dia.Layout.AddButton(0, 2, 1, 1, "Cut")
@@ -259,7 +259,7 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 	Cut.Background = 0.25
 	Cut.clicked = func() {
 		layout.CutText()
-		dia.Close()
+		dia.Close(layout.ui)
 	}
 
 	Paste := dia.Layout.AddButton(0, 3, 1, 1, "Paste")
@@ -267,7 +267,7 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 	Paste.Background = 0.25
 	Paste.clicked = func() {
 		layout.PasteText()
-		dia.Close()
+		dia.Close(layout.ui)
 	}
 
 	STT := dia.Layout.AddButton(0, 4, 1, 1, OsTrnString(layout.ui.router.services.mic.Find(layout.UID) == nil, "Start", "Stop")+" recording speech")
@@ -276,6 +276,6 @@ func (st *Editbox) buildContextDialog(layout *Layout) {
 	STT.Background = 0.25
 	STT.clicked = func() {
 		layout.RecordText()
-		dia.Close()
+		dia.Close(layout.ui)
 	}
 }

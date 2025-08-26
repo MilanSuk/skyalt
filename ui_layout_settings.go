@@ -35,7 +35,10 @@ func (s *UiSettings) IsChanged() bool {
 	return changed
 }
 
-func (s *UiSettings) CloseAllDialogs() {
+func (s *UiSettings) CloseAllDialogs(ui *Ui) {
+	for _, dia := range s.Dialogs {
+		dia.Close(ui)
+	}
 	s.Dialogs = nil
 }
 
@@ -55,9 +58,10 @@ func (s *UiSettings) FindDialog(uid uint64) *UiDialog {
 	return nil
 }
 
-func (s *UiSettings) CloseDialog(dia *UiDialog) {
+func (s *UiSettings) CloseDialog(dia *UiDialog, ui *Ui) {
 	for i := len(s.Dialogs) - 1; i >= 0; i-- {
 		if s.Dialogs[i] == dia {
+			dia.Close(ui)
 			s.Dialogs = slices.Delete(s.Dialogs, i, i+1)
 			s.changed_dialogs = true
 		}
@@ -77,7 +81,7 @@ func (s *UiSettings) CloseTouchDialogs(ui *Ui) {
 				app_crop := layApp.crop
 				outside := app_crop.Inside(win.io.Touch.Pos) && !layDia.CropWithScroll().Inside(win.io.Touch.Pos)
 				if (win.io.Touch.Start && outside) || win.io.Keys.Esc {
-					s.CloseDialog(dia)
+					s.CloseDialog(dia, ui)
 
 					ui.ResetIO()
 					win.io.Keys.Esc = false
@@ -105,6 +109,15 @@ type UiDialog struct {
 	UID          uint64
 	Relative_uid uint64
 	TouchPos     OsV2
+}
+
+func (dia *UiDialog) Close(ui *Ui) {
+	d := ui.mainLayout.FindDialog(dia.UID)
+	if d != nil {
+		if d.fnCloseDialog != nil {
+			d.fnCloseDialog()
+		}
+	}
 }
 
 func (dia *UiDialog) GetDialogCoord(q OsV4, ui *Ui) OsV4 {

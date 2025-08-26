@@ -72,7 +72,7 @@ func (st *Text) Input(in LayoutInput, layout *Layout) {
 	active := in.IsActive
 	inside := in.IsInside && (active || !in.IsUse)
 	if in.IsUp && active && inside && in.AltClick {
-		dia := layout.FindDialog("context")
+		dia := layout.FindDialogName("context")
 		if dia != nil {
 			dia.OpenOnTouch()
 		}
@@ -96,7 +96,7 @@ func (st *Text) buildContextDialog(layout *Layout) {
 	SelectAll.Background = 0.25
 	SelectAll.clicked = func() {
 		layout.SelectAllText()
-		dia.Close()
+		dia.Close(layout.ui)
 	}
 
 	Copy := dia.Layout.AddButton(0, 1, 1, 1, "Copy")
@@ -104,6 +104,6 @@ func (st *Text) buildContextDialog(layout *Layout) {
 	Copy.Background = 0.25
 	Copy.clicked = func() {
 		layout.CopyText()
-		dia.Close()
+		dia.Close(layout.ui)
 	}
 }

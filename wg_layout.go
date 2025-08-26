@@ -93,7 +93,7 @@ func (layout *Layout) IsTypeLayout() bool {
 	}
 
 	if layout.parent != nil {
-		dia := layout.parent.FindDialog(layout.Name)
+		dia := layout.parent.FindDialogName(layout.Name)
 		if dia != nil && dia.Layout == layout {
 			return true
 		}
@@ -119,24 +119,16 @@ func (dia *LayoutDialog) OpenRelative(parent_uid uint64) {
 func (dia *LayoutDialog) OpenOnTouch() {
 	dia.Layout.ui.settings.OpenDialog(dia.Layout.UID, 0, dia.Layout.ui.GetWin().io.Touch.Pos)
 }
-func (dia *LayoutDialog) Close() {
+func (dia *LayoutDialog) Close(ui *Ui) {
 	dd := dia.Layout.ui.settings.FindDialog(dia.Layout.UID)
 	if dd != nil {
-		dia.Layout.ui.settings.CloseDialog(dd)
+		dia.Layout.ui.settings.CloseDialog(dd, ui)
 	}
 }
 
-func (layout *Layout) FindDialog(name string) *LayoutDialog {
-	for _, it := range layout.dialogs {
-		if it.Layout != nil && it.Layout.Name == name {
-			return it
-		}
-	}
-	return nil
-}
 func (layout *Layout) AddDialog(name string) *LayoutDialog {
 
-	dia := layout.FindDialog(name)
+	dia := layout.FindDialogName(name)
 	if dia == nil {
 		dia = &LayoutDialog{Layout: _newLayout(0, 0, 0, 0, name, layout)}
 		layout.dialogs = append(layout.dialogs, dia)

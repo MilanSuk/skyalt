@@ -114,7 +114,7 @@ func (st *DropDown) Build(layout *Layout) {
 				if st.changed != nil {
 					st.changed()
 				}
-				cdialog.Close()
+				cdialog.Close(layout.ui)
 			}
 		}
 	}

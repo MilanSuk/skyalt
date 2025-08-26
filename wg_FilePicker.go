@@ -110,7 +110,7 @@ func (st *FilePicker) Build(layout *Layout) {
 			file, err := os.Create(newPath)
 			if err == nil {
 				*st.Path = newPath
-				createDia.Close()
+				createDia.Close(layout.ui)
 			}
 			defer file.Close()
 		}
@@ -132,7 +132,7 @@ func (st *FilePicker) Build(layout *Layout) {
 			err := os.MkdirAll(newPath, os.ModePerm)
 			if err == nil {
 				*st.Path = newPath
-				createDia.Close()
+				createDia.Close(layout.ui)
 			}
 		}
 		CreateFolder.clicked = func() {

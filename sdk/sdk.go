@@ -1291,6 +1291,8 @@ func (ui *UI) updateHasFnUpdate() {
 		it.updateHasFnUpdate()
 	}
 	for _, dia := range ui.Dialogs {
+		dia.HasCloseDialog = (dia.close != nil)
+
 		dia.UI.updateHasFnUpdate()
 	}
 }
@@ -2609,6 +2611,9 @@ type ToolCmd struct {
 type UIDialog struct {
 	UID string
 	UI  UI
+
+	HasCloseDialog bool
+	close          func()
 }
 
 func (dia *UIDialog) OpenCentered(caller *ToolCaller) {

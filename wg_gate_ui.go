@@ -250,8 +250,9 @@ type UIDayCalendar struct {
 }
 
 type UIDialog struct {
-	UID string
-	UI  UI
+	UID            string
+	UI             UI
+	HasCloseDialog bool
 }
 type UI struct {
 	AppName  string
@@ -316,6 +317,12 @@ func (ui *UI) addDialogs(layout *Layout, appName string, toolName string, parent
 	for _, dia := range ui.Dialogs {
 		d := layout.AddDialog(dia.UID)
 		dia.UI.addLayout(d.Layout, appName, toolName, parent_UID, fnProgress, fnDone)
+
+		if dia.HasCloseDialog {
+			d.fnCloseDialog = func() {
+				layout.ui.router.CallChangeAsync(parent_UID, appName, toolName, ToolsSdkChange{UID: dia.UI.UID, ValueString: "close_dialog"}, fnProgress, fnDone)
+			}
+		}
 	}
 }
 
@@ -354,7 +361,7 @@ func (cmd *ToolCmd) Exe(ui *Ui) bool {
 	if cmd.Dialog_Close_UID > 0 {
 		dd := ui.settings.FindDialog(cmd.Dialog_Close_UID)
 		if dd != nil {
-			ui.settings.CloseDialog(dd)
+			ui.settings.CloseDialog(dd, ui)
 			found = true
 		}
 	}

@@ -64,7 +64,7 @@ func (st *PromptMenu) Build(layout *Layout) {
 				if st.changed != nil {
 					st.changed()
 				}
-				cdialog.Close()
+				cdialog.Close(layout.ui)
 			}
 		}
 	}

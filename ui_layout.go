@@ -73,6 +73,8 @@ func (cr *LayoutCR) IsFromChild() bool {
 
 type LayoutDialog struct {
 	Layout *Layout
+
+	fnCloseDialog func()
 }
 type LayoutScroll struct {
 	Hide   bool
@@ -432,6 +434,37 @@ func (layout *Layout) FindUID(UID uint64) *Layout {
 
 	for _, it := range layout.childs {
 		d := it.FindUID(UID)
+		if d != nil {
+			return d
+		}
+	}
+
+	return nil
+}
+
+func (layout *Layout) FindDialogName(name string) *LayoutDialog {
+	for _, it := range layout.dialogs {
+		if it.Layout != nil && it.Layout.Name == name {
+			return it
+		}
+	}
+	return nil
+}
+
+func (layout *Layout) FindDialog(UID uint64) *LayoutDialog {
+	for _, dia := range layout.dialogs {
+		if dia.Layout.UID == UID {
+			return dia //found
+		}
+
+		d := dia.Layout.FindDialog(UID)
+		if d != nil {
+			return d
+		}
+	}
+
+	for _, it := range layout.childs {
+		d := it.FindDialog(UID)
 		if d != nil {
 			return d
 		}

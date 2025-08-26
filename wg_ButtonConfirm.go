@@ -61,12 +61,12 @@ func (st *ButtonConfirm) Build(layout *Layout) {
 			if st.confirmed != nil {
 				st.confirmed()
 			}
-			dia.Close()
+			dia.Close(layout.ui)
 		}
 
 		no := footerDiv.AddButton(2, 0, 1, 1, "No")
 		no.clicked = func() {
-			dia.Close()
+			dia.Close(layout.ui)
 		}
 	}
 

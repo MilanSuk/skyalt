@@ -534,7 +534,7 @@ func (ui *Ui) Tick() {
 	// close all levels
 	if ui.win.io.Keys.Shift && ui.win.io.Keys.Esc {
 		ui.ResetIO()
-		ui.settings.CloseAllDialogs()
+		ui.settings.CloseAllDialogs(ui)
 		ui.win.io.Keys.Esc = false
 	}
 
