@@ -616,7 +616,7 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 		}
 
 		if len(dashUIs) > 0 {
-			if last_dashUi != ui {
+			if sel_user_msg > first_selected_user_msg {
 				dia := last_dashUi.AddDialog(fmt.Sprintf("dialog_%s_%d", source_chat.GetChatID(), sel_user_msg))
 				dia.close = func() {
 					//go back
@@ -633,12 +633,9 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 				dia.UI.SetColumn(0, 15, 20)
 				dia.UI.SetRow(0, 15, 20)
 				last_dashUi = &dia.UI
-
-				//callFuncPrint(fmt.Sprintf("dialog: %d", sel_user_msg))
 			}
 
 			if len(dashUIs) == 1 {
-
 				//1x Dash
 				appUi, _ := last_dashUi.AddToolApp(0, 0, dashW, 1, fmt.Sprintf("dash_%s", source_chat.GetChatID()), app.Name, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
 				appUi.changed = func(newParamsJs []byte) error {

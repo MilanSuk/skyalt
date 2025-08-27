@@ -228,6 +228,8 @@ func NewToolCaller() *ToolCaller {
 }
 
 type ToolUI struct {
+	toolName string
+
 	parameters interface{}
 	ui         *UI
 
@@ -393,7 +395,7 @@ func main() {
 									//add callstack to error
 									var output_errBytes []byte
 									if out_error != nil {
-										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s(%d)", "_update_", sub_uid))
+										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s:%s - %s(sub_uid: %d)", g_main.appName, ui.toolName, "_update_", sub_uid))
 									}
 
 									//send back
@@ -414,7 +416,17 @@ func main() {
 									_saveInstances()
 								}()
 							} else {
-								fmt.Printf("UI UID %d not found\n", ui_uid)
+								//send back
+								err = cl.WriteArray([]byte(fmt.Sprintf("UI_UID %d not found\n", ui_uid))) //error
+								Tool_Error(err)
+
+								err = cl.WriteArray(nil) //sub-ui
+								Tool_Error(err)
+
+								err = cl.WriteArray(nil) //commands
+								Tool_Error(err)
+
+								cl.Destroy()
 							}
 						}
 					}
@@ -432,6 +444,9 @@ func main() {
 					if Tool_Error(err) == nil {
 						changeJs, err := cl.ReadArray()
 						if Tool_Error(err) == nil {
+
+							//callFuncPrint("Call change() ...." + string(changeJs))
+
 							var change SdkChange
 							LogsJsonUnmarshal(changeJs, &change)
 							g_uis_lock.Lock()
@@ -457,7 +472,7 @@ func main() {
 									//add callstack to error
 									var output_errBytes []byte
 									if out_error != nil {
-										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s(%.20s)", "_change_", string(changeJs)))
+										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s:%s - %s(%.50s)", g_main.appName, ui.toolName, "_change_", string(changeJs)))
 									}
 
 									//send back
@@ -466,7 +481,7 @@ func main() {
 										Tool_Error(err)
 
 										dataJs := LogsJsonMarshal(ui.parameters)
-										err = cl.WriteArray(dataJs) //call parameters
+										err = cl.WriteArray(dataJs) //parameters
 										Tool_Error(err)
 
 										cmdsGob := LogsGobMarshal(ui.Caller.cmds)
@@ -478,7 +493,17 @@ func main() {
 									_saveInstances()
 								}()
 							} else {
-								fmt.Printf("UI UID %d not found\n", ui_uid)
+								//send back
+								err = cl.WriteArray([]byte(fmt.Sprintf("UI_UID %d not found\n", ui_uid))) //error
+								Tool_Error(err)
+
+								err = cl.WriteArray(nil) //parameters
+								Tool_Error(err)
+
+								err = cl.WriteArray(nil) //commands
+								Tool_Error(err)
+
+								cl.Destroy()
 							}
 						}
 					}
@@ -517,12 +542,13 @@ func main() {
 										}
 									}
 
-									ui.updateHasFnUpdate()
+									ui.updateHasFnUpdate(caller)
 
 									if out_error == nil {
 										if caller.ui_uid != 0 {
 											g_uis_lock.Lock()
-											g_uis[caller.ui_uid] = &ToolUI{ui: ui,
+											g_uis[caller.ui_uid] = &ToolUI{toolName: string(toolName),
+												ui:         ui,
 												parameters: out_params,
 												Caller:     caller}
 											g_uis_lock.Unlock()
@@ -548,13 +574,13 @@ func main() {
 									//add callstack to error
 									var output_errBytes []byte
 									if out_error != nil {
-										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s(%.20s)", toolName, string(paramsJs)))
+										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s:%s - %s(%.50s)", g_main.appName, toolName, "build", string(paramsJs)))
 									}
 
 									//send result back
 									err = cl.WriteArray(output_errBytes) //error
 									if Tool_Error(err) == nil {
-										err = cl.WriteArray(dataJs) //call parameters(attrs Out_)
+										err = cl.WriteArray(dataJs) //parameters(attrs Out_)
 										if Tool_Error(err) == nil {
 											err = cl.WriteArray(uiGob) //ui
 											if Tool_Error(err) == nil {
@@ -1260,40 +1286,54 @@ func CallToolApp(appName string, toolName string, jsParams []byte, caller *ToolC
 	return dataJs, &ui, err
 }
 
-func (ui *UI) _findUID(uid uint64) *UI {
+func (ui *UI) _findUID(uid uint64) (*UI, *UIDialog) {
 	if ui.UID == uid {
-		return ui
+		return ui, nil
 	}
 
 	//dialogs
 	for _, dia := range ui.Dialogs {
-		f := dia.UI._findUID(uid)
+		f, d := dia.UI._findUID(uid)
 		if f != nil {
-			return f
+			if d != nil {
+				return f, d
+			}
+			return f, dia
 		}
 	}
 
 	//subs
 	for _, it := range ui.Items {
-		f := it._findUID(uid)
+		f, d := it._findUID(uid)
 		if f != nil {
-			return f
+			return f, d
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
-func (ui *UI) updateHasFnUpdate() {
-	ui.HasUpdate = (ui.update != nil)
+func (ui *UI) updateHasFnUpdate(caller *ToolCaller) {
+	if ui.update != nil {
+		ui.UpdateFn_AppName = g_main.appName
+		ui.UpdateFn_UI_UID = caller.ui_uid
+	}
+
+	if ui.changed != nil {
+		ui.ChangeFn_AppName = g_main.appName
+		ui.ChangeFn_UI_UID = caller.ui_uid
+	}
 
 	for _, it := range ui.Items {
-		it.updateHasFnUpdate()
+		it.updateHasFnUpdate(caller)
 	}
 	for _, dia := range ui.Dialogs {
-		dia.HasCloseDialog = (dia.close != nil)
+		if dia.close != nil {
+			dia.CloseFn_AppName = g_main.appName
+			dia.CloseFn_UI_UID = caller.ui_uid
+		}
 
-		dia.UI.updateHasFnUpdate()
+		dia.UI.updateHasFnUpdate(caller)
 	}
 }
 
@@ -1333,14 +1373,19 @@ type SdkChange struct {
 }
 
 func (ui *UI) runChange(change SdkChange) error {
-	it := ui._findUID(change.UID)
+	it, dia := ui._findUID(change.UID)
 	if it == nil {
-		return fmt.Errorf("UID %d not found", change.UID)
+		return fmt.Errorf("Sub_UID %d not found", change.UID)
 	}
 
 	//sub-app
 	if it.changed != nil {
 		return it.changed(change.ValueBytes)
+	}
+
+	//dialog
+	if dia != nil && dia.close != nil && change.ValueString == "close_dialog" {
+		dia.close()
 	}
 
 	if it.Text != nil {
@@ -1907,10 +1952,13 @@ type UI struct {
 
 	Paint []UIPaint `json:",omitempty"`
 
-	changed func(newParamsJs []byte) error
+	ChangeFn_AppName string `json:",omitempty"`
+	ChangeFn_UI_UID  uint64 `json:",omitempty"`
+	changed          func(newParamsJs []byte) error
 
-	update    func() error
-	HasUpdate bool `json:",omitempty"`
+	update           func() error
+	UpdateFn_AppName string `json:",omitempty"`
+	UpdateFn_UI_UID  uint64 `json:",omitempty"`
 
 	table              bool
 	temp_col, temp_row int
@@ -2612,8 +2660,9 @@ type UIDialog struct {
 	UID string
 	UI  UI
 
-	HasCloseDialog bool
-	close          func()
+	CloseFn_AppName string `json:",omitempty"`
+	CloseFn_UI_UID  uint64 `json:",omitempty"`
+	close           func()
 }
 
 func (dia *UIDialog) OpenCentered(caller *ToolCaller) {
