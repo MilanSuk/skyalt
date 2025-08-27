@@ -711,7 +711,7 @@ func (tool *%s) run(caller *ToolCaller, ui *UI) error {
 
 	systemMessage += "Figure out <tool's arguments> based on the user prompt. Argument can not be pointer. There are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with an upper-case letter. Every argument must have a description as a comment. You can add extra marks(with brackets []) at the end of a comment. You may add multiple marks with your pair of brackets. Here are the marks:\n"
 	systemMessage += "[optional] - caller can ignore the attribute\n"
-	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Example 1: [options: "first", "second", "third"]. Example 2: [options: 2, 3, 5, 7, 11]\n`
+	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Use it only for strings, not numbers. Example 1: [options: "first", "second", "third"].\n`
 	systemMessage += "\n"
 	if storagePrompt != nil {
 		systemMessage += "storage.go has list of functions, use them.\n"
