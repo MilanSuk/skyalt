@@ -168,7 +168,7 @@ func (cmpl *ToolsAppCompile) _compile(sdkFileTime, appFileTime int64, noBinary b
 	cmpl.AppFileTime = appFileTime
 
 	//fix files
-	msg.progress_label = "Fixing tools code " + cmpl.GetFolderPath()
+	msg.progress_label = "Checking tools imports " + cmpl.GetFolderPath()
 	{
 		fmt.Printf("Fixing '%s' ...\n", cmpl.GetFolderPath())
 		st := float64(time.Now().UnixMilli()) / 1000
