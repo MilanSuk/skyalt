@@ -326,7 +326,9 @@ func (ui *UI) addDialogs(layout *Layout, appName string, toolName string, UI_UID
 
 		if dia.CloseFn_AppName != "" {
 			d.fnCloseDialog = func() {
-				layout.ui.router.CallChangeAsync(dia.CloseFn_UI_UID, dia.CloseFn_AppName, toolName, ToolsSdkChange{UID: dia.UI.UID, ValueString: "close_dialog"}, fnProgress, fnDone)
+				if dia.CloseFn_AppName != "" {
+					layout.ui.router.CallChangeAsync(dia.CloseFn_UI_UID, dia.CloseFn_AppName, toolName, ToolsSdkChange{UID: dia.UI.UID, ValueString: "close_dialog"}, fnProgress, fnDone)
+				}
 			}
 		}
 	}
@@ -437,6 +439,10 @@ func (ui *UI) addLayout(layout *Layout, appName string, toolName string, UI_UID 
 					return
 				}
 
+				if ui.UpdateFn_AppName == "" { //no callback
+					return
+				}
+
 				var subUI UI
 				err = LogsGobUnmarshal(uiGob, &subUI)
 				if err != nil {
@@ -470,6 +476,14 @@ func (ui *UI) addLayout(layout *Layout, appName string, toolName string, UI_UID 
 			if err != nil {
 				return
 			}
+
+			if ui.ChangeFn_AppName == "" { //no callback
+				if pre_fnDone != nil {
+					pre_fnDone(dataJs, uiGob, cmdsGob, err, start_time)
+				}
+				return
+			}
+
 			var cmds []ToolCmd
 			err = LogsGobUnmarshal(cmdsGob, &cmds)
 			if err != nil {
