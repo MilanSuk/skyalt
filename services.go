@@ -25,7 +25,7 @@ type Services struct {
 	mic   *ServicesMic
 	media *Media
 
-	fnCallBuildAsync     func(ui_uid uint64, appName string, toolName string, params interface{}, fnProgress func(cmdsGob [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) *AppsRouterMsg
+	fnCallBuildAsync     func(ui_uid uint64, appName, toolName string, params interface{}, fnProgress func(cmdsGob [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) *AppsRouterMsg
 	fnGetAppPortAndTools func(appName string) (int, []*ToolsOpenAI_completion_tool, error)
 }
 
@@ -58,10 +58,10 @@ func (srs *Services) Tick(devApp_storage_changes int64) bool {
 
 }
 
-func (srs *Services) CallBuildAsync(ui_uid uint64, appName string, toolName string, params interface{}, fnProgress func(cmdsGob [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) *AppsRouterMsg {
+func (srs *Services) CallBuildAsync(ui_uid uint64, appName string, toolName string, params interface{}) {
 	if srs.fnCallBuildAsync == nil {
 		log.Fatalf("fnCallBuildAsync is nill")
 	}
 
-	return srs.fnCallBuildAsync(ui_uid, appName, toolName, params, fnProgress, fnDone)
+	srs.fnCallBuildAsync(ui_uid, appName, toolName, params, nil, nil)
 }
