@@ -713,6 +713,9 @@ func (tool *%s) run(caller *ToolCaller, ui *UI) error {
 	systemMessage += "[optional] - caller can ignore the attribute\n"
 	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Use it only for strings, not numbers. Example 1: [options: "first", "second", "third"].\n`
 	systemMessage += "\n"
+	systemMessage += "When you edit(for example addEditboxString(), etc.) tool's argument(attributes), do it directly via pointer(for example &tool.text). Do not make copies.\n"
+
+	systemMessage += "\n"
 	if storagePrompt != nil {
 		systemMessage += "storage.go has list of functions, use them.\n"
 		systemMessage += "To access the storage, call the Load...() function in storage.go, which returns the data. Don't call save/write on that data, it's automatically called after the function ends.\n"
