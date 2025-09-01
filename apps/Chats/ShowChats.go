@@ -61,7 +61,7 @@ func (st *ShowChats) run(caller *ToolCaller, ui *UI) error {
 			Div.Back_rounding = true
 			Div.Border_cd = UI_GetPalette().GetGrey(0.2)
 
-			st.buildPrompt(Div.AddLayoutWithName(1, 1, 1, 1, "prompt"), source_root, source_chat, caller)
+			st.buildPrompt(Div.AddLayoutWithName(1, 1, 1, 1, fmt.Sprintf("prompts_%s", source_chat.GetChatID())), source_root, source_chat, caller)
 		}
 	}
 
@@ -222,7 +222,7 @@ func (st *ShowChats) buildSideDiv(SideDiv *UI, root *Root, source_chat *Chat, ca
 
 func (st *ShowChats) buildPrompt(ui *UI, source_root *Root, source_chat *Chat, caller *ToolCaller) {
 
-	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
+	isRunning := (caller.callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
 
 	input := &source_chat.Input
 
@@ -317,7 +317,7 @@ func (st *ShowChats) buildPrompt(ui *UI, source_root *Root, source_chat *Chat, c
 			StopBt := DivSend.AddButton(0, 1, 1, 1, "Stop")
 			StopBt.Cd = UI_GetPalette().E
 			StopBt.clicked = func() error {
-				callFuncMsgStop(source_chat.GetChatID()) //stop
+				caller.callFuncMsgStop(source_chat.GetChatID()) //stop
 				return nil
 			}
 		}

@@ -281,14 +281,14 @@ func (snc *ServicesSync) Upload_LoadFiles() {
 	type SetDPIDefault struct {
 		DPI int
 	}
-	snc.services.CallBuildAsync(0, "Device", "LoadFiles", SetDPIDefault{}, nil, nil)
+	snc.services.CallBuildAsync(0, "Device", "LoadFiles", SetDPIDefault{})
 }
 
 func (snc *ServicesSync) Upload_deviceDefaultDPI() {
 	type SetDPIDefault struct {
 		DPI int
 	}
-	snc.services.CallBuildAsync(0, "Device", "SetDeviceDPIDefault", SetDPIDefault{DPI: GetDeviceDPI()}, nil, nil)
+	snc.services.CallBuildAsync(0, "Device", "SetDeviceDPIDefault", SetDPIDefault{DPI: GetDeviceDPI()})
 }
 
 func (snc *ServicesSync) Upload_deviceDPI(new_dpi int) {
@@ -296,7 +296,7 @@ func (snc *ServicesSync) Upload_deviceDPI(new_dpi int) {
 	type SetDPI struct {
 		DPI int
 	}
-	snc.services.CallBuildAsync(0, "Device", "SetDeviceDPI", SetDPI{DPI: new_dpi}, nil, nil)
+	snc.services.CallBuildAsync(0, "Device", "SetDeviceDPI", SetDPI{DPI: new_dpi})
 }
 
 func (snc *ServicesSync) Upload_deviceStats(new_stat bool) {
@@ -304,7 +304,7 @@ func (snc *ServicesSync) Upload_deviceStats(new_stat bool) {
 	type SetStats struct {
 		Show bool
 	}
-	snc.services.CallBuildAsync(0, "Device", "SetDeviceStats", SetStats{Show: new_stat}, nil, nil)
+	snc.services.CallBuildAsync(0, "Device", "SetDeviceStats", SetStats{Show: new_stat})
 }
 
 func (snc *ServicesSync) Upload_deviceFullscreen(new_fullscreen bool) {
@@ -312,7 +312,7 @@ func (snc *ServicesSync) Upload_deviceFullscreen(new_fullscreen bool) {
 	type SetFullscreen struct {
 		Enable bool
 	}
-	snc.services.CallBuildAsync(0, "Device", "SetDeviceFullscreen", SetFullscreen{Enable: new_fullscreen}, nil, nil)
+	snc.services.CallBuildAsync(0, "Device", "SetDeviceFullscreen", SetFullscreen{Enable: new_fullscreen})
 
 }
 

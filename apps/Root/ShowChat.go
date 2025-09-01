@@ -27,7 +27,7 @@ func (st *ShowChat) run(caller *ToolCaller, ui *UI) error {
 		return err
 	}
 
-	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
+	isRunning := (caller.callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
 
 	ui.SetColumn(0, 1, Layout_MAX_SIZE)
 	ui.SetColumn(1, 5, 20)

@@ -285,7 +285,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					StopBt.Cd = UI_GetPalette().E
 					StopBt.layout.Tooltip = "Stop generating"
 					StopBt.clicked = func() error {
-						callFuncMsgStop(sdk_app.Generating_msg_id)
+						caller.callFuncMsgStop(sdk_app.Generating_msg_id)
 						return nil
 					}
 				} else {
@@ -389,7 +389,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 				msgStr := it.Message
 				if msgStr == "" {
-					msgStr = fmt.Sprintf("Reasoning is hidden - %s", SdkGetDTime(float64(time.Now().Unix()-it.StartTime)))
+					msgStr = fmt.Sprintf("Waiting for reasoning - %s", SdkGetDTime(float64(time.Now().Unix()-it.StartTime)))
 				}
 
 				SideDiv.SetRow(y, 2, Layout_MAX_SIZE)

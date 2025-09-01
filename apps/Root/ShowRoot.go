@@ -290,7 +290,7 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 				ProgressDia := AppsDiv.AddDialog("progress")
 				ProgressDia.UI.SetColumn(0, 5, 15)
 				ProgressDia.UI.SetRowFromSub(0, 1, 10, true)
-				st.buildMessages(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs)
+				st.buildMessages(ProgressDia.UI.AddLayout(0, 0, 1, 1), msgs, caller)
 
 				ProgressBt := AppsDiv.AddButton(0, y, 1, 1, "")
 				y++
@@ -577,7 +577,7 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 
 	app.Chats[app.Selected_chat_i].Label = "" //reset
 
-	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
+	isRunning := (caller.callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
 
 	first_selected_user_msg := source_chat.Selected_user_msg
 
@@ -638,7 +638,7 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 			if len(dashUIs) == 1 {
 				//1x Dash
 				appUi, _ := last_dashUi.AddToolApp(0, 0, dashW, 1, fmt.Sprintf("dash_%s", source_chat.GetChatID()), app.Name, dashUIs[0].UI_func, []byte(dashUIs[0].UI_paramsJs), caller)
-				appUi.changed = func(newParamsJs []byte) error {
+				appUi.changedAppParams = func(newParamsJs []byte) error {
 					dashUIs[0].UI_paramsJs = string(newParamsJs) //save back changes
 					return nil
 				}
@@ -657,7 +657,7 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 					DashDiv.SetRowFromSub(i, 1, Layout_MAX_SIZE, true)
 
 					appUi, _ := DashDiv.AddToolApp(0, i, 1, 1, fmt.Sprintf("dash_%s_%d", source_chat.GetChatID(), i), app.Name, dash.UI_func, []byte(dash.UI_paramsJs), caller)
-					appUi.changed = func(newParamsJs []byte) error {
+					appUi.changedAppParams = func(newParamsJs []byte) error {
 						dash.UI_paramsJs = string(newParamsJs) //save back changes
 						return nil
 					}
@@ -779,7 +779,7 @@ func (ui *UI) findH1() string {
 
 func (st *ShowRoot) buildPrompt(ui *UI, activate_prompt bool, source_root *Root, app *RootApp, source_chat *Chat, caller *ToolCaller) {
 
-	isRunning := (callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
+	isRunning := (caller.callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
 
 	input := &source_chat.Input
 
@@ -932,7 +932,7 @@ func (st *ShowRoot) buildPrompt(ui *UI, activate_prompt bool, source_root *Root,
 			StopBt := DivSend.AddButton(0, 1, 1, 1, "Stop")
 			StopBt.Cd = UI_GetPalette().E
 			StopBt.clicked = func() error {
-				callFuncMsgStop(source_chat.GetChatID()) //stop
+				caller.callFuncMsgStop(source_chat.GetChatID()) //stop
 				return nil
 			}
 		}
@@ -1447,7 +1447,7 @@ func (st *ShowRoot) buildLog(ui *UI, logs []SdkLog, caller *ToolCaller) {
 
 }
 
-func (st *ShowRoot) buildMessages(ui *UI, msgs []SdkMsg) {
+func (st *ShowRoot) buildMessages(ui *UI, msgs []SdkMsg, caller *ToolCaller) {
 	y := 0
 	ui.SetColumn(0, 3, 100)
 	ui.SetColumn(1, 2, 3)
@@ -1457,11 +1457,11 @@ func (st *ShowRoot) buildMessages(ui *UI, msgs []SdkMsg) {
 		label := msg.GetLabel()
 		ui.SetRowFromSub(y, 1, 5, true)
 		tx := ui.AddText(0, y, 1, 1, label)
-		tx.layout.Tooltip = fmt.Sprintf("%s() - %s", msg.ToolName, label)
+		tx.layout.Tooltip = fmt.Sprintf("%s() - %s", msg.ActionName, label)
 		bt := ui.AddButton(1, y, 1, 1, "Cancel")
 		bt.Background = 0.5
 		bt.clicked = func() error {
-			callFuncMsgStop(msg.Id)
+			caller.callFuncMsgStop(msg.Id)
 			return nil
 		}
 		y++

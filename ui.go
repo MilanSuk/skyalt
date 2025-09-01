@@ -445,7 +445,7 @@ func (ui *Ui) Tick() {
 		if ui.temp_ui != nil {
 			new_dom := NewUiLayoutDOM_root(ui)
 
-			ui.temp_ui.addLayout(new_dom, "Root", "ShowRoot", new_dom.UID, ui._addLayout_FnProgress, ui._addLayout_FnIODone)
+			ui.temp_ui.addLayout(new_dom, new_dom.UID)
 
 			new_dom._build()
 			ui.mainLayout = new_dom

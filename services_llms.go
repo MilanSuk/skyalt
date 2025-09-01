@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"os"
 	"slices"
@@ -137,7 +138,7 @@ func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 }
 
 type LLMComplete struct {
-	UID string
+	llm_name string
 
 	Temperature       float64
 	Top_p             float64
@@ -181,6 +182,14 @@ func NewLLMCompletion() *LLMComplete {
 	comp.Reasoning_effort = ""
 	comp.Max_iteration = 1
 	return comp
+}
+
+func (llm *LLMComplete) SetName(appName, toolName, msgName string) {
+	llm.llm_name = fmt.Sprintf("%s_%s_%s", appName, toolName, msgName)
+}
+
+func (llm *LLMComplete) HasName(appName, toolName, msgName string) bool {
+	return llm.llm_name == fmt.Sprintf("%s_%s_%s", appName, toolName, msgName)
 }
 
 func (a *LLMComplete) Cmp(b *LLMComplete) bool {
@@ -266,15 +275,13 @@ func (llms *LLMs) addCache(st *LLMComplete) {
 	Tools_WriteJSONFile("temp/llms_cache.json", llms.Cache)
 }
 
-func (llms *LLMs) Find(uid string, msg *AppsRouterMsg) *LLMComplete {
+func (llms *LLMs) Find(appName, toolName, llmName string) *LLMComplete {
 	llms.running_lock.Lock()
 	defer llms.running_lock.Unlock()
 
 	for _, it := range llms.running {
-		if it.UID == uid {
-			if it.msg.CmpLastStack(msg) {
-				return it
-			}
+		if it.HasName(appName, toolName, llmName) {
+			return it
 		}
 	}
 	return nil

@@ -208,9 +208,6 @@ type Layout struct {
 	ui     *Ui
 	parent *Layout
 
-	AppName  string
-	ToolName string
-
 	touch          bool
 	touchDia       bool
 	drawEnableFade bool
@@ -290,9 +287,6 @@ func NewUiLayoutDOM_root(ui *Ui) *Layout {
 	root.UID = 1
 	root.ui = ui
 	root.App = true
-
-	root.AppName = "Root"
-	root.ToolName = "ShowRoot"
 	return root
 }
 
@@ -468,6 +462,21 @@ func (layout *Layout) FindDialog(UID uint64) *LayoutDialog {
 		if d != nil {
 			return d
 		}
+	}
+
+	return nil
+}
+
+func (layout *Layout) FindDialogDeep(sub_uid uint64) *UiDialog {
+	lay := layout.FindUID(sub_uid)
+
+	for lay != nil {
+		dia := layout.ui.settings.FindDialog(lay.UID)
+		if dia != nil {
+			return dia
+		}
+
+		lay = lay.parent
 	}
 
 	return nil

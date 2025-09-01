@@ -38,10 +38,14 @@ type UIText struct {
 	EnableCodeFormating bool
 }
 type UIEditbox struct {
-	Name             string
-	Value            *string
-	ValueFloat       *float64
-	ValueInt         *int
+	Name string
+
+	ValueType int //0=string, 1=int, 3=float
+
+	Value      *string
+	ValueInt   *int
+	ValueFloat *float64
+
 	Precision        int
 	Ghost            string
 	Password         bool
@@ -253,13 +257,9 @@ type UIDialog struct {
 	UID string
 	UI  UI
 
-	CloseFn_AppName string
-	CloseFn_UI_UID  uint64
+	HasCloseFn bool
 }
 type UI struct {
-	AppName  string
-	ToolName string
-
 	UID        uint64
 	X, Y, W, H int
 
@@ -306,11 +306,7 @@ type UI struct {
 
 	Paint []UIPaint
 
-	ChangeFn_AppName string
-	ChangeFn_UI_UID  uint64
-
-	UpdateFn_AppName string
-	UpdateFn_UI_UID  uint64
+	HasUpdateFn bool
 
 	App bool
 }
@@ -319,15 +315,15 @@ func (ui *UI) Is() bool {
 	return len(ui.Items) > 0
 }
 
-func (ui *UI) addDialogs(layout *Layout, appName string, toolName string, UI_UID uint64, fnProgress func(cmdsGob [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) {
+func (ui *UI) addDialogs(layout *Layout, UI_UID uint64) {
 	for _, dia := range ui.Dialogs {
 		d := layout.AddDialog(dia.UID)
-		dia.UI.addLayout(d.Layout, appName, toolName, UI_UID, fnProgress, fnDone)
+		dia.UI.addLayout(d.Layout, UI_UID)
 
-		if dia.CloseFn_AppName != "" {
+		if dia.HasCloseFn {
 			d.fnCloseDialog = func() {
-				if dia.CloseFn_AppName != "" {
-					layout.ui.router.CallChangeAsync(dia.CloseFn_UI_UID, dia.CloseFn_AppName, toolName, ToolsSdkChange{UID: dia.UI.UID, ValueString: "close_dialog"}, fnProgress, fnDone)
+				if dia.HasCloseFn {
+					layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: dia.UI.UID, ValueString: "close_dialog"}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 				}
 			}
 		}
@@ -339,7 +335,8 @@ type ToolCmd struct {
 	Dialog_Relative_UID uint64 `json:",omitempty"`
 	Dialog_OnTouch      bool   `json:",omitempty"`
 
-	Dialog_Close_UID uint64 `json:",omitempty"`
+	Dialog_Close_Dialog_UID uint64 `json:",omitempty"`
+	Dialog_Close_Tool_UID   uint64 `json:",omitempty"`
 
 	Editbox_Activate uint64 `json:",omitempty"`
 
@@ -366,8 +363,16 @@ func (cmd *ToolCmd) Exe(ui *Ui) bool {
 		found = true
 	}
 
-	if cmd.Dialog_Close_UID > 0 {
-		dd := ui.settings.FindDialog(cmd.Dialog_Close_UID)
+	if cmd.Dialog_Close_Dialog_UID > 0 {
+		dd := ui.settings.FindDialog(cmd.Dialog_Close_Dialog_UID)
+		if dd != nil {
+			ui.settings.CloseDialog(dd, ui)
+			found = true
+		}
+	}
+
+	if cmd.Dialog_Close_Tool_UID > 0 {
+		dd := ui.mainLayout.FindDialogDeep(cmd.Dialog_Close_Tool_UID)
 		if dd != nil {
 			ui.settings.CloseDialog(dd, ui)
 			found = true
@@ -426,20 +431,20 @@ func (cmd *ToolCmd) Exe(ui *Ui) bool {
 	return found
 }
 
-func (ui *UI) addLayout(layout *Layout, appName string, toolName string, UI_UID uint64, fnProgress func(cmds [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) {
+func (ui *UI) addLayout(layout *Layout, UI_UID uint64) {
 
 	if layout.UID != UI_UID {
 		layout.setLayoutFromUI(ui)
 	}
 
-	if ui.UpdateFn_AppName != "" {
+	if ui.HasUpdateFn {
 		layout.fnUpdate = func() {
 			fnDone := func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64) {
 				if err != nil {
 					return
 				}
 
-				if ui.UpdateFn_AppName == "" { //no callback
+				if !ui.HasUpdateFn { //no callback
 					return
 				}
 
@@ -449,7 +454,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, toolName string, UI_UID 
 					return
 				}
 
-				layout.parent.addLayoutComp(&subUI, appName, toolName, UI_UID, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
+				layout.parent.addLayoutComp(&subUI, UI_UID)
 
 				layout._build()
 				layout._relayout()
@@ -466,39 +471,8 @@ func (ui *UI) addLayout(layout *Layout, appName string, toolName string, UI_UID 
 				fmt.Printf("_updated(): %.4fsec\n", OsTime()-start_time)
 			}
 
-			layout.ui.router.CallUpdateAsync(ui.UpdateFn_UI_UID, layout.UID, ui.UpdateFn_AppName, toolName, layout.ui._addLayout_FnProgress, fnDone)
+			layout.ui.router.CallUpdateAsync(layout.UID, layout.ui._addLayout_FnProgress, fnDone)
 		}
-	}
-
-	if ui.AppName != "" {
-		pre_fnDone := fnDone
-		fnDone = func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64) {
-			if err != nil {
-				return
-			}
-
-			if ui.ChangeFn_AppName == "" { //no callback
-				if pre_fnDone != nil {
-					pre_fnDone(dataJs, uiGob, cmdsGob, err, start_time)
-				}
-				return
-			}
-
-			var cmds []ToolCmd
-			err = LogsGobUnmarshal(cmdsGob, &cmds)
-			if err != nil {
-				return
-			}
-			layout.ui.temp_cmds = append(layout.ui.temp_cmds, cmds...)
-
-			layout.ui.router.CallChangeAsync(ui.ChangeFn_UI_UID, ui.ChangeFn_AppName, toolName, ToolsSdkChange{UID: ui.UID, ValueBytes: dataJs}, fnProgress, pre_fnDone)
-		}
-		appName = ui.AppName
-		toolName = ui.ToolName
-		UI_UID = ui.UID
-
-		layout.AppName = ui.AppName
-		layout.ToolName = ui.ToolName
 	}
 
 	for _, col := range ui.Cols {
@@ -528,7 +502,7 @@ func (ui *UI) addLayout(layout *Layout, appName string, toolName string, UI_UID 
 
 	//SubItems
 	for _, it := range ui.Items {
-		layout.addLayoutComp(it, appName, toolName, UI_UID, fnProgress, fnDone)
+		layout.addLayoutComp(it, UI_UID)
 	}
 
 	if len(ui.Paint) > 0 {
@@ -568,10 +542,10 @@ func (ui *UI) addLayout(layout *Layout, appName string, toolName string, UI_UID 
 	}
 
 	//must be after subs, because of relative!
-	ui.addDialogs(layout, appName, toolName, UI_UID, fnProgress, fnDone)
+	ui.addDialogs(layout, UI_UID)
 }
 
-func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_UID uint64, fnProgress func(cmds [][]byte, err error, start_time float64), fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) {
+func (layout *Layout) addLayoutComp(it *UI, UI_UID uint64) {
 
 	//var tooltip_value string
 
@@ -579,7 +553,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 		cards := layout.AddLayoutCards(it.X, it.Y, it.W, it.H, it.Cards.AutoSpacing)
 		for _, itt := range it.Items {
 			cardsItem := cards.AddCardsSubItem()
-			itt.addLayout(cardsItem, appName, toolName, UI_UID, fnProgress, fnDone)
+			itt.addLayout(cardsItem, UI_UID)
 		}
 	} else if it.Text != nil {
 		label := it.Text.Label
@@ -603,7 +577,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 				pathes := []string{path}
 				pathesJs, err := LogsJsonMarshalIndent(pathes)
 				if err == nil {
-					layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueBytes: pathesJs}, fnProgress, fnDone)
+					layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueBytes: pathesJs}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 				}
 			}
 		}
@@ -615,19 +589,28 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 
 	} else if it.Editbox != nil {
 		var val interface{}
-		if it.Editbox.Value != nil {
+
+		switch it.Editbox.ValueType {
+		case 0:
+			if it.Editbox.Value == nil {
+				v := ""
+				it.Editbox.Value = &v
+			}
 			val = it.Editbox.Value
-			//tooltip_value = *it.Editbox.Value
-		} else if it.Editbox.ValueInt != nil {
+		case 1:
+			if it.Editbox.ValueInt == nil {
+				v := 0
+				it.Editbox.ValueInt = &v
+			}
 			val = it.Editbox.ValueInt
-			//tooltip_value = strconv.Itoa(*it.Editbox.ValueInt)
-		} else if it.Editbox.ValueFloat != nil {
+
+		case 2:
+			if it.Editbox.ValueFloat == nil {
+				v := 0.0
+				it.Editbox.ValueFloat = &v
+			}
 			val = it.Editbox.ValueFloat
-			//tooltip_value = strconv.FormatFloat(*it.Editbox.ValueFloat, 'f', -1, 64)
-		} else {
-			tempStr := ""
-			it.Editbox.Value = &tempStr
-			val = it.Editbox.Value
+
 		}
 
 		ed := layout.AddEditbox(it.X, it.Y, it.W, it.H, val)
@@ -644,6 +627,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 
 		createChange := func() ToolsSdkChange {
 			change := ToolsSdkChange{UID: it.UID}
+
 			if it.Editbox.Value != nil {
 				change.ValueString = *it.Editbox.Value
 			} else if it.Editbox.ValueInt != nil {
@@ -656,18 +640,18 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 
 		ed.changed = func() {
 			change := createChange()
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, change, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(change, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 
 		ed.enter = func() {
 			change := createChange()
 			change.ValueBool = true
 
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, change, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(change, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 
 		if it.Editbox.ActivateOnCreate {
-			if it.Editbox.ActivateOnCreate && layout.ui.mainLayout.FindUID(it.UID) == nil {
+			if layout.ui.mainLayout.FindUID(it.UID) == nil {
 				layout.ui.edit.SetActivate(it.UID)
 			}
 		}
@@ -687,7 +671,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 
 		//tooltip_value = strconv.FormatFloat(*it.Slider.Value, 'f', -1, 64)
 		sl.changed = func() {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueFloat: *it.Slider.Value}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueFloat: *it.Slider.Value}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 
 	} else if it.FilePickerButton != nil {
@@ -702,7 +686,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 			//tooltip_value = "File: " + *it.FilePickerButton.Path
 		}
 		bt.changed = func() {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueString: *it.FilePickerButton.Path}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueString: *it.FilePickerButton.Path}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 	} else if it.DatePickerButton != nil {
 		if it.DatePickerButton.Date == nil {
@@ -715,7 +699,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 			//tooltip_value = "Date(YY-MM-DD HH:MM): " + time.Unix(*it.DatePickerButton.Date, 0).Format("01-02-2006 15:04")
 		}
 		bt.changed = func() {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueInt: *it.DatePickerButton.Date}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueInt: *it.DatePickerButton.Date}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 
 	} else if it.ColorPickerButton != nil {
@@ -727,7 +711,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 		bt.Tooltip = it.Tooltip
 		//tooltip_value = fmt.Sprintf("Color: R:%d, G:%d, B:%d, A:%d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)
 		bt.changed = func() {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %d %d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %d %d", it.ColorPickerButton.Cd.R, it.ColorPickerButton.Cd.G, it.ColorPickerButton.Cd.B, it.ColorPickerButton.Cd.A)}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 
 	} else if it.DropDown != nil {
@@ -739,7 +723,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 		cb.Tooltip = it.Tooltip
 		cb.Icons = it.DropDown.Icons
 		cb.changed = func() {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueString: *it.DropDown.Value}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueString: *it.DropDown.Value}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 
 		if it.DropDown.Value != nil {
@@ -751,7 +735,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 		cb.Tooltip = it.Tooltip
 		cb.Icons = it.PromptMenu.Icons
 		cb.changed = func() {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 
 	} else if it.Switch != nil {
@@ -762,7 +746,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 		sw := layout.AddSwitch(it.X, it.Y, it.W, it.H, it.Switch.Label, it.Switch.Value)
 		sw.Tooltip = it.Tooltip
 		sw.changed = func() {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueBool: *it.Switch.Value}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueBool: *it.Switch.Value}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 
 		if it.Switch.Value != nil {
@@ -776,7 +760,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 		che := layout.AddCheckbox(it.X, it.Y, it.W, it.H, it.Checkbox.Label, it.Checkbox.Value)
 		che.Tooltip = it.Tooltip
 		che.changed = func() {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueFloat: *it.Checkbox.Value}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueFloat: *it.Checkbox.Value}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 
 		if it.Checkbox.Value != nil {
@@ -791,10 +775,10 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 		mic.Output_onlyTranscript = it.Microphone.Output_onlyTranscript
 
 		mic.started = func() {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueBool: true}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueBool: true}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 		mic.finished = func(audio []byte, transcript string) {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueBool: false, ValueBytes: audio, ValueString: transcript}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueBool: false, ValueBytes: audio, ValueString: transcript}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 	} else if it.Divider != nil {
 		d := layout.AddDivider(it.X, it.Y, it.W, it.H, it.Divider.Horizontal)
@@ -819,7 +803,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 		mp.Routes = it.Map.Routes
 
 		mp.changed = func() {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%f %f %f", mp.Cam.Lon, mp.Cam.Lat, mp.Cam.Zoom)}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%f %f %f", mp.Cam.Lon, mp.Cam.Lat, mp.Cam.Zoom)}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 
 		//itemLLMTip ....
@@ -880,7 +864,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 		if it.Button.ConfirmQuestion != "" {
 			bt := layout.AddButtonConfirm(it.X, it.Y, it.W, it.H, it.Button.Label, it.Button.ConfirmQuestion)
 			bt.confirmed = func() {
-				layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 			}
 			bt.Tooltip = it.Tooltip
 			bt.Align = it.Button.Align
@@ -894,7 +878,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 		} else {
 			bt := layout.AddButton(it.X, it.Y, it.W, it.H, it.Button.Label)
 			bt.clicked = func() {
-				layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID}, fnProgress, fnDone)
+				layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 			}
 			bt.Tooltip = it.Tooltip
 			bt.Align = it.Button.Align
@@ -918,7 +902,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 		btLay.Drop_v = it.Button.Drop_v
 		btLay.Drop_in = it.Button.Drop_in
 		btLay.dropMove = func(src_i, dst_i int, aim_i int, src_source, dst_source string) {
-			layout.ui.router.CallChangeAsync(UI_UID, appName, toolName, ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %d %s %s", src_i, dst_i, aim_i, src_source, dst_source)}, fnProgress, fnDone)
+			layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueString: fmt.Sprintf("%d %d %d %s %s", src_i, dst_i, aim_i, src_source, dst_source)}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
 		}
 
 		//tooltip_value = "Button with label: " + it.Button.Label
@@ -937,7 +921,7 @@ func (layout *Layout) addLayoutComp(it *UI, appName string, toolName string, UI_
 
 	it2 := layout.FindGrid(it.X, it.Y, it.W, it.H)
 	if it2 != nil {
-		it.addLayout(it2, appName, toolName, UI_UID, fnProgress, fnDone)
+		it.addLayout(it2, UI_UID)
 	}
 }
 

@@ -114,8 +114,8 @@ func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change Tool
 	if err != nil {
 		return nil, nil, err
 	}
-	changeJs, _ := LogsJsonMarshal(change)
 
+	changeJs, _ := LogsJsonMarshal(change)
 	err = cl.WriteArray(changeJs)
 	if err != nil {
 		return nil, nil, err
@@ -138,7 +138,6 @@ func _ToolsCaller_CallChange(port int, msg_id uint64, ui_uid uint64, change Tool
 	}
 
 	return dataJs, cmdsGob, nil
-
 }
 
 func _ToolsCaller_CallUpdate(port int, msg_id uint64, ui_uid uint64, sub_uid uint64) ([]byte, []byte, error) {

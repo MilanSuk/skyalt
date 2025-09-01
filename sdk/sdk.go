@@ -217,6 +217,8 @@ type ToolCaller struct {
 	msg_id uint64
 	ui_uid uint64
 
+	toolName string
+
 	last_send_progress_ms int64 //ms
 
 	cmds []ToolCmd
@@ -228,8 +230,6 @@ func NewToolCaller() *ToolCaller {
 }
 
 type ToolUI struct {
-	toolName string
-
 	parameters interface{}
 	ui         *UI
 
@@ -384,7 +384,7 @@ func main() {
 									ui.Caller.msg_id = msg_id
 									ui.Caller.cmds = nil
 
-									subUI, out_error := ui.ui.runUpdate(sub_uid)
+									subUiGob, out_error := ui.ui.runUpdate(sub_uid, ui.Caller)
 
 									if out_error == nil {
 										if !ui.Caller._sendProgress(1, "") {
@@ -395,7 +395,7 @@ func main() {
 									//add callstack to error
 									var output_errBytes []byte
 									if out_error != nil {
-										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s:%s - %s(sub_uid: %d)", g_main.appName, ui.toolName, "_update_", sub_uid))
+										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s:%s - %s(sub_uid: %d)", g_main.appName, ui.Caller.toolName, "_update_", sub_uid))
 									}
 
 									//send back
@@ -403,8 +403,7 @@ func main() {
 										err = cl.WriteArray(output_errBytes) //error
 										Tool_Error(err)
 
-										uiGob := LogsGobMarshal(subUI)
-										err = cl.WriteArray(uiGob) //sub-ui
+										err = cl.WriteArray(subUiGob) //sub-ui
 										Tool_Error(err)
 
 										cmdsGob := LogsGobMarshal(ui.Caller.cmds)
@@ -444,11 +443,6 @@ func main() {
 					if Tool_Error(err) == nil {
 						changeJs, err := cl.ReadArray()
 						if Tool_Error(err) == nil {
-
-							//callFuncPrint("Call change() ...." + string(changeJs))
-
-							var change SdkChange
-							LogsJsonUnmarshal(changeJs, &change)
 							g_uis_lock.Lock()
 							ui, found := g_uis[ui_uid]
 							g_uis_lock.Unlock()
@@ -461,7 +455,7 @@ func main() {
 									ui.Caller.msg_id = msg_id
 									ui.Caller.cmds = nil
 
-									out_error := ui.ui.runChange(change)
+									out_error := ui.ui.runChange(changeJs, ui.Caller)
 
 									if out_error == nil {
 										if !ui.Caller._sendProgress(1, "") {
@@ -472,7 +466,7 @@ func main() {
 									//add callstack to error
 									var output_errBytes []byte
 									if out_error != nil {
-										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s:%s - %s(%.50s)", g_main.appName, ui.toolName, "_change_", string(changeJs)))
+										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s:%s - %s(%.200s)", g_main.appName, ui.Caller.toolName, "_change_", string(changeJs)))
 									}
 
 									//send back
@@ -521,6 +515,7 @@ func main() {
 					caller.ui_uid, err = cl.ReadInt()
 					if Tool_Error(err) == nil {
 						toolName, err := cl.ReadArray()
+						caller.toolName = string(toolName)
 						if Tool_Error(err) == nil {
 
 							paramsJs, err := cl.ReadArray()
@@ -534,7 +529,7 @@ func main() {
 										paramsJs = []byte("{}")
 									}
 
-									fnRun, out_params, err := FindToolRunFunc(string(toolName), paramsJs)
+									fnRun, out_params, err := FindToolRunFunc(caller.toolName, paramsJs)
 									out_error := err
 									if Tool_Error(out_error) == nil {
 										if fnRun != nil {
@@ -547,7 +542,7 @@ func main() {
 									if out_error == nil {
 										if caller.ui_uid != 0 {
 											g_uis_lock.Lock()
-											g_uis[caller.ui_uid] = &ToolUI{toolName: string(toolName),
+											g_uis[caller.ui_uid] = &ToolUI{
 												ui:         ui,
 												parameters: out_params,
 												Caller:     caller}
@@ -574,7 +569,7 @@ func main() {
 									//add callstack to error
 									var output_errBytes []byte
 									if out_error != nil {
-										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s:%s - %s(%.50s)", g_main.appName, toolName, "build", string(paramsJs)))
+										output_errBytes = []byte(out_error.Error() + fmt.Sprintf("\n%s:%s - %s(%.200s)", g_main.appName, caller.toolName, "build", string(paramsJs)))
 									}
 
 									//send result back
@@ -716,8 +711,6 @@ type SdkTool struct {
 
 type SdkMsg struct {
 	Id         string
-	AppName    string
-	ToolName   string
 	ActionName string
 
 	Progress_label string
@@ -728,7 +721,7 @@ type SdkMsg struct {
 func (msg *SdkMsg) GetLabel() string {
 	label := msg.Progress_label
 	if label == "" {
-		label = fmt.Sprintf("%s:%s(%s)", msg.AppName, msg.ToolName, msg.ActionName)
+		label = fmt.Sprintf("%s", msg.ActionName)
 	}
 
 	if msg.Progress_done > 0 {
@@ -869,40 +862,71 @@ func callFuncStopMic() {
 	}
 }
 
-func callFuncMsgStop(msg_name string) {
+func (caller *ToolCaller) SetMsgName(msg_name string) {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+		err = cl.WriteArray([]byte("set_msg_name"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteArray([]byte(g_main.appName))
+			if Tool_Error(err) == nil {
+				err = cl.WriteArray([]byte(caller.toolName))
+				if Tool_Error(err) == nil {
+					err = cl.WriteArray([]byte(msg_name))
+					if Tool_Error(err) == nil {
+						err = cl.WriteInt(caller.msg_id)
+						Tool_Error(err)
+					}
+				}
+			}
+		}
+	}
+}
+
+func (caller *ToolCaller) callFuncMsgStop(msg_name string) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
 		err = cl.WriteArray([]byte("stop_msg_name"))
 		if Tool_Error(err) == nil {
+
 			err = cl.WriteArray([]byte(g_main.appName))
 			if Tool_Error(err) == nil {
-				err = cl.WriteArray([]byte(msg_name))
-				Tool_Error(err)
+				err = cl.WriteArray([]byte(caller.toolName))
+				if Tool_Error(err) == nil {
+					err = cl.WriteArray([]byte(msg_name))
+					Tool_Error(err)
+				}
 			}
 		}
 	}
 }
-func callFuncFindMsgName(msg_name string) *SdkMsg {
+
+func (caller *ToolCaller) callFuncFindMsgName(msg_name string) *SdkMsg {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
 		err = cl.WriteArray([]byte("find_msg_name"))
 		if Tool_Error(err) == nil {
+
 			err = cl.WriteArray([]byte(g_main.appName))
 			if Tool_Error(err) == nil {
-				err = cl.WriteArray([]byte(msg_name))
+				err = cl.WriteArray([]byte(caller.toolName))
 				if Tool_Error(err) == nil {
+					err = cl.WriteArray([]byte(msg_name))
+					if Tool_Error(err) == nil {
 
-					exist, err := cl.ReadInt()
-					if exist > 0 && Tool_Error(err) == nil {
-						msgJs, err := cl.ReadArray()
-						if Tool_Error(err) == nil {
-							var msg SdkMsg
-							LogsJsonUnmarshal(msgJs, &msg)
-							return &msg
+						exist, err := cl.ReadInt()
+						if exist > 0 && Tool_Error(err) == nil {
+							msgJs, err := cl.ReadArray()
+							if Tool_Error(err) == nil {
+								var msg SdkMsg
+								LogsJsonUnmarshal(msgJs, &msg)
+								return &msg
+							}
 						}
 					}
 				}
@@ -910,23 +934,6 @@ func callFuncFindMsgName(msg_name string) *SdkMsg {
 		}
 	}
 	return nil
-}
-
-func (caller *ToolCaller) SetMsgName(msg_name string) {
-	cl, err := NewToolClient("localhost", g_main.router_port)
-	if Tool_Error(err) == nil {
-		defer cl.Destroy()
-
-		err = cl.WriteArray([]byte("set_msg_name"))
-		if Tool_Error(err) == nil {
-
-			err = cl.WriteInt(caller.msg_id)
-			if Tool_Error(err) == nil {
-				err = cl.WriteArray([]byte(msg_name))
-				Tool_Error(err)
-			}
-		}
-	}
 }
 
 func callFuncGetToolsShemas(appName string) []byte {
@@ -970,48 +977,77 @@ func callFuncGetToolData(appName string) ([]byte, error) {
 	return nil, fmt.Errorf("connection failed")
 }
 
-func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, toolName string, jsParams []byte) ([]byte, []byte, error) {
+func (caller *ToolCaller) _callFuncRunApp(appName string) (int, error) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
-		err = cl.WriteArray([]byte("sub_call"))
+		err = cl.WriteArray([]byte("run_app"))
+		if Tool_Error(err) == nil {
+			err = cl.WriteArray([]byte(appName))
+			if Tool_Error(err) == nil {
+				app_port, err := cl.ReadInt()
+				if Tool_Error(err) == nil {
+					errBytes, err := cl.ReadArray()
+					if Tool_Error(err) == nil {
+						if len(errBytes) > 0 {
+							return -1, errors.New(string(errBytes))
+						}
+						return int(app_port), nil
+					}
+				}
+			}
+		}
+	}
+
+	return -1, fmt.Errorf("connection failed")
+}
+
+func (caller *ToolCaller) callFuncBuild(ui_uid uint64, appName string, toolName string, paramsJs []byte) ([]byte, []byte, error) {
+
+	port, err := caller._callFuncRunApp(appName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cl, err := NewToolClient("localhost", port)
+	if Tool_Error(err) == nil {
+
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("build"))
 		if Tool_Error(err) == nil {
 
-			err = cl.WriteInt(caller.msg_id)
+			err = cl.WriteInt(caller.msg_id) //msg_id
 			if Tool_Error(err) == nil {
-				err = cl.WriteInt(ui_uid)
+				err = cl.WriteInt(ui_uid) //UI UID
 				if Tool_Error(err) == nil {
-					err = cl.WriteArray([]byte(appName))
+					err = cl.WriteArray([]byte(toolName)) //function name
 					if Tool_Error(err) == nil {
-						err = cl.WriteArray([]byte(toolName))
+						err = cl.WriteArray(paramsJs) //params
 						if Tool_Error(err) == nil {
-							if len(jsParams) == 0 {
-								jsParams = []byte("{}")
-							}
-							err = cl.WriteArray(jsParams)
+
+							errStr, err := cl.ReadArray() //output error
 							if Tool_Error(err) == nil {
-
-								dataJs, err := cl.ReadArray()
+								out_dataJs, err := cl.ReadArray() //output data
 								if Tool_Error(err) == nil {
-									uiGob, err := cl.ReadArray()
+									out_uiGob, err := cl.ReadArray() //output UI
 									if Tool_Error(err) == nil {
-										cmdsGob, err := cl.ReadArray()
+										cmdsBog, err := cl.ReadArray() //output cmds
 										if Tool_Error(err) == nil {
-											errBytes, err := cl.ReadArray()
-											if Tool_Error(err) == nil {
 
-												if len(errBytes) == 0 {
-													//add cmds
-													var cmds []ToolCmd
-													LogsGobUnmarshal(cmdsGob, &cmds)
-													caller.cmds = append(caller.cmds, cmds...)
-
-													return dataJs, uiGob, nil //ok
-												}
-
-												return nil, nil, errors.New(string(errBytes))
+											var out_err error
+											if len(errStr) > 0 {
+												out_err = errors.New(string(errStr))
+												Tool_Error(out_err)
+											} else {
+												//add cmds
+												var cmds []ToolCmd
+												LogsGobUnmarshal(cmdsBog, &cmds)
+												caller.cmds = append(caller.cmds, cmds...)
 											}
+
+											return out_dataJs, out_uiGob, out_err
 										}
 									}
 								}
@@ -1024,6 +1060,112 @@ func (caller *ToolCaller) callFuncSubCall(ui_uid uint64, appName string, toolNam
 	}
 
 	return nil, nil, fmt.Errorf("connection failed")
+}
+
+func (caller *ToolCaller) callFuncUpdate(ui_uid uint64, appName string, sub_uid uint64) ([]byte, error) {
+
+	port, err := caller._callFuncRunApp(appName)
+	if err != nil {
+		return nil, err
+	}
+
+	cl, err := NewToolClient("localhost", port)
+	if Tool_Error(err) == nil {
+
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("update"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteInt(caller.msg_id) //msg_id
+			if Tool_Error(err) == nil {
+				err = cl.WriteInt(ui_uid) //UI UID
+				if Tool_Error(err) == nil {
+					err = cl.WriteInt(sub_uid) //SUB_UI UID
+					if Tool_Error(err) == nil {
+
+						errStr, err := cl.ReadArray() //output error
+						if Tool_Error(err) == nil {
+							out_subUiGob, err := cl.ReadArray() //output sub ui
+							if Tool_Error(err) == nil {
+								cmdsBog, err := cl.ReadArray() //output cmds
+								if Tool_Error(err) == nil {
+
+									var out_err error
+									if len(errStr) > 0 {
+										out_err = errors.New(string(errStr))
+										Tool_Error(out_err)
+									} else {
+										//add cmds
+										var cmds []ToolCmd
+										LogsGobUnmarshal(cmdsBog, &cmds)
+										caller.cmds = append(caller.cmds, cmds...)
+									}
+
+									return out_subUiGob, out_err
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("connection failed")
+}
+
+func (caller *ToolCaller) callFuncChange(ui_uid uint64, appName string, changeJs []byte) ([]byte, error) {
+
+	port, err := caller._callFuncRunApp(appName)
+	if err != nil {
+		return nil, err
+	}
+
+	cl, err := NewToolClient("localhost", port)
+	if Tool_Error(err) == nil {
+
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("change"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteInt(caller.msg_id) //msg_id
+			if Tool_Error(err) == nil {
+				err = cl.WriteInt(ui_uid) //UI UID
+				if Tool_Error(err) == nil {
+					err = cl.WriteArray(changeJs) //params
+					if Tool_Error(err) == nil {
+
+						errStr, err := cl.ReadArray() //output error
+						if Tool_Error(err) == nil {
+							out_dataJs, err := cl.ReadArray() //output data
+							if Tool_Error(err) == nil {
+								cmdsBog, err := cl.ReadArray() //output cmds
+								if Tool_Error(err) == nil {
+
+									var out_err error
+									if len(errStr) > 0 {
+										out_err = errors.New(string(errStr))
+										Tool_Error(out_err)
+									} else {
+										//add cmds
+										var cmds []ToolCmd
+										LogsGobUnmarshal(cmdsBog, &cmds)
+										caller.cmds = append(caller.cmds, cmds...)
+									}
+
+									return out_dataJs, out_err
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("connection failed")
 }
 
 func callFuncGenerateApp(app_name string) {
@@ -1276,7 +1418,7 @@ func CallTool(fnRun func(caller *ToolCaller, ui *UI) error, caller *ToolCaller) 
 }
 
 func CallToolApp(appName string, toolName string, jsParams []byte, caller *ToolCaller) ([]byte, *UI, error) {
-	dataJs, uiGob, err := caller.callFuncSubCall(0, appName, toolName, jsParams)
+	dataJs, uiGob, err := caller.callFuncBuild(0, appName, toolName, jsParams)
 
 	var ui UI
 	if err == nil {
@@ -1286,81 +1428,125 @@ func CallToolApp(appName string, toolName string, jsParams []byte, caller *ToolC
 	return dataJs, &ui, err
 }
 
-func (ui *UI) _findUID(uid uint64) (*UI, *UIDialog) {
-	if ui.UID == uid {
-		return ui, nil
-	}
-
-	//dialogs
-	for _, dia := range ui.Dialogs {
-		f, d := dia.UI._findUID(uid)
-		if f != nil {
-			if d != nil {
-				return f, d
-			}
-			return f, dia
-		}
-	}
-
-	//subs
-	for _, it := range ui.Items {
-		f, d := it._findUID(uid)
-		if f != nil {
-			return f, d
-		}
-	}
-
-	return nil, nil
-}
-
 func (ui *UI) updateHasFnUpdate(caller *ToolCaller) {
-	if ui.update != nil {
-		ui.UpdateFn_AppName = g_main.appName
-		ui.UpdateFn_UI_UID = caller.ui_uid
-	}
-
-	if ui.changed != nil {
-		ui.ChangeFn_AppName = g_main.appName
-		ui.ChangeFn_UI_UID = caller.ui_uid
-	}
+	ui.HasUpdateFn = (ui.update != nil)
 
 	for _, it := range ui.Items {
 		it.updateHasFnUpdate(caller)
 	}
 	for _, dia := range ui.Dialogs {
-		if dia.close != nil {
-			dia.CloseFn_AppName = g_main.appName
-			dia.CloseFn_UI_UID = caller.ui_uid
-		}
+		dia.HasCloseFn = (dia.close != nil)
 
 		dia.UI.updateHasFnUpdate(caller)
 	}
 }
 
-func (ui *UI) runUpdate(uid uint64) (*UI, error) {
+func (ui *UI) _findUIDApp(uid uint64) *UI {
 	if ui.UID == uid {
-		if ui.update != nil {
-			err := ui.update()
-			return ui, err
-		}
-		return ui, fmt.Errorf("not update function")
+		return ui
 	}
 
-	for _, it := range ui.Items {
-		uii, err := it.runUpdate(uid)
-		if uii != nil {
-			return uii, err
-		}
-	}
-
+	//dialogs
 	for _, dia := range ui.Dialogs {
-		uii, err := dia.UI.runUpdate(uid)
-		if uii != nil {
-			return uii, err
+		f := dia.UI._findUIDApp(uid)
+		if f != nil {
+			if f.appName == "" && dia.UI.appName != "" { //only first(!) accurance of app
+				return &dia.UI
+			}
+			return f
 		}
 	}
 
-	return nil, nil
+	//subs
+	for _, it := range ui.Items {
+		f := it._findUIDApp(uid)
+		if f != nil {
+			if f.appName == "" && it.appName != "" { //only first(!) accurance of app (appName is lower case letter => child apps have it empty)
+				return it
+			}
+			return f
+		}
+	}
+
+	return nil
+}
+
+func (ui *UI) _findUIDDialog(uid uint64) *UIDialog {
+
+	//dialogs
+	for _, dia := range ui.Dialogs {
+		if dia.UI.UID == uid {
+			return dia
+		}
+
+		d := dia.UI._findUIDDialog(uid)
+		if d != nil {
+			return d
+		}
+	}
+
+	//subs
+	for _, it := range ui.Items {
+		d := it._findUIDDialog(uid)
+		if d != nil {
+			return d
+		}
+	}
+
+	return nil
+}
+
+func (ui *UI) _findUID(uid uint64) *UI {
+
+	if ui.UID == uid {
+		return ui
+	}
+
+	//dialogs
+	for _, dia := range ui.Dialogs {
+		f := dia.UI._findUID(uid)
+		if f != nil {
+			return f
+		}
+	}
+
+	//subs
+	for _, it := range ui.Items {
+		f := it._findUID(uid)
+		if f != nil {
+			return f
+		}
+	}
+
+	return nil
+}
+
+func (ui *UI) runUpdate(SUB_UID uint64, caller *ToolCaller) ([]byte, error) {
+
+	it := ui._findUID(SUB_UID)
+	if it == nil {
+		return nil, fmt.Errorf("update Sub_UID %d not found", SUB_UID)
+	}
+
+	//sub-app
+	app := ui._findUIDApp(SUB_UID)
+	if app != nil && app.appName != "" {
+		subUI, err := caller.callFuncUpdate(app.UID, app.appName, SUB_UID)
+		if err != nil {
+			return nil, err
+		}
+		return subUI, nil
+	}
+
+	//local
+	if it.update != nil {
+		err := ui.update()
+		if err != nil {
+			return nil, err
+		}
+		return LogsGobMarshal(ui), err
+	}
+	return nil, fmt.Errorf("not update function")
 }
 
 type SdkChange struct {
@@ -1372,21 +1558,39 @@ type SdkChange struct {
 	ValueBool   bool
 }
 
-func (ui *UI) runChange(change SdkChange) error {
-	it, dia := ui._findUID(change.UID)
-	if it == nil {
-		return fmt.Errorf("Sub_UID %d not found", change.UID)
-	}
+func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 
-	//sub-app
-	if it.changed != nil {
-		return it.changed(change.ValueBytes)
+	var change SdkChange
+	LogsJsonUnmarshal(changeJs, &change)
+
+	it := ui._findUID(change.UID)
+	if it == nil {
+		return fmt.Errorf("change Sub_UID %d not found", change.UID)
 	}
 
 	//dialog
-	if dia != nil && dia.close != nil && change.ValueString == "close_dialog" {
-		dia.close()
+	if change.ValueString == "close_dialog" {
+		dia := ui._findUIDDialog(change.UID)
+		if dia != nil && dia.close != nil {
+			dia.close()
+			return nil
+		}
 	}
+
+	//sub-app
+	app := ui._findUIDApp(change.UID)
+	if app != nil && app.appName != "" {
+		newParamsJs, err := caller.callFuncChange(app.UID, app.appName, changeJs)
+		if err != nil {
+			return err
+		}
+		if app.changedAppParams != nil {
+			app.changedAppParams(newParamsJs)
+		}
+		return nil
+	}
+
+	//components
 
 	if it.Text != nil {
 		if it.Text.dropFile != nil {
@@ -1398,15 +1602,27 @@ func (ui *UI) runChange(change SdkChange) error {
 
 	if it.Editbox != nil {
 		diff := false
-		if it.Editbox.Value != nil {
+
+		switch it.Editbox.ValueType {
+		case 0:
+			if it.Editbox.Value == nil {
+				val := ""
+				it.Editbox.Value = &val
+			}
 			diff = (*it.Editbox.Value != change.ValueString)
 			*it.Editbox.Value = change.ValueString
-		}
-		if it.Editbox.ValueInt != nil {
+		case 1:
+			if it.Editbox.ValueInt == nil {
+				val := 0
+				it.Editbox.ValueInt = &val
+			}
 			diff = (*it.Editbox.ValueInt != int(change.ValueInt))
 			*it.Editbox.ValueInt = int(change.ValueInt)
-		}
-		if it.Editbox.ValueFloat != nil {
+		case 2:
+			if it.Editbox.ValueFloat == nil {
+				val := 0.0
+				it.Editbox.ValueFloat = &val
+			}
 			diff = (*it.Editbox.ValueFloat != change.ValueFloat)
 			*it.Editbox.ValueFloat = change.ValueFloat
 		}
@@ -1901,8 +2117,8 @@ type UITooltip struct {
 }
 
 type UI struct {
-	AppName  string `json:",omitempty"`
-	ToolName string `json:",omitempty"`
+	appName  string
+	toolName string
 
 	UID        uint64
 	X, Y, W, H int
@@ -1952,13 +2168,10 @@ type UI struct {
 
 	Paint []UIPaint `json:",omitempty"`
 
-	ChangeFn_AppName string `json:",omitempty"`
-	ChangeFn_UI_UID  uint64 `json:",omitempty"`
-	changed          func(newParamsJs []byte) error
+	changedAppParams func(newParamsJs []byte) error
 
-	update           func() error
-	UpdateFn_AppName string `json:",omitempty"`
-	UpdateFn_UI_UID  uint64 `json:",omitempty"`
+	HasUpdateFn bool `json:",omitempty"`
+	update      func() error
 
 	table              bool
 	temp_col, temp_row int
@@ -2103,7 +2316,7 @@ func (ui *UI) addText(label string, tooltip string) *UIText {
 	return item
 }
 func (ui *UI) addEditboxString(value *string, tooltip string) *UIEditbox {
-	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+	item := &UIEditbox{ValueType: 0, Value: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
 	ui._autoRowBasic()
@@ -2111,7 +2324,7 @@ func (ui *UI) addEditboxString(value *string, tooltip string) *UIEditbox {
 	return item
 }
 func (ui *UI) addEditboxInt(value *int, tooltip string) *UIEditbox {
-	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+	item := &UIEditbox{ValueType: 1, ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
 	ui._autoRowBasic()
@@ -2119,7 +2332,7 @@ func (ui *UI) addEditboxInt(value *int, tooltip string) *UIEditbox {
 	return item
 }
 func (ui *UI) addEditboxFloat(value *float64, precision int, tooltip string) *UIEditbox {
-	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+	item := &UIEditbox{ValueType: 2, ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
 	ui._autoRowBasic()
@@ -2297,9 +2510,12 @@ type UIText struct {
 type UIEditbox struct {
 	layout *UI
 
-	Value            *string
-	ValueFloat       *float64
-	ValueInt         *int
+	ValueType int //0=string, 1=int, 3=float
+
+	Value      *string
+	ValueInt   *int
+	ValueFloat *float64
+
 	Precision        int
 	Ghost            string
 	Password         bool
@@ -2644,8 +2860,9 @@ type ToolCmd struct {
 	Dialog_Relative_UID uint64 `json:",omitempty"`
 	Dialog_OnTouch      bool   `json:",omitempty"`
 
-	Dialog_Close_UID uint64 `json:",omitempty"`
-	Editbox_Activate uint64 `json:",omitempty"`
+	Dialog_Close_Dialog_UID uint64 `json:",omitempty"`
+	Dialog_Close_Tool_UID   uint64 `json:",omitempty"`
+	Editbox_Activate        uint64 `json:",omitempty"`
 
 	VScrollToTheTop      uint64 `json:",omitempty"`
 	VScrollToTheBottom   uint64 `json:",omitempty"`
@@ -2660,9 +2877,8 @@ type UIDialog struct {
 	UID string
 	UI  UI
 
-	CloseFn_AppName string `json:",omitempty"`
-	CloseFn_UI_UID  uint64 `json:",omitempty"`
-	close           func()
+	HasCloseFn bool `json:",omitempty"`
+	close      func()
 }
 
 func (dia *UIDialog) OpenCentered(caller *ToolCaller) {
@@ -2675,7 +2891,11 @@ func (dia *UIDialog) OpenOnTouch(caller *ToolCaller) {
 	caller._addCmd(ToolCmd{Dialog_Open_UID: dia.UI.UID, Dialog_OnTouch: true})
 }
 func (dia *UIDialog) Close(caller *ToolCaller) {
-	caller._addCmd(ToolCmd{Dialog_Close_UID: dia.UI.UID})
+	caller._addCmd(ToolCmd{Dialog_Close_Dialog_UID: dia.UI.UID})
+}
+
+func (caller *ToolCaller) CloseTool() {
+	caller._addCmd(ToolCmd{Dialog_Close_Tool_UID: caller.ui_uid})
 }
 
 func (ed *UIEditbox) Activate(caller *ToolCaller) {
@@ -2801,19 +3021,19 @@ func (ed *UIText) setMultilined() {
 }
 
 func (ui *UI) AddEditboxString(x, y, w, h int, value *string) *UIEditbox {
-	item := &UIEditbox{Value: value, Align_v: 1, Formating: true, layout: _newUIItem(x, y, w, h, "")}
+	item := &UIEditbox{ValueType: 0, Value: value, Align_v: 1, Formating: true, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Editbox = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 func (ui *UI) AddEditboxInt(x, y, w, h int, value *int) *UIEditbox {
-	item := &UIEditbox{ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(x, y, w, h, "")}
+	item := &UIEditbox{ValueType: 1, ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Editbox = item
 	ui._addUISub(item.layout, "")
 	return item
 }
 func (ui *UI) AddEditboxFloat(x, y, w, h int, value *float64, precision int) *UIEditbox {
-	item := &UIEditbox{ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(x, y, w, h, "")}
+	item := &UIEditbox{ValueType: 2, ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(x, y, w, h, "")}
 	item.layout.Editbox = item
 	ui._addUISub(item.layout, "")
 	return item
@@ -3044,15 +3264,15 @@ func (ui *UI) AddToolApp(x, y, w, h int, layout_name string, appName string, too
 	ui._addUISub(ret_ui, layout_name)
 
 	//call router
-	_, uiGob, err := caller.callFuncSubCall(ret_ui.UID, appName, toolName, jsParams)
+	_, uiGob, err := caller.callFuncBuild(ret_ui.UID, appName, toolName, jsParams)
 	if err == nil {
 		LogsGobUnmarshal(uiGob, ret_ui)
 		ret_ui.X = x
 		ret_ui.Y = y
 		ret_ui.W = w
 		ret_ui.H = h
-		ret_ui.AppName = appName
-		ret_ui.ToolName = toolName
+		ret_ui.appName = appName
+		ret_ui.toolName = toolName
 
 		return ret_ui, nil
 	}
@@ -3175,7 +3395,7 @@ type LLMCompletion struct {
 }
 
 func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, done func(answer string), caller *ToolCaller) (running bool, answer string) {
-	running, answer = LLMCompletion_find(comp.UID, caller)
+	running, answer = comp.Find(caller)
 
 	if running {
 		//work in progress
@@ -3185,7 +3405,7 @@ func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, do
 		StopBt := ln.addButton("Stop", "")
 		StopBt.Cd = UI_GetPalette().E
 		StopBt.clicked = func() error {
-			return LLMCompletion_stop(comp.UID, caller)
+			return comp.Stop(caller)
 		}
 
 	} else {
@@ -3208,59 +3428,6 @@ func NewLLMCompletion(UID string, systemMessage string, userMessage string) *LLM
 	return &LLMCompletion{UID: UID, Temperature: 0.2, Max_tokens: 16384, Top_p: 0.95, SystemMessage: systemMessage, UserMessage: userMessage}
 }
 
-func LLMCompletion_find(UID string, caller *ToolCaller) (running bool, answer string) {
-	cl, err := NewToolClient("localhost", g_main.router_port)
-	if Tool_Error(err) == nil {
-		defer cl.Destroy()
-
-		err = cl.WriteArray([]byte("llm_find"))
-		if Tool_Error(err) == nil {
-
-			err = cl.WriteInt(caller.msg_id)
-			if Tool_Error(err) == nil {
-
-				err = cl.WriteArray([]byte(UID))
-				if Tool_Error(err) == nil {
-
-					run, err := cl.ReadInt()
-					if Tool_Error(err) == nil {
-						ans, err := cl.ReadArray()
-						if Tool_Error(err) == nil {
-							running = (run > 0)
-							answer = string(ans)
-							return
-						}
-					}
-
-				}
-			}
-		}
-	}
-	return false, ""
-}
-
-func LLMCompletion_stop(UID string, caller *ToolCaller) error {
-	cl, err := NewToolClient("localhost", g_main.router_port)
-	if Tool_Error(err) == nil {
-		defer cl.Destroy()
-
-		err = cl.WriteArray([]byte("llm_stop"))
-		if Tool_Error(err) == nil {
-
-			err = cl.WriteInt(caller.msg_id)
-			if Tool_Error(err) == nil {
-
-				err = cl.WriteArray([]byte(UID))
-				if Tool_Error(err) == nil {
-					return nil
-				}
-			}
-		}
-	}
-
-	return fmt.Errorf("connection failed")
-}
-
 func (comp *LLMCompletion) Run(caller *ToolCaller) error {
 	compJs := LogsJsonMarshal(comp)
 
@@ -3279,13 +3446,7 @@ func (comp *LLMCompletion) Run(caller *ToolCaller) error {
 
 					//delta(s)
 					for {
-						//delta_answer, err := cl.ReadArray()
 						delta_raw, err := cl.ReadArray()
-						/*if Tool_Error(err) == nil && len(delta_answer) > 0 {
-							if comp.update != nil {
-								comp.update(string(delta_answer))
-							}
-						}*/
 						if Tool_Error(err) == nil && len(delta_raw) > 0 {
 							if comp.deltaMsg != nil {
 								comp.deltaMsg(delta_raw)
@@ -3306,6 +3467,60 @@ func (comp *LLMCompletion) Run(caller *ToolCaller) error {
 		}
 	}
 
+	return fmt.Errorf("connection failed")
+}
+
+func (comp *LLMCompletion) Find(caller *ToolCaller) (running bool, answer string) {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("llm_find"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteArray([]byte(g_main.appName))
+			if Tool_Error(err) == nil {
+				err = cl.WriteArray([]byte(caller.toolName))
+				if Tool_Error(err) == nil {
+					err = cl.WriteArray([]byte(comp.UID))
+					if Tool_Error(err) == nil {
+
+						run, err := cl.ReadInt()
+						if Tool_Error(err) == nil {
+							ans, err := cl.ReadArray()
+							if Tool_Error(err) == nil {
+								running = (run > 0)
+								answer = string(ans)
+								return
+							}
+						}
+
+					}
+				}
+			}
+		}
+	}
+	return false, ""
+}
+
+func (comp *LLMCompletion) Stop(caller *ToolCaller) error {
+	cl, err := NewToolClient("localhost", g_main.router_port)
+	if Tool_Error(err) == nil {
+		defer cl.Destroy()
+
+		err = cl.WriteArray([]byte("llm_stop"))
+		if Tool_Error(err) == nil {
+
+			err = cl.WriteArray([]byte(g_main.appName))
+			if Tool_Error(err) == nil {
+				err = cl.WriteArray([]byte(caller.toolName))
+				if Tool_Error(err) == nil {
+					err = cl.WriteArray([]byte(comp.UID))
+					Tool_Error(err)
+				}
+			}
+		}
+	}
 	return fmt.Errorf("connection failed")
 }
 
