@@ -157,7 +157,7 @@ func (st *DeviceSettings) UpdateModels() {
 	case "xai":
 		st.Code_model = "grok-3-mini"
 		if st.Code_smarter {
-			st.Code_model = "grok-4"
+			st.Code_model = "grok-code-fast-1"
 		}
 
 	case "mistral":
@@ -970,6 +970,14 @@ func (xai *LLMxAI) ReloadModels() error {
 		Prompt_text_token_price:        6000,
 		Cached_prompt_text_token_price: 1500,
 		Completion_text_token_price:    40000,
+	})
+
+	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
+		Id:                             "grok-code-fast-1",
+		Input_modalities:               []string{"text"},
+		Prompt_text_token_price:        2000,
+		Cached_prompt_text_token_price: 200,
+		Completion_text_token_price:    15000,
 	})
 
 	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
