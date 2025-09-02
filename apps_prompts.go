@@ -374,9 +374,9 @@ func (prompts *ToolsPrompts) _reloadFromPromptFile(folderPath string) (bool, err
 					toolName = newToolName
 
 					if isFunction {
-						ln = "#function " + newToolName
+						ln = "#Function " + newToolName
 					} else {
-						ln = "#tool " + newToolName
+						ln = "#Tool " + newToolName
 					}
 					lines[i] = ln
 
