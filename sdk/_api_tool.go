@@ -250,7 +250,7 @@ type UICalendarEvent struct {
 	Start    int64 //unix time
 	Duration int64 //seconds
 
-	Color color.RGBA
+	Color color.RGBA //optional, default is {0, 0, 0, 0}
 }
 
 type UIYearCalendar struct {

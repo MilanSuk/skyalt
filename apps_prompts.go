@@ -694,7 +694,7 @@ func (tool *%s) run(caller *ToolCaller, ui *UI) error {
 }
 `, prompt.Name, prompt.Name)
 
-	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
+	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or \"implement later\" type of comments. Here is the list of files in the project folder.\n"
 
 	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
 	functionHeaders := prompts.getFunctionsHeadersCode()
@@ -709,7 +709,7 @@ func (tool *%s) run(caller *ToolCaller, ui *UI) error {
 
 	systemMessage += "Based on the user message, rewrite the tool.go file(keep struct and function header names). Your job is to design a function(tool). Look into an example.go to understand how APIs and storage functions work.\n"
 
-	systemMessage += "Figure out <tool's arguments> based on the user prompt. Argument can not be pointer. There are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with an upper-case letter. Every argument must have a description as a comment. You can add extra marks(with brackets []) at the end of a comment. You may add multiple marks with your pair of brackets. Here are the marks:\n"
+	systemMessage += "Figure out <tool's arguments> based on the user prompt. Argument can not be pointer. There are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with an upper-case letter. Every argument must have a description as a comment on same line. You can add extra marks(with brackets []) at the end of a comment. You may add multiple marks with your pair of brackets. Here are the marks:\n"
 	systemMessage += "[optional] - caller can ignore the attribute\n"
 	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Use it only for strings, not numbers. Example 1: [options: "first", "second", "third"].\n`
 	systemMessage += "\n"
