@@ -17,19 +17,21 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"strconv"
 	"strings"
 	"unicode"
 )
 
 type ToolsOpenAI_completion_tool_function_parameters_properties struct {
-	Type        string   `json:"type"` //"number", "string"
-	Description string   `json:"description,omitempty"`
-	Enum        []string `json:"enum,omitempty"`
-	Default     string   `json:"default,omitempty"`
+	Type        string          `json:"type"` //"number", "string"
+	Description string          `json:"description,omitempty"`
+	Enum        json.RawMessage `json:"enum,omitempty"`
+	Default     string          `json:"default,omitempty"`
 
 	Items *ToolsOpenAI_completion_tool_function_parameters_properties `json:"items,omitempty"` //for arrays
 }
@@ -90,9 +92,7 @@ func (prm *ToolsOpenAI_completion_tool_schema) AddParam(name, typee, description
 
 			description = description[:options_pos] + description[options_pos+len(options_start)+d+1:]
 		}
-
 	}
-
 	//clean
 	{
 		description = strings.TrimSpace(description)
@@ -101,7 +101,40 @@ func (prm *ToolsOpenAI_completion_tool_schema) AddParam(name, typee, description
 		}
 	}
 
-	p := &ToolsOpenAI_completion_tool_function_parameters_properties{Type: ToolsOpenAI_convertTypeToSchemaType(typee), Description: description, Items: items, Enum: options}
+	//convert string options into enum(ints or floats or strings)
+	var enum json.RawMessage
+	{
+		areOptionInts := true
+		areOptionsFloats := true
+		for _, opt := range options {
+			_, errI := strconv.ParseInt(opt, 10, 64)
+			if errI != nil {
+				areOptionInts = false
+			}
+			_, errF := strconv.ParseFloat(opt, 64)
+			if errF != nil {
+				areOptionsFloats = false
+			}
+		}
+		if areOptionInts {
+			options2 := make([]int64, len(options))
+			for i := range options {
+				options2[i], _ = strconv.ParseInt(options[i], 10, 64)
+			}
+			enum, _ = json.Marshal(options2) //ints
+
+		} else if areOptionsFloats {
+			options2 := make([]float64, len(options))
+			for i := range options {
+				options2[i], _ = strconv.ParseFloat(options[i], 64)
+			}
+			enum, _ = json.Marshal(options2) //floats
+		} else {
+			enum, _ = json.Marshal(options) //strings
+		}
+	}
+
+	p := &ToolsOpenAI_completion_tool_function_parameters_properties{Type: ToolsOpenAI_convertTypeToSchemaType(typee), Description: description, Items: items, Enum: enum}
 	prm.Properties[name] = p
 
 	return p
