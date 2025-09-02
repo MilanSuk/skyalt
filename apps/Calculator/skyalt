@@ -1,4 +1,4 @@
-#tool ShowCalculator
+#Tool ShowCalculator
 Tool is calculator.
 Inputs are "Previous" calculations as text and "Expression" text. Both are optional.
 No outputs.
@@ -10,7 +10,7 @@ Next row is editbox with 'Expression' value. Ghots is "Expression".
 Next row is button "Calculate".
 
 Functions:
-If button is clicked, it uses package "github.com/mnogu/go-calculator" to run 'Expression'. If there is no error, It adds 'Expression' and result into 'Previous' with " = " between. Then set result value to 'Expression'(if floating part is zero, show it without)
+If button is clicked, it uses package "github.com/mnogu/go-calculator" to run 'Expression'. If there is no error, It adds 'Expression' and result into 'Previous' with " = " between. Then set result value to 'Expression'(if floating part is zero, show it as integer)
 If user presses enter on editbox, it same action as clicked.
 Also activate editbox after action.
 

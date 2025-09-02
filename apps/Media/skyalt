@@ -1,11 +1,11 @@
 
-#function GetSortedDirectoryFiles
+#Function GetSortedDirectoryFiles
 Inputs are "dir" as string and "sortBy" which can be "a-z", "z-a", "first_modified", "last_modified", "size".
-Output is list of files(strings).
+Output is list of files(strings) - absolute pathes.
 Read directory and sort files(no dirs) by "sortBy".
 
 
-#tool ShowDirectory
+#Tool ShowDirectory
 Tool shows list of files in directory and content of selected file.
 Inputs are "Directory"(required, text), "SortBy"(optional, options: "a-z", "z-a", "first_modified", "last_modified", "size") and "SelectedFile"(optional, text).
 No outputs.

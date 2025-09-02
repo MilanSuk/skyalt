@@ -8,8 +8,8 @@ Input parameter is "Original" text and "Language" text(to pick the language, def
 UI:
 Whole UI is centered.
 First row is editbox(enable multi-line and line-wrapping) with 'Original' from storage. Set row height between 3 and 100.
-Next row has LLM button "Translate", then text "into"(centered) and then drop down to pick a language('Language' from storage) with options GetLanguageOptions()
-Next row has text with 'Translation' from storage.
+Next row has LLM completion button labelled "Translate", then text "into"(centered) and then drop down to pick a language('Language' from storage) with options GetLanguageOptions()
+Next row has text with 'Translation' value from storage.
 
 Functions:
 The "Translate" button send original text into LLM completion with system prompt(replace <language> with tool's 'Language') :
