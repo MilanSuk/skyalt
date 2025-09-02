@@ -11,7 +11,7 @@ import (
 
 //Some functions may have 'llmtip' argument which describes what UI component represents. If component or table line show value from storage which has ID, the format should be <storage path>=<ID>. Few examples: "Year of born for PersonID=123", "Image with GalleryID='path/to/image'".
 
-//Code inside callbacks(UIButton.clicked, UIEditbox.changed, LLMCompletion.update, etc.), should not write into UIs structures, it should write only into storage or tool's arguments.
+//Code inside callbacks(UIButton.clicked, UIEditbox.changed, LLMCompletion.update, etc.), should not change into UIs attributes, it should write only into storage or tool's arguments.
 
 //If button triggers LLM completion, use addLLMCompletionButton() instead of addButton().
 
@@ -93,17 +93,14 @@ type UIEditbox struct {
 	Formating    bool
 	Multiline    bool
 	Linewrapping bool
-
-	changed func() error //called after .Value or .ValueFloat or .ValueInt has been changed
-	enter   func() error
 }
 
 func (ed *UIEditbox) setMultilined()              //Enable multi-line & Line-wrapping
 func (ed *UIEditbox) Activate(caller *ToolCaller) //Activate editbox.
 
-func (ui *UI) addEditboxString(value *string, llmtip string) *UIEditbox
-func (ui *UI) addEditboxInt(value *int, llmtip string) *UIEditbox
-func (ui *UI) addEditboxFloat(value *float64, precision int, llmtip string) *UIEditbox
+func (ui *UI) addEditboxString(value string, changed func(newValue string), tooltip string) *UIEditbox
+func (ui *UI) addEditboxInt(value *int, changed func(newValue int), tooltip string) *UIEditbox
+func (ui *UI) addEditboxFloat(value *float64, changed func(newValue float64), precision int, tooltip string)
 
 type UIButton struct {
 	layout *UI
@@ -146,12 +143,10 @@ type UIDropDown struct {
 	Labels []string
 	Values []string
 	Icons  []UIDropDownIcon
-
-	changed func() error //called after .Value has been changed
 }
 
 // 'labels' should start with Upper letter and have spaces(if multiple words).
-func (ui *UI) addDropDown(value *string, labels []string, values []string, llmtip string) *UIDropDown
+func (ui *UI) addDropDown(value string, changed func(newValue string), labels []string, values []string, tooltip string) *UIDropDow
 
 type UIPromptMenuIcon struct {
 	Path   string
@@ -171,21 +166,17 @@ type UISwitch struct {
 	layout *UI
 	Label  string
 	Value  *bool
-
-	changed func() error //called after .Value has been changed
 }
 
-func (ui *UI) addSwitch(label string, value *bool, llmtip string) *UISwitch
+func (ui *UI) addSwitch(label string, value bool, changed func(newValue bool), tooltip string) *UISwitch
 
 type UICheckbox struct {
 	layout *UI
 	Label  string
 	Value  *float64
-
-	changed func() error //called after .Value has been changed
 }
 
-func (ui *UI) addCheckbox(label string, value *float64, llmtip string) *UICheckbox
+func (ui *UI) addCheckbox(label string, value float64, changed func(newValue float64), tooltip string) *UICheckbox
 
 type UISlider struct {
 	layout *UI
@@ -193,11 +184,9 @@ type UISlider struct {
 	Min    float64
 	Max    float64
 	Step   float64
-
-	changed func() error //called after .Value has been changed
 }
 
-func (ui *UI) addSlider(value *float64, min, max, step float64, llmtip string) *UISlider
+func (ui *UI) addSlider(value float64, changed func(newValue float64), min, max, step float64, tooltip string) *UISlider
 
 type UIDivider struct {
 	layout     *UI
@@ -283,29 +272,25 @@ type UIFilePickerButton struct {
 	Path        *string
 	Preview     bool
 	OnlyFolders bool
-
-	changed func() error
 }
 
-func (ui *UI) addFilePickerButton(path *string, preview bool, onlyFolders bool, llmtip string) *UIFilePickerButton
+func (ui *UI) addFilePickerButton(path string, changed func(newPath string), preview bool, onlyFolders bool, tooltip string) *UIFilePickerButton
 
 type UIDatePickerButton struct {
 	layout   *UI
 	Date     *int64
 	Page     *int64
 	ShowTime bool
-	changed  func() error //called after .Date has been changed
 }
 
-func (ui *UI) addDatePickerButton(date *int64, page *int64, showTime bool, llmtip string) *UIDatePickerButton
+func (ui *UI) addDatePickerButton(date int64, changed func(newDate int64), page *int64, showTime bool, tooltip string) *UIDatePickerButton
 
 type UIColorPickerButton struct {
-	layout  *UI
-	Cd      *color.RGBA
-	changed func() error //called after .Cd has been changed
+	layout *UI
+	Cd     *color.RGBA
 }
 
-func (ui *UI) addColorPickerButton(cd *color.RGBA, llmtip string) *UIColorPickerButton
+func (ui *UI) addColorPickerButton(cd color.RGBA, changed func(newCd color.RGBA), tooltip string) *UIColorPickerButton
 
 type UIChartPoint struct {
 	X  float64

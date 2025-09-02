@@ -1611,6 +1611,11 @@ func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 			}
 			diff = (*it.Editbox.Value != change.ValueString)
 			*it.Editbox.Value = change.ValueString
+
+			if diff && it.Editbox.setNewValueString != nil {
+				it.Editbox.setNewValueString(*it.Editbox.Value)
+			}
+
 		case 1:
 			if it.Editbox.ValueInt == nil {
 				val := 0
@@ -1618,6 +1623,10 @@ func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 			}
 			diff = (*it.Editbox.ValueInt != int(change.ValueInt))
 			*it.Editbox.ValueInt = int(change.ValueInt)
+
+			if diff && it.Editbox.setNewValueInteger != nil {
+				it.Editbox.setNewValueInteger(*it.Editbox.ValueInt)
+			}
 		case 2:
 			if it.Editbox.ValueFloat == nil {
 				val := 0.0
@@ -1625,11 +1634,16 @@ func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 			}
 			diff = (*it.Editbox.ValueFloat != change.ValueFloat)
 			*it.Editbox.ValueFloat = change.ValueFloat
+
+			if diff && it.Editbox.setNewValueFloat != nil {
+				it.Editbox.setNewValueFloat(*it.Editbox.ValueFloat)
+			}
 		}
 
 		if diff && it.Editbox.changed != nil {
 			return it.Editbox.changed()
 		}
+
 		if change.ValueBool && it.Editbox.enter != nil {
 			return it.Editbox.enter()
 		}
@@ -1637,7 +1651,12 @@ func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 	if it.Slider != nil {
 		if it.Slider.Value != nil {
 			*it.Slider.Value = change.ValueFloat
+
+			if it.Slider.setNewValue != nil {
+				it.Slider.setNewValue(*it.Slider.Value)
+			}
 		}
+
 		if it.Slider.changed != nil {
 			return it.Slider.changed()
 		}
@@ -1645,6 +1664,10 @@ func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 	if it.DropDown != nil {
 		if it.DropDown.Value != nil {
 			*it.DropDown.Value = change.ValueString
+
+			if it.DropDown.setNewValue != nil {
+				it.DropDown.setNewValue(*it.DropDown.Value)
+			}
 		}
 		if it.DropDown.changed != nil {
 			return it.DropDown.changed()
@@ -1658,6 +1681,10 @@ func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 	if it.Switch != nil {
 		if it.Switch.Value != nil {
 			*it.Switch.Value = change.ValueBool
+
+			if it.Switch.setNewValue != nil {
+				it.Switch.setNewValue(*it.Switch.Value)
+			}
 		}
 		if it.Switch.changed != nil {
 			return it.Switch.changed()
@@ -1666,6 +1693,10 @@ func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 	if it.Checkbox != nil {
 		if it.Checkbox.Value != nil {
 			*it.Checkbox.Value = change.ValueFloat
+
+			if it.Checkbox.setNewValue != nil {
+				it.Checkbox.setNewValue(*it.Checkbox.Value)
+			}
 		}
 		if it.Checkbox.changed != nil {
 			return it.Checkbox.changed()
@@ -1685,6 +1716,10 @@ func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 	if it.FilePickerButton != nil {
 		if it.FilePickerButton.Path != nil {
 			*it.FilePickerButton.Path = change.ValueString
+
+			if it.FilePickerButton.setNewValue != nil {
+				it.FilePickerButton.setNewValue(*it.FilePickerButton.Path)
+			}
 		}
 		if it.FilePickerButton.changed != nil {
 			return it.FilePickerButton.changed()
@@ -1693,6 +1728,10 @@ func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 	if it.DatePickerButton != nil {
 		if it.DatePickerButton.Date != nil {
 			*it.DatePickerButton.Date = change.ValueInt
+
+			if it.DatePickerButton.setNewValue != nil {
+				it.DatePickerButton.setNewValue(*it.DatePickerButton.Date)
+			}
 		}
 		if it.DatePickerButton.changed != nil {
 			return it.DatePickerButton.changed()
@@ -1701,6 +1740,10 @@ func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 	if it.ColorPickerButton != nil {
 		if it.ColorPickerButton.Cd != nil {
 			fmt.Sscanf(change.ValueString, "%d %d %d %d", &it.ColorPickerButton.Cd.R, &it.ColorPickerButton.Cd.G, &it.ColorPickerButton.Cd.B, &it.ColorPickerButton.Cd.A)
+
+			if it.ColorPickerButton.setNewValue != nil {
+				it.ColorPickerButton.setNewValue(*it.ColorPickerButton.Cd)
+			}
 		}
 
 		if it.ColorPickerButton.changed != nil {
@@ -2315,24 +2358,24 @@ func (ui *UI) addText(label string, tooltip string) *UIText {
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addEditboxString(value *string, tooltip string) *UIEditbox {
-	item := &UIEditbox{ValueType: 0, Value: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+func (ui *UI) addEditboxString(value string, changed func(newValue string), tooltip string) *UIEditbox {
+	item := &UIEditbox{ValueType: 0, Value: &value, setNewValueString: changed, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
 	ui._autoRowBasic()
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addEditboxInt(value *int, tooltip string) *UIEditbox {
-	item := &UIEditbox{ValueType: 1, ValueInt: value, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+func (ui *UI) addEditboxInt(value int, changed func(newValue int), tooltip string) *UIEditbox {
+	item := &UIEditbox{ValueType: 1, ValueInt: &value, setNewValueInteger: changed, Align_v: 1, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
 	ui._autoRowBasic()
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addEditboxFloat(value *float64, precision int, tooltip string) *UIEditbox {
-	item := &UIEditbox{ValueType: 2, ValueFloat: value, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+func (ui *UI) addEditboxFloat(value float64, changed func(newValue float64), precision int, tooltip string) *UIEditbox {
+	item := &UIEditbox{ValueType: 2, ValueFloat: &value, setNewValueFloat: changed, Align_v: 1, Precision: precision, Formating: true, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Editbox = item
 
 	ui._autoRowBasic()
@@ -2354,8 +2397,8 @@ func (ui *UI) addButton(label string, tooltip string) *UIButton {
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addDropDown(value *string, labels []string, values []string, tooltip string) *UIDropDown {
-	item := &UIDropDown{Value: value, Labels: labels, Values: values, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+func (ui *UI) addDropDown(value string, changed func(newValue string), labels []string, values []string, tooltip string) *UIDropDown {
+	item := &UIDropDown{Value: &value, setNewValue: changed, Labels: labels, Values: values, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.DropDown = item
 	ui._addUILine(item.layout)
 	return item
@@ -2368,22 +2411,22 @@ func (ui *UI) addPromptMenu(prompts []string, tooltip string) *UIPromptMenu {
 	return item
 }
 
-func (ui *UI) addSwitch(label string, value *bool, tooltip string) *UISwitch {
-	item := &UISwitch{Label: label, Value: value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+func (ui *UI) addSwitch(label string, value bool, changed func(newValue bool), tooltip string) *UISwitch {
+	item := &UISwitch{Label: label, Value: &value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Switch = item
 	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addCheckbox(label string, value *float64, tooltip string) *UICheckbox {
-	item := &UICheckbox{Label: label, Value: value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+func (ui *UI) addCheckbox(label string, value float64, changed func(newValue float64), tooltip string) *UICheckbox {
+	item := &UICheckbox{Label: label, Value: &value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Checkbox = item
 	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addSlider(value *float64, min, max, step float64, tooltip string) *UISlider {
-	item := &UISlider{Value: value, Min: min, Max: max, Step: step, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+func (ui *UI) addSlider(value float64, changed func(newValue float64), min, max, step float64, tooltip string) *UISlider {
+	item := &UISlider{Value: &value, Min: min, Max: max, Step: step, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Slider = item
 	ui._addUILine(item.layout)
 	return item
@@ -2437,20 +2480,20 @@ func (ui *UI) addDayCalendar(Days []int64, Events []UICalendarEvent) *UIDayCalen
 	return item
 }
 
-func (ui *UI) addFilePickerButton(path *string, preview bool, onlyFolders bool, tooltip string) *UIFilePickerButton {
-	item := &UIFilePickerButton{Path: path, Preview: preview, OnlyFolders: onlyFolders, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+func (ui *UI) addFilePickerButton(path string, changed func(newPath string), preview bool, onlyFolders bool, tooltip string) *UIFilePickerButton {
+	item := &UIFilePickerButton{Path: &path, setNewValue: changed, Preview: preview, OnlyFolders: onlyFolders, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.FilePickerButton = item
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addDatePickerButton(date *int64, page *int64, showTime bool, tooltip string) *UIDatePickerButton {
-	item := &UIDatePickerButton{Date: date, Page: page, ShowTime: showTime, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+func (ui *UI) addDatePickerButton(date int64, changed func(newDate int64), page *int64, showTime bool, tooltip string) *UIDatePickerButton {
+	item := &UIDatePickerButton{Date: &date, setNewValue: changed, Page: page, ShowTime: showTime, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.DatePickerButton = item
 	ui._addUILine(item.layout)
 	return item
 }
-func (ui *UI) addColorPickerButton(cd *color.RGBA, tooltip string) *UIColorPickerButton {
-	item := &UIColorPickerButton{Cd: cd, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
+func (ui *UI) addColorPickerButton(cd color.RGBA, changed func(newCd color.RGBA), tooltip string) *UIColorPickerButton {
+	item := &UIColorPickerButton{Cd: &cd, setNewValue: changed, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.ColorPickerButton = item
 	ui._addUILine(item.layout)
 	return item
@@ -2529,6 +2572,10 @@ type UIEditbox struct {
 	Multiline    bool
 	Linewrapping bool
 
+	setNewValueString  func(newValue string)
+	setNewValueInteger func(newValue int)
+	setNewValueFloat   func(newValue float64)
+
 	changed func() error
 	enter   func() error
 }
@@ -2545,7 +2592,8 @@ type UISlider struct {
 	ShowRecommend   bool
 	Recommend_value float64
 
-	changed func() error
+	setNewValue func(newValue float64)
+	changed     func() error
 }
 type UIButton struct {
 	layout *UI
@@ -2583,7 +2631,8 @@ type UIFilePickerButton struct {
 	Preview     bool
 	OnlyFolders bool
 
-	changed func() error
+	setNewValue func(newPath string)
+	changed     func() error
 }
 type UIDatePickerButton struct {
 	layout *UI
@@ -2591,13 +2640,17 @@ type UIDatePickerButton struct {
 	Date     *int64
 	Page     *int64
 	ShowTime bool
-	changed  func() error
+
+	setNewValue func(newDate int64)
+	changed     func() error
 }
 type UIColorPickerButton struct {
 	layout *UI
 
-	Cd      *color.RGBA
-	changed func() error
+	Cd *color.RGBA
+
+	setNewValue func(newCd color.RGBA)
+	changed     func() error
 }
 
 type UIDropDownIcon struct {
@@ -2613,7 +2666,8 @@ type UIDropDown struct {
 	Values []string
 	Icons  []UIDropDownIcon
 
-	changed func() error
+	setNewValue func(newValue string)
+	changed     func() error
 }
 
 type UIPromptMenuIcon struct {
@@ -2636,7 +2690,8 @@ type UISwitch struct {
 	Label string
 	Value *bool
 
-	changed func() error
+	setNewValue func(newValue bool)
+	changed     func() error
 }
 
 type UICheckbox struct {
@@ -2645,7 +2700,8 @@ type UICheckbox struct {
 	Label string
 	Value *float64
 
-	changed func() error
+	setNewValue func(newValue float64)
+	changed     func() error
 }
 
 type UIDivider struct {

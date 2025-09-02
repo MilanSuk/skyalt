@@ -593,140 +593,69 @@ func (prompts *ToolsPrompts) getFunctionsHeadersCode() string {
 
 func (prompts *ToolsPrompts) _getStorageMsg(storagePrompt *ToolsPrompt) (string, string, error) {
 
-	apisFile, err := os.ReadFile("sdk/_api_storage.go")
+	systemMessage, err := os.ReadFile("sdk/prompt_storage.md")
 	if err != nil {
 		return "", "", err
 	}
-
-	exampleFile, err := os.ReadFile("sdk/_example_storage.go")
-	if err != nil {
-		return "", "", err
-	}
-
-	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
-
-	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
-	systemMessage += "file - storage.go:\n```go" + string(exampleFile) + "```\n"
-
-	systemMessage += "Based on the user message, rewrite the storage.go file. Your job is to design structures. Write additional functions only if the user asks for them. You may write multiple structures.\n"
-
-	systemMessage += "Structure attributes can not be pointers, because they will be saved as JSON, so instead of pointers, use ID, which is saved in a map[integer or string ID]. ID must be unique, use for example time.Now().UnixNano() and add comment for attribute how ID should be created.\n"
-
-	systemMessage += "Load<name_of_struct>() functions always returns pointer, not array."
-
-	systemMessage += "Do not call os.ReadFile() + json.Unmarshal(), instead call ReadJSONFile(). Do not call os.WriteFile(), saving data in structures into disk is automatic."
-
-	systemMessage += "Never define constants('const'), use variables('var') for everything.\n"
-
-	//maybe add old file structures, because it's needed that struct and attributes names are same ....
 
 	userMessage := storagePrompt.Prompt
 
-	return systemMessage, userMessage, nil
+	return string(systemMessage), userMessage, nil
 }
 
 func (prompts *ToolsPrompts) _getFunctionMsg(functionPrompt *ToolsPrompt) (string, string, error) {
+
+	var storage_code string
 	storagePrompt := prompts.FindStorage()
-	/*if storagePrompt == nil {
-		return "", "", LogsErrorf("'Storage' prompt not found")
-	}*/
-
-	funcFile := fmt.Sprintf(`
-package main
-
-/*Function and arguments description*/
-func %s(/*arguments*/) /*return types*/ {
-	//<code based on prompt>
-}
-`, functionPrompt.Name)
-
-	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or implement later type of comments. Here is the list of files in the project folder.\n"
-
 	if storagePrompt != nil {
-		systemMessage += "file - storage.go:\n```go" + storagePrompt.GetLastCode() + "```\n"
+		storage_code = storagePrompt.GetLastCode()
 	}
-	systemMessage += "file - " + functionPrompt.Name + ".go:\n```go" + string(funcFile) + "```\n"
 
-	systemMessage += "Based on the user message, rewrite the " + functionPrompt.Name + "() function inside " + functionPrompt.Name + ".go file.\n"
-
-	systemMessage += "Figure it out function & argument(s) description, function argument(s), return types(s) and function body based on user message.\n"
-
-	systemMessage += "Load<name_of_struct>() functions always returns pointer, not array."
-
-	systemMessage += "Do not call os.ReadFile() + json.Unmarshal(), instead call ReadJSONFile(). Do not call os.WriteFile(), saving data in structures into disk is automatic."
-
-	systemMessage += "Never define constants('const'), use variables('var') for everything.\n"
+	systemMessage, err := os.ReadFile("sdk/prompt_function.md")
+	if err != nil {
+		return "", "", err
+	}
+	sysMsg := string(systemMessage)
+	sysMsg = strings.ReplaceAll(sysMsg, "[REPLACE_FUNC_NAME]", functionPrompt.Name)
+	sysMsg = strings.ReplaceAll(sysMsg, "[REPLACE_STORAGE_CODE]", storage_code)
 
 	userMessage := functionPrompt.Prompt
 
-	return systemMessage, userMessage, nil
+	return sysMsg, userMessage, nil
 }
 
 func (prompts *ToolsPrompts) _getToolMsg(prompt *ToolsPrompt) (string, string, error) {
+
+	var storage_code string
 	storagePrompt := prompts.FindStorage()
-	/*if storagePrompt == nil {
-		return "", "", LogsErrorf("'Storage' prompt not found")
-	}*/
+	if storagePrompt != nil {
+		storage_code = storagePrompt.GetLastCode()
+	}
 
-	apisFile, err := os.ReadFile("sdk/_api_tool.go")
+	api_code, err := os.ReadFile("sdk/_tool_api.go")
 	if err != nil {
 		return "", "", err
 	}
 
-	exampleFile, err := os.ReadFile("sdk/_example_tool.go")
+	example_code, err := os.ReadFile("sdk/_tool_example.go")
 	if err != nil {
 		return "", "", err
 	}
 
-	toolFile := fmt.Sprintf(`
-package main
-
-//<Tool description>
-type %s struct {
-	//<tool argument with description as comment>
-}
-
-func (tool *%s) run(caller *ToolCaller, ui *UI) error {
-
-	//<code based on prompt>
-
-	return nil
-}
-`, prompt.Name, prompt.Name)
-
-	systemMessage := "You are a programmer. You write code in the Go language. You write production code - avoid placeholders or \"implement later\" type of comments. Here is the list of files in the project folder.\n"
-
-	systemMessage += "file - apis.go:\n```go" + string(apisFile) + "```\n"
-	functionHeaders := prompts.getFunctionsHeadersCode()
-	if storagePrompt != nil {
-		systemMessage += "file - storage.go:\n```go" + storagePrompt.GetLastCode() + "\n" + prompts.getFunctionsHeadersCode() + "```\n"
-	} else if functionHeaders != "" {
-		systemMessage += "file - help_functions.go:\n```go" + prompts.getFunctionsHeadersCode() + "```\n"
-
+	systemMessage, err := os.ReadFile("sdk/prompt_tool.md")
+	if err != nil {
+		return "", "", err
 	}
-	systemMessage += "file - example.go:\n```go" + string(exampleFile) + "```\n"
-	systemMessage += "file - tool.go:\n```go" + toolFile + "```\n"
-
-	systemMessage += "Based on the user message, rewrite the tool.go file(keep struct and function header names). Your job is to design a function(tool). Look into an example.go to understand how APIs and storage functions work.\n"
-
-	systemMessage += "Figure out <tool's arguments> based on the user prompt. Argument can not be pointer. There are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with an upper-case letter. Every argument must have a description as a comment on same line. You can add extra marks(with brackets []) at the end of a comment. You may add multiple marks with your pair of brackets. Here are the marks:\n"
-	systemMessage += "[optional] - caller can ignore the attribute\n"
-	systemMessage += `[options: <list of options>] - caller must pick up from the list of values. Use it only for strings, not numbers. Example 1: [options: "first", "second", "third"].\n`
-	systemMessage += "\n"
-	systemMessage += "When you edit(for example addEditboxString(), etc.) tool's argument(attributes), do it directly via pointer(for example &tool.text). Do not make copies.\n"
-
-	systemMessage += "\n"
-	if storagePrompt != nil {
-		systemMessage += "storage.go has list of functions, use them.\n"
-		systemMessage += "To access the storage, call the Load...() function in storage.go, which returns the data. Don't call save/write on that data, it's automatically called after the function ends.\n"
-	} else if functionHeaders != "" {
-		systemMessage += "help_functions.go has list of functions, use them.\n"
-	}
-	systemMessage += "Never define constants('const'), use variables('var') for everything.\n"
+	sysMsg := string(systemMessage)
+	sysMsg = strings.ReplaceAll(sysMsg, "[REPLACE_TOOL_NAME]", prompt.Name)
+	sysMsg = strings.ReplaceAll(sysMsg, "[REPLACE_API_CODE]", string(api_code))
+	sysMsg = strings.ReplaceAll(sysMsg, "[REPLACE_STORAGE_CODE]", storage_code)
+	sysMsg = strings.ReplaceAll(sysMsg, "[REPLACE_FUNCTIONS_CODE]", prompts.getFunctionsHeadersCode())
+	sysMsg = strings.ReplaceAll(sysMsg, "[REPLACE_EXAMPLE_CODE]", string(example_code))
 
 	userMessage := prompt.Prompt
 
-	return systemMessage, userMessage, nil
+	return sysMsg, userMessage, nil
 }
 
 func _ToolsPrompt_getValidFileName(s string) string {
