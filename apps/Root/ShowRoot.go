@@ -75,6 +75,11 @@ func (st *ShowRoot) run(caller *ToolCaller, ui *UI) error {
 		SearchDiv.AddText(0, 0, 1, 1, "Search")
 		SearchEditbox := SearchDiv.AddEditboxString(1, 0, 1, 1, &source_root.TextHighlighting)
 		SearchEditbox.ActivateOnCreate = true
+		CloseBt := SearchDiv.AddButton(2, 0, 1, 1, "X")
+		CloseBt.clicked = func() error {
+			source_root.EnableTextHighlighting = false
+			return nil
+		}
 
 		callFuncSetTextHighlight(source_root.TextHighlighting)
 	} else {
@@ -628,10 +633,10 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 				dia.OpenCentered(caller)
 
 				dashW = 1
-				//dia.UI.SetColumnFromSub(0, 5, 20, true)
-				//dia.UI.SetRowFromSub(0, 5, 20, true)
-				dia.UI.SetColumn(0, 15, 20)
-				dia.UI.SetRow(0, 15, 20)
+				dia.UI.SetColumnFromSub(0, 15, 20, true)
+				dia.UI.SetRowFromSub(0, 10, 20, true)
+				//dia.UI.SetColumn(0, 15, 20)
+				//dia.UI.SetRow(0, 15, 20)
 				last_dashUi = &dia.UI
 			}
 
