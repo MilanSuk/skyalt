@@ -11,8 +11,6 @@ import (
 
 //Some functions may have 'llmtip' argument which describes what UI component represents. If component or table line show value from storage which has ID, the format should be <storage path>=<ID>. Few examples: "Year of born for PersonID=123", "Image with GalleryID='path/to/image'".
 
-//Code inside callbacks(UIButton.clicked, UIEditbox.changed, LLMCompletion.update, etc.), should not change into UIs attributes, it should write only into storage or tool's arguments.
-
 //If button triggers LLM completion, use addLLMCompletionButton() instead of addButton().
 
 type ToolCaller struct {
@@ -93,14 +91,16 @@ type UIEditbox struct {
 	Formating    bool
 	Multiline    bool
 	Linewrapping bool
+
+	enter func() error //called after editbox is finished by pressing enter key
 }
 
 func (ed *UIEditbox) setMultilined()              //Enable multi-line & Line-wrapping
 func (ed *UIEditbox) Activate(caller *ToolCaller) //Activate editbox.
 
-func (ui *UI) addEditboxString(value string, changed func(newValue string), tooltip string) *UIEditbox
-func (ui *UI) addEditboxInt(value *int, changed func(newValue int), tooltip string) *UIEditbox
-func (ui *UI) addEditboxFloat(value *float64, changed func(newValue float64), precision int, tooltip string)
+func (ui *UI) addEditboxString(value string, changed func(newValue string, self *UIEditbox), tooltip string) *UIEditbox
+func (ui *UI) addEditboxInt(value *int, changed func(newValue int), tooltip string, self *UIEditbox) *UIEditbox
+func (ui *UI) addEditboxFloat(value *float64, changed func(newValue float64, self *UIEditbox), precision int, tooltip string)
 
 type UIButton struct {
 	layout *UI
@@ -146,7 +146,7 @@ type UIDropDown struct {
 }
 
 // 'labels' should start with Upper letter and have spaces(if multiple words).
-func (ui *UI) addDropDown(value string, changed func(newValue string), labels []string, values []string, tooltip string) *UIDropDow
+func (ui *UI) addDropDown(value string, changed func(newValue string, self *UIDropDow), labels []string, values []string, tooltip string) *UIDropDow
 
 type UIPromptMenuIcon struct {
 	Path   string
@@ -168,7 +168,7 @@ type UISwitch struct {
 	Value  *bool
 }
 
-func (ui *UI) addSwitch(label string, value bool, changed func(newValue bool), tooltip string) *UISwitch
+func (ui *UI) addSwitch(label string, value bool, changed func(newValue bool, self *UISwitch), tooltip string) *UISwitch
 
 type UICheckbox struct {
 	layout *UI
@@ -176,7 +176,7 @@ type UICheckbox struct {
 	Value  *float64
 }
 
-func (ui *UI) addCheckbox(label string, value float64, changed func(newValue float64), tooltip string) *UICheckbox
+func (ui *UI) addCheckbox(label string, value float64, changed func(newValue float64, self *UICheckbox), tooltip string) *UICheckbox
 
 type UISlider struct {
 	layout *UI
@@ -186,7 +186,7 @@ type UISlider struct {
 	Step   float64
 }
 
-func (ui *UI) addSlider(value float64, changed func(newValue float64), min, max, step float64, tooltip string) *UISlider
+func (ui *UI) addSlider(value float64, changed func(newValue float64, self *UISlider), min, max, step float64, tooltip string) *UISlider
 
 type UIDivider struct {
 	layout     *UI
@@ -274,7 +274,7 @@ type UIFilePickerButton struct {
 	OnlyFolders bool
 }
 
-func (ui *UI) addFilePickerButton(path string, changed func(newPath string), preview bool, onlyFolders bool, tooltip string) *UIFilePickerButton
+func (ui *UI) addFilePickerButton(path string, changed func(newPath string, self *UIFilePickerButton), preview bool, onlyFolders bool, tooltip string) *UIFilePickerButton
 
 type UIDatePickerButton struct {
 	layout   *UI
@@ -283,14 +283,14 @@ type UIDatePickerButton struct {
 	ShowTime bool
 }
 
-func (ui *UI) addDatePickerButton(date int64, changed func(newDate int64), page *int64, showTime bool, tooltip string) *UIDatePickerButton
+func (ui *UI) addDatePickerButton(date int64, changed func(newDate int64, self *UIDatePickerButton), page *int64, showTime bool, tooltip string) *UIDatePickerButton
 
 type UIColorPickerButton struct {
 	layout *UI
 	Cd     *color.RGBA
 }
 
-func (ui *UI) addColorPickerButton(cd color.RGBA, changed func(newCd color.RGBA), tooltip string) *UIColorPickerButton
+func (ui *UI) addColorPickerButton(cd color.RGBA, changed func(newCd color.RGBA, self *UIColorPickerButton), tooltip string) *UIColorPickerButton
 
 type UIChartPoint struct {
 	X  float64
@@ -384,8 +384,8 @@ type LLMCompletion struct {
 	Out_reasoning string
 }
 
-// Show Button to trigger LLM completion. When it's running, it shows "Stop" button and returns answer(full answer so far). After it's finished, it calls done callback with complete answer.
-func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, done func(answer string), caller *ToolCaller) (running bool, answer string)
+// Show Button to trigger LLM completion. When it's already running, it shows "Stop" button and returns work-in-progress answer so you can show it on screen. After it's finished, it calls done() callback with complete answer.
+func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, done func(answer string), caller *ToolCaller) (running bool, work_in_progress_answer string)
 
 // UID: unique ID for completion
 func NewLLMCompletion(UID string, systemMessage string, userMessage string) *LLMCompletion {

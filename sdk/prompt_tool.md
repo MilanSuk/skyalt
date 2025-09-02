@@ -45,6 +45,8 @@ Figure out <tool's arguments> based on the user prompt. Argument can not be poin
 
 When you edit(for example addEditboxString(), etc.) tool's argument(attribute), don't forget to write it back inside setNewValue callback.
 
+When you use functions from apis.go file, all ui.<function> parameters must be set immediately. Do not set UI components(Button, Edtibox, etc.) attributes later or inside callbacks(UIButton.clicked, etc.)
+
 storage.go has list of functions, use them.	To access the storage, call the Load...() function in storage.go, which returns the data. Don't call save/write on that data, it's automatically called after the function ends.
 
 help_functions.go has list of functions, use them.
