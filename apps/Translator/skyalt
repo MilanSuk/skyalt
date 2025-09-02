@@ -3,7 +3,7 @@ Returns list "English", "German", "French", "Czech", "Spanish".
 
 #Tool ShowTranslator
 Tool accepts original text and make translation into other language.
-Input parameter is "Original" text and "Language" text(to pick the language, default is "English") and output is "Translation" text. Input is optional and can be empty.
+Input parameter is "Original" text and "Language" text(to pick the language, default is "English") and output is "Translation" text. Both inputs are optional.
 
 UI:
 Whole UI is centered.
@@ -12,10 +12,10 @@ Next row has LLM button "Translate", then text "into"(centered) and then drop do
 Next row has text with 'Translation' from storage.
 
 Functions:
-The "Translate" button send original text into LLM completion with system prompt(replace <language> with 'Language' from storage) :
+The "Translate" button send original text into LLM completion with system prompt(replace <language> with tool's 'Language') :
 "You are Translator. You take a text from user and translate it into <language>.
 
 
 #Start
-Show Translator, no input.
+Show Translator tool, no input.
 

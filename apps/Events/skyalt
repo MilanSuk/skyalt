@@ -5,7 +5,7 @@ Every Event has:
 - Description(text)
 - Start(unix time)
 - Duration(seconds)
-- GroupID
+- GroupID(optional, default is -1)
 
 Every Group has:
 - Label(text)
@@ -16,7 +16,7 @@ Every Group has:
 
 
 #Function FilterEvents
-Inputs: Event start time. Event end time, List of GroupIDs.
+Inputs: Event start time, Event end time, List of GroupIDs.
 Output: List of EventID
 Filter Events by inputs. If list of GroupIDs is empty, show events for all groups.
 
@@ -43,14 +43,14 @@ Show month calendar for specific year and month. Optionaly has list of GroupIDs,
 Show days calendar. It accepts list of dates(text) in format YYYY-MM-DD
 
 
-
 #Tool ShowAddNewEventDialog
-Inputs: Event attributes(Title, Description, Start, Duration). All are optional.
+Inputs: Event attributes: Title(text), Description(text), Start(date), Duration(integer in minutes). All are optional.
 Outputs: None.
-Show form with inputs(every line has text with description and UI to set a value). Finish with "Save" button which If it's clicked, add event to 'Events'.
+Show form with inputs(every line has text with description and UI to set a value). Last is "Save" button which If it's clicked, add event to 'Events' and close dialog.
 Whole UI is centered.
 
-#Tool ShowEditEvent
+
+#Tool ShowEditEventDialog
 It accepts EventID and show form to edit all events attributes. User will fill the form and send it.
 Whole UI is centered.
 
@@ -66,15 +66,15 @@ Whole UI is centered.
 It accepts EventID and GroupID and change event's GroupID attribute.
 No visual output.
 
-#Tool ShowAddNewGroup
+#Tool ShowAddNewGroupDialog
 It accepts Label(text, optional) and Red/Green/Blue color(in format <0-255>) and show GUI to add new group. User can set label and color.
 Whole UI is centered.
 
-#Tool ShowEditGroup
+#Tool ShowEditGroupDialog
 It accepts GroupID and show form to edit all group attributes. User will fill the form and send it.
 Whole UI is centered.
 
-#Tool ShowGroups
+#Tool ShowGroupsDialog
 Show list of groups.
 Whole UI is centered.
 
