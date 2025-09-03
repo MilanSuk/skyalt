@@ -319,6 +319,8 @@ func (win *Win) Event() (bool, bool) {
 		case *sdl.MouseMotionEvent:
 			inputChanged = true
 
+			io.Touch.HasChanged = true
+
 		case *sdl.MouseButtonEvent:
 			switch val.Button {
 			case sdl.BUTTON_X1:
@@ -354,6 +356,8 @@ func (win *Win) Event() (bool, bool) {
 					io.Touch.End = true
 					sdl.CaptureMouse(false)
 				}
+
+				io.Touch.HasChanged = true
 			}
 			return true, true
 
@@ -369,6 +373,8 @@ func (win *Win) Event() (bool, bool) {
 				io.Touch.Wheel = -int(val.Y) // divide by -WHEEL_DELTA
 				io.Touch.wheel_last_sec = OsTime()
 			}
+
+			io.Touch.HasChanged = true
 			return true, true
 
 		case *sdl.KeyboardEvent:
@@ -449,7 +455,7 @@ func (win *Win) Event() (bool, bool) {
 					}
 				}
 
-				keys.HasChanged = true
+				io.Keys.HasChanged = true
 			}
 			return true, true
 
@@ -463,6 +469,8 @@ func (win *Win) Event() (bool, bool) {
 		case *sdl.DropEvent:
 			if val.Type == sdl.DROPFILE {
 				g_dropPath = val.File
+
+				io.Keys.HasChanged = true
 			}
 			return true, true
 		}

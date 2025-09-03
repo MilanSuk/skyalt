@@ -529,7 +529,9 @@ func (ui *Ui) Tick() {
 	ui.mainLayout.UpdateTouch()
 	ui.mainLayout.TouchDialogs(ui.edit.uid, ui.touch.canvas)
 
-	ui.mainLayout.textComp() //slow, run only when win inputChanged ........
+	if ui.win.io.Touch.Start || (ui.edit.IsActive() && (ui.touch.IsCanvasActive() || ui.win.io.Keys.HasChanged)) {
+		ui.mainLayout.textComp()
+	}
 
 	// close all levels
 	if ui.win.io.Keys.Shift && ui.win.io.Keys.Esc {

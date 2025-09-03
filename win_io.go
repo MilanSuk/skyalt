@@ -88,6 +88,8 @@ type WinKeys struct {
 }
 
 type WinTouch struct {
+	HasChanged bool
+
 	Pos       OsV2
 	Wheel     int
 	NumClicks int
