@@ -1,4 +1,4 @@
-#tool ShowGrammarChecker
+#Tool ShowGrammarChecker
 Tool accepts text, check grammar and output fixed text.
 Input parameter is "Original" text and output is "Fixed" text. Input is optional and can be empty.
 

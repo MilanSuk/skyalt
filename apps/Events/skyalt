@@ -44,14 +44,14 @@ Show days calendar. It accepts list of dates(text) in format YYYY-MM-DD
 
 
 #Tool ShowAddNewEventDialog
-Inputs: Event attributes: Title(text), Description(text), Start(date), Duration(integer in minutes). All are optional.
+Inputs: Event attributes: Title(text), Description(text), Start(date), Duration(integer in minutes), Group(Drop-down with group's labels). All are optional.
 Outputs: None.
 Show form with inputs(every line has text with description and UI to set a value). Last is "Save" button which If it's clicked, add event to 'Events' and close dialog.
 Whole UI is centered.
 
 
 #Tool ShowEditEventDialog
-It accepts EventID and show form to edit all events attributes. User will fill the form and send it.
+It accepts EventID and show form to edit all events attributes. User will fill the form and save it and close dialog.
 Whole UI is centered.
 
 #Tool DeleteEvent
@@ -67,11 +67,12 @@ It accepts EventID and GroupID and change event's GroupID attribute.
 No visual output.
 
 #Tool ShowAddNewGroupDialog
-It accepts Label(text, optional) and Red/Green/Blue color(in format <0-255>) and show GUI to add new group. User can set label and color.
+It accepts Label(text, optional) and Red/Green/Blue colors(in format <0-255>) 
+UI shows Label(editbox), colors(color picker) and button to add new group(which close dialog).
 Whole UI is centered.
 
 #Tool ShowEditGroupDialog
-It accepts GroupID and show form to edit all group attributes. User will fill the form and send it.
+It accepts GroupID and show form to edit all group attributes. User will fill the form and save it and close dialog.
 Whole UI is centered.
 
 #Tool ShowGroupsDialog
