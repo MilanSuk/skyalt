@@ -220,6 +220,10 @@ type Layout struct {
 	view   OsV4
 	crop   OsV4
 
+	//soft relayout cache
+	view_backup      OsV4
+	view_backup_size OsV2
+
 	cols UiLayoutArray
 	rows UiLayoutArray
 
@@ -1883,7 +1887,7 @@ func (layout *Layout) updateColsRows() {
 	}
 }
 
-func (layout *Layout) _updateCoordInner() {
+func (layout *Layout) _updateCoordInner(soft bool) {
 	//maybe use these later for layout margin? ....
 	rx := 0.0
 	ry := 0.0
@@ -1892,7 +1896,14 @@ func (layout *Layout) _updateCoordInner() {
 
 	isLevel := layout.IsLevel()
 	if !isLevel {
-		layout.view = layout.parent.convert(InitOsV4(layout.X, layout.Y, layout.W, layout.H))
+		if !soft {
+			layout.view = layout.parent.convert(InitOsV4(layout.X, layout.Y, layout.W, layout.H))
+
+			layout.view_backup = layout.view
+		} else {
+			layout.view = layout.view_backup
+		}
+
 		layout.view.Start = layout.parent.view.Start.Add(layout.view.Start)
 
 		layout.view.Start.X += int(float64(layout.view.Size.X) * rx)
@@ -1903,7 +1914,6 @@ func (layout *Layout) _updateCoordInner() {
 		// move start by scroll
 		layout.view.Start.X -= layout.parent.scrollH.GetWheel() //parent scroll
 		layout.view.Start.Y -= layout.parent.scrollV.GetWheel()
-
 	}
 
 	// crop
@@ -1912,7 +1922,7 @@ func (layout *Layout) _updateCoordInner() {
 	}
 
 	//slow ....
-	{
+	if !soft {
 		makeSmallerX := layout.scrollV.Show
 		makeSmallerY := layout.scrollH.Show
 		gridMax := layout.GetGridMax(OsV2{})
@@ -1920,6 +1930,10 @@ func (layout *Layout) _updateCoordInner() {
 		for layout.updateGridAndScroll(&screen, gridMax, &makeSmallerX, &makeSmallerY) {
 		}
 		layout.view.Size = screen
+
+		layout.view_backup_size = layout.view.Size
+	} else {
+		layout.view.Size = layout.view_backup_size
 	}
 
 	// crop
@@ -1941,7 +1955,7 @@ func (layout *Layout) _updateCoordInner() {
 
 func (layout *Layout) updateCoordSoft() {
 	if !layout.IsLevel() {
-		layout._updateCoordInner()
+		layout._updateCoordInner(true)
 	}
 	for _, it := range layout.childs {
 		it.updateCoordSoft()
@@ -1950,7 +1964,7 @@ func (layout *Layout) updateCoordSoft() {
 
 func (layout *Layout) updateCoord() {
 	layout.updateColsRows()
-	layout._updateCoordInner()
+	layout._updateCoordInner(false)
 }
 
 func (layout *Layout) GetGridMax(minSize OsV2) OsV2 {
