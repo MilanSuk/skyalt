@@ -368,7 +368,7 @@ func (router *AppsRouter) CallBuildAsync(ui_uid uint64, appName, toolName string
 	return msg
 }
 
-func (router *AppsRouter) AddRecompileMsg(appName string) *AppsRouterMsg {
+func (router *AppsRouter) AddLocalRecompileMsg(appName string) *AppsRouterMsg {
 	msg_id := router.msgs_counter.Add(1)
 	msg := NewAppsRouterMsg(msg_id, "", "compile", nil, nil)
 	msg.SetName(appName, "", "_compile_")
@@ -380,7 +380,7 @@ func (router *AppsRouter) AddRecompileMsg(appName string) *AppsRouterMsg {
 	return msg
 }
 
-func (router *AppsRouter) FindRecompileMsg(appName string) *AppsRouterMsg {
+func (router *AppsRouter) FindLocalRecompileMsg(appName string) *AppsRouterMsg {
 	return router.FindMessageName(appName, "", "_compile_")
 }
 
@@ -502,11 +502,28 @@ func (router *AppsRouter) RunNet() {
 					}
 
 				case "generate_app":
-					appName, err := cl.ReadArray()
+					msg_id, err := cl.ReadInt()
 					if err == nil {
-						app := router.FindApp(string(appName))
-						if app != nil {
-							app.Tick(true) //err ....
+						appName, err := cl.ReadArray()
+						if err == nil {
+
+							router.lock.Lock()
+							msg, _ := router.msgs[msg_id]
+							router.lock.Unlock()
+
+							var retErr error
+							app := router.FindApp(string(appName))
+							if app != nil {
+								retErr = app.Tick(msg) //err ....
+							} else {
+								retErr = fmt.Errorf("app '%s' not found", string(appName))
+							}
+
+							var errStr string
+							if retErr != nil {
+								errStr = retErr.Error()
+							}
+							cl.WriteArray([]byte(errStr))
 						}
 					}
 
@@ -685,7 +702,7 @@ func (router *AppsRouter) RunNet() {
 						}
 					}
 
-				case "find_msg_name":
+				case "find_msg":
 					appName, err := cl.ReadArray()
 					if err == nil {
 						toolName, err := cl.ReadArray()
@@ -711,7 +728,7 @@ func (router *AppsRouter) RunNet() {
 						}
 					}
 
-				case "stop_msg_name":
+				case "stop_msg":
 					appName, err := cl.ReadArray()
 					if err == nil {
 						toolName, err := cl.ReadArray()
@@ -927,7 +944,7 @@ func (router *AppsRouter) _hotReload() {
 	if rootApp != nil {
 		wg.Add(1)
 		go func() {
-			rootApp.Tick(false)
+			rootApp.Tick(nil)
 			wg.Done()
 		}()
 	}
@@ -940,7 +957,7 @@ func (router *AppsRouter) _hotReload() {
 
 		wg.Add(1)
 		go func() {
-			app.Tick(false)
+			app.Tick(nil)
 			wg.Done()
 		}()
 	}

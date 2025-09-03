@@ -889,7 +889,7 @@ func (caller *ToolCaller) callFuncMsgStop(msg_name string) {
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
-		err = cl.WriteArray([]byte("stop_msg_name"))
+		err = cl.WriteArray([]byte("stop_msg"))
 		if Tool_Error(err) == nil {
 
 			err = cl.WriteArray([]byte(g_main.appName))
@@ -909,7 +909,7 @@ func (caller *ToolCaller) callFuncFindMsgName(msg_name string) *SdkMsg {
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
-		err = cl.WriteArray([]byte("find_msg_name"))
+		err = cl.WriteArray([]byte("find_msg"))
 		if Tool_Error(err) == nil {
 
 			err = cl.WriteArray([]byte(g_main.appName))
@@ -1168,17 +1168,32 @@ func (caller *ToolCaller) callFuncChange(ui_uid uint64, appName string, changeJs
 	return nil, fmt.Errorf("connection failed")
 }
 
-func callFuncGenerateApp(app_name string) {
+func callFuncGenerateApp(app_name string, caller *ToolCaller) error {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
 		err = cl.WriteArray([]byte("generate_app"))
 		if Tool_Error(err) == nil {
-			err = cl.WriteArray([]byte(app_name))
-			Tool_Error(err)
+
+			err = cl.WriteInt(caller.msg_id)
+			if Tool_Error(err) == nil {
+				err = cl.WriteArray([]byte(app_name))
+				if Tool_Error(err) == nil {
+
+					errBytes, err := cl.ReadArray()
+					if Tool_Error(err) == nil {
+						if len(errBytes) > 0 {
+							return fmt.Errorf(string(errBytes))
+						}
+						return nil //ok
+					}
+				}
+			}
 		}
 	}
+
+	return fmt.Errorf("Connection failed")
 }
 
 func callFuncPrint(str string) {

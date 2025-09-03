@@ -143,8 +143,7 @@ type ToolsPrompts struct {
 
 	StartPrompt string
 
-	Generating_msg_id string
-	Generating_items  []*ToolsPromptGen
+	Generating_items []*ToolsPromptGen
 
 	refresh bool
 
@@ -155,13 +154,6 @@ func (prompts *ToolsPrompts) Destroy() error {
 	return nil
 }
 
-func (prompts *ToolsPrompts) ResetGenMsgs(msg_id string) {
-	prompts.lock.Lock()
-	defer prompts.lock.Unlock()
-
-	prompts.Generating_msg_id = msg_id
-	prompts.Generating_items = nil
-}
 func (prompts *ToolsPrompts) AddGenMsg(name string, msg string) {
 	prompts.lock.Lock()
 	defer prompts.lock.Unlock()

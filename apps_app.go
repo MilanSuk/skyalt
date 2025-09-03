@@ -203,11 +203,9 @@ func (app *ToolsApp) NeedRefresh() bool {
 	return false
 }
 
-func (app *ToolsApp) Tick(generate bool) error {
+func (app *ToolsApp) Tick(msg *AppsRouterMsg) error {
 	app.lock.Lock()
 	defer app.lock.Unlock()
-
-	defer app.Prompts.ResetGenMsgs("")
 
 	sdkFileTime, appFilesTime, hasPrompts, err := app.getPromptFileTime()
 	if err != nil {
@@ -216,7 +214,7 @@ func (app *ToolsApp) Tick(generate bool) error {
 
 	binFileMissing := !Tools_IsFileExists(app.Process.Compile.GetBinPath()) && app.Process.Compile.Error == ""
 
-	if !generate {
+	if msg == nil {
 		old := app.Prompts.Changed
 		app.Prompts.Changed = (app.Process.Compile.AppFileTime != appFilesTime || binFileMissing)
 		if !app.Prompts.Changed {
@@ -230,8 +228,10 @@ func (app *ToolsApp) Tick(generate bool) error {
 	restart := false
 
 	if !hasPrompts {
-		msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
-		defer msg.Done()
+		if msg == nil {
+			msg = app.router.AddLocalRecompileMsg(app.Process.Compile.appName)
+			defer msg.Done()
+		}
 
 		err := app.Prompts._reloadFromCodeFiles(app.Process.Compile.GetFolderPath())
 		if err != nil {
@@ -251,12 +251,13 @@ func (app *ToolsApp) Tick(generate bool) error {
 		restart = true
 	} else {
 
-		if !generate {
+		if msg == nil {
 			if len(app.Prompts.Prompts) > 0 { //must exist
 
 				//only recompile(for example: sdk.go changed)
 				if app.Process.Compile.SdkFileTime != sdkFileTime || binFileMissing {
-					msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
+
+					msg = app.router.AddLocalRecompileMsg(app.Process.Compile.appName)
 					defer msg.Done()
 
 					err = app.Process.Compile.BuildMainFile(app.Prompts.Prompts) //sdk.go -> main.go
@@ -294,8 +295,8 @@ func (app *ToolsApp) Tick(generate bool) error {
 				return err
 			}
 
-			msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
-			defer msg.Done()
+			//msg := app.router.AddRecompileMsg(app.Process.Compile.appName)
+			//defer msg.Done()
 
 			MAX_Errors_tries := 10
 
@@ -303,8 +304,6 @@ func (app *ToolsApp) Tick(generate bool) error {
 			if err != nil {
 				return err
 			}
-
-			app.Prompts.ResetGenMsgs(msg.msg_name)
 
 			//Storage
 			storagePrompt := app.Prompts.FindStorage()
