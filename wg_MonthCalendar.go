@@ -65,6 +65,25 @@ func (st *MonthCalendar) Build(layout *Layout) {
 		}
 	}
 
+	//grid
+	{
+		for y := range 6 {
+			div := layout.AddLayout(0, 2+y, 7, 1)
+			div.fnDraw = func(rect Rect, l *Layout) (paint LayoutPaint) {
+				paint.Line(rect, 0, 0, 1, 0, layout.GetPalette().GetGrey(0.25), 0.03)
+				return
+			}
+		}
+
+		for x := range 6 {
+			div := layout.AddLayout(1+x, 2, 1, 6)
+			div.fnDraw = func(rect Rect, l *Layout) (paint LayoutPaint) {
+				paint.Line(rect, 0, 0, 0, 1, layout.GetPalette().GetGrey(0.25), 0.03)
+				return
+			}
+		}
+	}
+
 	{
 		// Week Days
 		today := time.Now()
@@ -97,18 +116,18 @@ func (st *MonthCalendar) Build(layout *Layout) {
 						Day.Value = "<b>" + Day.Value
 					}
 
-					Div2 := Div.AddLayout(0, 1, 1, 1)
 					{
-						Div2.scrollV.Narrow = true
+						DivEvents := Div.AddLayout(0, 1, 1, 1)
+						DivEvents.scrollV.Narrow = true
 
-						Div2.SetColumn(0, 1, Layout_MAX_SIZE)
+						DivEvents.SetColumn(0, 1, Layout_MAX_SIZE)
 						y := 0
 						for _, event := range st.Events {
 							if !event.isInTimeRange(dt.Unix(), dt.Unix()+(24*3600)) {
 								continue
 							}
 
-							Div2.SetRow(y, 0.7, 0.7)
+							DivEvents.SetRow(y, 0.7, 0.7)
 							y++
 						}
 
@@ -118,7 +137,7 @@ func (st *MonthCalendar) Build(layout *Layout) {
 								continue
 							}
 
-							tx, txLay := Div2.AddText2(0, y, 1, 1, event.Title)
+							tx, txLay := DivEvents.AddText2(0, y, 1, 1, event.Title)
 							tx.Tooltip = fmt.Sprintf("EventID: %d, Title: %s, Start: %s, End: %s, GroupID: %d", event.EventID, event.Title, layout.ConvertTextDateTime(event.Start), layout.ConvertTextDateTime(event.Start+event.Duration), event.GroupID)
 							tx.Tooltip = layout.ConvertTextTime(event.Start) + " - " + layout.ConvertTextTime(event.Start+event.Duration) + "\n" + event.Title
 							txLay.Back_cd = event.Color
@@ -137,20 +156,4 @@ func (st *MonthCalendar) Build(layout *Layout) {
 		}
 	}
 
-	//grid
-	for y := range 6 {
-		div := layout.AddLayout(0, 2+y, 7, 1)
-		div.fnDraw = func(rect Rect, l *Layout) (paint LayoutPaint) {
-			paint.Line(rect, 0, 0, 1, 0, layout.GetPalette().GetGrey(0.25), 0.03)
-			return
-		}
-	}
-
-	for x := range 6 {
-		div := layout.AddLayout(1+x, 2, 1, 6)
-		div.fnDraw = func(rect Rect, l *Layout) (paint LayoutPaint) {
-			paint.Line(rect, 0, 0, 0, 1, layout.GetPalette().GetGrey(0.25), 0.03)
-			return
-		}
-	}
 }
