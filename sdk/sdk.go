@@ -2426,21 +2426,21 @@ func (ui *UI) addPromptMenu(prompts []string, tooltip string) *UIPromptMenu {
 	return item
 }
 
-func (ui *UI) addSwitch(label string, value bool, changed func(newValue bool), tooltip string) *UISwitch {
+func (ui *UI) addSwitch(label string, value bool, changed func(newValue bool, self *UISwitch), tooltip string) *UISwitch {
 	item := &UISwitch{Label: label, Value: &value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Switch = item
 	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addCheckbox(label string, value float64, changed func(newValue float64), tooltip string) *UICheckbox {
+func (ui *UI) addCheckbox(label string, value float64, changed func(newValue float64, self *UICheckbox), tooltip string) *UICheckbox {
 	item := &UICheckbox{Label: label, Value: &value, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Checkbox = item
 	ui._addUILine(item.layout)
 	return item
 }
 
-func (ui *UI) addSlider(value float64, changed func(newValue float64), min, max, step float64, tooltip string) *UISlider {
+func (ui *UI) addSlider(value float64, changed func(newValue float64, self *UISlider), min, max, step float64, tooltip string) *UISlider {
 	item := &UISlider{Value: &value, Min: min, Max: max, Step: step, layout: _newUIItem(ui.temp_col, ui.temp_row, 1, 1, tooltip)}
 	item.layout.Slider = item
 	ui._addUILine(item.layout)

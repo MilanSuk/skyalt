@@ -99,8 +99,8 @@ func (ed *UIEditbox) setMultilined()              //Enable multi-line & Line-wra
 func (ed *UIEditbox) Activate(caller *ToolCaller) //Activate editbox.
 
 func (ui *UI) addEditboxString(value string, changed func(newValue string, self *UIEditbox), tooltip string) *UIEditbox
-func (ui *UI) addEditboxInt(value *int, changed func(newValue int), tooltip string, self *UIEditbox) *UIEditbox
-func (ui *UI) addEditboxFloat(value *float64, changed func(newValue float64, self *UIEditbox), precision int, tooltip string)
+func (ui *UI) addEditboxInt(value int, changed func(newValue int, self *UIEditbox), tooltip string) *UIEditbox
+func (ui *UI) addEditboxFloat(value float64, changed func(newValue float64, self *UIEditbox), precision int, tooltip string)
 
 type UIButton struct {
 	layout *UI

@@ -629,7 +629,7 @@ func (prompts *ToolsPrompts) _getToolMsg(prompt *ToolsPrompt) (string, string, e
 		return "", "", err
 	}
 
-	example_code, err := os.ReadFile("sdk/_tool_example.go")
+	example_code, err := os.ReadFile("sdk/tool_example.go")
 	if err != nil {
 		return "", "", err
 	}
