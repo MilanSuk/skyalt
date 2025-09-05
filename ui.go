@@ -529,7 +529,7 @@ func (ui *Ui) Tick() {
 	ui.mainLayout.UpdateTouch()
 	ui.mainLayout.TouchDialogs(ui.edit.uid, ui.touch.canvas)
 
-	if ui.win.io.Touch.Start || (ui.edit.IsActive() && (ui.touch.IsCanvasActive() || ui.win.io.Keys.HasChanged)) {
+	if ui.win.io.Touch.Start || (ui.edit.IsActive() && (ui.touch.IsCanvasActive() || ui.win.io.Keys.HasChanged)) || ui.edit.activate_next_uid > 0 {
 		ui.mainLayout.textComp()
 	}
 
