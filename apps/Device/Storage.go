@@ -281,7 +281,7 @@ func NewMicrophoneSettings(file string) (*MicrophoneSettings, error) {
 	return LoadFile(file, "MicrophoneSettings", "json", st, true)
 }
 
-type LLMLlamacppMsgStats struct {
+type LLMMsgStats struct {
 	Function string
 	Usage    LLMMsgUsage
 }
@@ -293,7 +293,7 @@ type LLMLlamacpp struct {
 	Address string
 	Port    int
 
-	Stats []LLMLlamacppMsgStats
+	Stats []LLMMsgStats
 }
 
 func NewLLMLlamacpp(file string) (*LLMLlamacpp, error) {
@@ -338,11 +338,6 @@ type LLMMistralImageModel struct {
 	Aliases []string
 }
 
-type LLMMistralMsgStats struct {
-	Function string
-	Usage    LLMMsgUsage
-}
-
 // Mistral LLM settings.
 type LLMMistral struct {
 	Provider   string
@@ -353,7 +348,7 @@ type LLMMistral struct {
 	LanguageModels []*LLMMistralLanguageModel
 	ImageModels    []*LLMMistralImageModel
 
-	Stats []LLMMistralMsgStats
+	Stats []LLMMsgStats
 }
 
 func NewLLMMistral(file string) (*LLMMistral, error) {
@@ -521,11 +516,6 @@ type LLMGroqImageModel struct {
 	Aliases []string
 }
 
-type LLMGroqMsgStats struct {
-	Function string
-	Usage    LLMMsgUsage
-}
-
 // Groq LLM settings.
 type LLMGroq struct {
 	Provider   string
@@ -536,7 +526,7 @@ type LLMGroq struct {
 	LanguageModels []*LLMGroqLanguageModel
 	ImageModels    []*LLMGroqImageModel
 
-	Stats []LLMGroqMsgStats
+	Stats []LLMMsgStats
 }
 
 func NewLLMGroq(file string) (*LLMGroq, error) {
@@ -673,11 +663,6 @@ type LLMOpenaiImageModel struct {
 	Aliases []string
 }
 
-type LLMOpenaiMsgStats struct {
-	Function string
-	Usage    LLMMsgUsage
-}
-
 // OpenAI LLM settings.
 type LLMOpenai struct {
 	Provider   string
@@ -688,7 +673,7 @@ type LLMOpenai struct {
 	LanguageModels []*LLMOpenaiLanguageModel
 	ImageModels    []*LLMOpenaiImageModel
 
-	Stats []LLMOpenaiMsgStats
+	Stats []LLMMsgStats
 }
 
 func NewLLMOpenai(file string) (*LLMOpenai, error) {
@@ -863,11 +848,6 @@ type LLMxAIImageModel struct {
 	Aliases []string
 }
 
-type LLMxAIMsgStats struct {
-	Function string
-	Usage    LLMMsgUsage
-}
-
 // xAI LLM settings.
 type LLMxAI struct {
 	Provider   string
@@ -878,7 +858,7 @@ type LLMxAI struct {
 	LanguageModels []*LLMxAILanguageModel
 	ImageModels    []*LLMxAIImageModel
 
-	Stats []LLMxAIMsgStats
+	Stats []LLMMsgStats
 }
 
 func NewLLMxAI(file string) (*LLMxAI, error) {
