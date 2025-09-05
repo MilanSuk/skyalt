@@ -380,8 +380,17 @@ func (router *AppsRouter) AddLocalRecompileMsg(appName string) *AppsRouterMsg {
 	return msg
 }
 
-func (router *AppsRouter) FindLocalRecompileMsg(appName string) *AppsRouterMsg {
-	return router.FindMessageName(appName, "", "_compile_")
+func (router *AppsRouter) FindStartRecompileMsg() *AppsRouterMsg {
+	msg := router.FindMessageName("Root", "", "_compile_")
+	if msg != nil {
+		return msg
+	}
+	msg = router.FindMessageName("Device", "", "_compile_")
+	if msg != nil {
+		return msg
+	}
+
+	return nil
 }
 
 func (router *AppsRouter) FindMessageName(appName, toolName, msgName string) *AppsRouterMsg {

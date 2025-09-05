@@ -96,7 +96,7 @@ func main() {
 				//error
 				win.RenderError("Error: " + rootApp.Process.Compile.Error)
 			} else {
-				msg := router.FindLocalRecompileMsg("Root")
+				msg := router.FindStartRecompileMsg()
 				if msg != nil && !msg.out_done.Load() {
 					//compiling
 					pl := ui.GetPalette()
