@@ -910,6 +910,10 @@ func (layout *Layout) addLayoutComp(it *UI, UI_UID uint64) {
 			bt.BrowserUrl = it.Button.BrowserUrl
 			bt.Cd = it.Button.Cd
 			bt.Shortcut_key = it.Button.Shortcut
+
+			if bt.BrowserUrl != "" {
+				bt.Background = 0
+			}
 		}
 
 		btLay := layout.FindGrid(it.X, it.Y, it.W, it.H)
