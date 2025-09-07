@@ -35,8 +35,9 @@ func (st *ShowLLMsSettings) run(caller *ToolCaller, ui *UI) error {
 		smarterSw := AppDiv.AddSwitch(0, 2, 1, 1, "Smarter", &source_dev.App_smarter)
 		smarterSw.layout.Enable = (source_dev.App_provider != "")
 
-		mdl := AppDiv.AddText(1, 2, 1, 1, source_dev.App_model+fmt.Sprintf(" (<i>%s</i>)", source_dev.GetPricingString(source_dev.App_provider, source_dev.App_model)))
-		mdl.layout.Tooltip = DeviceSettings_GetPricingStringTooltip()
+		pricing, tooltip := source_dev.GetPricingString(source_dev.App_provider, source_dev.App_model)
+		mdl := AppDiv.AddText(1, 2, 1, 1, source_dev.App_model+fmt.Sprintf(" (<i>%s</i>)", pricing))
+		mdl.layout.Tooltip = tooltip
 	}
 	y++
 	ui.AddDivider(0, y, 1, 1, true)

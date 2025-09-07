@@ -66,8 +66,9 @@ func (st *ShowLLMGroqSettings) run(caller *ToolCaller, ui *UI) error {
 	ModelsDiv.AddText(0, my, 2, 1, "Language models")
 	for _, it := range source_llm.LanguageModels {
 		ModelsDiv.AddText(1, my, 1, 1, it.Id)
-		tx := ModelsDiv.AddText(2, my, 1, 1, fmt.Sprintf("<i>%s</i>", source_llm.GetPricingString(it.Id)))
-		tx.layout.Tooltip = "Price of Input_text/Input_image/Input_cached/Output per 1M tokens"
+		pricing, tooltip := source_llm.GetPricingString(it.Id)
+		tx := ModelsDiv.AddText(2, my, 1, 1, fmt.Sprintf("<i>%s</i>", pricing))
+		tx.layout.Tooltip = tooltip
 		my++
 	}
 

@@ -33,6 +33,7 @@ type OpenAIOut_Usage struct {
 	Input_cached_tokens int
 	Completion_tokens   int
 	Total_tokens        int
+	Num_sources_used    int
 
 	Completion_tokens_details OpenAIOut_UsageDetails
 }
@@ -56,33 +57,6 @@ type OpenAI_completion_msgSystem struct {
 	Role    string `json:"role"` //"system"
 	Content string `json:"content"`
 }
-
-/*type OpenAI_completion_tool_function_parameters_properties struct {
-	Type        string   `json:"type"` //"number", "string"
-	Description string   `json:"description,omitempty"`
-	Enum        []string `json:"enum,omitempty"`
-	Default     string   `json:"default,omitempty"`
-
-	Items *OpenAI_completion_tool_function_parameters_properties `json:"items,omitempty"` //for arrays
-}
-type OpenAI_completion_tool_schema struct {
-	Type                 string   `json:"type"` //"object"
-	Required             []string `json:"required,omitempty"`
-	AdditionalProperties bool     `json:"additionalProperties"`
-
-	Properties map[string]*OpenAI_completion_tool_function_parameters_properties `json:"properties"`
-}
-type OpenAI_completion_tool_function struct {
-	Name        string                        `json:"name"`
-	Description string                        `json:"description"`
-	Parameters  OpenAI_completion_tool_schema `json:"parameters"`
-	Strict      bool                          `json:"strict"`
-}
-
-type OpenAI_completion_tool struct {
-	Type     string                          `json:"type"` //"object"
-	Function OpenAI_completion_tool_function `json:"function"`
-}*/
 
 type OpenAI_completion_Search_parameters struct {
 	Mode string `json:"mode,omitempty"` //"auto", "on", "off"
@@ -210,8 +184,9 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 				//FinishReason string `json:"finish_reason"`
 			}
 			type StreamResponse struct {
-				Choices []StreamChoice  `json:"choices"`
-				Usage   OpenAIOut_Usage `json:"usage"`
+				Choices   []StreamChoice  `json:"choices"`
+				Usage     OpenAIOut_Usage `json:"usage"`
+				Citations []string        `json:"citations"`
 			}
 			var streamResp StreamResponse
 
@@ -222,6 +197,10 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 
 			if streamResp.Usage.Total_tokens > 0 {
 				ret.Usage = streamResp.Usage
+			}
+
+			if len(streamResp.Citations) > 0 {
+				ret.Citations = append(ret.Citations, streamResp.Citations...)
 			}
 
 			for _, choice := range streamResp.Choices {
@@ -253,7 +232,7 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 
 				//callback
 				var msgs ChatMsgs
-				msgs.AddAssistentCalls(ret.Choices[0].Message.Reasoning_content, ret.Choices[0].Message.Content, ret.Choices[0].Message.Tool_calls, LLMMsgUsage{})
+				msgs.AddAssistentCalls(ret.Choices[0].Message.Reasoning_content, ret.Choices[0].Message.Content, ret.Choices[0].Message.Tool_calls, ret.Citations, LLMMsgUsage{})
 				if !fnStreaming(msgs.Messages[0]) {
 					streaming_ok = false
 					break //interrupted
@@ -298,7 +277,7 @@ type LLMMsgStats struct {
 	Usage    LLMMsgUsage
 }
 
-func OpenAI_Complete(Provider string, OpenAI_url string, API_key string, st *LLMComplete, app_port int, tools []*ToolsOpenAI_completion_tool, msg *AppsRouterMsg, fnGetTextPrice func(in, reason, cached, out int) (float64, float64, float64, float64)) ([]LLMMsgStats, error) {
+func OpenAI_Complete(Provider string, OpenAI_url string, API_key string, st *LLMComplete, app_port int, tools []*ToolsOpenAI_completion_tool, msg *AppsRouterMsg, fnGetTextPrice func(in, reason, cached, out int, sources int) (float64, float64, float64, float64, float64)) ([]LLMMsgStats, error) {
 
 	//Messages
 	var msgs ChatMsgs
@@ -331,6 +310,7 @@ func OpenAI_Complete(Provider string, OpenAI_url string, API_key string, st *LLM
 
 	last_final_msg := ""
 	last_reasoning_msg := ""
+	var last_citations []string
 
 	iter := 0
 	for iter < st.Max_iteration {
@@ -369,6 +349,9 @@ func OpenAI_Complete(Provider string, OpenAI_url string, API_key string, st *LLM
 		if st.Response_format != "" {
 			props.Response_format = &OpenAI_completion_format{Type: st.Response_format}
 		}
+		if st.Search_mode != "" {
+			props.Search_parameters = &OpenAI_completion_Search_parameters{Mode: st.Search_mode, Return_citations: st.Search_return_citations, Max_search_results: st.Search_max_search_results}
+		}
 
 		fnStreaming := func(chatMsg *ChatMsg) bool {
 			chatMsg.Seed = seed
@@ -405,6 +388,7 @@ func OpenAI_Complete(Provider string, OpenAI_url string, API_key string, st *LLM
 				usage.Input_cached_tokens = out.Usage.Input_cached_tokens
 				usage.Completion_tokens = out.Usage.Completion_tokens
 				usage.Reasoning_tokens = out.Usage.Completion_tokens_details.Reasoning_tokens
+				usage.Num_sources_used = out.Usage.Num_sources_used
 
 				usage.Provider = Provider
 				usage.Model = st.Out_usage.Model
@@ -413,7 +397,7 @@ func OpenAI_Complete(Provider string, OpenAI_url string, API_key string, st *LLM
 				usage.DTime = dt
 
 				if fnGetTextPrice != nil {
-					usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price = fnGetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens)
+					usage.Prompt_price, usage.Reasoning_price, usage.Input_cached_price, usage.Completion_price, usage.Sources_price = fnGetTextPrice(usage.Prompt_tokens, usage.Reasoning_tokens, usage.Input_cached_tokens, usage.Completion_tokens, usage.Num_sources_used)
 				}
 
 				//add
@@ -423,13 +407,14 @@ func OpenAI_Complete(Provider string, OpenAI_url string, API_key string, st *LLM
 			}
 
 			calls := out.Choices[0].Message.Tool_calls
-			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, usage)
+			m2 := msgs.AddAssistentCalls(out.Choices[0].Message.Reasoning_content, out.Choices[0].Message.Content, calls, out.Citations, usage)
 			if st.delta != nil {
 				st.delta(m2)
 			}
 
 			last_final_msg = out.Choices[0].Message.Content
 			last_reasoning_msg = out.Choices[0].Message.Reasoning_content
+			last_citations = out.Citations
 
 			for _, call := range calls {
 				var result string
@@ -526,6 +511,7 @@ func OpenAI_Complete(Provider string, OpenAI_url string, API_key string, st *LLM
 
 	st.Out_answer = last_final_msg
 	st.Out_reasoning = last_reasoning_msg
+	st.Out_citation_urls = last_citations
 
 	var err error
 	st.Out_messages, err = LogsJsonMarshal(msgs)
@@ -654,7 +640,7 @@ func ChatMsg_GetDivAfterReasoning() string {
 	return "\n\nFinal message: "
 }
 
-func (msgs *ChatMsgs) AddAssistentCalls(reasoning_text, final_text string, tool_calls []OpenAI_completion_msg_Content_ToolCall, usage LLMMsgUsage) *ChatMsg {
+func (msgs *ChatMsgs) AddAssistentCalls(reasoning_text, final_text string, tool_calls []OpenAI_completion_msg_Content_ToolCall, Citations []string, usage LLMMsgUsage) *ChatMsg {
 	text := final_text
 	if reasoning_text != "" {
 		text = reasoning_text + ChatMsg_GetDivAfterReasoning() + final_text
@@ -663,7 +649,7 @@ func (msgs *ChatMsgs) AddAssistentCalls(reasoning_text, final_text string, tool_
 	content := OpenAI_content{}
 	content.Calls = &OpenAI_completion_msgCalls{Role: "assistant", Content: text, Tool_calls: tool_calls}
 
-	msg := &ChatMsg{Content: content, Usage: usage, ReasoningSize: OsTrn(len(reasoning_text) == 0, 0, len(reasoning_text)+len(ChatMsg_GetDivAfterReasoning()))}
+	msg := &ChatMsg{Content: content, Citations: Citations, Usage: usage, ReasoningSize: OsTrn(len(reasoning_text) == 0, 0, len(reasoning_text)+len(ChatMsg_GetDivAfterReasoning()))}
 	msgs.Messages = append(msgs.Messages, msg)
 	return msg
 }

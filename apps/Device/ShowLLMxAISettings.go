@@ -65,17 +65,22 @@ func (st *ShowLLMxAISettings) run(caller *ToolCaller, ui *UI) error {
 
 	ModelsDiv.AddText(0, my, 2, 1, "Language models")
 	for _, it := range source_llm.LanguageModels {
+		pricing, tooltip := source_llm.GetPricingString(it.Id)
+
 		ModelsDiv.AddText(1, my, 1, 1, it.Id)
-		tx := ModelsDiv.AddText(2, my, 1, 1, fmt.Sprintf("<i>%s</i>", source_llm.GetPricingString(it.Id)))
-		tx.layout.Tooltip = "Price of Input_text/Input_image/Input_cached/Output per 1M tokens"
+		tx := ModelsDiv.AddText(2, my, 1, 1, fmt.Sprintf("<i>%s</i>", pricing))
+		tx.layout.Tooltip = tooltip
 		my++
 	}
 
 	ModelsDiv.AddText(0, my, 2, 1, "Image models")
 	for _, it := range source_llm.ImageModels {
+
+		pricing, tooltip := source_llm.GetPricingString(it.Id)
+
 		ModelsDiv.AddText(1, my, 1, 1, it.Id)
-		tx := ModelsDiv.AddText(2, my, 1, 1, fmt.Sprintf("<i>%s</i>", source_llm.GetPricingString(it.Id)))
-		tx.layout.Tooltip = "Price per image"
+		tx := ModelsDiv.AddText(2, my, 1, 1, fmt.Sprintf("<i>%s</i>", pricing))
+		tx.layout.Tooltip = tooltip
 		my++
 	}
 

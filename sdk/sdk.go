@@ -1789,6 +1789,17 @@ func (ui *UI) runChange(changeJs []byte, caller *ToolCaller) error {
 		}
 	}
 
+	if it.Chat != nil {
+		if len(change.ValueBytes) > 0 {
+			it.Chat.Messages = change.ValueBytes
+			it.Chat.Selected_user_msg = int(change.ValueInt)
+
+			if it.Chat.changed != nil {
+				return it.Chat.changed(change.ValueBool)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -2220,6 +2231,7 @@ type UI struct {
 	ChartLines        *UIChartLines        `json:",omitempty"`
 	ChartColumns      *UIChartColumns      `json:",omitempty"`
 	Media             *UIMedia             `json:",omitempty"`
+	Chat              *UIChat              `json:",omitempty"`
 	YearCalendar      *UIYearCalendar      `json:",omitempty"`
 	MonthCalendar     *UIMonthCalendar     `json:",omitempty"`
 	DayCalendar       *UIDayCalendar       `json:",omitempty"`
@@ -2834,6 +2846,15 @@ type UIMedia struct {
 	Scale_x, Scale_y         float64
 }
 
+type UIChat struct {
+	layout *UI
+
+	Messages          []byte
+	Selected_user_msg int
+
+	changed func(regenerate bool) error
+}
+
 type UICards struct {
 	layout *UI
 
@@ -3237,6 +3258,14 @@ func (ui *UI) _addMedia(x, y, w, h int, path string, blob []byte, cd color.RGBA)
 	ui._addUISub(item.layout, "")
 	return item
 }
+
+func (ui *UI) AddChat(x, y, w, h int, messages []byte) *UIChat {
+	item := &UIChat{Messages: messages, layout: _newUIItem(x, y, w, h, "")}
+	item.layout.Chat = item
+	ui._addUISub(item.layout, "")
+	return item
+}
+
 func (ui *UI) AddMediaPath(x, y, w, h int, path string) *UIMedia {
 	return ui._addMedia(x, y, w, h, path, nil, color.RGBA{255, 255, 255, 255})
 }
@@ -3425,11 +3454,13 @@ type LLMMsgUsage struct {
 	Input_cached_tokens int
 	Completion_tokens   int
 	Reasoning_tokens    int
+	Num_sources_used    int
 
 	Prompt_price       float64
 	Input_cached_price float64
 	Completion_price   float64
 	Reasoning_price    float64
+	Sources_price      float64
 }
 
 type LLMCompletion struct {
@@ -3441,6 +3472,10 @@ type LLMCompletion struct {
 	Frequency_penalty float64
 	Presence_penalty  float64
 	Reasoning_effort  string //"low", "medium", "high"
+
+	Search_mode               string //"auto", "on", "off"
+	Search_return_citations   bool
+	Search_max_search_results int
 
 	AppName string //load tools from
 
@@ -3457,15 +3492,16 @@ type LLMCompletion struct {
 	Out_messages   []byte //[]*ChatMsg
 	Out_tools      []byte
 
-	Out_answer    string
-	Out_reasoning string
+	Out_answer        string
+	Out_reasoning     string
+	Out_citation_urls []string
 
 	Out_usage LLMMsgUsage
 
 	deltaMsg func(msgJs []byte)
 }
 
-func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, done func(answer string), caller *ToolCaller) (running bool, answer string) {
+func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, done func(answer string, reasoning string, citation_urls []string), caller *ToolCaller) (running bool, answer string) {
 	running, answer = comp.Find(caller)
 
 	if running {
@@ -3486,7 +3522,7 @@ func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, do
 			err := comp.Run(caller)
 			if Tool_Error(err) == nil {
 				if done != nil {
-					done(comp.Out_answer)
+					done(comp.Out_answer, comp.Out_reasoning, comp.Out_citation_urls)
 				}
 			}
 			return err
@@ -3497,6 +3533,12 @@ func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, do
 
 func NewLLMCompletion(UID string, systemMessage string, userMessage string) *LLMCompletion {
 	return &LLMCompletion{UID: UID, Temperature: 0.2, Max_tokens: 16384, Top_p: 0.95, SystemMessage: systemMessage, UserMessage: userMessage}
+}
+
+func (comp *LLMCompletion) EnableSearch(return_citations bool, max_search_results int) {
+	comp.Search_mode = "on"
+	comp.Search_return_citations = return_citations
+	comp.Search_max_search_results = max_search_results
 }
 
 func (comp *LLMCompletion) Run(caller *ToolCaller) error {

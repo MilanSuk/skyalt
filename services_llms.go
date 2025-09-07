@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -53,6 +54,17 @@ type OpenAI_completion_msg_Content_ToolCall_Function struct {
 	Name      string `json:"name,omitempty"`
 	Arguments string `json:"arguments,omitempty"`
 }
+
+func (call *OpenAI_completion_msg_Content_ToolCall_Function) GetArgsAsStrings() (map[string]json.RawMessage, error) {
+	var attrs map[string]json.RawMessage
+	err := json.Unmarshal([]byte(call.Arguments), &attrs)
+	if err != nil {
+		return nil, err
+	}
+
+	return attrs, nil
+}
+
 type OpenAI_completion_msg_Content_ToolCall struct {
 	Id       string                                          `json:"id,omitempty"`
 	Index    int                                             `json:"index,omitempty"`
@@ -75,7 +87,8 @@ type OpenAI_content struct {
 type ChatMsg struct {
 	Seed int
 
-	Content OpenAI_content
+	Content   OpenAI_content
+	Citations []string
 
 	ReasoningSize int //Final text is after
 	ShowReasoning bool
@@ -89,6 +102,11 @@ type ChatMsg struct {
 
 	Stream bool
 }
+
+func (msg *ChatMsg) HasUI() bool {
+	return msg.Content.Result != nil && msg.UI_func != ""
+}
+
 type ChatMsgs struct {
 	Messages []*ChatMsg
 }
@@ -104,11 +122,21 @@ type LLMMsgUsage struct {
 	Input_cached_tokens int
 	Completion_tokens   int
 	Reasoning_tokens    int
+	Num_sources_used    int
 
 	Prompt_price       float64
 	Input_cached_price float64
 	Completion_price   float64
 	Reasoning_price    float64
+	Sources_price      float64
+}
+
+func (usage *LLMMsgUsage) GetSpeed() float64 {
+	toks := usage.Completion_tokens + usage.Reasoning_tokens
+	if usage.DTime == 0 {
+		return 0
+	}
+	return float64(toks) / usage.DTime
 }
 
 func (u *LLMMsgUsage) TotalPrice() float64 {
@@ -130,11 +158,13 @@ func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 	dst.Input_cached_tokens += src.Input_cached_tokens
 	dst.Completion_tokens += src.Completion_tokens
 	dst.Reasoning_tokens += src.Reasoning_tokens
+	dst.Num_sources_used += src.Num_sources_used
 
 	dst.Prompt_price += src.Prompt_price
 	dst.Input_cached_price += src.Input_cached_price
 	dst.Completion_price += src.Completion_price
 	dst.Reasoning_price += src.Reasoning_price
+	dst.Sources_price += src.Sources_price
 }
 
 type LLMComplete struct {
@@ -146,6 +176,10 @@ type LLMComplete struct {
 	Frequency_penalty float64
 	Presence_penalty  float64
 	Reasoning_effort  string //"low", "medium", "high"
+
+	Search_mode               string //"auto", "on", "off"
+	Search_return_citations   bool
+	Search_max_search_results int
 
 	AppName string //load tools from
 
@@ -162,8 +196,9 @@ type LLMComplete struct {
 	Out_messages   []byte //[]*ChatMsg
 	Out_tools      []byte
 
-	Out_answer    string
-	Out_reasoning string
+	Out_answer        string
+	Out_reasoning     string
+	Out_citation_urls []string
 
 	Out_usage LLMMsgUsage
 

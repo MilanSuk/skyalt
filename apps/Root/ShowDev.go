@@ -315,7 +315,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 				for _, prompt := range sdk_app.Prompts {
 					for _, it := range prompt.CodeVersions {
 						time_sum += it.Usage.DTime
-						price_sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price
+						price_sum += it.Usage.Prompt_price + it.Usage.Input_cached_price + it.Usage.Completion_price + it.Usage.Reasoning_price + it.Usage.Sources_price
 					}
 				}
 				tx := FooterRightDiv.AddText(0, 1, 1, 1, fmt.Sprintf("<i>Total: $%.4f, %s", price_sum, SdkGetDTime(time_sum)))
@@ -638,20 +638,23 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 							in := side_promptCode.Usage.Prompt_price
 							inCached := side_promptCode.Usage.Input_cached_price
 							out := side_promptCode.Usage.Completion_price + side_promptCode.Usage.Reasoning_price
-							tx.layout.Tooltip = fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)",
+							sources := side_promptCode.Usage.Sources_price
+							tx.layout.Tooltip = fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)\n- Sources: $%s(%d links)",
 								side_promptCode.Usage.Provider+":"+side_promptCode.Usage.Model,
 								SdkGetDateTime(int64(side_promptCode.Usage.CreatedTimeSec)),
 								strconv.FormatFloat(side_promptCode.Usage.TimeToFirstToken, 'f', 3, 64),
 								SdkGetDTime(side_promptCode.Usage.DTime),
 								strconv.FormatFloat(side_promptCode.Usage.GetSpeed(), 'f', 3, 64),
-								strconv.FormatFloat(in+inCached+out, 'f', -1, 64),
+								strconv.FormatFloat(in+inCached+out+sources, 'f', -1, 64),
 								strconv.FormatFloat(in, 'f', -1, 64),
 								side_promptCode.Usage.Prompt_tokens,
 								strconv.FormatFloat(inCached, 'f', -1, 64),
 								side_promptCode.Usage.Input_cached_tokens,
 								strconv.FormatFloat(out, 'f', -1, 64),
 								side_promptCode.Usage.Reasoning_tokens,
-								side_promptCode.Usage.Completion_tokens)
+								side_promptCode.Usage.Completion_tokens,
+								strconv.FormatFloat(sources, 'f', -1, 64),
+								side_promptCode.Usage.Num_sources_used)
 						}
 
 						//Code model picker

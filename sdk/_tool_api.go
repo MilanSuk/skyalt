@@ -374,30 +374,36 @@ type LLMCompletion struct {
 	Presence_penalty  float64
 	Reasoning_effort  string //"low", "medium", "high"
 
+	Search_mode               string //"auto", "on", "off"
+	Search_return_citations   bool
+	Search_max_search_results int
+
 	SystemMessage string
 	UserMessage   string
 	UserFiles     []string
 
 	Response_format string //"", "json_object"
 
-	Out_answer    string
-	Out_reasoning string
+	Out_answer        string
+	Out_reasoning     string
+	Out_citation_urls []string
 }
 
-// Show Button to trigger LLM completion. When it's already running, it shows "Stop" button and returns work-in-progress answer so you can show it on screen. After it's finished, it calls done() callback with complete answer.
-func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, done func(answer string), caller *ToolCaller) (running bool, work_in_progress_answer string)
+// Show Button to trigger LLM completion. When it's already running, it shows "Stop" button and returns work-in-progress answer so you can show it on screen.
+// After it's finished, it calls done() callback with complete answer.
+func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, done func(answer string, reasoning string, citation_urls []string), caller *ToolCaller) (running bool, work_in_progress_answer string)
 
 // UID: unique ID for completion
 func NewLLMCompletion(UID string, systemMessage string, userMessage string) *LLMCompletion {
 	return &LLMCompletion{UID: UID, Temperature: 0.2, Max_tokens: 16384, Top_p: 0.95, SystemMessage: systemMessage, UserMessage: userMessage}
 }
 
-func (comp *LLMCompletion) Run(caller *ToolCaller) error
-
-// Use this to check If LLM is running. If it's running you can show answer(full answer so far) to user.
-func (comp *LLMCompletion) Find(caller *ToolCaller) (running bool, answer string)
-
-func (comp *LLMCompletion) Stop(caller *ToolCaller) error
+// LLM can search the internet
+func (comp *LLMCompletion) EnableSearch(return_citations bool, max_search_results int) {
+	comp.Search_mode = "on"
+	comp.Search_return_citations = return_citations
+	comp.Search_max_search_results = max_search_results
+}
 
 // Close tool
 func (caller *ToolCaller) CloseTool()

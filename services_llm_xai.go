@@ -13,10 +13,11 @@ type LLMxAILanguageModel struct {
 	Version          string
 	Input_modalities []string //"text", "image"
 
-	Prompt_text_token_price        int //USD cents per million token
+	Prompt_text_token_price        int //USD cents per million tokens
 	Prompt_image_token_price       int
 	Cached_prompt_text_token_price int
 	Completion_text_token_price    int
+	Search_source_price            int //USD cents per thousand tokens
 
 	Aliases []string
 }
@@ -99,7 +100,7 @@ func (xai *LLMxAI) GetPricingString(model string) string {
 	return fmt.Sprintf("model %s not found", model)
 }
 
-func (model *LLMxAILanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
+func (model *LLMxAILanguageModel) GetTextPrice(in, reason, cached, out int, sources int) (float64, float64, float64, float64, float64) {
 
 	convert_to_dolars := float64(10000)
 
@@ -107,8 +108,9 @@ func (model *LLMxAILanguageModel) GetTextPrice(in, reason, cached, out int) (flo
 	Reason_price := float64(model.Prompt_text_token_price) / convert_to_dolars / 1000000
 	Cached_price := float64(model.Cached_prompt_text_token_price) / convert_to_dolars / 1000000
 	Output_price := float64(model.Completion_text_token_price) / convert_to_dolars / 1000000
+	Source_price := float64(model.Search_source_price) / convert_to_dolars / 1000 //1K
 
-	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price
+	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price, float64(sources) * Source_price
 }
 
 /*func (xai *LLMxAI) downloadList(url_part string) ([]byte, error) {

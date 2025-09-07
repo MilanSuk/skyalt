@@ -160,7 +160,7 @@ func (mst *LLMMistral) GetPricingString(model string) string {
 	return fmt.Sprintf("model %s not found", model)
 }
 
-func (model *LLMMistralLanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
+func (model *LLMMistralLanguageModel) GetTextPrice(in, reason, cached, out int, sources int) (float64, float64, float64, float64, float64) {
 	convert_to_dolars := float64(10000)
 
 	Input_price := float64(model.Prompt_text_token_price) / convert_to_dolars / 1000000
@@ -168,7 +168,7 @@ func (model *LLMMistralLanguageModel) GetTextPrice(in, reason, cached, out int) 
 	Cached_price := float64(model.Cached_prompt_text_token_price) / convert_to_dolars / 1000000
 	Output_price := float64(model.Completion_text_token_price) / convert_to_dolars / 1000000
 
-	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price
+	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price, 0
 }
 
 func (mst *LLMMistral) Complete(st *LLMComplete, app_port int, tools []*ToolsOpenAI_completion_tool, msg *AppsRouterMsg) error {

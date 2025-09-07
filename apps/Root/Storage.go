@@ -301,7 +301,8 @@ type OpenAI_content struct {
 type ChatMsg struct {
 	Seed int
 
-	Content OpenAI_content
+	Content   OpenAI_content
+	Citations []string
 
 	ReasoningSize int //Final text is after
 	ShowReasoning bool
@@ -552,7 +553,7 @@ func (msg *ChatMsg) HasUI() bool {
 	return msg.Content.Result != nil && msg.UI_func != ""
 }
 
-func (msgs *ChatMsgs) GetTotalPrice(st_i, en_i int) (input, inCached, output float64) {
+func (msgs *ChatMsgs) GetTotalPrice(st_i, en_i int) (input, inCached, output, sources float64) {
 	if en_i < 0 {
 		en_i = len(msgs.Messages)
 	}
@@ -560,6 +561,7 @@ func (msgs *ChatMsgs) GetTotalPrice(st_i, en_i int) (input, inCached, output flo
 		input += msgs.Messages[i].Usage.Prompt_price
 		inCached += msgs.Messages[i].Usage.Input_cached_price
 		output += msgs.Messages[i].Usage.Completion_price + msgs.Messages[i].Usage.Reasoning_price
+		sources += msgs.Messages[i].Usage.Sources_price
 	}
 
 	return

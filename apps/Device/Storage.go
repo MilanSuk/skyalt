@@ -54,37 +54,34 @@ func NewDeviceSettings(file string) (*DeviceSettings, error) {
 	return LoadFile(file, "DeviceSettings", "json", st, true)
 }
 
-func DeviceSettings_GetPricingStringTooltip() string {
-	return "Price of Input_text/Input_image/Input_cached/Output per 1M tokens"
-}
-func (st *DeviceSettings) GetPricingString(provider, model string) string {
+func (st *DeviceSettings) GetPricingString(provider, model string) (pricing string, tooltip string) {
 
-	pricing := "unknown"
+	pricing = "unknown"
 
 	switch strings.ToLower(provider) {
 	case "xai":
 		st, err := NewLLMxAI("")
 		if err == nil {
-			pricing = st.GetPricingString(model)
+			pricing, tooltip = st.GetPricingString(model)
 		}
 	case "mistral":
 		st, err := NewLLMMistral("")
 		if err == nil {
-			pricing = st.GetPricingString(model)
+			pricing, tooltip = st.GetPricingString(model)
 		}
 	case "openai":
 		st, err := NewLLMOpenai("")
 		if err == nil {
-			pricing = st.GetPricingString(model)
+			pricing, tooltip = st.GetPricingString(model)
 		}
 	case "groq":
 		st, err := NewLLMGroq("")
 		if err == nil {
-			pricing = st.GetPricingString(model)
+			pricing, tooltip = st.GetPricingString(model)
 		}
 	}
 
-	return pricing
+	return
 }
 
 func (st *DeviceSettings) CheckProvider(provider string) error {
@@ -460,23 +457,28 @@ func (mst *LLMMistral) ReloadModels() error {
 
 	return nil
 }
-
-func (mst *LLMMistral) GetPricingString(model string) string {
+func (mst *LLMMistral) GetPricingString(model string) (string, string) {
 	model = strings.ToLower(model)
 
 	convert_to_dolars := float64(10000)
 
 	lang, img := mst.FindModel(model)
 	if lang != nil {
-		//in, cached, out, image
-		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
+		//in, cached, out, sources, image
+		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f",
+				float64(lang.Prompt_text_token_price)/convert_to_dolars,
+				float64(lang.Prompt_image_token_price)/convert_to_dolars,
+				float64(lang.Cached_prompt_text_token_price)/convert_to_dolars,
+				float64(lang.Completion_text_token_price)/convert_to_dolars),
+			"Price of Input_text, Input_image, Input_cached, Output(per 1M tokens)"
 	}
 
 	if img != nil {
-		return fmt.Sprintf("$%.2f", float64(img.Image_price)/convert_to_dolars)
+		return fmt.Sprintf("$%.2f", float64(img.Image_price)/convert_to_dolars),
+			"Price per Image"
 	}
 
-	return fmt.Sprintf("model %s not found", model)
+	return fmt.Sprintf("model %s not found", model), ""
 }
 
 func (model *LLMMistralLanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
@@ -539,19 +541,19 @@ func NewLLMGroq(file string) (*LLMGroq, error) {
 	return mst, err
 }
 
-func (mst *LLMGroq) Check() error {
+func (groq *LLMGroq) Check() error {
 
-	if mst.API_key == "" {
-		return fmt.Errorf("%s API key is empty", mst.Provider)
+	if groq.API_key == "" {
+		return fmt.Errorf("%s API key is empty", groq.Provider)
 	}
 
 	return nil
 }
 
-func (mst *LLMGroq) FindModel(name string) (*LLMGroqLanguageModel, *LLMGroqImageModel) {
+func (groq *LLMGroq) FindModel(name string) (*LLMGroqLanguageModel, *LLMGroqImageModel) {
 	name = strings.ToLower(name)
 
-	for _, model := range mst.LanguageModels {
+	for _, model := range groq.LanguageModels {
 		if strings.ToLower(model.Id) == name {
 			return model, nil
 		}
@@ -561,7 +563,7 @@ func (mst *LLMGroq) FindModel(name string) (*LLMGroqLanguageModel, *LLMGroqImage
 			}
 		}
 	}
-	for _, model := range mst.ImageModels {
+	for _, model := range groq.ImageModels {
 		if strings.ToLower(model.Id) == name {
 			return nil, model
 		}
@@ -575,13 +577,13 @@ func (mst *LLMGroq) FindModel(name string) (*LLMGroqLanguageModel, *LLMGroqImage
 	return nil, nil
 }
 
-func (mst *LLMGroq) ReloadModels() error {
+func (groq *LLMGroq) ReloadModels() error {
 
 	//reset
-	mst.LanguageModels = nil
-	mst.ImageModels = nil
+	groq.LanguageModels = nil
+	groq.ImageModels = nil
 
-	mst.LanguageModels = append(mst.LanguageModels, &LLMGroqLanguageModel{
+	groq.LanguageModels = append(groq.LanguageModels, &LLMGroqLanguageModel{
 		Id:                             "qwen/qwen3-32b",
 		Input_modalities:               []string{"text"},
 		Prompt_text_token_price:        2900,
@@ -589,7 +591,7 @@ func (mst *LLMGroq) ReloadModels() error {
 		Completion_text_token_price:    5900,
 	})
 
-	mst.LanguageModels = append(mst.LanguageModels, &LLMGroqLanguageModel{
+	groq.LanguageModels = append(groq.LanguageModels, &LLMGroqLanguageModel{
 		Id:                             "openai/gpt-oss-120b",
 		Input_modalities:               []string{"text"},
 		Prompt_text_token_price:        1500,
@@ -597,7 +599,7 @@ func (mst *LLMGroq) ReloadModels() error {
 		Completion_text_token_price:    7500,
 	})
 
-	mst.LanguageModels = append(mst.LanguageModels, &LLMGroqLanguageModel{
+	groq.LanguageModels = append(groq.LanguageModels, &LLMGroqLanguageModel{
 		Id:                             "openai/gpt-oss-20b",
 		Input_modalities:               []string{"text"},
 		Prompt_text_token_price:        1000,
@@ -608,22 +610,28 @@ func (mst *LLMGroq) ReloadModels() error {
 	return nil
 }
 
-func (mst *LLMGroq) GetPricingString(model string) string {
+func (groq *LLMGroq) GetPricingString(model string) (string, string) {
 	model = strings.ToLower(model)
 
 	convert_to_dolars := float64(10000)
 
-	lang, img := mst.FindModel(model)
+	lang, img := groq.FindModel(model)
 	if lang != nil {
-		//in, cached, out, image
-		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
+		//in, cached, out, sources, image
+		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f",
+				float64(lang.Prompt_text_token_price)/convert_to_dolars,
+				float64(lang.Prompt_image_token_price)/convert_to_dolars,
+				float64(lang.Cached_prompt_text_token_price)/convert_to_dolars,
+				float64(lang.Completion_text_token_price)/convert_to_dolars),
+			"Price of Input_text, Input_image, Input_cached, Output(per 1M tokens)"
 	}
 
 	if img != nil {
-		return fmt.Sprintf("$%.2f", float64(img.Image_price)/convert_to_dolars)
+		return fmt.Sprintf("$%.2f", float64(img.Image_price)/convert_to_dolars),
+			"Price per Image"
 	}
 
-	return fmt.Sprintf("model %s not found", model)
+	return fmt.Sprintf("model %s not found", model), ""
 }
 
 func (model *LLMGroqLanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
@@ -762,22 +770,28 @@ func (oai *LLMOpenai) ReloadModels() error {
 	return nil
 }
 
-func (oai *LLMOpenai) GetPricingString(model string) string {
+func (oai *LLMOpenai) GetPricingString(model string) (string, string) {
 	model = strings.ToLower(model)
 
 	convert_to_dolars := float64(10000)
 
 	lang, img := oai.FindModel(model)
 	if lang != nil {
-		//in, cached, out, image
-		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
+		//in, cached, out, sources, image
+		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f",
+				float64(lang.Prompt_text_token_price)/convert_to_dolars,
+				float64(lang.Prompt_image_token_price)/convert_to_dolars,
+				float64(lang.Cached_prompt_text_token_price)/convert_to_dolars,
+				float64(lang.Completion_text_token_price)/convert_to_dolars),
+			"Price of Input_text, Input_image, Input_cached, Output(per 1M tokens)"
 	}
 
 	if img != nil {
-		return fmt.Sprintf("$%.2f", float64(img.Image_price)/convert_to_dolars)
+		return fmt.Sprintf("$%.2f", float64(img.Image_price)/convert_to_dolars),
+			"Price per Image"
 	}
 
-	return fmt.Sprintf("model %s not found", model)
+	return fmt.Sprintf("model %s not found", model), ""
 }
 
 func (model *LLMOpenaiLanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
@@ -833,6 +847,7 @@ type LLMxAILanguageModel struct {
 	Prompt_image_token_price       int
 	Cached_prompt_text_token_price int
 	Completion_text_token_price    int
+	Search_source_price            int //USD cents per thousand tokens
 
 	Aliases []string
 }
@@ -872,11 +887,9 @@ func NewLLMxAI(file string) (*LLMxAI, error) {
 }
 
 func (xai *LLMxAI) Check() error {
-
 	if xai.API_key == "" {
 		return fmt.Errorf("%s API key is empty", xai.Provider)
 	}
-
 	return nil
 }
 
@@ -919,6 +932,7 @@ func (xai *LLMxAI) ReloadModels() error {
 		Prompt_text_token_price:        30000,
 		Cached_prompt_text_token_price: 7500,
 		Completion_text_token_price:    150000,
+		Search_source_price:            250000,
 	})
 
 	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
@@ -927,6 +941,7 @@ func (xai *LLMxAI) ReloadModels() error {
 		Prompt_text_token_price:        30000,
 		Cached_prompt_text_token_price: 7500,
 		Completion_text_token_price:    150000,
+		Search_source_price:            250000,
 	})
 	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
 		Id:                             "grok-3-fast",
@@ -934,6 +949,7 @@ func (xai *LLMxAI) ReloadModels() error {
 		Prompt_text_token_price:        50000,
 		Cached_prompt_text_token_price: 12500,
 		Completion_text_token_price:    250000,
+		Search_source_price:            250000,
 	})
 
 	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
@@ -942,6 +958,7 @@ func (xai *LLMxAI) ReloadModels() error {
 		Prompt_text_token_price:        3000,
 		Cached_prompt_text_token_price: 75,
 		Completion_text_token_price:    5000,
+		Search_source_price:            250000,
 	})
 
 	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
@@ -950,6 +967,7 @@ func (xai *LLMxAI) ReloadModels() error {
 		Prompt_text_token_price:        6000,
 		Cached_prompt_text_token_price: 1500,
 		Completion_text_token_price:    40000,
+		Search_source_price:            250000,
 	})
 
 	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
@@ -958,6 +976,7 @@ func (xai *LLMxAI) ReloadModels() error {
 		Prompt_text_token_price:        2000,
 		Cached_prompt_text_token_price: 200,
 		Completion_text_token_price:    15000,
+		Search_source_price:            250000,
 	})
 
 	xai.LanguageModels = append(xai.LanguageModels, &LLMxAILanguageModel{
@@ -966,6 +985,7 @@ func (xai *LLMxAI) ReloadModels() error {
 		Prompt_text_token_price:        20000,
 		Cached_prompt_text_token_price: 20000,
 		Completion_text_token_price:    100000,
+		Search_source_price:            250000,
 	})
 
 	//Image models
@@ -978,34 +998,42 @@ func (xai *LLMxAI) ReloadModels() error {
 	return nil
 }
 
-func (xai *LLMxAI) GetPricingString(model string) string {
+func (xai *LLMxAI) GetPricingString(model string) (string, string) {
 	model = strings.ToLower(model)
 
 	convert_to_dolars := float64(10000)
 
 	lang, img := xai.FindModel(model)
 	if lang != nil {
-		//in, cached, out, image
-		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f", float64(lang.Prompt_text_token_price)/convert_to_dolars, float64(lang.Prompt_image_token_price)/convert_to_dolars, float64(lang.Cached_prompt_text_token_price)/convert_to_dolars, float64(lang.Completion_text_token_price)/convert_to_dolars)
+		//in, cached, out, sources, image
+		return fmt.Sprintf("$%.2f/$%.2f/$%.2f/$%.2f/$%.2f",
+				float64(lang.Prompt_text_token_price)/convert_to_dolars,
+				float64(lang.Prompt_image_token_price)/convert_to_dolars,
+				float64(lang.Cached_prompt_text_token_price)/convert_to_dolars,
+				float64(lang.Completion_text_token_price)/convert_to_dolars,
+				float64(lang.Search_source_price)/convert_to_dolars),
+			"Price of Input_text, Input_image, Input_cached, Output(per 1M tokens), Sources(per 1K)"
 	}
 
 	if img != nil {
-		return fmt.Sprintf("$%.2f", float64(img.Image_price)/convert_to_dolars)
+		return fmt.Sprintf("$%.2f", float64(img.Image_price)/convert_to_dolars),
+			"Price per Image"
 	}
 
-	return fmt.Sprintf("model %s not found", model)
+	return fmt.Sprintf("model %s not found", model), ""
 }
 
-func (model *LLMxAILanguageModel) GetTextPrice(in, reason, cached, out int) (float64, float64, float64, float64) {
+func (model *LLMxAILanguageModel) GetTextPrice(in, reason, cached, out int, sources int) (float64, float64, float64, float64, float64) {
 
 	convert_to_dolars := float64(10000)
 
-	Input_price := float64(model.Prompt_text_token_price) / convert_to_dolars / 1000000
+	Input_price := float64(model.Prompt_text_token_price) / convert_to_dolars / 1000000 //1M
 	Reason_price := float64(model.Prompt_text_token_price) / convert_to_dolars / 1000000
 	Cached_price := float64(model.Cached_prompt_text_token_price) / convert_to_dolars / 1000000
 	Output_price := float64(model.Completion_text_token_price) / convert_to_dolars / 1000000
+	Source_price := float64(model.Search_source_price) / convert_to_dolars / 1000 //1K
 
-	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price
+	return float64(in) * Input_price, float64(reason) * Reason_price, float64(cached) * Cached_price, float64(out) * Output_price, float64(sources) * Source_price
 }
 
 func (xai *LLMxAI) downloadList(url_part string) ([]byte, error) {
