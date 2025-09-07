@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"math"
 	"strings"
 	"time"
 )
@@ -450,4 +451,9 @@ func (layout *Layout) ConvertTextDate(unix_sec int64) string {
 }
 func (layout *Layout) ConvertTextDateTime(unix_sec int64) string {
 	return layout.ConvertTextDate(unix_sec) + " " + layout.ConvertTextTime(unix_sec)
+}
+
+func (layout *Layout) ConvertDTime(dt_sec float64) string {
+	tm := time.Duration(math.Round(dt_sec*100) / 100 * float64(time.Second))
+	return tm.String()
 }

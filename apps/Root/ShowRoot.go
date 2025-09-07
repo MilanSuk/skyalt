@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -731,16 +732,34 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 		SideDiv.SetRow(0, 1, Layout_MAX_SIZE)
 
 		//Chat
-		ChatDiv, err := SideDiv.AddTool(0, 0, 1, 1, "side", (&ShowChat{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
-		if err != nil {
-			return fmt.Errorf("ShowChat.run() failed: %v", err)
-		}
-		if isRunning {
-			if source_chat.scroll_down {
-				ChatDiv.VScrollToTheBottom(false, caller)
-				source_chat.scroll_down = false //reset
+		{
+			msgs := LogsJsonMarshal(source_chat.Messages.Messages)
+			ChatDiv := SideDiv.AddChat(0, 0, 1, 1, msgs)
+			ChatDiv.Selected_user_msg = source_chat.Selected_user_msg
+			ChatDiv.changed = func(regenerate bool) error {
+
+				LogsJsonUnmarshal(ChatDiv.Messages, &source_chat.Messages.Messages)
+
+				source_chat.Selected_user_msg = ChatDiv.Selected_user_msg
+
+				if regenerate {
+					source_chat._sendIt(app.Name, caller, source_root, true)
+				}
+				return nil
 			}
-			ChatDiv.VScrollToTheBottom(true, caller)
+
+			/*ChatDiv, err := SideDiv.AddTool(0, 0, 1, 1, "side", (&ShowChat{AppName: app.Name, ChatFileName: chat_fileName}).run, caller)
+			if err != nil {
+				return fmt.Errorf("ShowChat.run() failed: %v", err)
+			}*/
+
+			if isRunning {
+				if source_chat.scroll_down {
+					ChatDiv.layout.VScrollToTheBottom(false, caller)
+					source_chat.scroll_down = false //reset
+				}
+				ChatDiv.layout.VScrollToTheBottom(true, caller)
+			}
 		}
 
 		//close panel
@@ -1367,7 +1386,29 @@ func (st *ShowRoot) buildUsage(ui *UI, usageJs []byte) {
 			ListDiv.AddText(2, y, 1, 1, SdkGetDTime(usg.DTime))
 
 			price := (usg.Prompt_price + usg.Input_cached_price + usg.Completion_price + usg.Reasoning_price)
-			ListDiv.AddText(3, y, 1, 1, fmt.Sprintf("$%f", price))
+			tx := ListDiv.AddText(3, y, 1, 1, fmt.Sprintf("$%f", price))
+
+			in := usg.Prompt_price
+			inCached := usg.Input_cached_price
+			out := usg.Completion_price + usg.Reasoning_price
+			sources := usg.Sources_price
+			tx.layout.Tooltip = fmt.Sprintf("<b>%s</b>\n%s\nTime to first token: %s sec\nTime: %s\n%s tokens/sec\nTotal: $%s\n- Input: $%s(%d toks)\n- Cached: $%s(%d toks)\n- Output: $%s(%d+%d toks)\n- Sources: $%s(%d links)",
+				usg.Provider+":"+usg.Model,
+				SdkGetDateTime(int64(usg.CreatedTimeSec)),
+				strconv.FormatFloat(usg.TimeToFirstToken, 'f', 3, 64),
+				SdkGetDTime(usg.DTime),
+				strconv.FormatFloat(usg.GetSpeed(), 'f', 3, 64),
+				strconv.FormatFloat(in+inCached+out+sources, 'f', -1, 64),
+				strconv.FormatFloat(in, 'f', -1, 64),
+				usg.Prompt_tokens,
+				strconv.FormatFloat(inCached, 'f', -1, 64),
+				usg.Input_cached_tokens,
+				strconv.FormatFloat(out, 'f', -1, 64),
+				usg.Reasoning_tokens,
+				usg.Completion_tokens,
+				strconv.FormatFloat(sources, 'f', -1, 64),
+				usg.Num_sources_used)
+
 			total_price += price
 
 			y++

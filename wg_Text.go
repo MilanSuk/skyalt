@@ -36,6 +36,13 @@ func (layout *Layout) AddText(x, y, w, h int, value string) *Text {
 	return props
 }
 
+func (st *Text) SetMultilined() {
+	st.Multiline = true
+	st.Align_h = 0
+	st.Align_v = 0
+	st.Linewrapping = true
+}
+
 func (st *Text) getLLMTip(layout *Layout) string {
 	return Layout_buildLLMTip("Text", "is saying", "\""+st.Value+"\"", st.Tooltip)
 }

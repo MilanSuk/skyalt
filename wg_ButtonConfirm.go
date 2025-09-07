@@ -31,6 +31,12 @@ func (layout *Layout) AddButtonConfirm(x, y, w, h int, label string, question st
 	return props
 }
 
+func (layout *Layout) AddButtonConfirm2(x, y, w, h int, label string, question string) (*ButtonConfirm, *Layout) {
+	props := &ButtonConfirm{Value: label, Align: 1, Background: 1, Question: question}
+	lay := layout._createDiv(x, y, w, h, "ButtonConfirm", props.Build, nil, nil)
+	return props, lay
+}
+
 func (layout *Layout) AddButtonConfirmMenu(x, y, w, h int, label string, icon_path string, icon_margin float64, question string) *ButtonConfirm {
 	props := &ButtonConfirm{Value: label, IconPath: icon_path, Icon_margin: icon_margin, Align: 0, Background: 0.25, Question: question}
 	layout._createDiv(x, y, w, h, "ButtonConfirm", props.Build, nil, nil)

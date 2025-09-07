@@ -18,7 +18,7 @@ func (st *ShowChats) run(caller *ToolCaller, ui *UI) error {
 	}
 
 	//load chat
-	source_chat, chat_fileName, err := source_root.refreshChats()
+	source_chat, _, err := source_root.refreshChats()
 
 	ui.SetColumnResizable(0, 4, 15, 7)
 	ui.SetColumn(1, 1, Layout_MAX_SIZE)
@@ -31,9 +31,31 @@ func (st *ShowChats) run(caller *ToolCaller, ui *UI) error {
 		MainDiv.SetRowFromSub(1, 1, g_ShowApp_prompt_height, true)
 
 		//messages
-		_, err = MainDiv.AddTool(0, 0, 1, 1, fmt.Sprintf("chat_%s", chat_fileName), (&ShowChat{ChatFileName: chat_fileName}).run, caller)
-		if err != nil {
-			return err
+		{
+			ChDiv := MainDiv.AddLayout(0, 0, 1, 1)
+			ChDiv.SetColumn(0, 1, Layout_MAX_SIZE)
+			ChDiv.SetColumn(1, 5, 20)
+			ChDiv.SetColumn(2, 1, Layout_MAX_SIZE)
+			ChDiv.SetRow(0, 1, Layout_MAX_SIZE)
+
+			msgs := LogsJsonMarshal(source_chat.Messages.Messages)
+			ChatDiv := ChDiv.AddChat(1, 0, 1, 1, msgs)
+			ChatDiv.Selected_user_msg = source_chat.Selected_user_msg
+			ChatDiv.changed = func(regenerate bool) error {
+
+				LogsJsonUnmarshal(ChatDiv.Messages, &source_chat.Messages.Messages)
+
+				source_chat.Selected_user_msg = ChatDiv.Selected_user_msg
+
+				if regenerate {
+					source_chat._sendIt(caller, source_root, true)
+				}
+				return nil
+			}
+			/*_, err = MainDiv.AddTool(0, 0, 1, 1, fmt.Sprintf("chat_%s", chat_fileName), (&ShowChat{ChatFileName: chat_fileName}).run, caller)
+			if err != nil {
+				return err
+			}*/
 		}
 
 		//prompt

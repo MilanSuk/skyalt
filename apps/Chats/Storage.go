@@ -177,7 +177,8 @@ type OpenAI_content struct {
 type ChatMsg struct {
 	Seed int
 
-	Content OpenAI_content
+	Content   OpenAI_content
+	Citations []string
 
 	ReasoningSize int //Final text is after
 	ShowReasoning bool

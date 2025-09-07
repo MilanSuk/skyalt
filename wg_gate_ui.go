@@ -172,6 +172,11 @@ type UIChartColumns struct {
 	ColumnMargin   float64
 }
 
+type UIChat struct {
+	Messages          []byte
+	Selected_user_msg int
+}
+
 type UIMedia struct {
 	Blob []byte
 	Path string
@@ -300,6 +305,7 @@ type UI struct {
 	ChartLines        *UIChartLines
 	ChartColumns      *UIChartColumns
 	Media             *UIMedia
+	Chat              *UIChat
 	YearCalendar      *UIYearCalendar
 	MonthCalendar     *UIMonthCalendar
 	DayCalendar       *UIDayCalendar
@@ -858,7 +864,21 @@ func (layout *Layout) addLayoutComp(it *UI, UI_UID uint64) {
 			layout.AddAudio(it.X, it.Y, it.W, it.H, it.Media.Path)
 		}
 
-		//itemLLMTip ....
+	} else if it.Chat != nil {
+
+		var msgs []*ChatMsg
+		err := LogsJsonUnmarshal(it.Chat.Messages, &msgs)
+		if err == nil {
+
+			ch := layout.AddChat(it.X, it.Y, it.W, it.H, msgs, it.Chat.Selected_user_msg)
+			ch.changed = func(regenerate bool) {
+				msgs, err := LogsJsonMarshal(ch.Messages)
+				if err == nil {
+					layout.ui.router.CallChangeAsync(ToolsSdkChange{UID: it.UID, ValueBool: regenerate, ValueBytes: msgs, ValueInt: int64(ch.Selected_user_msg)}, layout.ui._addLayout_FnProgress, layout.ui._addLayout_FnIODone)
+				}
+			}
+		}
+
 	} else if it.Button != nil {
 
 		if it.Button.ConfirmQuestion != "" {
