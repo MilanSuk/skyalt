@@ -473,6 +473,7 @@ func (ui *Ui) Tick() {
 		ui.SetRelayoutHard()
 	}
 
+	hasRelayoutHard := ui.relayout_hard
 	if ui.relayout_hard {
 		ui.relayout_hard = false
 		ui.relayout_soft = false
@@ -529,7 +530,7 @@ func (ui *Ui) Tick() {
 	ui.mainLayout.UpdateTouch()
 	ui.mainLayout.TouchDialogs(ui.edit.uid, ui.touch.canvas)
 
-	if ui.win.io.Touch.Start || (ui.edit.IsActive() && (ui.touch.IsCanvasActive() || ui.win.io.Keys.HasChanged)) || ui.edit.activate_next_uid > 0 {
+	if ui.win.io.Touch.Start || hasRelayoutHard || (ui.edit.IsActive() && (ui.touch.IsCanvasActive() || ui.win.io.Keys.HasChanged)) || ui.edit.activate_next_uid > 0 {
 		ui.mainLayout.textComp()
 	}
 
@@ -568,7 +569,6 @@ func (ui *Ui) Tick() {
 	if ui.router.Flush() { //only changed done msgs
 		ui.SetRefresh()
 	}
-
 }
 
 func (ui *Ui) _addLayout_FnProgress(cmdsGob [][]byte, err error, start_time float64) {
