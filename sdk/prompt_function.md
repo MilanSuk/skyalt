@@ -16,7 +16,7 @@ func [REPLACE_FUNC_NAME](/*arguments*/) /*return types*/ {
 }
 ```
 
-Based on the user message, rewrite the [REPLACE_FUNC_NAME]() function inside [REPLACE_FUNC_NAME].go file.
+Based on the user message, rewrite the [REPLACE_FUNC_NAME]() function inside [REPLACE_FUNC_NAME].go file. Output only single file([REPLACE_FUNC_NAME].go).
 
 Figure it out function & argument(s) description, function argument(s), return types(s) and function body based on user message.
 

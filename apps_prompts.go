@@ -97,27 +97,47 @@ func (prompt *ToolsPrompt) updateSchema() error {
 	return nil
 }
 
-func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, usage *LLMMsgUsage, previousMessages []byte) {
+func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, usage *LLMMsgUsage, previousMessages []byte) error {
 
-	re := regexp.MustCompile("(?s)```(?:go|golang)(.*?)```")
+	type File struct {
+		Name string
+		Code string
+	}
+	type Files struct {
+		Files []File
+	}
+	var files Files
+	err := LogsJsonUnmarshal([]byte(final_msg), &files)
+	if err != nil {
+		return err
+	}
+	if len(files.Files) == 0 {
+		return fmt.Errorf("no code file")
+	}
+	if len(files.Files) > 1 {
+		return fmt.Errorf("more than 1 code file")
+	}
+
+	/*re := regexp.MustCompile("(?s)```(?:go|golang)(.*?)```")
 	matches := re.FindAllStringSubmatch(final_msg, -1)
-
 	var goCode strings.Builder
 	for _, match := range matches {
 		if len(match) > 1 {
 			goCode.WriteString(match[1])
 			goCode.WriteString("\n")
 		}
-	}
+	}*/
+
+	prompt.CodeVersions = append(prompt.CodeVersions, ToolsPromptCode{Code: files.Files[0].Code, Usage: *usage})
 
 	//add new code version
-	{
-		code := final_msg
+	/*{
+		//code := final_msg
 		if goCode.Len() > 0 {
-			code = strings.TrimSpace(goCode.String())
+		code = strings.TrimSpace(goCode)
 		}
 		prompt.CodeVersions = append(prompt.CodeVersions, ToolsPromptCode{Code: code, Usage: *usage})
-	}
+	}*/
 
 	prompt.Messages = append(prompt.Messages, ToolsPromptMessages{Message: final_msg, Reasoning: reasoning_msg})
 
@@ -126,6 +146,7 @@ func (prompt *ToolsPrompt) setMessage(final_msg string, reasoning_msg string, us
 	/*if loadName {
 		prompt.Name, _ = _ToolsPrompt_getFileName(prompt.Code)
 	}*/
+	return nil
 }
 
 type ToolsPromptGen struct {
@@ -454,8 +475,43 @@ func (prompts *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, msg *AppsRo
 		}
 	default:
 		return fmt.Errorf("prompt '%d:%s' is unknown type", prompt.Type, prompt.Name)
-
 	}
+
+	//comp.SystemMessage += "\nOutput code as "
+	comp.Response_format = `{
+    "type": "json_schema",
+    "json_schema": {
+        "name": "code",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "The name of the file"
+                            },
+                            "code": {
+                                "type": "string",
+                                "description": "The code inside the file"
+                            }
+                        },
+                        "required": ["name", "code"],
+                        "additionalProperties": false
+                    }
+                }
+            },
+            "required": [
+                "files"
+            ],
+            "additionalProperties": false
+        },
+        "strict": true
+    }
+}`
 
 	//error(s)
 	if len(prompt.CodeVersions) > 0 {
@@ -474,7 +530,7 @@ func (prompts *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, msg *AppsRo
 			}
 			code := strings.Join(lines, "\n")
 			comp.UserMessage = "```go" + code + "```\n"
-			comp.UserMessage += "Above code has compiler error(s), marked in line comments(//Error). Please fix them by rewriting above code. Also remove comments with errors."
+			comp.UserMessage += "Above code has compiler error(s), marked in line comments(//Error). Please fix them by rewriting above code(you must output single file). Also remove comments with errors."
 		}
 	}
 
@@ -496,7 +552,10 @@ func (prompts *ToolsPrompts) generatePromptCode(prompt *ToolsPrompt, msg *AppsRo
 		return err
 	}
 
-	prompt.setMessage(comp.Out_answer, comp.Out_reasoning, &comp.Out_usage, comp.Out_messages)
+	err = prompt.setMessage(comp.Out_answer, comp.Out_reasoning, &comp.Out_usage, comp.Out_messages)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

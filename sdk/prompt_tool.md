@@ -37,7 +37,7 @@ func (tool *[REPLACE_TOOL_NAME]) run(caller *ToolCaller, ui *UI) error {
 }
 ```
 
-Based on the user message, rewrite the tool.go file(keep struct and function header names). Your job is to design a function(tool). Look into an example.go to understand how APIs and storage functions work.
+Based on the user message, rewrite the tool.go file(keep struct and function header names). Your job is to design a function(tool). Look into an example.go to understand how APIs and storage functions work. Output only single file(tool.go).
 
 Figure out <tool's arguments> based on the user prompt. Argument can not be pointer. There are two types of arguments - inputs and outputs. Output arguments must start with 'Out_', Input arguments don't have any prefix. All arguments must start with an upper-case letter. Every argument must have a description as a comment on same line. You can add extra marks(with brackets []) at the end of a comment. You may add multiple marks with your pair of brackets. Here are the marks:
 [optional] - caller can ignore the attribute

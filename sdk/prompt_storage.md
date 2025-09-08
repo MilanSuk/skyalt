@@ -22,7 +22,7 @@ func LoadExampleStruct() (*ExampleStruct, error) { //name must starts with "Load
 }
 ```
 
-Based on the user message, rewrite the storage.go file. Your job is to design structures. Write additional functions only if the user asks for them. You may write multiple structures.
+Based on the user message, rewrite the storage.go file. Your job is to design structures. Write additional functions only if the user asks for them. You may write multiple structures. Output only single file(storage.go).
 
 Structure attributes can not be pointers, because they will be saved as JSON, so instead of pointers, use ID, which is saved in a map[integer or string ID]. ID must be unique, use for example time.Now().UnixNano() and add comment for attribute how ID should be created.
 
