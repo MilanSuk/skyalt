@@ -19,7 +19,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"slices"
@@ -168,7 +167,7 @@ func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 }
 
 type LLMComplete struct {
-	llm_name string
+	//llm_name string
 
 	Temperature       float64
 	Top_p             float64
@@ -219,13 +218,13 @@ func NewLLMCompletion() *LLMComplete {
 	return comp
 }
 
-func (llm *LLMComplete) SetName(appName, toolName, msgName string) {
+/*func (llm *LLMComplete) SetName(appName, toolName, msgName string) {
 	llm.llm_name = fmt.Sprintf("%s_%s_%s", appName, toolName, msgName)
 }
 
 func (llm *LLMComplete) HasName(appName, toolName, msgName string) bool {
 	return llm.llm_name == fmt.Sprintf("%s_%s_%s", appName, toolName, msgName)
-}
+}*/
 
 func (a *LLMComplete) Cmp(b *LLMComplete) bool {
 	return a.Out_usage.Model == b.Out_usage.Model &&
@@ -235,7 +234,8 @@ func (a *LLMComplete) Cmp(b *LLMComplete) bool {
 		a.UserMessage == b.UserMessage &&
 		a.Reasoning_effort == b.Reasoning_effort &&
 		bytes.Equal(a.Out_tools, b.Out_tools) &&
-		bytes.Equal(a.PreviousMessages, b.PreviousMessages)
+		bytes.Equal(a.PreviousMessages, b.PreviousMessages) &&
+		a.Response_format == b.Response_format
 }
 
 type LLMGenerateImage struct {
@@ -310,12 +310,12 @@ func (llms *LLMs) addCache(st *LLMComplete) {
 	Tools_WriteJSONFile("temp/llms_cache.json", llms.Cache)
 }
 
-func (llms *LLMs) Find(appName, toolName, llmName string) *LLMComplete {
+func (llms *LLMs) Find(msg *AppsRouterMsg) *LLMComplete {
 	llms.running_lock.Lock()
 	defer llms.running_lock.Unlock()
 
 	for _, it := range llms.running {
-		if it.HasName(appName, toolName, llmName) {
+		if it.msg == msg {
 			return it
 		}
 	}
@@ -326,6 +326,7 @@ func (llms *LLMs) Find(appName, toolName, llmName string) *LLMComplete {
 func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) error {
 
 	st.msg = msg
+	//st.SetName(app_name, tool_name, llm_name)
 
 	dev := &llms.services.sync.Device
 
@@ -362,15 +363,6 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 		}
 	}
 
-	//find in cache
-	if llms.findCache(st) {
-		return nil
-	}
-
-	if st.Max_iteration <= 0 {
-		st.Max_iteration = 1
-	}
-
 	//add into running list
 	{
 		//add
@@ -389,6 +381,15 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 				}
 			}
 		}()
+	}
+
+	//find in cache
+	if llms.findCache(st) {
+		return nil
+	}
+
+	if st.Max_iteration <= 0 {
+		st.Max_iteration = 1
 	}
 
 	/*

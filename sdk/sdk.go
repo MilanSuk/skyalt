@@ -3542,6 +3542,9 @@ func (comp *LLMCompletion) EnableSearch(return_citations bool, max_search_result
 }
 
 func (comp *LLMCompletion) Run(caller *ToolCaller) error {
+
+	caller.SetMsgName(comp.UID) //later it can be Find() or Stop()!!!
+
 	compJs := LogsJsonMarshal(comp)
 
 	cl, err := NewToolClient("localhost", g_main.router_port)
@@ -3583,6 +3586,11 @@ func (comp *LLMCompletion) Run(caller *ToolCaller) error {
 	return fmt.Errorf("connection failed")
 }
 
+func (comp *LLMCompletion) Stop(caller *ToolCaller) error {
+	caller.callFuncMsgStop(comp.UID)
+	return nil
+}
+
 func (comp *LLMCompletion) Find(caller *ToolCaller) (running bool, answer string) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
@@ -3614,27 +3622,6 @@ func (comp *LLMCompletion) Find(caller *ToolCaller) (running bool, answer string
 		}
 	}
 	return false, ""
-}
-
-func (comp *LLMCompletion) Stop(caller *ToolCaller) error {
-	cl, err := NewToolClient("localhost", g_main.router_port)
-	if Tool_Error(err) == nil {
-		defer cl.Destroy()
-
-		err = cl.WriteArray([]byte("llm_stop"))
-		if Tool_Error(err) == nil {
-
-			err = cl.WriteArray([]byte(g_main.appName))
-			if Tool_Error(err) == nil {
-				err = cl.WriteArray([]byte(caller.toolName))
-				if Tool_Error(err) == nil {
-					err = cl.WriteArray([]byte(comp.UID))
-					Tool_Error(err)
-				}
-			}
-		}
-	}
-	return fmt.Errorf("connection failed")
 }
 
 type LLMTranscribe struct {

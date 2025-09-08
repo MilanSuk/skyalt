@@ -792,34 +792,18 @@ func (router *AppsRouter) RunNet() {
 					if err == nil {
 						toolName, err := cl.ReadArray()
 						if err == nil {
-							llm_name, err := cl.ReadArray()
+							msg_name, err := cl.ReadArray()
 							if err == nil {
-								comp := router.services.llms.Find(string(appName), string(toolName), string(llm_name))
+								msg := router.FindMessageName(string(appName), string(toolName), string(msg_name))
+								var comp *LLMComplete
+								if msg != nil {
+									comp = router.services.llms.Find(msg)
+								}
 								cl.WriteInt(uint64(OsTrn(comp != nil, 1, 0)))
 								if comp != nil {
 									cl.WriteArray([]byte(comp.wip_answer))
 								} else {
 									cl.WriteArray(nil)
-								}
-
-							}
-						}
-					}
-
-				case "llm_stop":
-					appName, err := cl.ReadArray()
-					if err == nil {
-						toolName, err := cl.ReadArray()
-						if err == nil {
-							llm_name, err := cl.ReadArray()
-							if err == nil {
-								comp := router.services.llms.Find(string(appName), string(toolName), string(llm_name))
-								if comp != nil {
-									if comp.msg != nil {
-										comp.msg.Stop()
-									} else {
-										LogsErrorf("it.msg == nil")
-									}
 								}
 							}
 						}
@@ -851,6 +835,7 @@ func (router *AppsRouter) RunNet() {
 									if comp.AppName != "" {
 										usecase = "tools"
 									}
+
 									err = router.services.llms.Complete(&comp, msg, usecase)
 									if err == nil {
 										//save back

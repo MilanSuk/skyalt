@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -48,11 +49,6 @@ type OpenAIOut struct {
 	Error     *OpenAIOutError
 }
 
-type OpenAI_completion_format struct {
-	Type string `json:"type"` //json_object
-	//Json_schema
-}
-
 type OpenAI_completion_msgSystem struct {
 	Role    string `json:"role"` //"system"
 	Content string `json:"content"`
@@ -84,7 +80,7 @@ type OpenAI_completion_props struct {
 	Frequency_penalty     float64 `json:"frequency_penalty,omitempty"`     //0
 	Presence_penalty      float64 `json:"presence_penalty,omitempty"`      //0
 
-	Response_format *OpenAI_completion_format `json:"response_format,omitempty"`
+	Response_format json.RawMessage `json:"response_format,omitempty"`
 
 	Reasoning_effort string `json:"reasoning_effort,omitempty"` //"low", "high"
 
@@ -347,7 +343,7 @@ func OpenAI_Complete(Provider string, OpenAI_url string, API_key string, st *LLM
 			Reasoning_effort:  st.Reasoning_effort,
 		}
 		if st.Response_format != "" {
-			props.Response_format = &OpenAI_completion_format{Type: st.Response_format}
+			props.Response_format = []byte(st.Response_format)
 		}
 		if st.Search_mode != "" {
 			props.Search_parameters = &OpenAI_completion_Search_parameters{Mode: st.Search_mode, Return_citations: st.Search_return_citations, Max_search_results: st.Search_max_search_results}
