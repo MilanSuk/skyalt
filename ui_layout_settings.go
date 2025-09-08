@@ -76,6 +76,10 @@ func (s *UiSettings) CloseDialog(dia *UiDialog, ui *Ui) {
 func (s *UiSettings) CloseTouchDialogs(ui *Ui) {
 	win := ui.GetWin()
 
+	if !win.io.Touch.End && !win.io.Keys.Esc {
+		return
+	}
+
 	for i := len(s.Dialogs) - 1; i >= 0; i-- {
 		dia := s.Dialogs[i]
 
@@ -85,7 +89,7 @@ func (s *UiSettings) CloseTouchDialogs(ui *Ui) {
 			if layApp != nil {
 				app_crop := layApp.crop
 				outside := app_crop.Inside(win.io.Touch.Pos) && !layDia.CropWithScroll().Inside(win.io.Touch.Pos)
-				if (win.io.Touch.Start && outside) || win.io.Keys.Esc {
+				if (win.io.Touch.End && outside) || win.io.Keys.Esc {
 					s.CloseDialog(dia, ui)
 
 					ui.ResetIO()
