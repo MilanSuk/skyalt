@@ -622,7 +622,8 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 		}
 
 		if len(dashUIs) > 0 {
-			if sel_user_msg > first_selected_user_msg {
+			isDialog := (sel_user_msg > first_selected_user_msg)
+			if isDialog {
 				dia := last_dashUi.AddDialog(fmt.Sprintf("dialog_%s_%d", source_chat.GetChatID(), sel_user_msg))
 				dia.close = func() {
 					//go back
@@ -650,13 +651,18 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 				}
 				app.Chats[app.Selected_chat_i].Label = appUi.findH1()
 
-				appUi.App = true
+				if !isDialog {
+					appUi.App = true
+				}
 				last_dashUi = appUi
 			} else {
 				//Multiple Dashes
 				DashDiv := last_dashUi.AddLayoutWithName(0, 0, dashW, 1, fmt.Sprintf("dash_%s", source_chat.GetChatID()))
 				DashDiv.SetColumn(0, 1, Layout_MAX_SIZE)
-				DashDiv.App = true
+				if !isDialog {
+					DashDiv.App = true
+				}
+
 				last_dashUi = DashDiv
 
 				for i, dash := range dashUIs {
