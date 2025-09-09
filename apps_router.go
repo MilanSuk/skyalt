@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"sort"
@@ -27,8 +28,8 @@ import (
 )
 
 type AppsRouterMsg struct {
-	msg_id   uint64
-	msg_name string
+	msg_id  uint64
+	msg_uid []byte //format: appName_toolNme_msgName
 
 	actionName string
 
@@ -53,24 +54,16 @@ type AppsRouterMsg struct {
 	drawit bool
 }
 
-func NewAppsRouterMsg(msg_id uint64, msg_name string, actionName string,
+func NewAppsRouterMsg(msg_id uint64, actionName string,
 	fnProgress func(cmdsGob [][]byte, err error, start_time float64),
 	fnDone func(dataJs []byte, uiGob []byte, cmdsGob []byte, err error, start_time float64)) *AppsRouterMsg {
 
-	msg := &AppsRouterMsg{msg_id: msg_id, msg_name: msg_name, fnProgress: fnProgress, fnDone: fnDone}
+	msg := &AppsRouterMsg{msg_id: msg_id, fnProgress: fnProgress, fnDone: fnDone}
 
 	msg.start_time = Tools_Time()
 	msg.actionName = actionName
 
 	return msg
-}
-
-func (msg *AppsRouterMsg) SetName(appName, toolName, msgName string) {
-	msg.msg_name = fmt.Sprintf("%s_%s_%s", appName, toolName, msgName)
-}
-
-func (msg *AppsRouterMsg) HasName(appName, toolName, msgName string) bool {
-	return msg.msg_name == fmt.Sprintf("%s_%s_%s", appName, toolName, msgName)
 }
 
 func (msg *AppsRouterMsg) Stop() {
@@ -279,7 +272,7 @@ func (router *AppsRouter) CallUpdateAsync(sub_uid uint64, fnProgress func(cmdsGo
 	}
 
 	msg_id := router.msgs_counter.Add(1)
-	msg := NewAppsRouterMsg(msg_id, "", "update", fnProgress, fnDone)
+	msg := NewAppsRouterMsg(msg_id, "update", fnProgress, fnDone)
 
 	router.lock.Lock()
 	router.msgs[msg_id] = msg
@@ -309,7 +302,7 @@ func (router *AppsRouter) CallChangeAsync(change ToolsSdkChange, fnProgress func
 	}
 
 	msg_id := router.msgs_counter.Add(1)
-	msg := NewAppsRouterMsg(msg_id, "", "change", fnProgress, fnDone)
+	msg := NewAppsRouterMsg(msg_id, "change", fnProgress, fnDone)
 
 	msg.drawit = true
 
@@ -339,7 +332,7 @@ func (router *AppsRouter) CallBuildAsync(ui_uid uint64, appName, toolName string
 	}
 
 	msg_id := router.msgs_counter.Add(1)
-	msg := NewAppsRouterMsg(msg_id, "", "build", fnProgress, fnDone)
+	msg := NewAppsRouterMsg(msg_id, "build", fnProgress, fnDone)
 
 	router.lock.Lock()
 	router.msgs[msg_id] = msg
@@ -370,8 +363,8 @@ func (router *AppsRouter) CallBuildAsync(ui_uid uint64, appName, toolName string
 
 func (router *AppsRouter) AddLocalRecompileMsg(appName string) *AppsRouterMsg {
 	msg_id := router.msgs_counter.Add(1)
-	msg := NewAppsRouterMsg(msg_id, "", "compile", nil, nil)
-	msg.SetName(appName, "", "_compile_")
+	msg := NewAppsRouterMsg(msg_id, "compile", nil, nil)
+	msg.msg_uid = []byte(fmt.Sprintf("%s_skyalt_compile", appName))
 
 	router.lock.Lock()
 	router.msgs[msg_id] = msg
@@ -381,11 +374,11 @@ func (router *AppsRouter) AddLocalRecompileMsg(appName string) *AppsRouterMsg {
 }
 
 func (router *AppsRouter) FindStartRecompileMsg() *AppsRouterMsg {
-	msg := router.FindMessageName("Root", "", "_compile_")
+	msg := router.FindMessageName([]byte("Root_skyalt_compile"))
 	if msg != nil {
 		return msg
 	}
-	msg = router.FindMessageName("Device", "", "_compile_")
+	msg = router.FindMessageName([]byte("Device_skyalt_compile"))
 	if msg != nil {
 		return msg
 	}
@@ -393,12 +386,12 @@ func (router *AppsRouter) FindStartRecompileMsg() *AppsRouterMsg {
 	return nil
 }
 
-func (router *AppsRouter) FindMessageName(appName, toolName, msgName string) *AppsRouterMsg {
+func (router *AppsRouter) FindMessageName(msg_uid []byte) *AppsRouterMsg {
 	router.lock.Lock()
 	defer router.lock.Unlock()
 
 	for _, msg := range router.msgs {
-		if msg != nil && msg.HasName(appName, toolName, msgName) {
+		if msg != nil && bytes.Equal(msg.msg_uid, msg_uid) {
 			return msg
 		}
 	}
@@ -464,7 +457,7 @@ func (router *AppsRouter) Flush() bool {
 func (router *AppsRouter) RunNet() {
 
 	type SdkMsg struct {
-		Id         string
+		UID        []byte
 		ActionName string
 
 		Progress_label string
@@ -652,7 +645,7 @@ func (router *AppsRouter) RunNet() {
 					for _, msg := range sorted_msgs {
 						if msg != nil && msg.drawit {
 
-							final_msgs = append(final_msgs, SdkMsg{Id: msg.msg_name,
+							final_msgs = append(final_msgs, SdkMsg{UID: msg.msg_uid,
 								ActionName:     msg.actionName,
 								Progress_label: msg.progress_label, Progress_done: msg.progress_done,
 								Start_time: msg.start_time})
@@ -689,66 +682,51 @@ func (router *AppsRouter) RunNet() {
 						router.text_highlight = string(text)
 					}
 
-				case "set_msg_name":
-					appName, err := cl.ReadArray()
+				case "set_msg_uid":
+					msg_uid, err := cl.ReadArray()
 					if err == nil {
-						toolName, err := cl.ReadArray()
+
+						msg_id, err := cl.ReadInt()
 						if err == nil {
-							msg_name, err := cl.ReadArray()
-							if err == nil {
-								msg_id, err := cl.ReadInt()
-								if err == nil {
-									router.lock.Lock()
-									{
-										msg, found := router.msgs[msg_id]
-										if found && msg != nil {
-											msg.SetName(string(appName), string(toolName), string(msg_name))
-										}
-									}
-									router.lock.Unlock()
+							router.lock.Lock()
+							{
+								msg, found := router.msgs[msg_id]
+								if found && msg != nil {
+									msg.msg_uid = msg_uid
 								}
 							}
+							router.lock.Unlock()
 						}
 					}
 
 				case "find_msg":
-					appName, err := cl.ReadArray()
+					msg_uid, err := cl.ReadArray()
 					if err == nil {
-						toolName, err := cl.ReadArray()
 						if err == nil {
-							msg_name, err := cl.ReadArray()
-							if err == nil {
-								msg := router.FindMessageName(string(appName), string(toolName), string(msg_name))
+							msg := router.FindMessageName(msg_uid)
 
-								if msg != nil {
-									cl.WriteInt(1) //exist
+							if msg != nil {
+								cl.WriteInt(1) //exist
 
-									msg := SdkMsg{Id: string(msg_name),
-										ActionName:     msg.actionName,
-										Progress_label: msg.progress_label, Progress_done: msg.progress_done,
-										Start_time: msg.start_time}
-									msgJs, _ := LogsJsonMarshal(msg)
-									cl.WriteArray(msgJs)
+								msg := SdkMsg{UID: msg_uid,
+									ActionName:     msg.actionName,
+									Progress_label: msg.progress_label, Progress_done: msg.progress_done,
+									Start_time: msg.start_time}
+								msgJs, _ := LogsJsonMarshal(msg)
+								cl.WriteArray(msgJs)
 
-								} else {
-									cl.WriteInt(0) //non-exist
-								}
+							} else {
+								cl.WriteInt(0) //non-exist
 							}
 						}
 					}
 
 				case "stop_msg":
-					appName, err := cl.ReadArray()
+					msg_uid, err := cl.ReadArray()
 					if err == nil {
-						toolName, err := cl.ReadArray()
-						if err == nil {
-							msg_name, err := cl.ReadArray()
-							if err == nil {
-								msg := router.FindMessageName(string(appName), string(toolName), string(msg_name))
-								if msg != nil {
-									msg.Stop()
-								}
-							}
+						msg := router.FindMessageName(msg_uid)
+						if msg != nil {
+							msg.Stop()
 						}
 					}
 
@@ -788,24 +766,18 @@ func (router *AppsRouter) RunNet() {
 					}
 
 				case "llm_find":
-					appName, err := cl.ReadArray()
+					msg_uid, err := cl.ReadArray()
 					if err == nil {
-						toolName, err := cl.ReadArray()
-						if err == nil {
-							msg_name, err := cl.ReadArray()
-							if err == nil {
-								msg := router.FindMessageName(string(appName), string(toolName), string(msg_name))
-								var comp *LLMComplete
-								if msg != nil {
-									comp = router.services.llms.Find(msg)
-								}
-								cl.WriteInt(uint64(OsTrn(comp != nil, 1, 0)))
-								if comp != nil {
-									cl.WriteArray([]byte(comp.wip_answer))
-								} else {
-									cl.WriteArray(nil)
-								}
-							}
+						msg := router.FindMessageName(msg_uid)
+						var comp *LLMComplete
+						if msg != nil {
+							comp = router.services.llms.Find(msg)
+						}
+						cl.WriteInt(uint64(OsTrn(comp != nil, 1, 0)))
+						if comp != nil {
+							cl.WriteArray([]byte(comp.wip_answer))
+						} else {
+							cl.WriteArray(nil)
 						}
 					}
 

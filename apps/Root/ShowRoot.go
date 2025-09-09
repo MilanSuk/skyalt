@@ -583,7 +583,7 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 
 	app.Chats[app.Selected_chat_i].Label = "" //reset
 
-	isRunning := (caller.callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
+	isRunning := (caller.callFuncFindMsgName(caller.CreateMsgUID(source_chat.GetChatID())) != nil) //(st.isRunning != nil && st.isRunning())
 
 	first_selected_user_msg := source_chat.Selected_user_msg
 
@@ -749,7 +749,7 @@ func (st *ShowRoot) buildApp(ui *UI, activate_prompt bool, source_root *Root, ap
 				source_chat.Selected_user_msg = ChatDiv.Selected_user_msg
 
 				if regenerate {
-					source_chat._sendIt(app.Name, caller, source_root, true)
+					return source_chat._sendIt(app.Name, caller, source_root, true)
 				}
 				return nil
 			}
@@ -809,7 +809,7 @@ func (ui *UI) findH1() string {
 
 func (st *ShowRoot) buildPrompt(ui *UI, activate_prompt bool, source_root *Root, app *RootApp, source_chat *Chat, caller *ToolCaller) {
 
-	isRunning := (caller.callFuncFindMsgName(source_chat.GetChatID()) != nil) //(st.isRunning != nil && st.isRunning())
+	isRunning := (caller.callFuncFindMsgName(caller.CreateMsgUID(source_chat.GetChatID())) != nil) //(st.isRunning != nil && st.isRunning())
 
 	input := &source_chat.Input
 
@@ -962,7 +962,7 @@ func (st *ShowRoot) buildPrompt(ui *UI, activate_prompt bool, source_root *Root,
 			StopBt := DivSend.AddButton(0, 1, 1, 1, "Stop")
 			StopBt.Cd = UI_GetPalette().E
 			StopBt.clicked = func() error {
-				caller.callFuncMsgStop(source_chat.GetChatID()) //stop
+				caller.callFuncMsgStop(caller.CreateMsgUID(source_chat.GetChatID())) //stop
 				return nil
 			}
 		}
@@ -1513,7 +1513,7 @@ func (st *ShowRoot) buildMessages(ui *UI, msgs []SdkMsg, caller *ToolCaller) {
 		bt := ui.AddButton(1, y, 1, 1, "Cancel")
 		bt.Background = 0.5
 		bt.clicked = func() error {
-			caller.callFuncMsgStop(msg.Id)
+			caller.callFuncMsgStop(msg.UID)
 			return nil
 		}
 		y++

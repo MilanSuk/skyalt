@@ -110,8 +110,8 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 		return err
 	}
 
-	generate_msg_name := "generate_" + app.Name
-	isGenerating := (caller.callFuncFindMsgName(generate_msg_name) != nil)
+	generate_msg_uid := caller.CreateMsgUID("generate_" + app.Name)
+	isGenerating := (caller.callFuncFindMsgName(generate_msg_uid) != nil)
 	prompts_path := filepath.Join("..", app.Name, "skyalt")
 	secrets_path := filepath.Join("..", app.Name, "secrets")
 
@@ -285,7 +285,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 					StopBt.Cd = UI_GetPalette().E
 					StopBt.layout.Tooltip = "Stop generating"
 					StopBt.clicked = func() error {
-						caller.callFuncMsgStop(generate_msg_name)
+						caller.callFuncMsgStop(generate_msg_uid)
 						return nil
 					}
 				} else {
@@ -296,7 +296,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 						app.Dev.PromptsHistory = append(app.Dev.PromptsHistory, string(filePrompts))
 
-						caller.SetMsgName(generate_msg_name)
+						caller.SetMsgName(generate_msg_uid)
 						callFuncGenerateApp(app.Name, caller)
 
 						app.Dev.SideFile_version = -1 //reset
@@ -375,7 +375,7 @@ func (st *ShowDev) run(caller *ToolCaller, ui *UI) error {
 
 				msgs := callFuncGetMsgs()
 				for _, msg := range msgs {
-					if strings.HasSuffix(msg.Id, generate_msg_name) {
+					if bytes.Equal(msg.UID, generate_msg_uid) {
 						HeaderDiv.AddText(1, 0, 1, 1, msg.Progress_label)
 						break
 					}

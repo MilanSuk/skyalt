@@ -167,8 +167,6 @@ func (dst *LLMMsgUsage) Add(src *LLMMsgUsage) {
 }
 
 type LLMComplete struct {
-	//llm_name string
-
 	Temperature       float64
 	Top_p             float64
 	Max_tokens        int
@@ -217,14 +215,6 @@ func NewLLMCompletion() *LLMComplete {
 	comp.Max_iteration = 1
 	return comp
 }
-
-/*func (llm *LLMComplete) SetName(appName, toolName, msgName string) {
-	llm.llm_name = fmt.Sprintf("%s_%s_%s", appName, toolName, msgName)
-}
-
-func (llm *LLMComplete) HasName(appName, toolName, msgName string) bool {
-	return llm.llm_name == fmt.Sprintf("%s_%s_%s", appName, toolName, msgName)
-}*/
 
 func (a *LLMComplete) Cmp(b *LLMComplete) bool {
 	return a.Out_usage.Model == b.Out_usage.Model &&
@@ -324,9 +314,7 @@ func (llms *LLMs) Find(msg *AppsRouterMsg) *LLMComplete {
 
 // usecase: "tools", "code", "chat"
 func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) error {
-
 	st.msg = msg
-	//st.SetName(app_name, tool_name, llm_name)
 
 	dev := &llms.services.sync.Device
 
@@ -392,20 +380,19 @@ func (llms *LLMs) Complete(st *LLMComplete, msg *AppsRouterMsg, usecase string) 
 		st.Max_iteration = 1
 	}
 
-	/*
-		//keep for testing - bypass findCache() above
-		if st.delta != nil {
-			for i := range 1000 {
-				st.delta(&ChatMsg{Content: OpenAI_content{Calls: &OpenAI_completion_msgCalls{Content: fmt.Sprintf("hello world: %d", i)}}})
+	//keep for testing - bypass findCache() above
+	/*if st.delta != nil {
+		for i := range 1000 {
+			st.delta(&ChatMsg{Content: OpenAI_content{Calls: &OpenAI_completion_msgCalls{Content: fmt.Sprintf("hello world: %d", i)}}})
 
-				for range 100 {
-					time.Sleep(10 * time.Millisecond)
-					if !msg.GetContinue() {
-						return nil
-					}
+			for range 100 {
+				time.Sleep(10 * time.Millisecond)
+				if !msg.GetContinue() {
+					return nil
 				}
 			}
-		}*/
+		}
+	}*/
 
 	//call
 	switch strings.ToLower(provider) {

@@ -746,8 +746,6 @@ func (chat *Chat) _sendIt(appName string, caller *ToolCaller, root *Root, contin
 		return nil //empty text
 	}
 
-	caller.SetMsgName(chat.GetChatID())
-
 	chat.CutMessages(chat.Selected_user_msg)
 
 	chat.scroll_down = true
@@ -771,6 +769,7 @@ func (chat *Chat) complete(appName string, caller *ToolCaller, root *Root, conti
 	user_msg, files := chat.Input.GetFullPrompt()
 
 	var comp LLMCompletion
+	comp.UID = chat.GetChatID()
 	comp.Temperature = 0.2
 	comp.Max_tokens = 4096
 	comp.Top_p = 0.95 //1.0
@@ -873,7 +872,7 @@ If user wants to show/render/visualize some data, search for tools which 'shows'
 	chat.TempMessages = ChatMsgs{} //reset
 	err = json.Unmarshal(comp.Out_messages, &chat.Messages)
 	if err != nil {
-		return fmt.Errorf("comp.Out_messages failed: %v", err)
+		return fmt.Errorf("comp.Out_messages '%s' failed: %v", comp.Out_messages, err)
 	}
 
 	//activate new dash

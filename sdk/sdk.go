@@ -710,7 +710,7 @@ type SdkTool struct {
 }
 
 type SdkMsg struct {
-	Id         string
+	UID        []byte
 	ActionName string
 
 	Progress_label string
@@ -862,49 +862,40 @@ func callFuncStopMic() {
 	}
 }
 
-func (caller *ToolCaller) SetMsgName(msg_name string) {
+func (caller *ToolCaller) CreateMsgUID(msg_name string) []byte {
+	return []byte(fmt.Sprintf("%s_%s_%s", g_main.appName, caller.toolName, msg_name))
+}
+
+func (caller *ToolCaller) SetMsgName(msg_uid []byte) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
-		err = cl.WriteArray([]byte("set_msg_name"))
+		err = cl.WriteArray([]byte("set_msg_uid"))
 		if Tool_Error(err) == nil {
 
-			err = cl.WriteArray([]byte(g_main.appName))
+			err = cl.WriteArray(msg_uid)
 			if Tool_Error(err) == nil {
-				err = cl.WriteArray([]byte(caller.toolName))
-				if Tool_Error(err) == nil {
-					err = cl.WriteArray([]byte(msg_name))
-					if Tool_Error(err) == nil {
-						err = cl.WriteInt(caller.msg_id)
-						Tool_Error(err)
-					}
-				}
+				err = cl.WriteInt(caller.msg_id)
+				Tool_Error(err)
 			}
 		}
 	}
 }
 
-func (caller *ToolCaller) callFuncMsgStop(msg_name string) {
+func (caller *ToolCaller) callFuncMsgStop(msg_uid []byte) {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
 
 		err = cl.WriteArray([]byte("stop_msg"))
 		if Tool_Error(err) == nil {
-
-			err = cl.WriteArray([]byte(g_main.appName))
-			if Tool_Error(err) == nil {
-				err = cl.WriteArray([]byte(caller.toolName))
-				if Tool_Error(err) == nil {
-					err = cl.WriteArray([]byte(msg_name))
-					Tool_Error(err)
-				}
-			}
+			err = cl.WriteArray(msg_uid)
+			Tool_Error(err)
 		}
 	}
 }
 
-func (caller *ToolCaller) callFuncFindMsgName(msg_name string) *SdkMsg {
+func (caller *ToolCaller) callFuncFindMsgName(msg_uid []byte) *SdkMsg {
 	cl, err := NewToolClient("localhost", g_main.router_port)
 	if Tool_Error(err) == nil {
 		defer cl.Destroy()
@@ -912,22 +903,15 @@ func (caller *ToolCaller) callFuncFindMsgName(msg_name string) *SdkMsg {
 		err = cl.WriteArray([]byte("find_msg"))
 		if Tool_Error(err) == nil {
 
-			err = cl.WriteArray([]byte(g_main.appName))
+			err = cl.WriteArray([]byte(msg_uid))
 			if Tool_Error(err) == nil {
-				err = cl.WriteArray([]byte(caller.toolName))
-				if Tool_Error(err) == nil {
-					err = cl.WriteArray([]byte(msg_name))
+				exist, err := cl.ReadInt()
+				if exist > 0 && Tool_Error(err) == nil {
+					msgJs, err := cl.ReadArray()
 					if Tool_Error(err) == nil {
-
-						exist, err := cl.ReadInt()
-						if exist > 0 && Tool_Error(err) == nil {
-							msgJs, err := cl.ReadArray()
-							if Tool_Error(err) == nil {
-								var msg SdkMsg
-								LogsJsonUnmarshal(msgJs, &msg)
-								return &msg
-							}
-						}
+						var msg SdkMsg
+						LogsJsonUnmarshal(msgJs, &msg)
+						return &msg
 					}
 				}
 			}
@@ -3506,10 +3490,8 @@ func (ui *UI) addLLMCompletionButton(buttonLabel string, comp *LLMCompletion, do
 
 	if running {
 		//work in progress
-		tb := ui.addTable("")
-		ln := tb.addLine("")
-		ln.addText("generating ...", "").Align_h = 1
-		StopBt := ln.addButton("Stop", "")
+		StopBt := ui.addButton("Stop", "")
+		StopBt.layout.Tooltip = "LLM is generating ..."
 		StopBt.Cd = UI_GetPalette().E
 		StopBt.clicked = func() error {
 			return comp.Stop(caller)
@@ -3543,7 +3525,7 @@ func (comp *LLMCompletion) EnableSearch(return_citations bool, max_search_result
 
 func (comp *LLMCompletion) Run(caller *ToolCaller) error {
 
-	caller.SetMsgName(comp.UID) //later it can be Find() or Stop()!!!
+	caller.SetMsgName(caller.CreateMsgUID(comp.UID)) //later it can be Find() or Stop()!!!
 
 	compJs := LogsJsonMarshal(comp)
 
@@ -3587,7 +3569,7 @@ func (comp *LLMCompletion) Run(caller *ToolCaller) error {
 }
 
 func (comp *LLMCompletion) Stop(caller *ToolCaller) error {
-	caller.callFuncMsgStop(comp.UID)
+	caller.callFuncMsgStop(caller.CreateMsgUID(comp.UID))
 	return nil
 }
 
@@ -3599,25 +3581,18 @@ func (comp *LLMCompletion) Find(caller *ToolCaller) (running bool, answer string
 		err = cl.WriteArray([]byte("llm_find"))
 		if Tool_Error(err) == nil {
 
-			err = cl.WriteArray([]byte(g_main.appName))
+			err = cl.WriteArray(caller.CreateMsgUID(comp.UID))
 			if Tool_Error(err) == nil {
-				err = cl.WriteArray([]byte(caller.toolName))
+				run, err := cl.ReadInt()
 				if Tool_Error(err) == nil {
-					err = cl.WriteArray([]byte(comp.UID))
+					ans, err := cl.ReadArray()
 					if Tool_Error(err) == nil {
-
-						run, err := cl.ReadInt()
-						if Tool_Error(err) == nil {
-							ans, err := cl.ReadArray()
-							if Tool_Error(err) == nil {
-								running = (run > 0)
-								answer = string(ans)
-								return
-							}
-						}
-
+						running = (run > 0)
+						answer = string(ans)
+						return
 					}
 				}
+
 			}
 		}
 	}
