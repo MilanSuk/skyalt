@@ -139,7 +139,7 @@ func (st *MonthCalendar) Build(layout *Layout) {
 
 							tx, txLay := DivEvents.AddText2(0, y, 1, 1, event.Title)
 							tx.Tooltip = fmt.Sprintf("EventID: %d, Title: %s, Start: %s, End: %s, GroupID: %d", event.EventID, event.Title, layout.ConvertTextDateTime(event.Start), layout.ConvertTextDateTime(event.Start+event.Duration), event.GroupID)
-							tx.Tooltip = layout.ConvertTextTime(event.Start) + " - " + layout.ConvertTextTime(event.Start+event.Duration) + "\n" + event.Title
+							//tx.Tooltip = layout.ConvertTextTime(event.Start) + " - " + layout.ConvertTextTime(event.Start+event.Duration) + "\n" + event.Title
 							txLay.Back_cd = event.Color
 							if txLay.Back_cd.A == 0 {
 								txLay.Back_cd = layout.GetPalette().P
