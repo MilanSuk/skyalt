@@ -786,6 +786,7 @@ func (router *AppsRouter) RunNet() {
 					if err == nil {
 						compJs, err := cl.ReadArray()
 						if err == nil {
+							var errBytes []byte
 							msg := router.FindMsg(msg_id)
 							if msg != nil {
 								var comp LLMComplete
@@ -812,13 +813,16 @@ func (router *AppsRouter) RunNet() {
 									if err == nil {
 										//save back
 										compJs, _ = LogsJsonMarshal(&comp)
+									} else {
+										errBytes = []byte(err.Error())
 									}
 								}
 							}
 
 							//send back
-							cl.WriteArray(nil) //empty delta
-							cl.WriteArray(compJs)
+							cl.WriteArray(nil)      //empty delta
+							cl.WriteArray(errBytes) //error
+							cl.WriteArray(compJs)   //comp
 						}
 					}
 
@@ -827,6 +831,7 @@ func (router *AppsRouter) RunNet() {
 					if err == nil {
 						compJs, err := cl.ReadArray()
 						if err == nil {
+							var errBytes []byte
 							msg := router.FindMsg(msg_id)
 							if msg != nil {
 								var comp LLMTranscribe
@@ -837,12 +842,15 @@ func (router *AppsRouter) RunNet() {
 									if err == nil {
 										//save back
 										compJs, _ = LogsJsonMarshal(&comp)
+									} else {
+										errBytes = []byte(err.Error())
 									}
 								}
 							}
 
 							//send back
-							cl.WriteArray(nil) //empty delta
+							cl.WriteArray(nil)      //empty delta
+							cl.WriteArray(errBytes) //error
 							cl.WriteArray(compJs)
 						}
 					}

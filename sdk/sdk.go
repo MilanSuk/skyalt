@@ -3555,10 +3555,17 @@ func (comp *LLMCompletion) Run(caller *ToolCaller) error {
 					}
 
 					//result
-					compJs, err = cl.ReadArray()
+					errBytes, err := cl.ReadArray()
 					if Tool_Error(err) == nil {
-						LogsJsonUnmarshal(compJs, comp) //update
-						return nil
+						compJs, err = cl.ReadArray()
+						if Tool_Error(err) == nil {
+							LogsJsonUnmarshal(compJs, comp) //update
+
+							if len(errBytes) > 0 {
+								return errors.New(string(errBytes))
+							}
+							return nil
+						}
 					}
 				}
 			}
@@ -3639,10 +3646,17 @@ func (comp *LLMTranscribe) Run(caller *ToolCaller) error {
 					}
 
 					//result
-					compJs, err = cl.ReadArray()
+					errBytes, err := cl.ReadArray()
 					if Tool_Error(err) == nil {
-						LogsJsonUnmarshal(compJs, comp) //update
-						return nil
+						compJs, err = cl.ReadArray()
+						if Tool_Error(err) == nil {
+							LogsJsonUnmarshal(compJs, comp) //update
+
+							if len(errBytes) > 0 {
+								return errors.New(string(errBytes))
+							}
+							return nil
+						}
 					}
 				}
 			}

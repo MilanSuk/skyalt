@@ -167,8 +167,6 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 				break
 			}
 
-			//callFuncPrint("data: " + data)
-
 			// Parse JSON response
 			type Delta struct {
 				Content           string                                   `json:"content"`
@@ -208,20 +206,22 @@ func OpenAI_completion_Run(jsProps []byte, Completion_url string, api_key string
 					time_to_first_token = float64(time.Now().UnixMicro()-st) / 1000000
 				}
 
-				fmt.Printf(choice.Delta.Reasoning_content)
-				fmt.Printf(choice.Delta.Content)
-
 				//add content
 				ret.Choices[0].Message.Content += choice.Delta.Content
 
 				//reasoning content
 				ret.Choices[0].Message.Reasoning_content += choice.Delta.Reasoning_content
 
+				fmt.Printf(choice.Delta.Reasoning_content)
+				fmt.Printf(choice.Delta.Content)
+
 				//add tools
 				for _, tool_call := range choice.Delta.Tool_calls {
 					index := tool_call.Index
 
 					if index >= len(ret.Choices[0].Message.Tool_calls) {
+						fmt.Println("tool_call:", tool_call)
+
 						ret.Choices[0].Message.Tool_calls = append(ret.Choices[0].Message.Tool_calls, tool_call)
 					} else {
 						ret.Choices[0].Message.Tool_calls[index].Function.Arguments += tool_call.Function.Arguments
