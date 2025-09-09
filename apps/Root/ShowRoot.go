@@ -1340,7 +1340,7 @@ func (st *ShowRoot) buildAbout(ui *UI) {
 
 	y := 0
 
-	Version := ui.AddText(0, y, 1, 1, "v0.1") //....
+	Version := ui.AddText(0, y, 1, 1, "v0.2") //....
 	Version.Align_h = 1
 	y++
 
